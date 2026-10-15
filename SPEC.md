@@ -1,0 +1,115 @@
+# HW Door Style — Specification
+
+SketchUp extension for Harry Wardrobes. Converts the fronts of our wardrobe
+Dynamic Components (doors and drawer fronts) between styles (Flat, Shaker),
+adds hidden hardware components for the parts list, and produces an on-screen
+summary that can be exported to CSV or printed to PDF.
+
+Target: SketchUp Pro 2026 (26.x), Windows. Users: designer and surveyor.
+
+## 1. Which components are affected
+
+Components are identified by their Dynamic Component name (`_name` attribute),
+falling back to the component definition name with any `#n` suffix removed.
+This matters because internal and external drawer fronts can share one
+definition name (`DRAWER_FRONT` / `DRAWER_FRONT#2`) while their DC names differ.
+
+| Kind | Default names | Behaviour |
+|---|---|---|
+| Door | `WRD_DOOR`, `LIN_DOOR`, `BRGFR_DOOR`, `WLK_DOOR`, `TPBX_DOOR`, `TPBX_DOOR_TOP` | Styled; gets hinges |
+| External drawer front | `XDRW_FRONT`, `LIN_DRAWER_FRONT` | Styled with the slim drawer frame; no hinges |
+| Internal drawer front | `IDRW_FRONT` | Always flat; listed in the summary only |
+
+All three lists are editable in Settings. `LINE_TOP_DOOR_LEFT/RIGHT` are
+door-swing indicator lines (tag `door_opening_dims`) and are deliberately not
+in any list.
+
+## 2. Styles
+
+Styles are a registry (`styles.rb`) so new ones can be added without touching
+the converter. v0.1 ships two.
+
+### Flat
+Plain 18 mm slab at the component's real size.
+
+### Shaker (one-piece, bought-in door)
+- Thickness 18 mm (taken from the component).
+- Recess depth: 6 mm, square inner edge, no bevels (render-friendly, about 30 faces per door).
+- Frame width: doors 100 mm (stiles and rails), external drawer fronts 50 mm.
+- Mid-rail: doors only, when door height is over 1,500 mm. Centred 815 mm
+  above the bottom edge of the door; 100 mm high. Both values are editable.
+- If a panel would be smaller than 40 mm in either direction, the item stays
+  flat and the summary flags it ("too small for shaker").
+
+## 3. How the geometry is stored
+
+Our components are Dynamic Components that are **scaled** to size (e.g.
+`WRD_DOOR` is drawn 1,942.5 mm tall and stretched to 2,024 mm). A shaker
+frame inside a scaled component would stretch with it, so on conversion:
+
+1. Doors are grouped by original definition + style + real size. Each group
+   gets one definition (made unique only where needed). Same-name, same-size
+   doors keep sharing one definition. Different sizes get `#n` definitions
+   (SketchUp naming; instance names are left alone).
+2. The instance's scale is reset to 1 and the geometry is rebuilt at real size
+   in the same position. DC values (LenX/LenY/LenZ) stay consistent.
+3. Inside the door definition:
+   - `STYLE_SHAKER` / `STYLE_FLAT` — nested component holding the visible
+     geometry, on the same tag the original faces used (`DOOR`, `DRAWER_FRONT`,
+     etc.). The door instance's own tag is untouched.
+   - Hinge components (e.g. 4 × `soft_close_110`) and, for PTO, one `tip_on`,
+     on tag `HARDWARE`, **hidden** so they never appear in renders.
+4. Settings used are written to the `hw_door_style` attribute dictionary.
+
+**Known trade-off:** if a wardrobe is resized afterwards, the DC engine
+stretches the door again. **Rebuild styles** redraws every styled item at its
+new size. Recommended workflow: design flat, convert when the layout is settled,
+press Rebuild after any resize.
+
+## 4. Hardware (parts list only)
+
+- Hinge type is per job (stored in the model). Default: Soft Close 110.
+  Options: Soft Close 110, Soft Close 155, PTO 110, PTO 155.
+- PTO adds one TIP-ON per door.
+- Hinges per door by height: ≤900 mm 2, ≤1,600 mm 3, ≤2,000 mm 4, ≤2,400 mm 5,
+  above 6. Editable in Settings.
+- Hardware components are simple placeholder boxes inside the door's envelope.
+  If a definition named `soft_close_110` (etc.) already exists in the model, it
+  is reused, so real Blum models can be swapped in later by name.
+- Changing the job hinge type rebuilds hardware on all processed doors.
+
+## 5. User interface
+
+- **Toolbar**: All doors → Shaker · All external drawers → Shaker · Rebuild styles · Summary · Settings.
+- **Extensions menu → HW Door Style**: All doors → (each style), All external
+  drawers → (each style), Rebuild styles, Hinge type (this job) → (4 types),
+  Summary, Settings.
+- **Right-click** on a selected door/drawer (or a wardrobe containing them):
+  HW Door Style → each style, Rebuild.
+- Each action is a single undo step.
+
+## 6. Summary
+
+On-screen table, one row per physical item (counts multiply through repeated
+parent components): unit, item, kind, width, height, style, mid-rail, hinge
+type, hinge qty, TIP-ON qty, notes. Totals: items by style, hinges by type,
+TIP-ONs. Buttons: Export CSV, Print / Save as PDF (via the Windows print
+dialog), Refresh.
+
+Style does **not** affect price (cost sheet to be integrated later).
+
+## 7. Settings
+
+Stored inside the plugin folder:
+`settings_default.json` ships with the plugin; `settings.json` holds local
+overrides and survives plugin updates. The job hinge type lives in the model.
+
+## 8. Not in v0.1 (future)
+
+- Hinge side (L/R), and `DOOR L` / `DOOR R` naming.
+- Supplier profiles (Integral, HPP) with different frame sizes.
+- More styles: double mid-rail, glazed/mirror panels, slim shaker.
+- Grain direction for oak/walnut textures (vertical on doors, horizontal on drawers).
+- Pricing from the cost sheet.
+- Hinge positions that avoid the mid-rail / shelf lines; real hardware models.
+- Automatic rebuild when a DC is redrawn.

@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Settings</title>
+<style>
+  body { font:13px/1.4 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:14px 18px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#6a737d; margin:16px 0 6px; border-bottom:1px solid #d8dce0; padding-bottom:3px; }
+  h2:first-child { margin-top:0; }
+  label { display:grid; grid-template-columns:230px 1fr; align-items:center; gap:8px; margin:4px 0; }
+  input, textarea { font:inherit; padding:4px 6px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
+  input[type=number] { width:110px; }
+  textarea { height:44px; resize:vertical; }
+  .hint { color:#6a737d; font-size:11px; grid-column:2; margin-top:-2px; }
+  .bar { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+  button { font:inherit; padding:6px 14px; border:1px solid #c9ced3; border-radius:4px; background:#fff; cursor:pointer; }
+  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
+</style>
+</head>
+<body>
+<h2>Component names</h2>
+<label>Doors <textarea id="door_names"></textarea></label>
+<label>External drawer fronts <textarea id="ext_drawer_names"></textarea></label>
+<label>Internal drawer fronts (stay flat) <textarea id="int_drawer_names"></textarea></label>
+<div class="hint" style="margin-left:238px">Comma separated. Matches the Dynamic Component name, then the component name.</div>
+
+<h2>Shaker</h2>
+<label>Door frame width (mm) <input type="number" id="door_frame_mm" step="1"></label>
+<label>Drawer front frame width (mm) <input type="number" id="drawer_frame_mm" step="1"></label>
+<label>Recess depth (mm) <input type="number" id="recess_mm" step="0.5"></label>
+<label>Smallest panel (mm) <input type="number" id="min_panel_mm" step="1"></label>
+
+<h2>Mid-rail (doors)</h2>
+<label>Add mid-rail when door is taller than (mm) <input type="number" id="midrail_min_door_height_mm" step="1"></label>
+<label>Mid-rail centre above door bottom (mm) <input type="number" id="midrail_centre_mm" step="1"></label>
+<label>Mid-rail width (mm) <input type="number" id="midrail_width_mm" step="1"></label>
+
+<h2>Hardware</h2>
+<label>Hinges per door <input type="text" id="hinge_rules"></label>
+<div class="hint" style="margin-left:238px">max height:count, e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
+<label>Top / bottom hinge inset (mm) <input type="number" id="hinge_end_inset_mm" step="1"></label>
+<label>Hardware tag <input type="text" id="hardware_tag"></label>
+
+<div class="bar">
+  <button onclick="sketchup.reset()">Reset to defaults</button>
+  <button onclick="sketchup.cancel()">Cancel</button>
+  <button class="primary" onclick="save()">Save</button>
+</div>
+<script>
+var S = /*DATA*/null;
+var LISTS = ['door_names','ext_drawer_names','int_drawer_names'];
+var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm'];
+function load(s){
+  LISTS.forEach(function(k){ document.getElementById(k).value = (s[k]||[]).join(', '); });
+  NUMS.forEach(function(k){ document.getElementById(k).value = s[k]; });
+  document.getElementById('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
+  document.getElementById('hardware_tag').value = s.hardware_tag;
+}
+function save(){
+  var o = {};
+  LISTS.forEach(function(k){ o[k] = document.getElementById(k).value.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); });
+  NUMS.forEach(function(k){ o[k] = parseFloat(document.getElementById(k).value); });
+  o.hinge_rules = document.getElementById('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
+  o.hardware_tag = document.getElementById('hardware_tag').value.trim() || 'HARDWARE';
+  sketchup.save(JSON.stringify(o));
+}
+load(S);
+</script>
+</body>
+</html>
