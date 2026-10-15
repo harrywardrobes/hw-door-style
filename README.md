@@ -16,10 +16,12 @@ To update, install the newer `.rbz` over the old one. Your settings (`settings.j
 
 ## Downloads
 
-Each version is on the [Releases](https://github.com/harrywardrobes/hw-door-style/releases) page:
-- `hw_door_style_v<version>.rbz` - the plugin installer
+In the [`releases`](releases/) folder (click a file, then **Download raw file**):
+- `hw_door_style_v<version>.rbz` - the plugin installer (latest version)
 - `HW_Colours.zip` - the 13 colour materials (textures, swatches, RGB values and a script
   that makes the `.skm` files - see `materials/README.txt`)
+
+Each version is also tagged (`v0.4.1` etc.) so any earlier build can be rebuilt with `python3 build.py`.
 
 ## Use
 

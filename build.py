@@ -23,3 +23,12 @@ with zipfile.ZipFile(pack, "w", zipfile.ZIP_DEFLATED) as z:
     for p in sorted((src / "hw_door_style" / "textures").glob("*")):
         z.write(p, "HW Colours/textures/" + p.name)
 print(pack)
+
+# Copy into releases/ (committed, so the files can be downloaded from GitHub).
+import shutil
+rel = root / "releases"
+rel.mkdir(exist_ok=True)
+for old in rel.glob("hw_door_style_v*.rbz"):
+    old.unlink()
+shutil.copy(out, rel / out.name)
+shutil.copy(pack, rel / pack.name)
