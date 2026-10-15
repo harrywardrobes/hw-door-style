@@ -77,17 +77,31 @@ This applies to all recognised items, including internal drawer fronts and items
 not converted yet. It runs automatically with every convert, reset and rebuild, and
 on demand from **Apply DOOR / DRAWER_FRONT tags**. Tag names are editable in Settings.
 
-## 4. Hardware (parts list only)
+## 4. Hardware (cutlist parts)
 
 - Hinge type is per job (stored in the model). Default: Soft Close 110.
   Options: Soft Close 110, Soft Close 155, PTO 110, PTO 155.
 - PTO adds one TIP-ON per door.
-- Hinges per door by height: ≤900 mm 2, ≤1,600 mm 3, ≤2,000 mm 4, ≤2,400 mm 5,
+- Hinges per door by height: <=900 mm 2, <=1,600 mm 3, <=2,000 mm 4, <=2,400 mm 5,
   above 6. Editable in Settings.
-- Hardware components are simple placeholder boxes inside the door's envelope.
-  If a definition named `soft_close_110` (etc.) already exists in the model, it
-  is reused, so real Blum models can be swapped in later by name.
+- Hardware components are **not hidden** (cutlist software skips hidden components).
+  Each one is a small box (hinge 35x10x35 mm, TIP-ON 20x10x40 mm) placed fully inside
+  the door's 18 mm thickness, within the solid frame (hinges 5 mm from the left edge,
+  TIP-ON top right). The door faces enclose it on every side, so it can't be seen in
+  the model or in renders, but it is a normal visible component for the cutlist.
+- Faces, back faces and the instance carry the material `HARDWARE` and the tag
+  `HARDWARE`, so the cutlist can split them out. Both names are editable in Settings.
+- If a definition named `soft_close_110` (etc.) already exists and wasn't made by the
+  plugin, it is reused as-is, so real models can be swapped in later by name.
 - Changing the job hinge type rebuilds hardware on all processed doors.
+
+## 4a. Handles / knobs (counted, not modelled)
+
+- 1 per door and per drawer front.
+- 2 on drawer fronts wider than 500 mm (strictly over 500).
+- Internal drawer fronts are counted (setting).
+- Push-to-open jobs: doors count 0 handles (setting); drawer fronts still count.
+- Shown per row and as a total in the summary, CSV and PDF.
 
 ## 5. User interface
 

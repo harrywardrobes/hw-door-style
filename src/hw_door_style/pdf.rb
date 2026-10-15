@@ -16,11 +16,11 @@ module HarryWardrobes
 
       # key, label, width (pt), align
       COLUMNS = [
-        ['n', '#', 22, :right], ['unit', 'Unit', 140, :left], ['item', 'Item', 105, :left],
+        ['n', '#', 22, :right], ['unit', 'Unit', 128, :left], ['item', 'Item', 105, :left],
         ['kind', 'Kind', 78, :left], ['width', 'W', 34, :right], ['height', 'H', 34, :right],
         ['style', 'Style', 46, :left], ['midrail', 'Mid-rail', 40, :left],
         ['hinge_type', 'Hinge type', 74, :left], ['hinges', 'Hinges', 34, :right],
-        ['tip_on', 'TIP-ON', 34, :right], ['notes', 'Notes', nil, :left]
+        ['tip_on', 'TIP-ON', 34, :right], ['handles', 'Handles', 38, :right], ['notes', 'Notes', nil, :left]
       ].freeze
 
       def self.clean(s)
@@ -101,7 +101,7 @@ module HarryWardrobes
         blocks = [
           ['Items by style', t['by_style'].map { |k, v| [k, v] }],
           ['Hinges', t['hinges'].map { |k, v| [k, v] }],
-          ['Totals', [['Items', t['items']], ['TIP-ON', t['tip_on']]]]
+          ['Totals', [['Items', t['items']], ['TIP-ON', t['tip_on']], ['Handles / knobs', t['handles']]]]
         ]
         bw = (PAGE_W - 2 * MARGIN) / 3.0
         tallest = 0
@@ -140,7 +140,7 @@ module HarryWardrobes
           x = MARGIN
           columns.each do |key, _l, w, align|
             v = r[key]
-            v = '' if v.nil? || (v.is_a?(Integer) && v.zero? && %w[hinges tip_on].include?(key))
+            v = '' if v.nil? || (v.is_a?(Integer) && v.zero? && %w[hinges tip_on handles].include?(key))
             tx = align == :right ? x + w - 3 : x + 3
             page.text(tx, y, v.to_s, align: align, max: w - 6)
             x += w

@@ -16,6 +16,12 @@
   "hinge_rules": [[900, 2], [1600, 3], [2000, 4], [2400, 5], [99999, 6]],
   "hinge_end_inset_mm": 100,
   "hardware_tag": "HARDWARE",
+  "hardware_material": "HARDWARE",
+
+  "handle_double_min_width_mm": 500,
+  "handles_on_internal_drawers": true,
+  "handles_on_pto_doors": false,
+
   "door_tag": "DOOR",
   "drawer_tag": "DRAWER_FRONT"
 }

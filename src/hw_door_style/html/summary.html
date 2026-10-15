@@ -55,12 +55,12 @@ function render(d){
   document.getElementById('ver').textContent = 'HW Door Style v'+d.version;
   document.getElementById('last').textContent = d.last_export ? ('Last export: v'+d.last_export) : 'Not exported yet';
   var t = d.totals;
-  var extra = {}; extra['Items'] = t.items; extra['TIP-ON'] = t.tip_on;
+  var extra = {}; extra['Items'] = t.items; extra['TIP-ON'] = t.tip_on; extra['Handles / knobs'] = t.handles;
   document.getElementById('totals').innerHTML = card('Items by style', t.by_style) + card('Hinges', t.hinges) + card('Totals', extra);
   if(!d.rows.length){ document.getElementById('table').innerHTML = '<div class="empty">No doors or drawer fronts found. Check the names in Settings.</div>'; return; }
-  var h = '<table><thead><tr><th class="num">#</th><th>Unit</th><th>Item</th><th>Kind</th><th class="num">W</th><th class="num">H</th><th>Style</th><th>Mid-rail</th><th>Hinge type</th><th class="num">Hinges</th><th class="num">TIP-ON</th><th>Notes</th></tr></thead><tbody>';
+  var h = '<table><thead><tr><th class="num">#</th><th>Unit</th><th>Item</th><th>Kind</th><th class="num">W</th><th class="num">H</th><th>Style</th><th>Mid-rail</th><th>Hinge type</th><th class="num">Hinges</th><th class="num">TIP-ON</th><th class="num">Handles</th><th>Notes</th></tr></thead><tbody>';
   d.rows.forEach(function(r){
-    h += '<tr'+(r.notes?' class="warn"':'')+'><td class="num">'+r.n+'</td><td>'+esc(r.unit)+'</td><td>'+esc(r.item)+'</td><td>'+esc(r.kind)+'</td><td class="num">'+esc(r.width)+'</td><td class="num">'+esc(r.height)+'</td><td>'+esc(r.style)+'</td><td>'+esc(r.midrail)+'</td><td>'+esc(r.hinge_type)+'</td><td class="num">'+(r.hinges||'')+'</td><td class="num">'+(r.tip_on||'')+'</td><td>'+esc(r.notes)+'</td></tr>';
+    h += '<tr'+(r.notes?' class="warn"':'')+'><td class="num">'+r.n+'</td><td>'+esc(r.unit)+'</td><td>'+esc(r.item)+'</td><td>'+esc(r.kind)+'</td><td class="num">'+esc(r.width)+'</td><td class="num">'+esc(r.height)+'</td><td>'+esc(r.style)+'</td><td>'+esc(r.midrail)+'</td><td>'+esc(r.hinge_type)+'</td><td class="num">'+(r.hinges||'')+'</td><td class="num">'+(r.tip_on||'')+'</td><td class="num">'+(r.handles||'')+'</td><td>'+esc(r.notes)+'</td></tr>';
   });
   document.getElementById('table').innerHTML = h + '</tbody></table>';
 }

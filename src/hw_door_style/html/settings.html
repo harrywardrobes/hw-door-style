@@ -40,10 +40,16 @@
 <div class="hint" style="margin-left:238px">max height:count, e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
 <label>Top / bottom hinge inset (mm) <input type="number" id="hinge_end_inset_mm" step="1"></label>
 
+<h2>Handles / knobs</h2>
+<label>Two handles on drawer fronts wider than (mm) <input type="number" id="handle_double_min_width_mm" step="1"></label>
+<label>Count handles on internal drawer fronts <input type="checkbox" id="handles_on_internal_drawers" style="width:auto"></label>
+<label>Count handles on push-to-open doors <input type="checkbox" id="handles_on_pto_doors" style="width:auto"></label>
+
 <h2>Tags (applied to faces and edges inside each component)</h2>
 <label>Doors <input type="text" id="door_tag"></label>
 <label>Drawer fronts <input type="text" id="drawer_tag"></label>
 <label>Hinges / TIP-ON <input type="text" id="hardware_tag"></label>
+<label>Hinge / TIP-ON material <input type="text" id="hardware_material"></label>
 
 <div class="bar">
   <button onclick="sketchup.reset()">Reset to defaults</button>
@@ -53,13 +59,16 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names'];
-var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm'];
+var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm'];
+var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors'];
 function load(s){
   LISTS.forEach(function(k){ document.getElementById(k).value = (s[k]||[]).join(', '); });
   NUMS.forEach(function(k){ document.getElementById(k).value = s[k]; });
   document.getElementById('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
   document.getElementById('hardware_tag').value = s.hardware_tag;
   document.getElementById('door_tag').value = s.door_tag;
+  document.getElementById('hardware_material').value = s.hardware_material;
+  BOOLS.forEach(function(k){ document.getElementById(k).checked = !!s[k]; });
   document.getElementById('drawer_tag').value = s.drawer_tag;
 }
 function save(){
@@ -68,6 +77,8 @@ function save(){
   NUMS.forEach(function(k){ o[k] = parseFloat(document.getElementById(k).value); });
   o.hinge_rules = document.getElementById('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
   o.hardware_tag = document.getElementById('hardware_tag').value.trim() || 'HARDWARE';
+  BOOLS.forEach(function(k){ o[k] = document.getElementById(k).checked; });
+  o.hardware_material = document.getElementById('hardware_material').value.trim() || 'HARDWARE';
   o.door_tag = document.getElementById('door_tag').value.trim() || 'DOOR';
   o.drawer_tag = document.getElementById('drawer_tag').value.trim() || 'DRAWER_FRONT';
   sketchup.save(JSON.stringify(o));

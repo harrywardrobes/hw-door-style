@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-15
+- Hinges and TIP-ONs are no longer hidden: they sit fully inside the door thickness
+  (invisible, but found by cutlist software) and carry the material `HARDWARE`.
+- Handle / knob count: 1 per door and drawer front, 2 on drawer fronts over 500 mm wide,
+  none on push-to-open doors (configurable). In summary, CSV and PDF.
+- Settings: hardware material, handle rules.
+
 ## 0.2.0 — 2026-10-15
 - **Reset all to Flat** (toolbar + menu): all doors and external drawer fronts to Flat, hinges kept.
 - **Export door order**: one button saves `DOOR_ORDER_v<N>_<file name>.csv` and `.pdf` next to the

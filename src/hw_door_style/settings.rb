@@ -76,6 +76,19 @@ module HarryWardrobes
           .map { |k| get[k].to_f }.join(',')
       end
 
+      # Handles / knobs: 1 per door and drawer front, 2 on drawer fronts wider
+      # than handle_double_min_width_mm. Push-to-open doors get none unless
+      # handles_on_pto_doors is set.
+      def self.handle_count(kind, width, pto)
+        two = width.to_f * 25.4 > get['handle_double_min_width_mm'].to_f ? 2 : 1
+        case kind
+        when :door       then pto && !get['handles_on_pto_doors'] ? 0 : 1
+        when :ext_drawer then two
+        when :int_drawer then get['handles_on_internal_drawers'] ? two : 0
+        else 0
+        end
+      end
+
       def self.hinge_count(height)
         h_mm = height.to_f * 25.4
         rule = get['hinge_rules'].find { |max, _n| h_mm <= max.to_f }

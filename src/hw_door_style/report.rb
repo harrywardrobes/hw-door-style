@@ -5,7 +5,7 @@ module HarryWardrobes
     # On-screen summary of every door / drawer front, with CSV export and print-to-PDF.
     module Report
       HEADERS = ['#', 'Unit', 'Item', 'Kind', 'Width mm', 'Height mm', 'Style', 'Mid-rail',
-                 'Hinge type', 'Hinges', 'TIP-ON', 'Notes'].freeze
+                 'Hinge type', 'Hinges', 'TIP-ON', 'Handles', 'Notes'].freeze
 
       def self.path_label(path)
         return '(model)' if path.empty?
@@ -17,6 +17,7 @@ module HarryWardrobes
 
       def self.rows(model = Sketchup.active_model)
         rows = []
+        pto = Settings.pto?(Settings.job_hinge_type(model))
         Finder.each_occurrence(model.entities) do |inst, kind, path|
           d = inst.definition
           w, _t, h = Finder.real_size(inst)
@@ -35,6 +36,7 @@ module HarryWardrobes
             'midrail' => d.get_attribute(DICT, 'midrail') ? 'Yes' : '',
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
+            'handles' => Settings.handle_count(kind, w, pto),
             'notes' => notes.reject(&:empty?).join('; ')
           }
         end
@@ -43,11 +45,12 @@ module HarryWardrobes
       end
 
       def self.totals(rows)
-        t = { 'by_style' => Hash.new(0), 'hinges' => Hash.new(0), 'tip_on' => 0, 'items' => rows.size }
+        t = { 'by_style' => Hash.new(0), 'hinges' => Hash.new(0), 'tip_on' => 0, 'handles' => 0, 'items' => rows.size }
         rows.each do |r|
           t['by_style']["#{r['kind']} - #{r['style']}"] += 1
           t['hinges'][r['hinge_type']] += r['hinges'] if r['hinges'] > 0
           t['tip_on'] += r['tip_on']
+          t['handles'] += r['handles'].to_i
         end
         t
       end
@@ -57,7 +60,7 @@ module HarryWardrobes
         lines = [HEADERS.map(&q).join(',')]
         rows.each do |r|
           lines << [r['n'], r['unit'], r['item'], r['kind'], r['width'], r['height'], r['style'],
-                    r['midrail'], r['hinge_type'], r['hinges'], r['tip_on'], r['notes']].map(&q).join(',')
+                    r['midrail'], r['hinge_type'], r['hinges'], r['tip_on'], r['handles'], r['notes']].map(&q).join(',')
         end
         lines.join("\r\n")
       end

@@ -1,28 +1,67 @@
 module HarryWardrobes
   module DoorStyle
-    # Hidden hinge / TIP-ON components, placed inside the door envelope, used
-    # only for the parts list. If a definition with the same name already exists
-    # (e.g. a real Blum model named "soft_close_110"), it is reused.
+    # Hinge / TIP-ON components for the cutlist.
+    #
+    # They are NOT hidden (cutlist software skips hidden components). Instead each
+    # one sits fully inside the door's thickness, in the solid frame area, so the
+    # door's own faces cover it on every side: invisible in the model and in
+    # renders, but a normal component the cutlist can find. Faces and instance get
+    # the material "HARDWARE" so the cutlist can split them out.
+    #
+    # If a definition with the same name already exists and was not made by this
+    # plugin (e.g. a real Blum model named "soft_close_110"), it is reused as-is.
     module Hardware
-      HINGE_BOX  = [35, 12, 35].freeze # mm: x, y (into back of door), z
+      HINGE_BOX  = [35, 10, 35].freeze # mm: x (across door), y (thickness), z (height)
       TIP_ON_BOX = [20, 10, 40].freeze
+      EDGE_GAP   = 5 # mm from the door edge
+
+      def self.material(model)
+        name = Settings.get['hardware_material']
+        m = model.materials[name]
+        unless m
+          m = model.materials.add(name)
+          m.color = Sketchup::Color.new(140, 140, 145)
+        end
+        m
+      end
+
+      def self.ours?(d)
+        d.get_attribute(DICT, 'role') == 'hardware'
+      end
+
+      def self.paint(defn, model)
+        mat = material(model)
+        tag = Tagger.layer(model, Settings.get['hardware_tag'])
+        defn.entities.each do |e|
+          next unless e.is_a?(Sketchup::Face) || e.is_a?(Sketchup::Edge)
+          e.layer = tag unless e.layer == tag
+          if e.is_a?(Sketchup::Face)
+            e.material = mat unless e.material == mat
+            e.back_material = mat unless e.back_material == mat
+          end
+        end
+      end
 
       def self.definition(model, name, size_mm)
         d = model.definitions[name]
-        return d if d
+        if d
+          paint(d, model) if ours?(d)
+          return d
+        end
         d = model.definitions.add(name)
         w, t, h = size_mm.map { |v| v.mm }
         Styles.box(d.entities, w, t, h)
-        Tagger.tag_geometry(d.entities, Tagger.layer(model, Settings.get['hardware_tag']))
         d.set_attribute(DICT, 'role', 'hardware')
-        d.description = 'HW Door Style hardware placeholder (parts list only)'
+        d.description = 'HW Door Style hardware (cutlist part - sits inside the door, not visible)'
+        paint(d, model)
         d
       end
 
-      def self.place(ents, defn, point, tag, role, type)
+      def self.place(ents, defn, point, model, role, type)
         inst = ents.add_instance(defn, Geom::Transformation.new(point))
-        inst.layer = tag
-        inst.hidden = true
+        inst.layer = Tagger.layer(model, Settings.get['hardware_tag'])
+        inst.material = material(model)
+        inst.hidden = false
         inst.set_attribute(DICT, 'role', role)
         inst.set_attribute(DICT, 'type', type)
         inst
@@ -37,30 +76,37 @@ module HarryWardrobes
         Array.new(n) { |i| inset + i * step }
       end
 
+      # Y position that centres a part of thickness `pt` inside a door of thickness `t`.
+      def self.inside_y(t, pt)
+        [(t - pt) / 2.0, 0.5.mm].max
+      end
+
       # Adds hardware to a door definition. min = local corner of the door.
       # Returns { hinges: n, tip_on: n }.
       def self.add(door_def, min, w, t, h, kind, hinge_type)
         return { hinges: 0, tip_on: 0 } unless kind == :door
         model = door_def.model
-        tag = model.layers.add(Settings.get['hardware_tag'])
         ents = door_def.entities
+        gap = EDGE_GAP.mm
 
         hd = definition(model, hinge_type, HINGE_BOX)
-        hx = 5.mm
-        hy = t - HINGE_BOX[1].mm
+        hb = hd.bounds
         heights = hinge_heights(h, Settings.hinge_count(h))
         heights.each do |zc|
-          p = Geom::Point3d.new(min.x + hx, min.y + hy, min.z + zc - HINGE_BOX[2].mm / 2.0)
-          place(ents, hd, p, tag, 'hinge', hinge_type)
+          p = Geom::Point3d.new(min.x + gap - hb.min.x,
+                                min.y + inside_y(t, hb.height) - hb.min.y,
+                                min.z + zc - hb.depth / 2.0 - hb.min.z)
+          place(ents, hd, p, model, 'hinge', hinge_type)
         end
 
         tips = 0
         if Settings.pto?(hinge_type)
           td = definition(model, 'tip_on', TIP_ON_BOX)
-          p = Geom::Point3d.new(min.x + w - TIP_ON_BOX[0].mm - 5.mm,
-                                min.y + t - TIP_ON_BOX[1].mm,
-                                min.z + h - TIP_ON_BOX[2].mm - 20.mm)
-          place(ents, td, p, tag, 'tip_on', 'tip_on')
+          tb = td.bounds
+          p = Geom::Point3d.new(min.x + w - tb.width - gap - tb.min.x,
+                                min.y + inside_y(t, tb.height) - tb.min.y,
+                                min.z + h - tb.depth - 20.mm - tb.min.z)
+          place(ents, td, p, model, 'tip_on', 'tip_on')
           tips = 1
         end
 

@@ -106,6 +106,14 @@ check 'csv header + row', csv.lines.size == 2 && csv.include?('"a, ""b"""')
 t = Report.totals(rows)
 check 'totals hinges', t['hinges']['Soft Close 110'] == 5
 
+# --- handles
+check 'door 1 handle', Settings.handle_count(:door, 400.mm, false) == 1
+check 'PTO door 0 handles', Settings.handle_count(:door, 400.mm, true) == 0
+check 'drawer 500 wide = 1', Settings.handle_count(:ext_drawer, 500.mm, false) == 1
+check 'drawer 802 wide = 2', Settings.handle_count(:ext_drawer, 802.mm, false) == 2
+check 'internal drawer 696 = 2', Settings.handle_count(:int_drawer, 696.mm, false) == 2
+rows[0]['handles'] = 1
+
 # --- export naming + versioning
 require 'tmpdir'
 require 'hw_door_style/pdf'
