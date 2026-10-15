@@ -140,7 +140,12 @@ module HarryWardrobes
           counts = Colours.apply(model, choices)
           model.commit_operation
           dlg.close
-          lines = Colours::GROUPS.map { |id, label| "#{label}: #{choices[id] == Colours::DEFAULT ? 'Default (no material)' : choices[id]} - #{counts[id]} part(s)" }
+          shown = Colours.resolved(model, choices)
+          lines = Colours::GROUPS.map do |id, label|
+            name = shown[id] == Colours::DEFAULT ? 'no material' : shown[id]
+            name = "Default (#{name})" if choices[id] == Colours::DEFAULT
+            "#{label}: #{name} - #{counts[id]} part(s)"
+          end
           UI.messagebox("Colours applied.\n\n#{lines.join("\n")}")
         rescue StandardError => e
           model.abort_operation

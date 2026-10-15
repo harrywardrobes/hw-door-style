@@ -92,11 +92,23 @@ module HarryWardrobes
 
       # Paints every matching instance with the group's material (nil = Default).
       # Returns { group_id => count }.
+      # "Default" on Exterior / Interior / Worktop means "same as the door colour".
+      # Default on the door itself means no material.
+      def self.resolve(gid, name, door)
+        return name unless name.nil? || name == DEFAULT
+        gid == 'door' ? DEFAULT : (door || DEFAULT)
+      end
+
+      def self.resolved(model, choices)
+        door = choices['door'] || model.get_attribute(DICT, 'colour_door', nil)
+        choices.to_h { |gid, name| [gid, resolve(gid, name, door)] }
+      end
+
       def self.apply(model, choices)
         tags = group_tags
         lookup = {}
         tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
-        mats = choices.to_h { |gid, name| [gid, material(model, name)] }
+        mats = resolved(model, choices).to_h { |gid, name| [gid, material(model, name)] }
         counts = Hash.new(0)
         Finder.each_instance(model.entities) do |inst|
           next if skip?(inst)

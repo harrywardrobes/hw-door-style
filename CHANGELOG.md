@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1 — 2026-10-15
+- Colours: Exterior / Interior / Worktop "Default" now follows the door colour, shown as
+  "Default (<door colour>)"; each can still be set separately.
+
 ## 0.4.0 — 2026-10-15
 - Hinges / TIP-ONs moved behind the door, on the DOOR tag, material HARDWARE.
 - Door sizes measured from the door body only, so hardware behind the door doesn't change them.

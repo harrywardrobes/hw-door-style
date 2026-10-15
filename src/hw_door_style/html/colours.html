@@ -34,14 +34,33 @@
 <script>
 var D = /*DATA*/null;
 var HINT = { door:'DOOR, DRAWER_FRONT', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs', worktop:'WORKTOP' };
+// Door "Default" = no material; the others' "Default" = same as the door.
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function chipStyle(name){
   var c = D.swatches[name];
   if(!c) return '';
   return c.img ? 'background-image:url('+c.img+')' : 'background:rgb('+c.rgb.join(',')+')';
 }
+// Exterior / Interior / Worktop "Default" follows the door colour.
+function effective(id){
+  var v = document.getElementById('sel_'+id).value;
+  if (v !== 'Default' || id === 'door') return v;
+  return document.getElementById('sel_door').value;
+}
+function refreshDefaults(){
+  var door = document.getElementById('sel_door').value;
+  var label = door === 'Default' ? 'Default (no material)' : 'Default ('+door+')';
+  D.groups.forEach(function(g){
+    if (g[0] === 'door') return;
+    document.getElementById('sel_'+g[0]).options[0].text = label;
+  });
+}
 function setChip(id){
-  var v = document.getElementById('sel_'+id).value, ch = document.getElementById('chip_'+id);
+  if (id === 'door') { refreshDefaults(); D.groups.forEach(function(g){ if (g[0] !== 'door') paintChip(g[0]); }); }
+  paintChip(id);
+}
+function paintChip(id){
+  var v = effective(id), ch = document.getElementById('chip_'+id);
   ch.className = 'chip' + (v==='Default' ? ' none' : ''); ch.setAttribute('style', chipStyle(v));
   var door = document.getElementById('sel_door');
   document.getElementById('req').style.display = (door && door.value==='Default') ? 'block' : 'none';
@@ -57,7 +76,8 @@ function render(){
     h += '</select></div></div>';
   });
   document.getElementById('rows').innerHTML = h;
-  D.groups.forEach(function(g){ setChip(g[0]); });
+  refreshDefaults();
+  D.groups.forEach(function(g){ paintChip(g[0]); });
 }
 function values(){ var o={}; D.groups.forEach(function(g){ o[g[0]] = document.getElementById('sel_'+g[0]).value; }); return o; }
 function apply(){ sketchup.apply(JSON.stringify(values())); }

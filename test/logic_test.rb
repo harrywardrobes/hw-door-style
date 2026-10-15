@@ -120,6 +120,10 @@ check '13 colours', Colours.names.size == 13 && Colours.names.include?('Stone Gr
 check 'woodgrain textures bundled', Colours.library.select { |c| c['texture'] }.all? { |c| File.exist?(File.join(Colours::TEXTURES, c['texture'])) }
 check 'defaults start as Default', Colours.defaults.values.uniq == ['Default']
 check 'interior group has STL, not HARDWARE', Colours.group_tags['interior'].include?('STL') && !Colours.group_tags.values.flatten.include?('HARDWARE')
+check 'Default follows door colour', Colours.resolve('interior', 'Default', 'Cashmere') == 'Cashmere'
+check 'manual choice kept', Colours.resolve('worktop', 'Graphite', 'Cashmere') == 'Graphite'
+check 'door Default = no material', Colours.resolve('door', 'Default', nil) == 'Default'
+check 'others Default with no door = no material', Colours.resolve('exterior', 'Default', 'Default') == 'Default'
 check 'hinges on DOOR tag', Settings.get['hinge_tag'] == 'DOOR'
 
 # --- export naming + versioning

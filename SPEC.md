@@ -115,6 +115,10 @@ or one of the 13 library colours:
 
 Never changed: HARDWARE, hanging rail, Untagged, room tags, *_dims tags.
 
+- "Default" means different things per row: on Door / Drawer it is no material; on
+  Exterior, Interior and Worktop it means **same as the door colour** and shows as e.g.
+  "Default (Cashmere)". Each can still be set to its own colour. Rows left on Default keep
+  following the door if the door colour changes later.
 - A part's group comes from its own tag, or, if the part is Untagged, the tag on most of
   the faces inside it. The material is set on the component instance; if the instance has a
   DC "material" attribute it is updated too, so a DC redraw doesn't revert it.
