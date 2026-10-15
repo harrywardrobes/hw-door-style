@@ -1,0 +1,15 @@
+Harry Wardrobes colour library
+
+Alby Blue      RGB  77, 90,106   #4D5A6A
+Cashmere       RGB 216,202,189   #D8CABD
+Dust Grey      RGB 134,124,123   #867C7B
+Frost White    RGB 237,237,237   #EDEDED
+Graphite       RGB  70, 70, 68   #464644
+Indigo Blue    RGB  40, 46, 58   #282E3A
+Light Grey     RGB 209,209,209   #D1D1D1
+Lissa Oak      RGB 182,153,119   #B69977   texture lissa_oak.jpg (600 mm tile)
+Mussel         RGB 224,207,187   #E0CFBB
+Opera Walnut   RGB 100, 63, 39   #643F27   texture opera_walnut.jpg (600 mm tile)
+Reed Green     RGB 117,127,116   #757F74
+Sage Green     RGB 194,188,164   #C2BCA4
+Stone Grey     RGB 167,151,136   #A79788

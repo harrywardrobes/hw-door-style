@@ -14,6 +14,13 @@ See [SPEC.md](SPEC.md) for the full behaviour and design decisions.
 
 To update, install the newer `.rbz` over the old one. Your settings (`settings.json`) are kept.
 
+## Downloads
+
+Each version is on the [Releases](https://github.com/harrywardrobes/hw-door-style/releases) page:
+- `hw_door_style_v<version>.rbz` - the plugin installer
+- `HW_Colours.zip` - the 13 colour materials (textures, swatches, RGB values and a script
+  that makes the `.skm` files - see `materials/README.txt`)
+
 ## Use
 
 | Action | Where |
@@ -57,10 +64,11 @@ src/hw_door_style/colours.rb    colour library + painting by tag group
 src/hw_door_style/colours.json  the 13 colours
 src/hw_door_style/textures/     woodgrain textures
 tools/hw_inspect.rb             read-only model inspector for the Ruby Console
+materials/                      colour pack: make_skm.rb, swatches, RGB values
 test/logic_test.rb              offline logic tests (ruby test/logic_test.rb)
 ```
 
-Build the installer: `python3 build.py` → `dist/hw_door_style_v<version>.rbz`.
+Build: `python3 build.py` → `dist/hw_door_style_v<version>.rbz` and `dist/HW_Colours.zip`.
 
 Fast iteration without reinstalling: in the Ruby Console run
 `load 'C:/path/to/hw-door-style/src/hw_door_style.rb'` once, then reload individual

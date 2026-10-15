@@ -12,3 +12,14 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         if p.is_file() and p.name != "settings.json":
             z.write(p, p.relative_to(src).as_posix())
 print(out)
+
+# Colour materials pack: materials/ + the plugin's colours.json and textures.
+pack = root / "dist" / "HW_Colours.zip"
+with zipfile.ZipFile(pack, "w", zipfile.ZIP_DEFLATED) as z:
+    for p in sorted((root / "materials").rglob("*")):
+        if p.is_file():
+            z.write(p, "HW Colours/" + p.relative_to(root / "materials").as_posix())
+    z.write(src / "hw_door_style" / "colours.json", "HW Colours/colours.json")
+    for p in sorted((src / "hw_door_style" / "textures").glob("*")):
+        z.write(p, "HW Colours/textures/" + p.name)
+print(pack)
