@@ -18,6 +18,7 @@ To update, install the newer `.rbz` over the old one. Your settings (`settings.j
 
 | Action | Where |
 |---|---|
+| Choose colours for the job (needed before editing doors) | Toolbar: Colours |
 | Convert every door to Shaker | Toolbar: door icon |
 | Convert every external drawer front to Shaker | Toolbar: drawer icon |
 | Convert to any style (incl. back to Flat) | Extensions → HW Door Style → All doors / All external drawer fronts |
@@ -28,7 +29,8 @@ To update, install the newer `.rbz` over the old one. Your settings (`settings.j
 | On-screen summary | Toolbar: Summary |
 | Save `DOOR_ORDER_v<N>_<file name>` CSV + PDF next to the .skp | Toolbar: Export door order |
 | Re-tag faces/edges inside doors and drawer fronts | Extensions → HW Door Style → Apply DOOR / DRAWER_FRONT tags |
-| Frame sizes, mid-rail, hinge rules, names | Toolbar: Settings |
+| Save the 13 colours as .skm files | Extensions → HW Door Style → Export colour library (.skm) |
+| Frame sizes, mid-rail, hinge rules, names, tags, materials | Toolbar: Settings |
 
 Every action is a single undo (Ctrl+Z).
 
@@ -46,11 +48,14 @@ src/hw_door_style/main.rb       menus, toolbar, right-click, actions
 src/hw_door_style/settings.rb   settings + job hinge type
 src/hw_door_style/finder.rb     finding and measuring doors/drawer fronts
 src/hw_door_style/styles.rb     style registry (add new styles here)
-src/hw_door_style/hardware.rb   hidden hinge / TIP-ON parts
+src/hw_door_style/hardware.rb   hinge / TIP-ON cutlist parts
 src/hw_door_style/converter.rb  rebuilds definitions at real size
 src/hw_door_style/report.rb     summary, CSV, export naming/versioning
 src/hw_door_style/pdf.rb        built-in PDF writer
 src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging
+src/hw_door_style/colours.rb    colour library + painting by tag group
+src/hw_door_style/colours.json  the 13 colours
+src/hw_door_style/textures/     woodgrain textures
 tools/hw_inspect.rb             read-only model inspector for the Ruby Console
 test/logic_test.rb              offline logic tests (ruby test/logic_test.rb)
 ```

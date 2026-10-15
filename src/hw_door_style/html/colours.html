@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Colours</title>
+<style>
+  * { box-sizing:border-box; }
+  body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:12px 14px; }
+  h1 { font-size:14px; margin:0 0 2px; }
+  .sub { color:#6a737d; font-size:11px; margin-bottom:10px; }
+  .row { display:grid; grid-template-columns:190px 1fr; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eceef0; }
+  .row label { font-weight:600; }
+  .row small { display:block; font-weight:400; color:#6a737d; font-size:10.5px; }
+  .pick { display:flex; align-items:center; gap:8px; }
+  .chip { width:22px; height:22px; border-radius:3px; border:1px solid #c9ced3; flex:none; background-size:cover; }
+  .chip.none { background:repeating-linear-gradient(45deg,#fff 0 4px,#e5e7ea 4px 8px); }
+  select { font:inherit; padding:3px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
+  .req { color:#b4541a; font-size:11px; margin-top:8px; display:none; }
+  .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:12px; }
+  button { font:inherit; padding:5px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
+  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
+</style>
+</head>
+<body>
+<h1>Colours for this job</h1>
+<div class="sub" id="job"></div>
+<div id="rows"></div>
+<div class="req" id="req">Choose a Door / Drawer colour before converting doors.</div>
+<div class="bar">
+  <button onclick="setDefault()" title="Pre-select these colours on jobs that have none chosen yet">Save as default</button>
+  <button onclick="sketchup.cancel()">Close</button>
+  <button class="primary" onclick="apply()">Apply to model</button>
+</div>
+<script>
+var D = /*DATA*/null;
+var HINT = { door:'DOOR, DRAWER_FRONT', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs', worktop:'WORKTOP' };
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function chipStyle(name){
+  var c = D.swatches[name];
+  if(!c) return '';
+  return c.img ? 'background-image:url('+c.img+')' : 'background:rgb('+c.rgb.join(',')+')';
+}
+function setChip(id){
+  var v = document.getElementById('sel_'+id).value, ch = document.getElementById('chip_'+id);
+  ch.className = 'chip' + (v==='Default' ? ' none' : ''); ch.setAttribute('style', chipStyle(v));
+  var door = document.getElementById('sel_door');
+  document.getElementById('req').style.display = (door && door.value==='Default') ? 'block' : 'none';
+}
+function render(){
+  document.getElementById('job').textContent = D.job ? ('Job: '+D.job) : 'Unsaved model';
+  var h = '';
+  D.groups.forEach(function(g){
+    var cur = D.current[g[0]] || D.defaults[g[0]] || 'Default';
+    h += '<div class="row"><label>'+esc(g[1])+'<small>'+esc(HINT[g[0]]||'')+'</small></label><div class="pick"><span class="chip" id="chip_'+g[0]+'"></span><select id="sel_'+g[0]+'" onchange="setChip(\''+g[0]+'\')">';
+    h += '<option value="Default"'+(cur==='Default'?' selected':'')+'>Default (no material)</option>';
+    D.names.forEach(function(n){ h += '<option'+(n===cur?' selected':'')+'>'+esc(n)+'</option>'; });
+    h += '</select></div></div>';
+  });
+  document.getElementById('rows').innerHTML = h;
+  D.groups.forEach(function(g){ setChip(g[0]); });
+}
+function values(){ var o={}; D.groups.forEach(function(g){ o[g[0]] = document.getElementById('sel_'+g[0]).value; }); return o; }
+function apply(){ sketchup.apply(JSON.stringify(values())); }
+function setDefault(){ sketchup.setDefault(JSON.stringify(values())); }
+render();
+</script>
+</body>
+</html>

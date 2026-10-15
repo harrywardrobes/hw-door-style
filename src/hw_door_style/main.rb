@@ -11,6 +11,7 @@ module HarryWardrobes
     Sketchup.require(File.join(PATH, 'tagger'))
     Sketchup.require(File.join(PATH, 'hardware'))
     Sketchup.require(File.join(PATH, 'pdf'))
+    Sketchup.require(File.join(PATH, 'colours'))
     Sketchup.require(File.join(PATH, 'converter'))
     Sketchup.require(File.join(PATH, 'report'))
 
@@ -31,7 +32,16 @@ module HarryWardrobes
       nil
     end
 
+    # Doors can't be edited until the job has a Door / Drawer colour.
+    def self.colour_ready?
+      return true if Colours.door_colour_chosen?
+      UI.messagebox('Choose a Door / Drawer colour for this job before editing doors.')
+      show_colours
+      false
+    end
+
     def self.convert_all(kind, style)
+      return unless colour_ready?
       model = Sketchup.active_model
       pairs = Finder.all_targets(model, [kind])
       if pairs.empty?
@@ -44,6 +54,7 @@ module HarryWardrobes
 
     # Every door and external drawer front -> Flat style (hardware kept), one undo step.
     def self.reset_all_flat
+      return unless colour_ready?
       model = Sketchup.active_model
       pairs = Finder.all_targets(model, STYLED_KINDS)
       return UI.messagebox('No doors or drawer fronts found.') if pairs.empty?
@@ -68,6 +79,7 @@ module HarryWardrobes
     end
 
     def self.rebuild_all
+      return unless colour_ready?
       pairs = processed_targets(Sketchup.active_model)
       if pairs.empty?
         UI.messagebox('Nothing to rebuild - no doors or drawer fronts have been converted yet.')
@@ -96,6 +108,7 @@ module HarryWardrobes
     end
 
     def self.convert_selection(style)
+      return unless colour_ready?
       all = selection_targets
       pairs = all.reject { |_i, k| k == :int_drawer }
       return UI.messagebox('Internal drawer fronts always stay flat.') if pairs.empty? && !all.empty?
@@ -104,8 +117,55 @@ module HarryWardrobes
     end
 
     def self.rebuild_selection
+      return unless colour_ready?
       pairs = selection_targets.reject { |_i, k| k == :int_drawer }
       run('Rebuild selected') { Converter.apply(pairs, nil, 'Rebuild selected') }
+    end
+
+    # --- colours dialog -----------------------------------------------------
+
+    def self.show_colours
+      @colours_dlg&.close
+      model = Sketchup.active_model
+      dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style - Colours', preferences_key: 'hw_door_style_colours',
+                               width: 480, height: 330, resizable: true, scrollable: false,
+                               style: UI::HtmlDialog::STYLE_DIALOG)
+      html = File.read(File.join(PATH, 'html', 'colours.html'))
+      dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Colours.dialog_data(model))))
+      dlg.add_action_callback('cancel') { |_c| dlg.close }
+      dlg.add_action_callback('apply') do |_c, json|
+        choices = JSON.parse(json)
+        model.start_operation('Apply colours', true)
+        begin
+          counts = Colours.apply(model, choices)
+          model.commit_operation
+          dlg.close
+          lines = Colours::GROUPS.map { |id, label| "#{label}: #{choices[id] == Colours::DEFAULT ? 'Default (no material)' : choices[id]} - #{counts[id]} part(s)" }
+          UI.messagebox("Colours applied.\n\n#{lines.join("\n")}")
+        rescue StandardError => e
+          model.abort_operation
+          UI.messagebox("Colours not applied (undone).\n\n#{e.message}")
+        end
+      end
+      dlg.add_action_callback('setDefault') do |_c, json|
+        Settings.save(Settings.get.merge('default_colours' => JSON.parse(json)))
+        UI.messagebox('Saved as the default colours. They will be pre-selected on jobs with no colours chosen yet.')
+      end
+      @colours_dlg = dlg
+      dlg.show
+    end
+
+    def self.export_colour_library
+      dir = UI.select_directory(title: 'Choose a folder for the colour .skm files')
+      return unless dir
+      model = Sketchup.active_model
+      model.start_operation('Export colour library', true)
+      files = Colours.export_skm(model, dir)
+      model.commit_operation
+      UI.messagebox("#{files.size} materials saved to:\n#{dir}")
+    rescue StandardError => e
+      model.abort_operation
+      UI.messagebox("Export failed: #{e.message}")
     end
 
     # --- settings dialog ----------------------------------------------------
@@ -113,7 +173,7 @@ module HarryWardrobes
     def self.show_settings
       @settings_dlg&.close
       dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style - Settings', preferences_key: 'hw_door_style_settings',
-                               width: 620, height: 720, resizable: true, scrollable: true,
+                               width: 640, height: 700, resizable: true, scrollable: true,
                                style: UI::HtmlDialog::STYLE_DIALOG)
       html = File.read(File.join(PATH, 'html', 'settings.html'))
       dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Settings.get)))
@@ -183,6 +243,10 @@ module HarryWardrobes
       end
 
       menu.add_separator
+      cmd_colours = command('Colours', 'Set door, exterior, interior and worktop colours for this job.', 'colours') { show_colours }
+      menu.add_item(cmd_colours)
+      menu.add_item('Export colour library (.skm)') { export_colour_library }
+      menu.add_separator
       cmd_summary = command('Door summary', 'Show the door and drawer front summary (CSV / PDF export).', 'summary') { Report.show }
       cmd_settings = command('Settings', 'Frame sizes, mid-rail, hinge rules and component names.', 'settings') { show_settings }
       cmd_export = command('Export door order (CSV + PDF)', 'Save DOOR_ORDER_v<N>_<file name>.csv and .pdf next to the SketchUp file.', 'export') { Report.export_order }
@@ -191,6 +255,7 @@ module HarryWardrobes
       menu.add_item(cmd_settings)
 
       tb = UI::Toolbar.new('HW Door Style')
+      tb.add_item(cmd_colours)
       tb.add_item(command('All doors - Shaker', 'Convert every door in the model to Shaker.', 'doors') { convert_all(:door, 'shaker') })
       tb.add_item(command('All external drawer fronts - Shaker', 'Convert every external drawer front to Shaker (50 mm frame).', 'drawers') { convert_all(:ext_drawer, 'shaker') })
       tb.add_item(cmd_reset)

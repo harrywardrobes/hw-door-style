@@ -4,52 +4,79 @@
 <meta charset="utf-8">
 <title>Settings</title>
 <style>
-  body { font:13px/1.4 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:14px 18px; }
-  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#6a737d; margin:16px 0 6px; border-bottom:1px solid #d8dce0; padding-bottom:3px; }
-  h2:first-child { margin-top:0; }
-  label { display:grid; grid-template-columns:230px 1fr; align-items:center; gap:8px; margin:4px 0; }
-  input, textarea { font:inherit; padding:4px 6px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
-  input[type=number] { width:110px; }
-  textarea { height:44px; resize:vertical; }
-  .hint { color:#6a737d; font-size:11px; grid-column:2; margin-top:-2px; }
-  .bar { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
-  button { font:inherit; padding:6px 14px; border:1px solid #c9ced3; border-radius:4px; background:#fff; cursor:pointer; }
+  * { box-sizing:border-box; }
+  body { font:12px/1.3 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:10px 12px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  fieldset { border:1px solid #dfe2e5; border-radius:4px; margin:0; padding:6px 8px 8px; min-width:0; }
+  fieldset.wide { grid-column:1 / -1; }
+  legend { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#2f4a3f; padding:0 4px; }
+  .f { display:grid; grid-template-columns:1fr 64px; align-items:center; gap:6px; margin:2px 0; }
+  .f.t { grid-template-columns:118px 1fr; }
+  .f.c { grid-template-columns:1fr 16px; }
+  .f.t2 { grid-template-columns:auto 1fr; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  .f.t { grid-template-columns:150px 1fr; }
+  input, textarea { font:inherit; padding:2px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
+  textarea { height:22px; resize:vertical; }
+  input[type=checkbox] { width:auto; margin:0; }
+  .hint { color:#6a737d; font-size:10.5px; margin-top:2px; }
+  .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
+  button { font:inherit; padding:4px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
   button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
 </style>
 </head>
 <body>
-<h2>Component names</h2>
-<label>Doors <textarea id="door_names"></textarea></label>
-<label>External drawer fronts <textarea id="ext_drawer_names"></textarea></label>
-<label>Internal drawer fronts (stay flat) <textarea id="int_drawer_names"></textarea></label>
-<div class="hint" style="margin-left:238px">Comma separated. Matches the Dynamic Component name, then the component name.</div>
+<div class="grid">
+  <fieldset class="wide"><legend>Component names</legend>
+    <div class="f t"><span>Doors</span><textarea id="door_names"></textarea></div>
+    <div class="f t"><span>External drawers</span><textarea id="ext_drawer_names"></textarea></div>
+    <div class="f t"><span>Internal drawers</span><textarea id="int_drawer_names"></textarea></div>
+    <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name. Internal drawer fronts stay flat.</div>
+  </fieldset>
 
-<h2>Shaker</h2>
-<label>Door frame width (mm) <input type="number" id="door_frame_mm" step="1"></label>
-<label>Drawer front frame width (mm) <input type="number" id="drawer_frame_mm" step="1"></label>
-<label>Recess depth (mm) <input type="number" id="recess_mm" step="0.5"></label>
-<label>Smallest panel (mm) <input type="number" id="min_panel_mm" step="1"></label>
+  <fieldset><legend>Shaker (mm)</legend>
+    <div class="f"><span>Door frame width</span><input type="number" id="door_frame_mm"></div>
+    <div class="f"><span>Drawer front frame width</span><input type="number" id="drawer_frame_mm"></div>
+    <div class="f"><span>Recess depth</span><input type="number" step="0.5" id="recess_mm"></div>
+    <div class="f"><span>Smallest panel</span><input type="number" id="min_panel_mm"></div>
+  </fieldset>
 
-<h2>Mid-rail (doors)</h2>
-<label>Add mid-rail when door is taller than (mm) <input type="number" id="midrail_min_door_height_mm" step="1"></label>
-<label>Mid-rail centre above door bottom (mm) <input type="number" id="midrail_centre_mm" step="1"></label>
-<label>Mid-rail width (mm) <input type="number" id="midrail_width_mm" step="1"></label>
+  <fieldset><legend>Mid-rail on doors (mm)</legend>
+    <div class="f"><span>Add when door taller than</span><input type="number" id="midrail_min_door_height_mm"></div>
+    <div class="f"><span>Centre above door bottom</span><input type="number" id="midrail_centre_mm"></div>
+    <div class="f"><span>Mid-rail width</span><input type="number" id="midrail_width_mm"></div>
+  </fieldset>
 
-<h2>Hardware</h2>
-<label>Hinges per door <input type="text" id="hinge_rules"></label>
-<div class="hint" style="margin-left:238px">max height:count, e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
-<label>Top / bottom hinge inset (mm) <input type="number" id="hinge_end_inset_mm" step="1"></label>
+  <fieldset><legend>Hinges</legend>
+    <div class="f t"><span>Hinges per door</span><input type="text" id="hinge_rules"></div>
+    <div class="hint">max height:count - e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
+    <div class="f"><span>Top / bottom inset (mm)</span><input type="number" id="hinge_end_inset_mm"></div>
+  </fieldset>
 
-<h2>Handles / knobs</h2>
-<label>Two handles on drawer fronts wider than (mm) <input type="number" id="handle_double_min_width_mm" step="1"></label>
-<label>Count handles on internal drawer fronts <input type="checkbox" id="handles_on_internal_drawers" style="width:auto"></label>
-<label>Count handles on push-to-open doors <input type="checkbox" id="handles_on_pto_doors" style="width:auto"></label>
+  <fieldset><legend>Handles / knobs</legend>
+    <div class="f"><span>2 on drawer fronts wider than (mm)</span><input type="number" id="handle_double_min_width_mm"></div>
+    <div class="f c"><span>Count on internal drawer fronts</span><input type="checkbox" id="handles_on_internal_drawers"></div>
+    <div class="f c"><span>Count on push-to-open doors</span><input type="checkbox" id="handles_on_pto_doors"></div>
+  </fieldset>
 
-<h2>Tags (applied to faces and edges inside each component)</h2>
-<label>Doors <input type="text" id="door_tag"></label>
-<label>Drawer fronts <input type="text" id="drawer_tag"></label>
-<label>Hinges / TIP-ON <input type="text" id="hardware_tag"></label>
-<label>Hinge / TIP-ON material <input type="text" id="hardware_material"></label>
+  <fieldset class="wide"><legend>Tags</legend>
+    <div class="row3">
+      <div class="f t2"><span>Doors</span><input type="text" id="door_tag"></div>
+      <div class="f t2"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
+      <div class="f t2"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
+    </div>
+    <div class="hint">Applied to the faces and edges inside each component.</div>
+  </fieldset>
+
+  <fieldset class="wide"><legend>Materials</legend>
+    <div class="f t"><span>Hinge / TIP-ON material</span><input type="text" id="hardware_material"></div>
+    <div class="f t"><span>Door / Drawer tags</span><input type="text" id="cg_door"></div>
+    <div class="f t"><span>Exterior / Trim tags</span><input type="text" id="cg_exterior"></div>
+    <div class="f t"><span>Interior tags</span><input type="text" id="cg_interior"></div>
+    <div class="f t"><span>Worktop tags</span><input type="text" id="cg_worktop"></div>
+    <div class="hint">Which tags each colour in the Colours window paints. Hinges and TIP-ONs are never repainted.</div>
+  </fieldset>
+</div>
 
 <div class="bar">
   <button onclick="sketchup.reset()">Reset to defaults</button>
@@ -61,26 +88,28 @@ var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names'];
 var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors'];
+var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'DOOR', hardware_material:'HARDWARE' };
+var GROUPS = ['door','exterior','interior','worktop'];
+function $(id){ return document.getElementById(id); }
+function split(v){ return v.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); }
 function load(s){
-  LISTS.forEach(function(k){ document.getElementById(k).value = (s[k]||[]).join(', '); });
-  NUMS.forEach(function(k){ document.getElementById(k).value = s[k]; });
-  document.getElementById('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
-  document.getElementById('hardware_tag').value = s.hardware_tag;
-  document.getElementById('door_tag').value = s.door_tag;
-  document.getElementById('hardware_material').value = s.hardware_material;
-  BOOLS.forEach(function(k){ document.getElementById(k).checked = !!s[k]; });
-  document.getElementById('drawer_tag').value = s.drawer_tag;
+  LISTS.forEach(function(k){ $(k).value = (s[k]||[]).join(', '); });
+  NUMS.forEach(function(k){ $(k).value = s[k]; });
+  BOOLS.forEach(function(k){ $(k).checked = !!s[k]; });
+  Object.keys(TEXTS).forEach(function(k){ $(k).value = s[k] || TEXTS[k]; });
+  $('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
+  var cg = s.colour_groups || {};
+  GROUPS.forEach(function(g){ $('cg_'+g).value = (cg[g]||[]).join(', '); });
 }
 function save(){
   var o = {};
-  LISTS.forEach(function(k){ o[k] = document.getElementById(k).value.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); });
-  NUMS.forEach(function(k){ o[k] = parseFloat(document.getElementById(k).value); });
-  o.hinge_rules = document.getElementById('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
-  o.hardware_tag = document.getElementById('hardware_tag').value.trim() || 'HARDWARE';
-  BOOLS.forEach(function(k){ o[k] = document.getElementById(k).checked; });
-  o.hardware_material = document.getElementById('hardware_material').value.trim() || 'HARDWARE';
-  o.door_tag = document.getElementById('door_tag').value.trim() || 'DOOR';
-  o.drawer_tag = document.getElementById('drawer_tag').value.trim() || 'DRAWER_FRONT';
+  LISTS.forEach(function(k){ o[k] = split($(k).value); });
+  NUMS.forEach(function(k){ o[k] = parseFloat($(k).value); });
+  BOOLS.forEach(function(k){ o[k] = $(k).checked; });
+  Object.keys(TEXTS).forEach(function(k){ o[k] = $(k).value.trim() || TEXTS[k]; });
+  o.hinge_rules = $('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
+  o.colour_groups = {};
+  GROUPS.forEach(function(g){ o.colour_groups[g] = split($('cg_'+g).value); });
   sketchup.save(JSON.stringify(o));
 }
 load(S);

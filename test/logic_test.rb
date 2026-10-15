@@ -114,6 +114,14 @@ check 'drawer 802 wide = 2', Settings.handle_count(:ext_drawer, 802.mm, false) =
 check 'internal drawer 696 = 2', Settings.handle_count(:int_drawer, 696.mm, false) == 2
 rows[0]['handles'] = 1
 
+# --- colours
+require 'hw_door_style/colours'
+check '13 colours', Colours.names.size == 13 && Colours.names.include?('Stone Grey')
+check 'woodgrain textures bundled', Colours.library.select { |c| c['texture'] }.all? { |c| File.exist?(File.join(Colours::TEXTURES, c['texture'])) }
+check 'defaults start as Default', Colours.defaults.values.uniq == ['Default']
+check 'interior group has STL, not HARDWARE', Colours.group_tags['interior'].include?('STL') && !Colours.group_tags.values.flatten.include?('HARDWARE')
+check 'hinges on DOOR tag', Settings.get['hinge_tag'] == 'DOOR'
+
 # --- export naming + versioning
 require 'tmpdir'
 require 'hw_door_style/pdf'

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-10-15
+- Hinges / TIP-ONs moved behind the door, on the DOOR tag, material HARDWARE.
+- Door sizes measured from the door body only, so hardware behind the door doesn't change them.
+- **Colours** window: Door / Drawer, Exterior Panel / Trim, Interior and Worktop colours from a
+  13-colour library; Save as default; doors locked until a door colour is chosen.
+- Colour library bundled (plain colours + seamless Lissa Oak / Opera Walnut textures);
+  **Export colour library (.skm)**.
+- Settings window made compact; Tags and Materials split into separate sections.
+
 ## 0.3.0 — 2026-10-15
 - Hinges and TIP-ONs are no longer hidden: they sit fully inside the door thickness
   (invisible, but found by cutlist software) and carry the material `HARDWARE`.

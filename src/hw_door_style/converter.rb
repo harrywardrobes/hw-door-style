@@ -50,6 +50,7 @@ module HarryWardrobes
           end
 
           Tagger.tag_all(model)
+          Colours.reapply(model)
           model.commit_operation
           { items: jobs.size, definitions: groups.size, notes: notes.uniq }
         rescue StandardError => e

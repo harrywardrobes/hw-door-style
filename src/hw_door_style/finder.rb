@@ -86,31 +86,60 @@ module HarryWardrobes
         [[vx.length.to_f, vy.length.to_f, vz.length.to_f], [vx, vy, vz], origin]
       end
 
+      HARDWARE_ROLES = %w[hinge tip_on].freeze
+
+      def self.hardware?(e)
+        e.is_a?(Sketchup::ComponentInstance) && HARDWARE_ROLES.include?(e.get_attribute(DICT, 'role'))
+      end
+
+      # Bounds of the door body only - ignores hinges/TIP-ONs, which sit behind the door.
+      def self.body_bounds(defn)
+        bb = Geom::BoundingBox.new
+        defn.entities.each do |e|
+          next if hardware?(e)
+          next unless e.respond_to?(:bounds)
+          bb.add(e.bounds)
+        end
+        bb.empty? ? defn.bounds : bb
+      end
+
       # Real size (Length, inches) along local X, Y, Z = width, thickness, height.
-      # Uses the DC LenX/LenY/LenZ when they agree with the geometry, else bounds x scale.
+      # Width/height from the body geometry x scale. Thickness prefers the DC LenY
+      # (so a DC that squashed the door to fit hinges is corrected on rebuild).
       def self.real_size(inst)
         scale, = decompose(inst.transformation)
-        b = inst.definition.bounds
-        geo = [b.width * scale[0], b.height * scale[1], b.depth * scale[2]]
+        b = body_bounds(inst.definition)
+        geo = [b.width * scale[0], b.height * scale[1], b.depth * scale[2]].map(&:to_f)
         dc = %w[lenx leny lenz].map { |k| inst.get_attribute('dynamic_attributes', k) }
-        if dc.all? { |v| v.is_a?(Numeric) && v > 0 } &&
-           dc.each_with_index.all? { |v, i| (v - geo[i]).abs < 1.mm }
-          dc.map(&:to_f)
-        else
-          geo.map(&:to_f)
+        geo.each_index.map do |i|
+          v = dc[i]
+          ok = v.is_a?(Numeric) && v > 0 && (i == 1 || (v - geo[i]).abs < 1.mm)
+          ok ? v.to_f : geo[i]
         end
       end
 
-      # Local min corner of the definition, scaled — where the rebuilt geometry starts.
+      # Local min corner of the door body, scaled - where the rebuilt geometry starts.
       def self.scaled_min(inst)
         scale, = decompose(inst.transformation)
-        m = inst.definition.bounds.min
+        m = body_bounds(inst.definition).min
         Geom::Point3d.new(m.x * scale[0], m.y * scale[1], m.z * scale[2])
       end
 
       def self.scaled?(inst)
         scale, = decompose(inst.transformation)
         scale.any? { |s| (s - 1.0).abs > 0.0005 }
+      end
+
+      # Every component instance / group in the model, once each.
+      def self.each_instance(entities, seen = {}, depth = 0, &blk)
+        return if depth > 15
+        entities.each do |e|
+          next unless instance?(e)
+          next if seen[e.entityID]
+          seen[e.entityID] = true
+          yield e
+          each_instance(e.definition.entities, seen, depth + 1, &blk)
+        end
       end
 
       def self.mm_s(len)

@@ -15,13 +15,21 @@
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [[900, 2], [1600, 3], [2000, 4], [2400, 5], [99999, 6]],
   "hinge_end_inset_mm": 100,
-  "hardware_tag": "HARDWARE",
-  "hardware_material": "HARDWARE",
 
   "handle_double_min_width_mm": 500,
   "handles_on_internal_drawers": true,
   "handles_on_pto_doors": false,
 
   "door_tag": "DOOR",
-  "drawer_tag": "DRAWER_FRONT"
+  "drawer_tag": "DRAWER_FRONT",
+  "hinge_tag": "DOOR",
+
+  "hardware_material": "HARDWARE",
+  "colour_groups": {
+    "door": ["DOOR", "DRAWER_FRONT"],
+    "exterior": ["FACING", "END_PAN", "NOSING", "FILLER"],
+    "interior": ["STL", "SH", "DIV", "INT_DIV", "FL", "DRAWER", "BACK", "WALKIN", "MDF"],
+    "worktop": ["WORKTOP"]
+  },
+  "default_colours": { "door": "Default", "exterior": "Default", "interior": "Default", "worktop": "Default" }
 }

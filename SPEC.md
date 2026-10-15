@@ -80,20 +80,18 @@ on demand from **Apply DOOR / DRAWER_FRONT tags**. Tag names are editable in Set
 ## 4. Hardware (cutlist parts)
 
 - Hinge type is per job (stored in the model). Default: Soft Close 110.
-  Options: Soft Close 110, Soft Close 155, PTO 110, PTO 155.
-- PTO adds one TIP-ON per door.
-- Hinges per door by height: <=900 mm 2, <=1,600 mm 3, <=2,000 mm 4, <=2,400 mm 5,
-  above 6. Editable in Settings.
-- Hardware components are **not hidden** (cutlist software skips hidden components).
-  Each one is a small box (hinge 35x10x35 mm, TIP-ON 20x10x40 mm) placed fully inside
-  the door's 18 mm thickness, within the solid frame (hinges 5 mm from the left edge,
-  TIP-ON top right). The door faces enclose it on every side, so it can't be seen in
-  the model or in renders, but it is a normal visible component for the cutlist.
-- Faces, back faces and the instance carry the material `HARDWARE` and the tag
-  `HARDWARE`, so the cutlist can split them out. Both names are editable in Settings.
-- If a definition named `soft_close_110` (etc.) already exists and wasn't made by the
-  plugin, it is reused as-is, so real models can be swapped in later by name.
-- Changing the job hinge type rebuilds hardware on all processed doors.
+  Options: Soft Close 110, Soft Close 155, PTO 110, PTO 155. PTO adds one TIP-ON per door.
+- Hinges per door by height: <=900 mm 2, <=1,600 mm 3, <=2,000 mm 4, <=2,400 mm 5, above 6.
+- Hardware sits **behind the door**, against its back face (hinge 35x10x35 mm, 5 mm from
+  the left edge; TIP-ON 20x10x40 mm top right). It is on the **DOOR** tag, so hiding DOOR
+  hides the hinges with the doors. Components are never hidden themselves (cutlist software
+  skips hidden components).
+- Faces, back faces and instance carry the material **HARDWARE** so the cutlist can split
+  them out. The colour tool never repaints hardware.
+- Door sizes are measured from the door body only (hardware ignored). Thickness prefers the
+  DC LenY, so if a Dynamic Component ever squashes a door to fit the hinges, Rebuild corrects it.
+- If a definition named `soft_close_110` (etc.) already exists and wasn't made by the plugin,
+  it is reused as-is.
 
 ## 4a. Handles / knobs (counted, not modelled)
 
@@ -102,6 +100,36 @@ on demand from **Apply DOOR / DRAWER_FRONT tags**. Tag names are editable in Set
 - Internal drawer fronts are counted (setting).
 - Push-to-open jobs: doors count 0 handles (setting); drawer fronts still count.
 - Shown per row and as a total in the summary, CSV and PDF.
+
+## 4b. Colours
+
+**Colours** window (toolbar + menu) with four choices per job, each "Default (no material)"
+or one of the 13 library colours:
+
+| Choice | Tags painted |
+|---|---|
+| Door / Drawer Colour | DOOR, DRAWER_FRONT (hinges/TIP-ON skipped) |
+| Exterior Panel / Trim Colour | FACING, END_PAN, NOSING, FILLER |
+| Interior Colour | STL, SH, DIV, INT_DIV, FL, DRAWER, BACK, WALKIN, MDF |
+| Worktop Colour | WORKTOP |
+
+Never changed: HARDWARE, hanging rail, Untagged, room tags, *_dims tags.
+
+- A part's group comes from its own tag, or, if the part is Untagged, the tag on most of
+  the faces inside it. The material is set on the component instance; if the instance has a
+  DC "material" attribute it is updated too, so a DC redraw doesn't revert it.
+- Choices are stored in the model. **Save as default** stores them in the plugin; defaults
+  start as Default (no material) and are pre-selected on jobs with nothing chosen yet.
+- **Doors can't be edited until a Door / Drawer colour is chosen** for the job (convert,
+  reset, rebuild and right-click styles open the Colours window instead). Converted doors
+  are repainted with the job's colours automatically.
+- Library (`colours.json`): Alby Blue, Cashmere, Dust Grey, Frost White, Graphite, Indigo
+  Blue, Light Grey, Lissa Oak, Mussel, Opera Walnut, Reed Green, Sage Green, Stone Grey.
+  Plain colours are solid colour (no texture, so no tile borders), sampled from the swatches
+  on harrywardrobes.co.uk/door-colour-options. Lissa Oak and Opera Walnut use the site's
+  grain photos, mirror-tiled so they repeat without seams (600 mm tile, grain vertical).
+- If the model already has a material with exactly the same name, that one is used.
+- **Export colour library (.skm)** writes all 13 as .skm files to a chosen folder.
 
 ## 5. User interface
 
@@ -138,6 +166,9 @@ itself (A4 landscape, totals at the top, table repeats its header on each page).
 Style does **not** affect price (cost sheet to be integrated later).
 
 ## 7. Settings
+
+Compact two-column window. **Tags** and **Materials** are separate sections (Materials holds
+the hinge material and the tag lists for each colour group).
 
 Stored inside the plugin folder:
 `settings_default.json` ships with the plugin; `settings.json` holds local

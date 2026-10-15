@@ -1,0 +1,18 @@
+{
+  "_note": "Harry Wardrobes door colour library. rgb = plain colour (no texture, so no tile borders). texture = file in textures/, size_mm = real-world tile size.",
+  "colours": [
+    { "name": "Alby Blue",    "rgb": [77, 90, 106] },
+    { "name": "Cashmere",     "rgb": [216, 202, 189] },
+    { "name": "Dust Grey",    "rgb": [134, 124, 123] },
+    { "name": "Frost White",  "rgb": [237, 237, 237] },
+    { "name": "Graphite",     "rgb": [70, 70, 68] },
+    { "name": "Indigo Blue",  "rgb": [40, 46, 58] },
+    { "name": "Light Grey",   "rgb": [209, 209, 209] },
+    { "name": "Lissa Oak",    "rgb": [182, 153, 119], "texture": "lissa_oak.jpg",    "size_mm": 600 },
+    { "name": "Mussel",       "rgb": [224, 207, 187] },
+    { "name": "Opera Walnut", "rgb": [100, 63, 39],   "texture": "opera_walnut.jpg", "size_mm": 600 },
+    { "name": "Reed Green",   "rgb": [117, 127, 116] },
+    { "name": "Sage Green",   "rgb": [194, 188, 164] },
+    { "name": "Stone Grey",   "rgb": [167, 151, 136] }
+  ]
+}
