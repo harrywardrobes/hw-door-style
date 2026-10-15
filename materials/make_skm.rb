@@ -16,7 +16,8 @@ module HWMakeSkm
     # Zip pack: colours.json + textures/ sit next to this script.
     # Repo checkout: they live in src/hw_door_style/.
     data = File.exist?(File.join(here, 'colours.json')) ? here : File.join(here, '..', 'src', 'hw_door_style')
-    lib = JSON.parse(File.read(File.join(data, 'colours.json')))['colours']
+    raw = JSON.parse(File.read(File.join(data, 'colours.json')))
+    lib = raw['colours'] + (raw['drawer_boxes'] || []).map { |b| b.merge('name' => b['material'], 'size_mm' => (b['texture_size_mm'] || [600, 600])) }
     out1 = File.join(here, 'skm')
     out2 = File.join(ENV['APPDATA'].to_s, 'SketchUp', "SketchUp 20#{Sketchup.version.to_i}", 'SketchUp', 'Materials', 'Harry Wardrobes')
     [out1, out2].each { |d| FileUtils.mkdir_p(d) rescue nil }
@@ -32,8 +33,8 @@ module HWMakeSkm
       m.color = Sketchup::Color.new(*c['rgb'])
       if c['texture']
         m.texture = File.join(data, 'textures', c['texture'])
-        s = c['size_mm'].to_f / 25.4
-        m.texture.size = [s, s]
+        sz = Array(c['size_mm']).map { |v| v.to_f / 25.4 }
+        m.texture.size = sz.size == 2 ? sz : [sz[0], sz[0]]
       end
       [out1, out2].each do |d|
         next unless File.directory?(d)

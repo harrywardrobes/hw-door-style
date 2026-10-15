@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1 — 2026-10-15
+- Drawer box finishes cut to **Windsor Oak** (default, 15mm, textured) and **Light Grey** (16mm).
+- Materials renamed `Interfit-Box-Windsor-Oak` / `Interfit-Box-Light-Grey`; seamless Windsor Oak texture.
+- Export colour library (.skm) includes the box finishes; `materials/interfit_box/` script makes the two .skm files.
+
 ## 0.6.0 — 2026-10-15
 - **Drawer Box** finish in the Colours window: Lissa Oak (default) plus Interfit's melamine range
   (Graphite Grey, Light Grey, White, Lugano Oak, Windsor Oak). Paints only DRW_BOX parts.

@@ -67,6 +67,7 @@ src/hw_door_style/colours.json  the 13 colours
 src/hw_door_style/textures/     woodgrain textures
 tools/hw_inspect.rb             read-only model inspector for the Ruby Console
 materials/                      colour pack: make_skm.rb, swatches, RGB values
+materials/interfit_box/         Interfit drawer box texture + .skm maker
 test/logic_test.rb              offline logic tests (ruby test/logic_test.rb)
 ```
 

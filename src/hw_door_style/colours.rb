@@ -140,8 +140,10 @@ module HarryWardrobes
       # Data for the colour window: names, swatches (rgb or data-URL image), choices.
       def self.dialog_data(model)
         box_swatches = DrawerBox.library.to_h do |b|
-          lib = spec(b['material'])
-          [b['name'], lib ? nil : { 'rgb' => b['rgb'] }]
+          sw = { 'rgb' => b['rgb'] }
+          f = b['texture'] && File.join(TEXTURES, b['texture'])
+          sw['img'] = "data:image/jpeg;base64,#{[File.binread(f)].pack('m0')}" if f && File.exist?(f)
+          [b['name'], sw]
         end
         swatches = library.to_h do |c|
           sw = { 'rgb' => c['rgb'] }
@@ -160,11 +162,11 @@ module HarryWardrobes
         }
       end
 
-      # Writes every library colour to <dir>/<name>.skm (SketchUp 2019.2+).
+      # Writes every library colour and drawer box finish to <dir>/<material name>.skm.
       def self.export_skm(model, dir)
-        names.map do |n|
-          m = material(model, n)
-          path = File.join(dir, "#{n}.skm")
+        mats = names.map { |n| material(model, n) } + DrawerBox.names.map { |n| DrawerBox.material(model, n) }
+        mats.map do |m|
+          path = File.join(dir, "#{m.name}.skm")
           m.save_as(path)
           path
         end

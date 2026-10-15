@@ -2,14 +2,14 @@ require 'json'
 
 module HarryWardrobes
   module DoorStyle
-    # Drawer box finish (Interfit melamine range + Lissa Oak).
+    # Drawer box finish (Interfit melamine: Windsor Oak, Light Grey).
     #
     # Paints only the drawer box parts (settings: drawer_box_parts, default
     # DRW_BOX / DRW_BOX_SIDE / DRW_BOX_END / DRW_BOX_BASE). Runners, hooks and
     # other hardware are never touched. Optionally sets each drawer unit's
     # DRWR_BOX_THICKNESS to the finish's board thickness and redraws the unit.
     module DrawerBox
-      DEFAULT = 'Lissa Oak'.freeze
+      DEFAULT = 'Windsor Oak'.freeze
 
       def self.library
         @library ||= JSON.parse(File.read(Colours::FILE))['drawer_boxes']
@@ -27,16 +27,19 @@ module HarryWardrobes
         spec(name)['thickness_mm'].to_f
       end
 
-      # Uses an existing material of that name; otherwise a door-library colour
-      # (Lissa Oak) or a plain-colour approximation.
+      # Uses an existing material of that name; otherwise creates it (texture or plain colour).
       def self.material(model, name)
         s = spec(name)
         mname = s['material']
         m = model.materials[mname]
         return m if m
-        return Colours.material(model, mname) if Colours.spec(mname)
         m = model.materials.add(mname)
         m.color = Sketchup::Color.new(*s['rgb'])
+        if s['texture']
+          m.texture = File.join(Colours::TEXTURES, s['texture'])
+          w, h = s['texture_size_mm'].map { |v| v.to_f.mm }
+          m.texture.size = [w, h] if m.texture
+        end
         m.set_attribute(DICT, 'library', true)
         m
       end

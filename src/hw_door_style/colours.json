@@ -110,28 +110,27 @@
       ]
     }
   ],
-  "_note_drawer_boxes": "Drawer box finishes (Interfit melamine range + Lissa Oak bespoke). material = SketchUp material name; thickness_mm = box side thickness (woodgrains 15, plain 16). Plain-colour approximations of the decors.",
+  "_note_drawer_boxes": "Drawer box finishes (Interfit melamine). material = SketchUp material name; thickness_mm = box side thickness. texture_size_mm = [width, height] of one texture tile.",
   "drawer_boxes": [
     {
-      "name": "Lissa Oak",
-      "material": "Lissa Oak",
-      "thickness_mm": 15,
-      "code": "Bespoke (Egger Decorative Collection via Interfit)"
-    },
-    {
-      "name": "Graphite Grey",
-      "material": "Box - Graphite Grey",
+      "name": "Windsor Oak",
+      "material": "Interfit-Box-Windsor-Oak",
       "rgb": [
-        78,
-        80,
-        82
+        186,
+        156,
+        117
       ],
-      "thickness_mm": 16,
-      "code": "Kronospan 0162 PE"
+      "texture": "windsor_oak.jpg",
+      "texture_size_mm": [
+        700,
+        583
+      ],
+      "thickness_mm": 15,
+      "code": "Kronospan 1929 SU"
     },
     {
       "name": "Light Grey",
-      "material": "Box - Light Grey",
+      "material": "Interfit-Box-Light-Grey",
       "rgb": [
         196,
         197,
@@ -139,39 +138,6 @@
       ],
       "thickness_mm": 16,
       "code": "Egger U708 ST9"
-    },
-    {
-      "name": "White",
-      "material": "Box - White",
-      "rgb": [
-        244,
-        244,
-        241
-      ],
-      "thickness_mm": 16,
-      "code": "Egger W1000 ST9"
-    },
-    {
-      "name": "Lugano Oak",
-      "material": "Box - Lugano Oak",
-      "rgb": [
-        181,
-        150,
-        112
-      ],
-      "thickness_mm": 15,
-      "code": "Kronospan 0687 PR"
-    },
-    {
-      "name": "Windsor Oak",
-      "material": "Box - Windsor Oak",
-      "rgb": [
-        198,
-        163,
-        118
-      ],
-      "thickness_mm": 15,
-      "code": "Kronospan 1929 SU"
     }
   ]
 }

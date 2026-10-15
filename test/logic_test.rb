@@ -128,12 +128,13 @@ check 'hinges on DOOR tag', Settings.get['hinge_tag'] == 'DOOR'
 
 # --- drawer box
 require 'hw_door_style/drawer_box'
-check '6 drawer box finishes', DrawerBox.names == ['Lissa Oak', 'Graphite Grey', 'Light Grey', 'White', 'Lugano Oak', 'Windsor Oak']
-check 'woodgrains 15mm, plain 16mm', DrawerBox.thickness_mm('Lugano Oak') == 15 && DrawerBox.thickness_mm('Windsor Oak') == 15 && DrawerBox.thickness_mm('White') == 16 && DrawerBox.thickness_mm('Lissa Oak') == 15
-check 'box materials prefixed, Lissa Oak shared', DrawerBox.spec('Light Grey')['material'] == 'Box - Light Grey' && DrawerBox.spec('Lissa Oak')['material'] == 'Lissa Oak'
-check 'box material names never clash with door colours', DrawerBox.library.reject { |b| b['name'] == 'Lissa Oak' }.none? { |b| Colours.names.include?(b['material']) }
-check 'drawer box default Lissa Oak', Colours.resolve('drawer_box', 'Default', 'Cashmere') == 'Lissa Oak' && Colours.defaults['drawer_box'] == 'Lissa Oak'
-check 'drawer box ignores door colour', Colours.resolve('drawer_box', 'White', 'Cashmere') == 'White'
+check 'only Windsor Oak and Light Grey', DrawerBox.names == ['Windsor Oak', 'Light Grey']
+check 'Windsor 15mm, Light Grey 16mm', DrawerBox.thickness_mm('Windsor Oak') == 15 && DrawerBox.thickness_mm('Light Grey') == 16
+check 'Interfit-Box- material names', DrawerBox.library.map { |b| b['material'] } == ['Interfit-Box-Windsor-Oak', 'Interfit-Box-Light-Grey']
+check 'Windsor texture bundled', File.exist?(File.join(Colours::TEXTURES, DrawerBox.spec('Windsor Oak')['texture']))
+check 'drawer box default Windsor Oak', Colours.resolve('drawer_box', 'Default', 'Cashmere') == 'Windsor Oak' && Colours.defaults['drawer_box'] == 'Windsor Oak'
+check 'old saved finish falls back to Windsor Oak', DrawerBox.spec('Lugano Oak')['name'] == 'Windsor Oak'
+check 'drawer box ignores door colour', Colours.resolve('drawer_box', 'Light Grey', 'Cashmere') == 'Light Grey'
 check 'hooks/runners not box parts', !Settings.names('drawer_box_parts').any? { |n| n =~ /HOOK|RUNNER/ }
 
 # --- export naming + versioning
