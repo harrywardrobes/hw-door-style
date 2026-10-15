@@ -138,6 +138,17 @@
       ],
       "thickness_mm": 16,
       "code": "Egger U708 ST9"
+    },
+    {
+      "name": "Graphite Grey",
+      "material": "Interfit-Box-Graphite-Grey",
+      "rgb": [
+        91,
+        86,
+        83
+      ],
+      "thickness_mm": 16,
+      "code": "Kronospan 0162 PE"
     }
   ]
 }

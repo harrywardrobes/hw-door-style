@@ -1,7 +1,7 @@
-# Harry Wardrobes - make the two Interfit drawer box .skm files.
+# Harry Wardrobes - make the three Interfit drawer box .skm files.
 # In SketchUp: Window > Ruby Console, then type:
 #   load 'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes/HW Colours/Interfit Box/make_interfit_box_skm.rb'
-# Saves Interfit-Box-Windsor-Oak.skm and Interfit-Box-Light-Grey.skm in this folder and in
+# Saves Interfit-Box-Windsor-Oak / -Light-Grey / -Graphite-Grey .skm in this folder and in
 # SketchUp's Materials > "Harry Wardrobes" collection. Your open model is left unchanged.
 require 'fileutils'
 module HWInterfitSkm
@@ -11,7 +11,8 @@ module HWInterfitSkm
     FileUtils.mkdir_p(lib) rescue nil
     specs = [
       { 'name' => 'Interfit-Box-Windsor-Oak', 'rgb' => [186, 156, 117], 'tex' => File.join(dir, 'Interfit-Box-Windsor-Oak.jpg'), 'size_mm' => [700, 583] },
-      { 'name' => 'Interfit-Box-Light-Grey',  'rgb' => [196, 197, 193] }
+      { 'name' => 'Interfit-Box-Light-Grey',  'rgb' => [196, 197, 193] },
+      { 'name' => 'Interfit-Box-Graphite-Grey', 'rgb' => [91, 86, 83] }
     ]
     m = Sketchup.active_model
     saved = []

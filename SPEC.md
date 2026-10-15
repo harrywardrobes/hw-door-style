@@ -146,6 +146,7 @@ box parts are excluded from the Interior colour even though they are on the DRAW
 |---|---|---|---|
 | Windsor Oak (default) | Kronospan 1929 SU | 15mm (Interfit page also says 18mm - confirm) | Interfit-Box-Windsor-Oak (texture, 700 x 583 mm tile) |
 | Light Grey | Egger U708 ST9 | 16mm | Interfit-Box-Light-Grey (plain colour) |
+| Graphite Grey | Kronospan 0162 PE | 16mm | Interfit-Box-Graphite-Grey (plain colour) |
 
 A job saved with an older finish falls back to Windsor Oak.
 
@@ -156,7 +157,7 @@ checked for size changes and `subformula-error`, and repainted. Units with an op
 (onClick ANIMATE moved) are skipped and listed so they can be closed and re-applied.
 
 .skm files: `materials/interfit_box/make_interfit_box_skm.rb` (run in SketchUp), or
-Extensions > HW Door Style > Export colour library (.skm), which now includes both box finishes.
+Extensions > HW Door Style > Export colour library (.skm), which includes all three box finishes.
 
 ## 5. User interface
 

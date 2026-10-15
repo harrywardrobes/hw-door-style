@@ -128,9 +128,9 @@ check 'hinges on DOOR tag', Settings.get['hinge_tag'] == 'DOOR'
 
 # --- drawer box
 require 'hw_door_style/drawer_box'
-check 'only Windsor Oak and Light Grey', DrawerBox.names == ['Windsor Oak', 'Light Grey']
-check 'Windsor 15mm, Light Grey 16mm', DrawerBox.thickness_mm('Windsor Oak') == 15 && DrawerBox.thickness_mm('Light Grey') == 16
-check 'Interfit-Box- material names', DrawerBox.library.map { |b| b['material'] } == ['Interfit-Box-Windsor-Oak', 'Interfit-Box-Light-Grey']
+check 'Windsor Oak, Light Grey, Graphite Grey', DrawerBox.names == ['Windsor Oak', 'Light Grey', 'Graphite Grey']
+check 'Windsor 15mm, Light Grey 16mm', DrawerBox.thickness_mm('Windsor Oak') == 15 && DrawerBox.thickness_mm('Light Grey') == 16 && DrawerBox.thickness_mm('Graphite Grey') == 16
+check 'Interfit-Box- material names', DrawerBox.library.map { |b| b['material'] } == ['Interfit-Box-Windsor-Oak', 'Interfit-Box-Light-Grey', 'Interfit-Box-Graphite-Grey']
 check 'Windsor texture bundled', File.exist?(File.join(Colours::TEXTURES, DrawerBox.spec('Windsor Oak')['texture']))
 check 'drawer box default Windsor Oak', Colours.resolve('drawer_box', 'Default', 'Cashmere') == 'Windsor Oak' && Colours.defaults['drawer_box'] == 'Windsor Oak'
 check 'old saved finish falls back to Windsor Oak', DrawerBox.spec('Lugano Oak')['name'] == 'Windsor Oak'
