@@ -34,6 +34,7 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 | Everything back to Flat (hinges kept) | Toolbar: Reset to Flat |
 | Summary, plus Export door order (CSV + PDF) | Toolbar: Summary |
 | Frame sizes, mid-rail, hinge rules, names, tags, materials | Toolbar: Settings (gear) |
+| Back up / copy settings to another computer | Settings → Download backup / Upload backup |
 | Change one door | Select it (double-click into the wardrobe first), right-click → HW Door Style → Style |
 | Redraw but keep individual doors' styles | Extensions → HW Door Style → Rebuild styles, or right-click → Rebuild selected |
 | Set the job's hinge type | Extensions → HW Door Style → Hinge type (this job) |

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 — 2026-10-15
+- New default settings: Exterior tags add EXT_SH and BOOKCASE; Interior tags drop MDF; drawer box parts = DRW_BOX.
+- Settings: **Download backup** / **Upload backup** (.json). An uploaded backup fills the window; press Save to keep it.
+
 ## 0.6.1 — 2026-10-15
 - Drawer box finishes: **Windsor Oak** (default, 15mm, textured), **Light Grey** and **Graphite Grey** (16mm).
 - Materials named `Interfit-Box-Windsor-Oak` / `-Light-Grey` / `-Graphite-Grey`; seamless Windsor Oak texture.

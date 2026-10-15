@@ -46,6 +46,37 @@ module HarryWardrobes
         @settings = load
       end
 
+      # --- backup -------------------------------------------------------
+
+      BACKUP_MARK = 'hw_door_style_settings'.freeze
+
+      def self.export_backup(hash)
+        name = "HW_Door_Style_settings_#{Time.now.strftime('%Y-%m-%d')}.json"
+        file = UI.savepanel('Download settings backup', nil, name)
+        return unless file
+        file += '.json' unless file.downcase.end_with?('.json')
+        out = { BACKUP_MARK => VERSION, 'saved' => Time.now.strftime('%d/%m/%Y %H:%M') }.merge(hash)
+        File.write(file, JSON.pretty_generate(out))
+        UI.messagebox("Settings backup saved:\n#{file}")
+      rescue StandardError => e
+        UI.messagebox("Backup not saved: #{e.message}")
+      end
+
+      # Returns the known settings from a backup file (unknown keys ignored), or nil.
+      def self.import_backup
+        file = UI.openpanel('Upload settings backup', nil, 'Settings backup|*.json||')
+        return nil unless file
+        raw = JSON.parse(File.read(file))
+        raise 'not an HW Door Style settings backup' unless raw.is_a?(Hash) && raw.key?(BACKUP_MARK)
+        known = defaults.keys
+        data = raw.select { |k, _| known.include?(k) }
+        raise 'no settings found in the file' if data.empty?
+        data
+      rescue StandardError => e
+        UI.messagebox("Backup not loaded: #{e.message}")
+        nil
+      end
+
       def self.mm(key)
         get[key].to_f.mm
       end

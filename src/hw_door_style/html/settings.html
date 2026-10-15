@@ -81,6 +81,9 @@
 </div>
 
 <div class="bar">
+  <button onclick="sketchup.exportSettings(JSON.stringify(collect()))" title="Save these settings to a .json file">Download backup</button>
+  <button onclick="sketchup.importSettings()" title="Load settings from a backup .json file">Upload backup</button>
+  <span style="flex:1"></span>
   <button onclick="sketchup.reset()">Reset to defaults</button>
   <button onclick="sketchup.cancel()">Cancel</button>
   <button class="primary" onclick="save()">Save</button>
@@ -103,7 +106,8 @@ function load(s){
   var cg = s.colour_groups || {};
   GROUPS.forEach(function(g){ $('cg_'+g).value = (cg[g]||[]).join(', '); });
 }
-function save(){
+function save(){ sketchup.save(JSON.stringify(collect())); }
+function collect(){
   var o = {};
   LISTS.forEach(function(k){ o[k] = split($(k).value); });
   NUMS.forEach(function(k){ o[k] = parseFloat($(k).value); });
@@ -112,7 +116,7 @@ function save(){
   o.hinge_rules = $('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
   o.colour_groups = {};
   GROUPS.forEach(function(g){ o.colour_groups[g] = split($('cg_'+g).value); });
-  sketchup.save(JSON.stringify(o));
+  return o;
 }
 load(S);
 </script>

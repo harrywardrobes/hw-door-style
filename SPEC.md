@@ -197,6 +197,11 @@ Style does **not** affect price (cost sheet to be integrated later).
 
 ## 7. Settings
 
+**Download backup** saves every setting (including default colours) to a dated
+`HW_Door_Style_settings_YYYY-MM-DD.json`. **Upload backup** reads one back into the window
+(unknown keys ignored, file must be an HW Door Style backup); nothing changes until Save.
+Useful for copying settings to the designer's and surveyor's computers.
+
 Compact two-column window. **Tags** and **Materials** are separate sections (Materials holds
 the hinge material and the tag lists for each colour group).
 

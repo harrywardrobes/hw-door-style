@@ -203,7 +203,7 @@ module HarryWardrobes
     def self.show_settings
       @settings_dlg&.close
       dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style - Settings', preferences_key: 'hw_door_style_settings',
-                               width: 640, height: 700, resizable: true, scrollable: true,
+                               width: 640, height: 750, resizable: true, scrollable: true,
                                style: UI::HtmlDialog::STYLE_DIALOG)
       html = File.read(File.join(PATH, 'html', 'settings.html'))
       dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Settings.get)))
@@ -214,10 +214,21 @@ module HarryWardrobes
         dlg.close
         offer_rebuild
       end
+      pending = {}
+      dlg.add_action_callback('exportSettings') do |_c, json|
+        Settings.export_backup(Settings.get.merge(pending).merge(JSON.parse(json)))
+      end
+      dlg.add_action_callback('importSettings') do |_c|
+        data = Settings.import_backup
+        next unless data
+        pending = data
+        dlg.execute_script("load(#{JSON.generate(Settings.defaults.merge(data))})")
+        UI.messagebox("Backup loaded into the Settings window.\nPress Save to keep it, or Cancel to discard.")
+      end
       dlg.add_action_callback('save') do |_c, json|
         begin
           data = JSON.parse(json)
-          Settings.save(Settings.get.merge(data))
+          Settings.save(Settings.get.merge(pending).merge(data))
           dlg.close
           offer_rebuild
         rescue StandardError => e
