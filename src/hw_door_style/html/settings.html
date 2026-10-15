@@ -74,6 +74,8 @@
     <div class="f t"><span>Exterior / Trim tags</span><input type="text" id="cg_exterior"></div>
     <div class="f t"><span>Interior tags</span><input type="text" id="cg_interior"></div>
     <div class="f t"><span>Worktop tags</span><input type="text" id="cg_worktop"></div>
+    <div class="f t"><span>Drawer box parts</span><input type="text" id="drawer_box_parts"></div>
+    <div class="f c"><span>Drawer box thickness follows the finish (15mm woodgrain / 16mm plain)</span><input type="checkbox" id="box_thickness_follows_finish"></div>
     <div class="hint">Which tags each colour in the Colours window paints. Hinges and TIP-ONs are never repainted.</div>
   </fieldset>
 </div>
@@ -85,9 +87,9 @@
 </div>
 <script>
 var S = /*DATA*/null;
-var LISTS = ['door_names','ext_drawer_names','int_drawer_names'];
+var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts'];
 var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm'];
-var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors'];
+var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'DOOR', hardware_material:'HARDWARE' };
 var GROUPS = ['door','exterior','interior','worktop'];
 function $(id){ return document.getElementById(id); }

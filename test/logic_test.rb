@@ -118,13 +118,23 @@ rows[0]['handles'] = 1
 require 'hw_door_style/colours'
 check '13 colours', Colours.names.size == 13 && Colours.names.include?('Stone Grey')
 check 'woodgrain textures bundled', Colours.library.select { |c| c['texture'] }.all? { |c| File.exist?(File.join(Colours::TEXTURES, c['texture'])) }
-check 'defaults start as Default', Colours.defaults.values.uniq == ['Default']
+check 'defaults start as Default (box: Lissa Oak)', Colours.defaults.reject { |k, _| k == 'drawer_box' }.values.uniq == ['Default']
 check 'interior group has STL, not HARDWARE', Colours.group_tags['interior'].include?('STL') && !Colours.group_tags.values.flatten.include?('HARDWARE')
 check 'Default follows door colour', Colours.resolve('interior', 'Default', 'Cashmere') == 'Cashmere'
 check 'manual choice kept', Colours.resolve('worktop', 'Graphite', 'Cashmere') == 'Graphite'
 check 'door Default = no material', Colours.resolve('door', 'Default', nil) == 'Default'
 check 'others Default with no door = no material', Colours.resolve('exterior', 'Default', 'Default') == 'Default'
 check 'hinges on DOOR tag', Settings.get['hinge_tag'] == 'DOOR'
+
+# --- drawer box
+require 'hw_door_style/drawer_box'
+check '6 drawer box finishes', DrawerBox.names == ['Lissa Oak', 'Graphite Grey', 'Light Grey', 'White', 'Lugano Oak', 'Windsor Oak']
+check 'woodgrains 15mm, plain 16mm', DrawerBox.thickness_mm('Lugano Oak') == 15 && DrawerBox.thickness_mm('Windsor Oak') == 15 && DrawerBox.thickness_mm('White') == 16 && DrawerBox.thickness_mm('Lissa Oak') == 15
+check 'box materials prefixed, Lissa Oak shared', DrawerBox.spec('Light Grey')['material'] == 'Box - Light Grey' && DrawerBox.spec('Lissa Oak')['material'] == 'Lissa Oak'
+check 'box material names never clash with door colours', DrawerBox.library.reject { |b| b['name'] == 'Lissa Oak' }.none? { |b| Colours.names.include?(b['material']) }
+check 'drawer box default Lissa Oak', Colours.resolve('drawer_box', 'Default', 'Cashmere') == 'Lissa Oak' && Colours.defaults['drawer_box'] == 'Lissa Oak'
+check 'drawer box ignores door colour', Colours.resolve('drawer_box', 'White', 'Cashmere') == 'White'
+check 'hooks/runners not box parts', !Settings.names('drawer_box_parts').any? { |n| n =~ /HOOK|RUNNER/ }
 
 # --- export naming + versioning
 require 'tmpdir'

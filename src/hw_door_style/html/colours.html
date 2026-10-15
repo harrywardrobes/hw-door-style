@@ -33,10 +33,17 @@
 </div>
 <script>
 var D = /*DATA*/null;
-var HINT = { door:'DOOR, DRAWER_FRONT', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs', worktop:'WORKTOP' };
+var HINT = { door:'DOOR, DRAWER_FRONT', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs', worktop:'WORKTOP', drawer_box:'Drawer box sides, ends and base' };
 // Door "Default" = no material; the others' "Default" = same as the door.
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-function chipStyle(name){
+function boxEntry(name){ for (var i=0;i<D.box.length;i++) if (D.box[i].name===name) return D.box[i]; return null; }
+function chipStyle(name, id){
+  if (id === 'drawer_box') {
+    var b = boxEntry(name);
+    if (b && D.swatches[b.material]) return chipStyle(b.material);
+    var s = D.box_swatches[name];
+    return s ? 'background:rgb('+s.rgb.join(',')+')' : '';
+  }
   var c = D.swatches[name];
   if(!c) return '';
   return c.img ? 'background-image:url('+c.img+')' : 'background:rgb('+c.rgb.join(',')+')';
@@ -44,24 +51,24 @@ function chipStyle(name){
 // Exterior / Interior / Worktop "Default" follows the door colour.
 function effective(id){
   var v = document.getElementById('sel_'+id).value;
-  if (v !== 'Default' || id === 'door') return v;
+  if (v !== 'Default' || id === 'door' || id === 'drawer_box') return v;
   return document.getElementById('sel_door').value;
 }
 function refreshDefaults(){
   var door = document.getElementById('sel_door').value;
   var label = door === 'Default' ? 'Default (no material)' : 'Default ('+door+')';
   D.groups.forEach(function(g){
-    if (g[0] === 'door') return;
+    if (g[0] === 'door' || g[0] === 'drawer_box') return;
     document.getElementById('sel_'+g[0]).options[0].text = label;
   });
 }
 function setChip(id){
-  if (id === 'door') { refreshDefaults(); D.groups.forEach(function(g){ if (g[0] !== 'door') paintChip(g[0]); }); }
+  if (id === 'door') { refreshDefaults(); D.groups.forEach(function(g){ if (g[0] !== 'door' && g[0] !== 'drawer_box') paintChip(g[0]); }); }
   paintChip(id);
 }
 function paintChip(id){
   var v = effective(id), ch = document.getElementById('chip_'+id);
-  ch.className = 'chip' + (v==='Default' ? ' none' : ''); ch.setAttribute('style', chipStyle(v));
+  ch.className = 'chip' + (v==='Default' ? ' none' : ''); ch.setAttribute('style', chipStyle(v, id));
   var door = document.getElementById('sel_door');
   document.getElementById('req').style.display = (door && door.value==='Default') ? 'block' : 'none';
 }
@@ -71,8 +78,13 @@ function render(){
   D.groups.forEach(function(g){
     var cur = D.current[g[0]] || D.defaults[g[0]] || 'Default';
     h += '<div class="row"><label>'+esc(g[1])+'<small>'+esc(HINT[g[0]]||'')+'</small></label><div class="pick"><span class="chip" id="chip_'+g[0]+'"></span><select id="sel_'+g[0]+'" onchange="setChip(\''+g[0]+'\')">';
+    if (g[0] === 'drawer_box') {
+      if (cur === 'Default') cur = D.defaults.drawer_box || 'Lissa Oak';
+      D.box.forEach(function(b){ h += '<option value="'+esc(b.name)+'"'+(b.name===cur?' selected':'')+' title="'+esc(b.code)+'">'+esc(b.name)+' ('+b.thickness+'mm)</option>'; });
+    } else {
     h += '<option value="Default"'+(cur==='Default'?' selected':'')+'>Default (no material)</option>';
     D.names.forEach(function(n){ h += '<option'+(n===cur?' selected':'')+'>'+esc(n)+'</option>'; });
+    }
     h += '</select></div></div>';
   });
   document.getElementById('rows').innerHTML = h;

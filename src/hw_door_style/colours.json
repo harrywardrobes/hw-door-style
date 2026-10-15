@@ -1,18 +1,177 @@
 {
   "_note": "Harry Wardrobes door colour library. rgb = plain colour (no texture, so no tile borders). texture = file in textures/, size_mm = real-world tile size.",
   "colours": [
-    { "name": "Alby Blue",    "rgb": [77, 90, 106] },
-    { "name": "Cashmere",     "rgb": [216, 202, 189] },
-    { "name": "Dust Grey",    "rgb": [134, 124, 123] },
-    { "name": "Frost White",  "rgb": [237, 237, 237] },
-    { "name": "Graphite",     "rgb": [70, 70, 68] },
-    { "name": "Indigo Blue",  "rgb": [40, 46, 58] },
-    { "name": "Light Grey",   "rgb": [209, 209, 209] },
-    { "name": "Lissa Oak",    "rgb": [182, 153, 119], "texture": "lissa_oak.jpg",    "size_mm": 600 },
-    { "name": "Mussel",       "rgb": [224, 207, 187] },
-    { "name": "Opera Walnut", "rgb": [100, 63, 39],   "texture": "opera_walnut.jpg", "size_mm": 600 },
-    { "name": "Reed Green",   "rgb": [117, 127, 116] },
-    { "name": "Sage Green",   "rgb": [194, 188, 164] },
-    { "name": "Stone Grey",   "rgb": [167, 151, 136] }
+    {
+      "name": "Alby Blue",
+      "rgb": [
+        77,
+        90,
+        106
+      ]
+    },
+    {
+      "name": "Cashmere",
+      "rgb": [
+        216,
+        202,
+        189
+      ]
+    },
+    {
+      "name": "Dust Grey",
+      "rgb": [
+        134,
+        124,
+        123
+      ]
+    },
+    {
+      "name": "Frost White",
+      "rgb": [
+        237,
+        237,
+        237
+      ]
+    },
+    {
+      "name": "Graphite",
+      "rgb": [
+        70,
+        70,
+        68
+      ]
+    },
+    {
+      "name": "Indigo Blue",
+      "rgb": [
+        40,
+        46,
+        58
+      ]
+    },
+    {
+      "name": "Light Grey",
+      "rgb": [
+        209,
+        209,
+        209
+      ]
+    },
+    {
+      "name": "Lissa Oak",
+      "rgb": [
+        182,
+        153,
+        119
+      ],
+      "texture": "lissa_oak.jpg",
+      "size_mm": 600
+    },
+    {
+      "name": "Mussel",
+      "rgb": [
+        224,
+        207,
+        187
+      ]
+    },
+    {
+      "name": "Opera Walnut",
+      "rgb": [
+        100,
+        63,
+        39
+      ],
+      "texture": "opera_walnut.jpg",
+      "size_mm": 600
+    },
+    {
+      "name": "Reed Green",
+      "rgb": [
+        117,
+        127,
+        116
+      ]
+    },
+    {
+      "name": "Sage Green",
+      "rgb": [
+        194,
+        188,
+        164
+      ]
+    },
+    {
+      "name": "Stone Grey",
+      "rgb": [
+        167,
+        151,
+        136
+      ]
+    }
+  ],
+  "_note_drawer_boxes": "Drawer box finishes (Interfit melamine range + Lissa Oak bespoke). material = SketchUp material name; thickness_mm = box side thickness (woodgrains 15, plain 16). Plain-colour approximations of the decors.",
+  "drawer_boxes": [
+    {
+      "name": "Lissa Oak",
+      "material": "Lissa Oak",
+      "thickness_mm": 15,
+      "code": "Bespoke (Egger Decorative Collection via Interfit)"
+    },
+    {
+      "name": "Graphite Grey",
+      "material": "Box - Graphite Grey",
+      "rgb": [
+        78,
+        80,
+        82
+      ],
+      "thickness_mm": 16,
+      "code": "Kronospan 0162 PE"
+    },
+    {
+      "name": "Light Grey",
+      "material": "Box - Light Grey",
+      "rgb": [
+        196,
+        197,
+        193
+      ],
+      "thickness_mm": 16,
+      "code": "Egger U708 ST9"
+    },
+    {
+      "name": "White",
+      "material": "Box - White",
+      "rgb": [
+        244,
+        244,
+        241
+      ],
+      "thickness_mm": 16,
+      "code": "Egger W1000 ST9"
+    },
+    {
+      "name": "Lugano Oak",
+      "material": "Box - Lugano Oak",
+      "rgb": [
+        181,
+        150,
+        112
+      ],
+      "thickness_mm": 15,
+      "code": "Kronospan 0687 PR"
+    },
+    {
+      "name": "Windsor Oak",
+      "material": "Box - Windsor Oak",
+      "rgb": [
+        198,
+        163,
+        118
+      ],
+      "thickness_mm": 15,
+      "code": "Kronospan 1929 SU"
+    }
   ]
 }

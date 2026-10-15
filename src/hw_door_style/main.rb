@@ -12,6 +12,7 @@ module HarryWardrobes
     Sketchup.require(File.join(PATH, 'hardware'))
     Sketchup.require(File.join(PATH, 'pdf'))
     Sketchup.require(File.join(PATH, 'colours'))
+    Sketchup.require(File.join(PATH, 'drawer_box'))
     Sketchup.require(File.join(PATH, 'converter'))
     Sketchup.require(File.join(PATH, 'report'))
 
@@ -130,7 +131,7 @@ module HarryWardrobes
       @colours_dlg&.close
       model = Sketchup.active_model
       dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style - Colours', preferences_key: 'hw_door_style_colours',
-                               width: 480, height: 330, resizable: true, scrollable: false,
+                               width: 480, height: 380, resizable: true, scrollable: false,
                                style: UI::HtmlDialog::STYLE_DIALOG)
       html = File.read(File.join(PATH, 'html', 'colours.html'))
       dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Colours.dialog_data(model))))
@@ -140,15 +141,37 @@ module HarryWardrobes
         model.start_operation('Apply colours', true)
         begin
           counts = Colours.apply(model, choices)
+          box = choices['drawer_box'] || DrawerBox::DEFAULT
+          thick = { changed: [], open: [] }
+          thick = DrawerBox.set_thickness(model, box) if Settings.get['box_thickness_follows_finish']
           model.commit_operation
           dlg.close
+
+          # Units whose box thickness changed are redrawn by the DC engine, then
+          # repainted (a redraw can rebuild copied drawers).
+          problems = []
+          unless thick[:changed].empty?
+            problems = DrawerBox.redraw(thick[:changed])
+            model.start_operation('Re-apply colours after redraw', true, false, true)
+            Colours.reapply(model)
+            model.commit_operation
+          end
+
           shown = Colours.resolved(model, choices)
           lines = Colours::GROUPS.map do |id, label|
             name = shown[id] == Colours::DEFAULT ? 'no material' : shown[id]
-            name = "Default (#{name})" if choices[id] == Colours::DEFAULT
+            name = "Default (#{name})" if choices[id] == Colours::DEFAULT && id != 'drawer_box'
+            name = "#{name} #{format('%g', DrawerBox.thickness_mm(name))}mm" if id == 'drawer_box'
             "#{label}: #{name} - #{counts[id]} part(s)"
           end
-          UI.messagebox("Colours applied.\n\n#{lines.join("\n")}")
+          unless thick[:changed].empty?
+            lines << '' << "Box thickness updated on: #{thick[:changed].map { |u| Finder.label(u) }.uniq.join(', ')}"
+          end
+          unless thick[:open].empty?
+            lines << '' << "NOT updated (drawers open - close them and apply again): #{thick[:open].uniq.join(', ')}"
+          end
+          lines << '' << 'Check:' << problems unless problems.empty?
+          UI.messagebox("Colours applied.\n\n#{lines.flatten.join("\n")}")
         rescue StandardError => e
           model.abort_operation
           UI.messagebox("Colours not applied (undone).\n\n#{e.message}")

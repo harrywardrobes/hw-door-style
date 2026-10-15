@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — 2026-10-15
+- **Drawer Box** finish in the Colours window: Lissa Oak (default) plus Interfit's melamine range
+  (Graphite Grey, Light Grey, White, Lugano Oak, Windsor Oak). Paints only DRW_BOX parts.
+- Box side thickness follows the finish (15mm woodgrains, 16mm plain): sets DRWR_BOX_THICKNESS on each
+  drawer unit, redraws, checks sizes and formula errors. Skips units with open drawers.
+- Drawer boxes no longer take the Interior colour.
+- Settings: drawer box parts list, thickness-follows-finish switch.
+
 ## 0.5.0 — 2026-10-15
 - Toolbar trimmed to 5 buttons: Colours, Shaker, Reset to Flat, Summary, Settings.
 - Shaker now converts doors and external drawer fronts together; press again to redraw after resizing.

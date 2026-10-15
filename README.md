@@ -28,6 +28,7 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 | Action | Where |
 |---|---|
 | Choose colours for the job (needed before editing doors) | Toolbar: Colours (palette) |
+| Drawer box finish (and matching 15/16mm box thickness) | Toolbar: Colours → Drawer Box |
 | Make every door **and** external drawer front Shaker | Toolbar: Shaker (door icon) |
 | Redraw after resizing a wardrobe | Toolbar: press Shaker again |
 | Everything back to Flat (hinges kept) | Toolbar: Reset to Flat |
@@ -61,6 +62,7 @@ src/hw_door_style/report.rb     summary, CSV, export naming/versioning
 src/hw_door_style/pdf.rb        built-in PDF writer
 src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging
 src/hw_door_style/colours.rb    colour library + painting by tag group
+src/hw_door_style/drawer_box.rb drawer box finish + thickness
 src/hw_door_style/colours.json  the 13 colours
 src/hw_door_style/textures/     woodgrain textures
 tools/hw_inspect.rb             read-only model inspector for the Ruby Console

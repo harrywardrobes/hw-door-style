@@ -1,35 +1,95 @@
 {
-  "door_names": ["WRD_DOOR", "LIN_DOOR", "BRGFR_DOOR", "WLK_DOOR", "TPBX_DOOR", "TPBX_DOOR_TOP"],
-  "ext_drawer_names": ["XDRW_FRONT", "LIN_DRAWER_FRONT"],
-  "int_drawer_names": ["IDRW_FRONT"],
-
+  "door_names": [
+    "WRD_DOOR",
+    "LIN_DOOR",
+    "BRGFR_DOOR",
+    "WLK_DOOR",
+    "TPBX_DOOR",
+    "TPBX_DOOR_TOP"
+  ],
+  "ext_drawer_names": [
+    "XDRW_FRONT",
+    "LIN_DRAWER_FRONT"
+  ],
+  "int_drawer_names": [
+    "IDRW_FRONT"
+  ],
   "door_frame_mm": 100,
   "drawer_frame_mm": 50,
   "recess_mm": 6,
   "min_panel_mm": 40,
-
   "midrail_min_door_height_mm": 1500,
   "midrail_centre_mm": 815,
   "midrail_width_mm": 100,
-
   "default_hinge_type": "soft_close_110",
-  "hinge_rules": [[900, 2], [1600, 3], [2000, 4], [2400, 5], [99999, 6]],
+  "hinge_rules": [
+    [
+      900,
+      2
+    ],
+    [
+      1600,
+      3
+    ],
+    [
+      2000,
+      4
+    ],
+    [
+      2400,
+      5
+    ],
+    [
+      99999,
+      6
+    ]
+  ],
   "hinge_end_inset_mm": 100,
-
   "handle_double_min_width_mm": 500,
   "handles_on_internal_drawers": true,
   "handles_on_pto_doors": false,
-
   "door_tag": "DOOR",
   "drawer_tag": "DRAWER_FRONT",
   "hinge_tag": "DOOR",
-
   "hardware_material": "HARDWARE",
   "colour_groups": {
-    "door": ["DOOR", "DRAWER_FRONT"],
-    "exterior": ["FACING", "END_PAN", "NOSING", "FILLER"],
-    "interior": ["STL", "SH", "DIV", "INT_DIV", "FL", "DRAWER", "BACK", "WALKIN", "MDF"],
-    "worktop": ["WORKTOP"]
+    "door": [
+      "DOOR",
+      "DRAWER_FRONT"
+    ],
+    "exterior": [
+      "FACING",
+      "END_PAN",
+      "NOSING",
+      "FILLER"
+    ],
+    "interior": [
+      "STL",
+      "SH",
+      "DIV",
+      "INT_DIV",
+      "FL",
+      "DRAWER",
+      "BACK",
+      "WALKIN",
+      "MDF"
+    ],
+    "worktop": [
+      "WORKTOP"
+    ]
   },
-  "default_colours": { "door": "Default", "exterior": "Default", "interior": "Default", "worktop": "Default" }
+  "default_colours": {
+    "door": "Default",
+    "exterior": "Default",
+    "interior": "Default",
+    "worktop": "Default",
+    "drawer_box": "Lissa Oak"
+  },
+  "drawer_box_parts": [
+    "DRW_BOX",
+    "DRW_BOX_SIDE",
+    "DRW_BOX_END",
+    "DRW_BOX_BASE"
+  ],
+  "box_thickness_follows_finish": true
 }

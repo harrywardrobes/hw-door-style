@@ -135,6 +135,30 @@ Never changed: HARDWARE, hanging rail, Untagged, room tags, *_dims tags.
 - If the model already has a material with exactly the same name, that one is used.
 - **Export colour library (.skm)** writes all 13 as .skm files to a chosen folder.
 
+## 4c. Drawer box finish
+
+**Drawer Box** row in the Colours window (default **Lissa Oak**). Only the drawer box parts
+are painted (Settings > Materials > Drawer box parts: `DRW_BOX`, `DRW_BOX_SIDE`,
+`DRW_BOX_END`, `DRW_BOX_BASE`); runners, hooks and other hardware are never touched, and
+box parts are excluded from the Interior colour even though they are on the DRAWER tag.
+
+| Finish | Board | Thickness | SketchUp material |
+|---|---|---|---|
+| Lissa Oak | Bespoke (Egger Decorative Collection via Interfit) | 15mm | Lissa Oak (shared with doors) |
+| Graphite Grey | Kronospan 0162 PE | 16mm | Box - Graphite Grey |
+| Light Grey | Egger U708 ST9 | 16mm | Box - Light Grey |
+| White | Egger W1000 ST9 | 16mm | Box - White |
+| Lugano Oak | Kronospan 0687 PR | 15mm | Box - Lugano Oak |
+| Windsor Oak | Kronospan 1929 SU | 15mm (Interfit page also says 18mm - confirm) | Box - Windsor Oak |
+
+Range from interfitco.com (checked 15 Oct 2026). Plain-colour approximations of each decor.
+
+**Thickness follows the finish** (setting, on by default): each drawer unit whose own
+`DRWR_BOX_THICKNESS` formula is a plain number gets 1.5 or 1.6 (cm), set on both instance and
+definition dictionaries. Changed units are then redrawn by the Dynamic Components engine,
+checked for size changes and `subformula-error`, and repainted. Units with an open drawer
+(onClick ANIMATE moved) are skipped and listed so they can be closed and re-applied.
+
 ## 5. User interface
 
 - **Toolbar** (5 buttons): Colours · Shaker · Reset to Flat · Summary · Settings.

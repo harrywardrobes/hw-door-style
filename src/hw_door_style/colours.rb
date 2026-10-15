@@ -20,7 +20,8 @@ module HarryWardrobes
         ['door',     'Door / Drawer Colour'],
         ['exterior', 'Exterior Panel / Trim Colour'],
         ['interior', 'Interior Colour'],
-        ['worktop',  'Worktop Colour']
+        ['worktop',  'Worktop Colour'],
+        ['drawer_box', 'Drawer Box']
       ].freeze
 
       def self.library
@@ -61,7 +62,7 @@ module HarryWardrobes
 
       def self.defaults
         d = Settings.get['default_colours'] || {}
-        GROUPS.to_h { |id, _| [id, d[id] || DEFAULT] }
+        GROUPS.to_h { |id, _| [id, d[id] || (id == 'drawer_box' ? DrawerBox::DEFAULT : DEFAULT)] }
       end
 
       def self.door_colour_chosen?(model = Sketchup.active_model)
@@ -95,6 +96,7 @@ module HarryWardrobes
       # "Default" on Exterior / Interior / Worktop means "same as the door colour".
       # Default on the door itself means no material.
       def self.resolve(gid, name, door)
+        return (name.nil? || name == DEFAULT ? DrawerBox::DEFAULT : name) if gid == 'drawer_box'
         return name unless name.nil? || name == DEFAULT
         gid == 'door' ? DEFAULT : (door || DEFAULT)
       end
@@ -108,11 +110,13 @@ module HarryWardrobes
         tags = group_tags
         lookup = {}
         tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
-        mats = resolved(model, choices).to_h { |gid, name| [gid, material(model, name)] }
+        res = resolved(model, choices)
+        mats = res.to_h { |gid, name| [gid, gid == 'drawer_box' ? DrawerBox.material(model, name) : material(model, name)] }
         counts = Hash.new(0)
         Finder.each_instance(model.entities) do |inst|
           next if skip?(inst)
-          gid = lookup[effective_tag(inst)]
+          # Drawer box parts only ever take the Drawer Box finish, never a tag-group colour.
+          gid = DrawerBox.part?(inst) ? 'drawer_box' : lookup[effective_tag(inst)]
           next unless gid && choices.key?(gid)
           mat = mats[gid]
           inst.material = mat unless inst.material == mat
@@ -135,6 +139,10 @@ module HarryWardrobes
 
       # Data for the colour window: names, swatches (rgb or data-URL image), choices.
       def self.dialog_data(model)
+        box_swatches = DrawerBox.library.to_h do |b|
+          lib = spec(b['material'])
+          [b['name'], lib ? nil : { 'rgb' => b['rgb'] }]
+        end
         swatches = library.to_h do |c|
           sw = { 'rgb' => c['rgb'] }
           if c['texture']
@@ -146,6 +154,8 @@ module HarryWardrobes
         {
           'job' => File.basename(model.path.to_s, '.skp'),
           'groups' => GROUPS, 'names' => names, 'swatches' => swatches,
+          'box' => DrawerBox.library.map { |b| { 'name' => b['name'], 'thickness' => b['thickness_mm'], 'code' => b['code'], 'material' => b['material'] } },
+          'box_swatches' => box_swatches,
           'current' => job_choices(model), 'defaults' => defaults
         }
       end
