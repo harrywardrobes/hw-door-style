@@ -21,7 +21,7 @@ In the [`releases`](releases/) folder (click a file, then **Download raw file**)
 - `HW_Colours.zip` - the 13 colour materials (textures, swatches, RGB values and a script
   that makes the `.skm` files - see `materials/README.txt`)
 
-Each version is also tagged (`v0.4.1` etc.) so any earlier build can be rebuilt with `python3 build.py`.
+Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the commit history), so any earlier build can be checked out and rebuilt with `python3 build.py`.
 
 ## Use
 
