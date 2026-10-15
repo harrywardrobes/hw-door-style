@@ -27,24 +27,22 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 
 | Action | Where |
 |---|---|
-| Choose colours for the job (needed before editing doors) | Toolbar: Colours |
-| Convert every door to Shaker | Toolbar: door icon |
-| Convert every external drawer front to Shaker | Toolbar: drawer icon |
-| Convert to any style (incl. back to Flat) | Extensions → HW Door Style → All doors / All external drawer fronts |
-| Everything back to Flat (hinges kept) | Toolbar: Reset all to Flat |
+| Choose colours for the job (needed before editing doors) | Toolbar: Colours (palette) |
+| Make every door **and** external drawer front Shaker | Toolbar: Shaker (door icon) |
+| Redraw after resizing a wardrobe | Toolbar: press Shaker again |
+| Everything back to Flat (hinges kept) | Toolbar: Reset to Flat |
+| Summary, plus Export door order (CSV + PDF) | Toolbar: Summary |
+| Frame sizes, mid-rail, hinge rules, names, tags, materials | Toolbar: Settings (gear) |
 | Change one door | Select it (double-click into the wardrobe first), right-click → HW Door Style → Style |
-| Redraw after resizing a wardrobe | Toolbar: Rebuild styles |
+| Redraw but keep individual doors' styles | Extensions → HW Door Style → Rebuild styles, or right-click → Rebuild selected |
 | Set the job's hinge type | Extensions → HW Door Style → Hinge type (this job) |
-| On-screen summary | Toolbar: Summary |
-| Save `DOOR_ORDER_v<N>_<file name>` CSV + PDF next to the .skp | Toolbar: Export door order |
 | Re-tag faces/edges inside doors and drawer fronts | Extensions → HW Door Style → Apply DOOR / DRAWER_FRONT tags |
 | Save the 13 colours as .skm files | Extensions → HW Door Style → Export colour library (.skm) |
-| Frame sizes, mid-rail, hinge rules, names, tags, materials | Toolbar: Settings |
 
 Every action is a single undo (Ctrl+Z).
 
-**Workflow:** design with flat doors, convert once the layout is settled, and press
-**Rebuild styles** after any change to a wardrobe's size. The summary flags anything
+**Workflow:** design with flat doors, press **Shaker** once the layout is settled, and press
+it again after any change to a wardrobe's size. The summary flags anything
 that has been resized since conversion.
 
 Internal drawer fronts (`IDRW_FRONT`) always stay flat.

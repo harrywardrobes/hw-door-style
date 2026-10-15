@@ -40,15 +40,17 @@ module HarryWardrobes
       false
     end
 
-    def self.convert_all(kind, style)
+    # Every door AND external drawer front to one style, in one undo step.
+    # Pressing it again redraws everything at its current size (same as Rebuild).
+    def self.convert_all(style)
       return unless colour_ready?
       model = Sketchup.active_model
-      pairs = Finder.all_targets(model, [kind])
+      pairs = Finder.all_targets(model, STYLED_KINDS)
       if pairs.empty?
-        UI.messagebox("No #{Finder::KINDS[kind].downcase}s found.\nCheck the component names in HW Door Style > Settings.")
+        UI.messagebox("No doors or drawer fronts found.\nCheck the component names in HW Door Style > Settings.")
         return
       end
-      name = "All #{Finder::KINDS[kind].downcase}s - #{Styles.label(style)}"
+      name = "All doors & drawer fronts - #{Styles.label(style)}"
       run(name) { Converter.apply(pairs, style, name) }
     end
 
@@ -228,16 +230,17 @@ module HarryWardrobes
     unless file_loaded?(__FILE__)
       menu = UI.menu('Extensions').add_submenu('HW Door Style')
 
-      doors_menu = menu.add_submenu('All doors')
-      Styles.ids.each { |s| doors_menu.add_item("#{Styles.label(s)}") { convert_all(:door, s) } }
-      drawers_menu = menu.add_submenu('All external drawer fronts')
-      Styles.ids.each { |s| drawers_menu.add_item("#{Styles.label(s)}") { convert_all(:ext_drawer, s) } }
+      cmd_shaker = command('Shaker - all doors & drawer fronts',
+                           'Make every door and external drawer front Shaker. Press again after resizing to redraw them.',
+                           'doors') { convert_all('shaker') }
+      menu.add_item(cmd_shaker)
+      style_menu = menu.add_submenu('All doors & drawer fronts')
+      Styles.ids.each { |s| style_menu.add_item(Styles.label(s)) { convert_all(s) } }
 
       cmd_reset = command('Reset all to Flat', 'Set every door and external drawer front back to Flat (hinges kept).', 'reset') { reset_all_flat }
       menu.add_item(cmd_reset)
 
-      cmd_rebuild = command('Rebuild styles', 'Redraw every converted door and drawer front at its current size.', 'rebuild') { rebuild_all }
-      menu.add_item(cmd_rebuild)
+      menu.add_item('Rebuild styles (keep each item\'s style)') { rebuild_all }
       menu.add_item('Apply DOOR / DRAWER_FRONT tags') { apply_tags }
 
       hinge_menu = menu.add_submenu('Hinge type (this job)')
@@ -254,20 +257,16 @@ module HarryWardrobes
       menu.add_separator
       cmd_summary = command('Door summary', 'Show the door and drawer front summary (CSV / PDF export).', 'summary') { Report.show }
       cmd_settings = command('Settings', 'Frame sizes, mid-rail, hinge rules and component names.', 'settings') { show_settings }
-      cmd_export = command('Export door order (CSV + PDF)', 'Save DOOR_ORDER_v<N>_<file name>.csv and .pdf next to the SketchUp file.', 'export') { Report.export_order }
       menu.add_item(cmd_summary)
-      menu.add_item(cmd_export)
+      menu.add_item('Export door order (CSV + PDF)') { Report.export_order }
       menu.add_item(cmd_settings)
 
       tb = UI::Toolbar.new('HW Door Style')
       tb.add_item(cmd_colours)
-      tb.add_item(command('All doors - Shaker', 'Convert every door in the model to Shaker.', 'doors') { convert_all(:door, 'shaker') })
-      tb.add_item(command('All external drawer fronts - Shaker', 'Convert every external drawer front to Shaker (50 mm frame).', 'drawers') { convert_all(:ext_drawer, 'shaker') })
+      tb.add_item(cmd_shaker)
       tb.add_item(cmd_reset)
       tb.add_separator
-      tb.add_item(cmd_rebuild)
       tb.add_item(cmd_summary)
-      tb.add_item(cmd_export)
       tb.add_item(cmd_settings)
       tb.restore
 

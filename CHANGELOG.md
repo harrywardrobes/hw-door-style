@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 — 2026-10-15
+- Toolbar trimmed to 5 buttons: Colours, Shaker, Reset to Flat, Summary, Settings.
+- Shaker now converts doors and external drawer fronts together; press again to redraw after resizing.
+- Rebuild styles and Export door order removed from the toolbar (still in the menu; export also in Summary).
+- Settings icon is now a gear.
+
 ## 0.4.1 — 2026-10-15
 - Colours: Exterior / Interior / Worktop "Default" now follows the door colour, shown as
   "Default (<door colour>)"; each can still be set separately.

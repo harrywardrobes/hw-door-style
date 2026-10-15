@@ -137,8 +137,10 @@ Never changed: HARDWARE, hanging rail, Untagged, room tags, *_dims tags.
 
 ## 5. User interface
 
-- **Toolbar**: All doors → Shaker · All external drawers → Shaker · Reset all to Flat ·
-  Rebuild styles · Summary · Export door order · Settings.
+- **Toolbar** (5 buttons): Colours · Shaker · Reset to Flat · Summary · Settings.
+  - **Shaker** converts every door **and** external drawer front in one step. Pressing it
+    again redraws everything at its current size, so there is no separate Rebuild button.
+  - Export door order lives in the Summary window (and the menu).
 - **Extensions menu → HW Door Style**: All doors → (each style), All external
   drawers → (each style), Reset all to Flat, Rebuild styles, Apply tags,
   Hinge type (this job) → (4 types), Summary, Export door order, Settings.
