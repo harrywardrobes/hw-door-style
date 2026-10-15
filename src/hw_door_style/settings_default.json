@@ -15,5 +15,7 @@
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [[900, 2], [1600, 3], [2000, 4], [2400, 5], [99999, 6]],
   "hinge_end_inset_mm": 100,
-  "hardware_tag": "HARDWARE"
+  "hardware_tag": "HARDWARE",
+  "door_tag": "DOOR",
+  "drawer_tag": "DRAWER_FRONT"
 }

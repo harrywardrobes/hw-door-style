@@ -21,10 +21,13 @@ To update, install the newer `.rbz` over the old one. Your settings (`settings.j
 | Convert every door to Shaker | Toolbar: door icon |
 | Convert every external drawer front to Shaker | Toolbar: drawer icon |
 | Convert to any style (incl. back to Flat) | Extensions → HW Door Style → All doors / All external drawer fronts |
+| Everything back to Flat (hinges kept) | Toolbar: Reset all to Flat |
 | Change one door | Select it (double-click into the wardrobe first), right-click → HW Door Style → Style |
 | Redraw after resizing a wardrobe | Toolbar: Rebuild styles |
 | Set the job's hinge type | Extensions → HW Door Style → Hinge type (this job) |
-| Parts summary, CSV, PDF | Toolbar: Summary |
+| On-screen summary | Toolbar: Summary |
+| Save `DOOR_ORDER_v<N>_<file name>` CSV + PDF next to the .skp | Toolbar: Export door order |
+| Re-tag faces/edges inside doors and drawer fronts | Extensions → HW Door Style → Apply DOOR / DRAWER_FRONT tags |
 | Frame sizes, mid-rail, hinge rules, names | Toolbar: Settings |
 
 Every action is a single undo (Ctrl+Z).
@@ -45,7 +48,9 @@ src/hw_door_style/finder.rb     finding and measuring doors/drawer fronts
 src/hw_door_style/styles.rb     style registry (add new styles here)
 src/hw_door_style/hardware.rb   hidden hinge / TIP-ON parts
 src/hw_door_style/converter.rb  rebuilds definitions at real size
-src/hw_door_style/report.rb     summary, CSV
+src/hw_door_style/report.rb     summary, CSV, export naming/versioning
+src/hw_door_style/pdf.rb        built-in PDF writer
+src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging
 tools/hw_inspect.rb             read-only model inspector for the Ruby Console
 test/logic_test.rb              offline logic tests (ruby test/logic_test.rb)
 ```

@@ -62,15 +62,46 @@ module HarryWardrobes
         lines.join("\r\n")
       end
 
-      def self.export_csv(model = Sketchup.active_model)
-        base = File.basename(model.path.to_s, '.skp')
-        base = 'door_summary' if base.empty?
-        dir = model.path.to_s.empty? ? nil : File.dirname(model.path)
-        file = UI.savepanel('Export door summary', dir, "#{base}_doors.csv")
-        return unless file
-        file += '.csv' unless file.downcase.end_with?('.csv')
-        File.write(file, "﻿" + csv(rows(model)), mode: 'w:UTF-8')
-        UI.messagebox("Saved:\n#{file}")
+      # --- export: DOOR_ORDER_v<N>_<file name>.csv + .pdf next to the .skp ---
+
+      def self.safe_name(s)
+        s.to_s.gsub(/[<>:"\/\\|?*\x00-\x1F]/, '_').strip
+      end
+
+      def self.order_stem(version, base)
+        "DOOR_ORDER_v#{version}_#{safe_name(base)}"
+      end
+
+      # Next version = highest found in the folder or recorded in the model, + 1.
+      def self.next_version(dir, base, recorded = 0)
+        pattern = /\ADOOR_ORDER_v(\d+)_#{Regexp.escape(safe_name(base))}\.(csv|pdf)\z/i
+        found = Dir.exist?(dir) ? Dir.children(dir).map { |f| f[pattern, 1].to_i }.max.to_i : 0
+        [found, recorded.to_i].max + 1
+      end
+
+      def self.export_order(model = Sketchup.active_model)
+        if model.path.to_s.empty?
+          UI.messagebox('Save the SketchUp file first - the door order is saved next to it and named after it.')
+          return nil
+        end
+        dir  = File.dirname(model.path)
+        base = File.basename(model.path, '.skp')
+        v    = next_version(dir, base, model.get_attribute(DICT, 'export_version', 0))
+        stem = File.join(dir, order_stem(v, base))
+        data = payload(model).merge('export_version' => v)
+
+        File.write("#{stem}.csv", "﻿" + csv(data['rows']), mode: 'w:UTF-8')
+        Pdf.write("#{stem}.pdf", data)
+
+        model.start_operation('Record door order export', true)
+        model.set_attribute(DICT, 'export_version', v)
+        model.commit_operation
+
+        UI.messagebox("Door order v#{v} saved in:\n#{dir}\n\n#{File.basename(stem)}.csv\n#{File.basename(stem)}.pdf")
+        v
+      rescue StandardError => e
+        UI.messagebox("Export failed: #{e.message}\n\nIf the file is open in Excel or a PDF viewer, close it and try again.")
+        nil
       end
 
       def self.payload(model = Sketchup.active_model)
@@ -80,6 +111,7 @@ module HarryWardrobes
           'hinge_type' => Settings::HINGE_TYPES[Settings.job_hinge_type(model)],
           'date' => Time.now.strftime('%d/%m/%Y %H:%M'),
           'version' => VERSION,
+          'last_export' => model.get_attribute(DICT, 'export_version', 0).to_i,
           'rows' => r, 'totals' => totals(r)
         }
       end
@@ -91,7 +123,10 @@ module HarryWardrobes
                                   style: UI::HtmlDialog::STYLE_DIALOG)
         html = File.read(File.join(PATH, 'html', 'summary.html'))
         @dlg.set_html(html.sub('/*DATA*/null', JSON.generate(payload)))
-        @dlg.add_action_callback('exportCsv') { |_ctx| export_csv }
+        @dlg.add_action_callback('exportOrder') do |_ctx|
+          export_order
+          @dlg.execute_script("render(#{JSON.generate(payload)})")
+        end
         @dlg.add_action_callback('refresh') { |_ctx| @dlg.execute_script("render(#{JSON.generate(payload)})") }
         @dlg.show
       end

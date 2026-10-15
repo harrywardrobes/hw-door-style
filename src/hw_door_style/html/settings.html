@@ -39,7 +39,11 @@
 <label>Hinges per door <input type="text" id="hinge_rules"></label>
 <div class="hint" style="margin-left:238px">max height:count, e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
 <label>Top / bottom hinge inset (mm) <input type="number" id="hinge_end_inset_mm" step="1"></label>
-<label>Hardware tag <input type="text" id="hardware_tag"></label>
+
+<h2>Tags (applied to faces and edges inside each component)</h2>
+<label>Doors <input type="text" id="door_tag"></label>
+<label>Drawer fronts <input type="text" id="drawer_tag"></label>
+<label>Hinges / TIP-ON <input type="text" id="hardware_tag"></label>
 
 <div class="bar">
   <button onclick="sketchup.reset()">Reset to defaults</button>
@@ -55,6 +59,8 @@ function load(s){
   NUMS.forEach(function(k){ document.getElementById(k).value = s[k]; });
   document.getElementById('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
   document.getElementById('hardware_tag').value = s.hardware_tag;
+  document.getElementById('door_tag').value = s.door_tag;
+  document.getElementById('drawer_tag').value = s.drawer_tag;
 }
 function save(){
   var o = {};
@@ -62,6 +68,8 @@ function save(){
   NUMS.forEach(function(k){ o[k] = parseFloat(document.getElementById(k).value); });
   o.hinge_rules = document.getElementById('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
   o.hardware_tag = document.getElementById('hardware_tag').value.trim() || 'HARDWARE';
+  o.door_tag = document.getElementById('door_tag').value.trim() || 'DOOR';
+  o.drawer_tag = document.getElementById('drawer_tag').value.trim() || 'DRAWER_FRONT';
   sketchup.save(JSON.stringify(o));
 }
 load(S);

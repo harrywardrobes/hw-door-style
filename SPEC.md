@@ -55,8 +55,7 @@ frame inside a scaled component would stretch with it, so on conversion:
    in the same position. DC values (LenX/LenY/LenZ) stay consistent.
 3. Inside the door definition:
    - `STYLE_SHAKER` / `STYLE_FLAT` — nested component holding the visible
-     geometry, on the same tag the original faces used (`DOOR`, `DRAWER_FRONT`,
-     etc.). The door instance's own tag is untouched.
+     geometry. The door instance's own tag is untouched.
    - Hinge components (e.g. 4 × `soft_close_110`) and, for PTO, one `tip_on`,
      on tag `HARDWARE`, **hidden** so they never appear in renders.
 4. Settings used are written to the `hw_door_style` attribute dictionary.
@@ -65,6 +64,18 @@ frame inside a scaled component would stretch with it, so on conversion:
 stretches the door again. **Rebuild styles** redraws every styled item at its
 new size. Recommended workflow: design flat, convert when the layout is settled,
 press Rebuild after any resize.
+
+## 3a. Tags inside components
+
+Every face and edge **inside** each recognised item is tagged, so the tag travels
+with any copy of the component:
+- doors → `DOOR`
+- drawer fronts (external and internal) → `DRAWER_FRONT`
+- hinge / TIP-ON geometry → `HARDWARE`
+
+This applies to all recognised items, including internal drawer fronts and items
+not converted yet. It runs automatically with every convert, reset and rebuild, and
+on demand from **Apply DOOR / DRAWER_FRONT tags**. Tag names are editable in Settings.
 
 ## 4. Hardware (parts list only)
 
@@ -80,10 +91,13 @@ press Rebuild after any resize.
 
 ## 5. User interface
 
-- **Toolbar**: All doors → Shaker · All external drawers → Shaker · Rebuild styles · Summary · Settings.
+- **Toolbar**: All doors → Shaker · All external drawers → Shaker · Reset all to Flat ·
+  Rebuild styles · Summary · Export door order · Settings.
 - **Extensions menu → HW Door Style**: All doors → (each style), All external
-  drawers → (each style), Rebuild styles, Hinge type (this job) → (4 types),
-  Summary, Settings.
+  drawers → (each style), Reset all to Flat, Rebuild styles, Apply tags,
+  Hinge type (this job) → (4 types), Summary, Export door order, Settings.
+- **Reset all to Flat**: every door and external drawer front to the Flat style in one
+  step; hinges and TIP-ONs are kept.
 - **Right-click** on a selected door/drawer (or a wardrobe containing them):
   HW Door Style → each style, Rebuild.
 - Each action is a single undo step.
@@ -93,8 +107,19 @@ press Rebuild after any resize.
 On-screen table, one row per physical item (counts multiply through repeated
 parent components): unit, item, kind, width, height, style, mid-rail, hinge
 type, hinge qty, TIP-ON qty, notes. Totals: items by style, hinges by type,
-TIP-ONs. Buttons: Export CSV, Print / Save as PDF (via the Windows print
-dialog), Refresh.
+TIP-ONs. Buttons: Refresh, Export door order.
+
+### Export door order
+One button saves **both** files, with the same version number, next to the .skp
+(no dialog):
+
+    DOOR_ORDER_v1_<file name>.csv
+    DOOR_ORDER_v1_<file name>.pdf
+
+Each export adds one to the version. The next number is the highest of: any
+`DOOR_ORDER_v<N>_<file name>` already in the folder, or the last version recorded
+in the model. The model must be saved first. The PDF is written by the plugin
+itself (A4 landscape, totals at the top, table repeats its header on each page).
 
 Style does **not** affect price (cost sheet to be integrated later).
 

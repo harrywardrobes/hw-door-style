@@ -1,4 +1,5 @@
 # Offline logic test (no SketchUp needed): ruby test/logic_test.rb
+require 'fileutils'
 # Stubs just enough of the SketchUp API to exercise settings, measuring,
 # shaker panel layout, hinge spacing and the CSV export.
 
@@ -104,6 +105,30 @@ csv = Report.csv(rows)
 check 'csv header + row', csv.lines.size == 2 && csv.include?('"a, ""b"""')
 t = Report.totals(rows)
 check 'totals hinges', t['hinges']['Soft Close 110'] == 5
+
+# --- export naming + versioning
+require 'tmpdir'
+require 'hw_door_style/pdf'
+Dir.mktmpdir do |dir|
+  check 'first export is v1', Report.next_version(dir, 'Smith Wardrobes') == 1
+  check 'stem format', Report.order_stem(1, 'Smith Wardrobes') == 'DOOR_ORDER_v1_Smith Wardrobes'
+  File.write(File.join(dir, 'DOOR_ORDER_v1_Smith Wardrobes.csv'), '')
+  File.write(File.join(dir, 'DOOR_ORDER_v3_Smith Wardrobes.pdf'), '')
+  File.write(File.join(dir, 'DOOR_ORDER_v9_Jones.pdf'), '')
+  check 'next after v3 is v4 (other jobs ignored)', Report.next_version(dir, 'Smith Wardrobes') == 4
+  check 'model record wins if higher', Report.next_version(dir, 'Smith Wardrobes', 6) == 7
+
+  data = { 'job' => 'Smith Wardrobes', 'hinge_type' => 'Soft Close 110', 'date' => '15/10/2026 11:00',
+           'version' => '0.2.0', 'export_version' => 4,
+           'rows' => Array.new(45) { |i| rows[0].merge('n' => i + 1, 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
+  data['totals'] = Report.totals(data['rows'])
+  pdf = File.join(dir, 'DOOR_ORDER_v4_Smith Wardrobes.pdf')
+  Pdf.write(pdf, data)
+  bytes = File.binread(pdf)
+  check 'pdf header/footer', bytes.start_with?('%PDF-1.4') && bytes.rstrip.end_with?('%%EOF')
+  check 'pdf multi-page', bytes.scan('/Type /Page ').size >= 2
+  FileUtils.cp(pdf, ENV['PDF_OUT']) if ENV['PDF_OUT']
+end
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

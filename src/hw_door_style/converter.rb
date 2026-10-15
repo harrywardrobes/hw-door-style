@@ -49,6 +49,7 @@ module HarryWardrobes
             end
           end
 
+          Tagger.tag_all(model)
           model.commit_operation
           { items: jobs.size, definitions: groups.size, notes: notes.uniq }
         rescue StandardError => e
@@ -63,17 +64,10 @@ module HarryWardrobes
         inst.transformation = Geom::Transformation.axes(origin, x, y, z)
       end
 
-      def self.style_tag(model, ents)
-        old = ents.find { |e| e.is_a?(Sketchup::ComponentInstance) && e.get_attribute(DICT, 'role') == 'style' }
-        return old.layer if old
-        face = ents.grep(Sketchup::Face).first
-        face ? face.layer : model.layers[0]
-      end
-
       def self.rebuild_definition(model, defn, job, hinge_type, cache)
         ents = defn.entities
         w, t, h = job[:size]
-        tag = style_tag(model, ents)
+        tag = Tagger.tag_for(model, job[:kind])
 
         doomed = ents.select do |e|
           e.is_a?(Sketchup::Face) || e.is_a?(Sketchup::Edge) ||
@@ -120,6 +114,7 @@ module HarryWardrobes
         d.set_attribute(DICT, 'midrail', info[:midrail])
         d.set_attribute(DICT, 'note', info[:note])
         d.description = "#{Styles.label(info[:style])} #{Finder.mm_s(w)} x #{Finder.mm_s(h)} mm"
+        Tagger.tag_geometry(d.entities, Tagger.tag_for(model, kind))
         cache[key] = [d, info]
       end
     end

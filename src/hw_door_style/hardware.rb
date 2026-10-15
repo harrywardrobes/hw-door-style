@@ -13,6 +13,7 @@ module HarryWardrobes
         d = model.definitions.add(name)
         w, t, h = size_mm.map { |v| v.mm }
         Styles.box(d.entities, w, t, h)
+        Tagger.tag_geometry(d.entities, Tagger.layer(model, Settings.get['hardware_tag']))
         d.set_attribute(DICT, 'role', 'hardware')
         d.description = 'HW Door Style hardware placeholder (parts list only)'
         d

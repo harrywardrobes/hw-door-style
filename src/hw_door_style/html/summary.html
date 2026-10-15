@@ -39,8 +39,8 @@
 </header>
 <div class="bar">
   <button onclick="sketchup.refresh()">Refresh</button>
-  <button onclick="sketchup.exportCsv()">Export CSV</button>
-  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+  <button class="primary" onclick="sketchup.exportOrder()">Export door order (CSV + PDF)</button>
+  <span class="meta" id="last" style="align-self:center"></span>
 </div>
 <div class="totals" id="totals"></div>
 <div id="table"></div>
@@ -53,6 +53,7 @@ function card(title, obj){
 function render(d){
   document.getElementById('meta').textContent = (d.job||'Unsaved model')+'  |  Hinge type: '+d.hinge_type+'  |  '+d.date;
   document.getElementById('ver').textContent = 'HW Door Style v'+d.version;
+  document.getElementById('last').textContent = d.last_export ? ('Last export: v'+d.last_export) : 'Not exported yet';
   var t = d.totals;
   var extra = {}; extra['Items'] = t.items; extra['TIP-ON'] = t.tip_on;
   document.getElementById('totals').innerHTML = card('Items by style', t.by_style) + card('Hinges', t.hinges) + card('Totals', extra);
