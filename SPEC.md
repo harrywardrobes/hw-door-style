@@ -281,6 +281,23 @@ floor always applies.
   and every formula (`parent!SCRIBE_L` too; hidden `ZZ_SCRIBE_*` untouched); every runout dropdown gets the
   Settings list. Open drawers are closed before each redraw.
 
+### Component standard (library, from V19)
+
+| Runout | Applies when | Effective value used by parts |
+|---|---|---|
+| Floor | always | `RUNOUT_FLOOR` |
+| Ceiling | `TOPPED` = To ceiling (0) | `ZZ_RUNOUT_CEILING = IF(TOPPED, 0, RUNOUT_CEILING)` |
+| Left / Right | `WALL_LEFT` / `WALL_RIGHT` = TRUE | `ZZ_RUNOUT_L/R`, `ZZ_EXT_L/R` (wardrobes) |
+| Back | `WALL_BACK` = TRUE (default) | `ZZ_RUNOUT_BACK = IF(WALL_BACK="TRUE", RUNOUT_BACK_WALL, 0)` |
+
+- `TOPPED` everywhere (was FRAME_TOPPED in wardrobes); added to END_PAN, BXEND, BULLNOSE, BOOKCASE.
+- `WALL_BACK` added to WARDROBE, WALK-IN, LINEN_PRESS, TOPBOX, END_PAN, BXEND, BOOKCASE.
+- Wardrobe facings: top facing + ceiling runout (when not topped), bottom facing down by the floor runout.
+- BOOKCASE sides and facings go down by the floor runout.
+- Shelf groups pass `ZZ_RUNOUT_BACK` through to their shelves.
+- INT_DRAWER, INT_DRAWER_PLUS, SHOE_PULL_OUT carry no runouts.
+- Applied once with `tools/standardise_runouts.rb`.
+
 ## 8. Not in v0.1 (future)
 
 - Hinge side (L/R), and `DOOR L` / `DOOR R` naming.

@@ -11,6 +11,9 @@
   runout dropdown 0 / 25 / 50 / 75 / 100 / 150 mm (Settings). Verified on all 17 V19 units: same
   geometry before/after, at current values and at 100 mm with every wall switch on.
 - Settings: runout dropdown values and defaults (25 mm each side).
+- Library standard (tools/standardise_runouts.rb, applied to Components V19): TOPPED everywhere,
+  WALL_BACK on wardrobes / END_PAN / BXEND / BOOKCASE, wardrobe facings take floor + ceiling,
+  BOOKCASE takes floor, internal drawers + shoe pull-out carry no runouts. All 17 units verified.
 
 ## 0.10.1 — 2026-10-16
 - Clean model: purge removes unused components only; materials are never purged.
