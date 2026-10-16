@@ -194,6 +194,8 @@ Dir.mktmpdir do |root|
   i = LE.scan(model, 'INT_DRAWER')
   check 'export: INT_DRAWER does not pick up INT_DRAWER_228_PLUS', i[:current].map { |p| File.basename(p) } == ['INT_DRAWER_228_V3.skp']
   check 'export: SHOE_PULL_OUT finds "SHOE_UNIT V2"', LE.scan(model, 'SHOE_PULL_OUT')[:version] == 2
+  File.write(File.join(root, 'DRAWERS', 'EXT_DRAWER_228.skp'), 'x')
+  check 'export: EXT_DRAWER_228.skp is the old name (V1), not version 228', LE.scan(model, 'EXT_DRAWER')[:version] == 1
   check 'export: BOOKCASE_4 counts as V4', LE.scan(model, 'BOOKCASE')[:version] == 4
   check 'export: loose END_PAN in main folder found (V1)', LE.scan(model, 'END_PAN')[:current].size == 1
   check 'export: brand new component starts at V1', LE.scan(model, 'NEW_THING')[:version].zero?

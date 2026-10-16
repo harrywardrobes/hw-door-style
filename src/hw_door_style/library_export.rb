@@ -61,8 +61,10 @@ module HarryWardrobes
       def self.components(model)
         seen = {}
         list = []
+        skip = Settings.names('export_skip')
         model.entities.grep(Sketchup::ComponentInstance).each do |i|
           next if seen[i.definition]
+          next if skip.include?(base(i.definition).upcase)
           seen[i.definition] = true
           list << i
         end
@@ -83,7 +85,8 @@ module HarryWardrobes
       end
 
       def self.file_re(names)
-        alt = names.map { |n| Regexp.escape(n) }.join('|')
+        # Longest first, so EXT_DRAWER_228.skp is the old name (V1), not EXT_DRAWER version 228.
+        alt = names.sort_by { |n| -n.size }.map { |n| Regexp.escape(n) }.join('|')
         /\A(?:#{alt})(?:[_ ]V?(\d+))?\.skp\z/i
       end
 
@@ -125,20 +128,44 @@ module HarryWardrobes
         MAIN
       end
 
-      # Changes whenever the component or anything inside it is edited or redrawn.
+      VOLATILE = /_error\z|\A_?onclick_state|\A_lastmodified|\A_?formatversion\z/i.freeze
+
+      def self.attrs_sig(obj)
+        d = obj.attribute_dictionary('dynamic_attributes')
+        return '' unless d
+        d.to_a.reject { |k, _| k =~ VOLATILE }.sort_by(&:first).map do |k, v|
+          "#{k}=#{v.is_a?(Float) ? v.round(5) : v}"
+        end.join('|')
+      end
+
+      def self.round_a(a)
+        a.map { |x| x.round(4) }
+      end
+
+      # Content of the component and everything inside it (geometry, positions,
+      # sizes, materials, tags, DC values). Same content = same fingerprint,
+      # whatever SketchUp does to its internal ids.
       def self.fingerprint(inst)
-        guids = []
+        parts = []
         seen = {}
         walk = lambda do |d|
           next if seen[d]
           seen[d] = true
-          guids << "#{d.name}:#{d.guid}:#{d.entities.size}"
-          d.entities.grep(Sketchup::ComponentInstance).each { |c| walk.call(c.definition) }
+          faces = d.entities.grep(Sketchup::Face)
+          b = d.bounds
+          parts << [d.name, d.entities.size, faces.size, d.entities.grep(Sketchup::Edge).size,
+                    faces.sum(&:area).round(3), round_a([b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z]),
+                    faces.map { |f| "#{f.material&.name}/#{f.layer.name}" }.tally.sort, attrs_sig(d)].inspect
+          d.entities.each do |e|
+            next unless e.respond_to?(:definition)
+            parts << [d.name, e.definition.name, round_a(e.transformation.to_a), e.material&.name,
+                      e.layer.name, e.hidden?, attrs_sig(e)].inspect
+            walk.call(e.definition)
+          end
         end
         walk.call(inst.definition)
-        dc = inst.attribute_dictionary('dynamic_attributes')
-        attrs = dc ? dc.to_a.sort_by { |k, _| k }.map { |k, v| "#{k}=#{v}" } : []
-        Digest::MD5.hexdigest((guids.sort + attrs).join("\n"))
+        parts << ['top', inst.material&.name, attrs_sig(inst)].inspect
+        Digest::MD5.hexdigest(parts.sort.join("\n"))
       end
 
       # Rows for the window.

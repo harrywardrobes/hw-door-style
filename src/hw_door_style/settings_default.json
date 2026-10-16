@@ -127,18 +127,12 @@
     "SHOE_PULL_OUT": [
       "SHOE_UNIT"
     ],
-    "BXSH": [
-      "BOX_SHELF"
-    ],
-    "BRGSK": [
-      "BRIDGE_SKELETON"
-    ],
-    "FACNG_BLOCK_L": [
-      "FACING_BLOCK_L"
-    ],
     "TOPBOX": [
       "TOPBOX_FRAME"
     ]
   },
+  "export_skip": [
+    "FLOOR"
+  ],
   "settings_version": 2
 }

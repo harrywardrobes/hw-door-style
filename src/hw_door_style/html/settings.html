@@ -73,6 +73,7 @@
   <fieldset class="wide"><legend>Export components (library file)</legend>
     <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
     <div class="f t"><span>Older file names</span><textarea id="export_aliases" rows="4" title="One per line: COMPONENT: OLD_NAME, OLD_NAME"></textarea></div>
+    <div class="f t"><span>Never export</span><input type="text" id="export_skip" title="Top-level components left out of the export list"></div>
     <div class="hint">One line per component, e.g. <code>WARDROBE: WRD</code>. Files with an older name are moved to the old folder and counted for the next version number.</div>
   </fieldset>
 
@@ -99,7 +100,7 @@
 </div>
 <script>
 var S = /*DATA*/null;
-var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts'];
+var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
 var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };

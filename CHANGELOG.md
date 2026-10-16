@@ -11,7 +11,9 @@
   materials (listed first). One undo step, so you can check before exporting.
 - Optional: save the library as the next `Components V<n>` and move older ones to `_old`.
 - Progress bar; Explorer opens on the folder when done. Folder per component is remembered.
-- Settings: old versions folder, older file names (e.g. `WARDROBE: WRD`).
+- Settings: old versions folder, older file names (e.g. `WARDROBE: WRD`), never-export list (FLOOR).
+- Change detection compares content (geometry, positions, materials, tags, DC values), not SketchUp ids.
+- Library: BXSH → BOX_SHELF, BRGSK → BRIDGE_SKELETON, FACNG_BLOCK_L → FACING_BLOCK_L.
 
 ## 0.9.0 — 2026-10-16
 - Colours window: new **22mm Panels** row, default **White** (a plain white offered only on this row).
