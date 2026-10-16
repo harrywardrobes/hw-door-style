@@ -107,6 +107,10 @@ module HarryWardrobes
       # Width/height from the body geometry x scale. Thickness prefers the DC LenY
       # (so a DC that squashed the door to fit hinges is corrected on rebuild).
       def self.real_size(inst)
+        # Migrated wrappers carry their size in DOOR_W / DOOR_T / DOOR_H.
+        wth = %w[door_w door_t door_h].map { |k| DC.read(inst, k) }
+        return wth.map(&:to_f) if wth.all? { |v| v.is_a?(Numeric) && v > 0 }
+
         scale, = decompose(inst.transformation)
         b = body_bounds(inst.definition)
         geo = [b.width * scale[0], b.height * scale[1], b.depth * scale[2]].map(&:to_f)

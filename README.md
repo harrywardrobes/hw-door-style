@@ -37,6 +37,7 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 | Back up / copy settings to another computer | Settings → Download backup / Upload backup |
 | Change one door | Select it (double-click into the wardrobe first), right-click → HW Door Style → Style |
 | Redraw but keep individual doors' styles | Extensions → HW Door Style → Rebuild styles, or right-click → Rebuild selected |
+| Fix thin / stretched doors, old STYLE_* doors, hinges | Extensions → HW Door Style → Repair doors in model |
 | Set the job's hinge type | Extensions → HW Door Style → Hinge type (this job) |
 | Re-tag faces/edges inside doors and drawer fronts | Extensions → HW Door Style → Apply DOOR / DRAWER_FRONT tags |
 | Save the 13 colours as .skm files | Extensions → HW Door Style → Export colour library (.skm) |
@@ -44,8 +45,8 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 Every action is a single undo (Ctrl+Z).
 
 **Workflow:** design with flat doors, press **Shaker** once the layout is settled, and press
-it again after any change to a wardrobe's size. The summary flags anything
-that has been resized since conversion.
+it again when a resize changes the number of hinges. Sizes, slab and hinge positions follow
+Component Options on their own; the Summary flags anything that needs a re-run.
 
 Internal drawer fronts (`IDRW_FRONT`) always stay flat.
 
@@ -58,7 +59,9 @@ src/hw_door_style/settings.rb   settings + job hinge type
 src/hw_door_style/finder.rb     finding and measuring doors/drawer fronts
 src/hw_door_style/styles.rb     style registry (add new styles here)
 src/hw_door_style/hardware.rb   hinge / TIP-ON cutlist parts
-src/hw_door_style/converter.rb  rebuilds definitions at real size
+src/hw_door_style/converter.rb  rebuilds wrappers to the DOOR_W/T/H contract
+src/hw_door_style/dc.rb         Dynamic Component attribute helpers
+src/hw_door_style/repair.rb     Repair doors in model + contract checks
 src/hw_door_style/report.rb     summary, CSV, export naming/versioning
 src/hw_door_style/pdf.rb        built-in PDF writer
 src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging
@@ -71,6 +74,8 @@ materials/                      colour pack: make_skm.rb, swatches, RGB values
 materials/interfit_box/         Interfit drawer box texture + .skm maker
 test/logic_test.rb              offline logic tests (ruby test/logic_test.rb)
 ```
+
+Acceptance tests (in SketchUp): `load 'tools/acceptance_test.rb'; puts HWDoorAcceptance.run_report`.
 
 Build: `python3 build.py` → `dist/hw_door_style_v<version>.rbz` and `dist/HW_Colours.zip`.
 

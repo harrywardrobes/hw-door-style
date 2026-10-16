@@ -6,6 +6,7 @@ module HarryWardrobes
     DICT = 'hw_door_style'.freeze
 
     Sketchup.require(File.join(PATH, 'settings'))
+    Sketchup.require(File.join(PATH, 'dc'))
     Sketchup.require(File.join(PATH, 'finder'))
     Sketchup.require(File.join(PATH, 'styles'))
     Sketchup.require(File.join(PATH, 'tagger'))
@@ -15,6 +16,7 @@ module HarryWardrobes
     Sketchup.require(File.join(PATH, 'drawer_box'))
     Sketchup.require(File.join(PATH, 'converter'))
     Sketchup.require(File.join(PATH, 'report'))
+    Sketchup.require(File.join(PATH, 'repair'))
 
     STYLED_KINDS = [:door, :ext_drawer].freeze
 
@@ -63,6 +65,15 @@ module HarryWardrobes
       return UI.messagebox('No doors or drawer fronts found.') if pairs.empty?
       return unless UI.messagebox("Reset all #{pairs.size} doors and drawer fronts to Flat?", MB_YESNO) == IDYES
       run('Reset all to Flat') { Converter.apply(pairs, 'flat', 'Reset all to Flat') }
+    end
+
+    def self.repair_doors
+      model = Sketchup.active_model
+      r = Repair.run(model)
+      UI.messagebox(Repair.message(r), MB_MULTILINE, 'HW Door Style - Repair doors')
+    rescue StandardError => e
+      UI.messagebox("Repair failed and was undone.\n\n#{e.message}")
+      puts e.full_message
     end
 
     def self.apply_tags
@@ -276,6 +287,7 @@ module HarryWardrobes
 
       menu.add_item('Rebuild styles (keep each item\'s style)') { rebuild_all }
       menu.add_item('Apply DOOR / DRAWER_FRONT tags') { apply_tags }
+      menu.add_item('Repair doors in model') { repair_doors }
 
       hinge_menu = menu.add_submenu('Hinge type (this job)')
       Settings::HINGE_TYPES.each do |id, label|

@@ -9,10 +9,14 @@
   ],
   "ext_drawer_names": [
     "XDRW_FRONT",
-    "LIN_DRAWER_FRONT"
+    "LIN_DRAWER_FRONT",
+    "BEDSIDE_DRW_FRONT",
+    "LINEN_PRESS_DRW_FRONT"
   ],
   "int_drawer_names": [
-    "IDRW_FRONT"
+    "IDRW_FRONT",
+    "INT_DRAWER_DRW_FRONT",
+    "INT_DRAWER_PLUS_DRW_FRONT"
   ],
   "door_frame_mm": 100,
   "drawer_frame_mm": 50,

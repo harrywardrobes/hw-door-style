@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 — 2026-10-16
+- **Fix: doors drawn 10.8 mm thick.** Wrappers no longer scale: Len formulas moved to hidden
+  DOOR_W / DOOR_T / DOOR_H; wrapper and hardware scale is always 1.
+- Slab renamed `DOOR` (drawer fronts `FRONT`) with `DOOR_STYLE` = FLAT / SHAKER; sized by
+  `parent!DOOR_W/T/H`. Shaker is built at true size, never stretched. `STYLE_*` retired.
+- Hinges / TIP-ON follow resizes through DC position formulas. A change in hinge count still
+  needs Shaker or Repair (flagged in the Summary).
+- New **Repair doors in model** menu command: one undo step, idempotent, reports what it fixed.
+- Default names add BEDSIDE_DRW_FRONT, LINEN_PRESS_DRW_FRONT (external) and
+  INT_DRAWER_DRW_FRONT, INT_DRAWER_PLUS_DRW_FRONT (internal).
+- `tools/acceptance_test.rb`: all 56 checks pass on Components V16.
+
 ## 0.6.2 — 2026-10-15
 - New default settings: Exterior tags add EXT_SH and BOOKCASE; Interior tags drop MDF; drawer box parts = DRW_BOX.
 - Settings: **Download backup** / **Upload backup** (.json). An uploaded backup fills the window; press Save to keep it.

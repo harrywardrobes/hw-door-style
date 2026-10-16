@@ -28,7 +28,10 @@ module HarryWardrobes
           notes  = []
           notes << d.get_attribute(DICT, 'note').to_s
           notes << 'Not processed yet' if style.nil? && kind != :int_drawer
-          notes << 'Resized since conversion - press Rebuild styles' if style && Finder.scaled?(inst)
+          if style
+            pr = Repair.problems(inst, kind)
+            notes << "Needs Repair / re-run: #{pr.join(', ')}" unless pr.empty?
+          end
           rows << {
             'unit' => path_label(path), 'item' => Finder.label(inst),
             'kind' => Finder::KINDS[kind], 'width' => Finder.mm_s(w), 'height' => Finder.mm_s(h),

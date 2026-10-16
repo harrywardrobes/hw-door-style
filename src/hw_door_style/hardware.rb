@@ -2,8 +2,9 @@ module HarryWardrobes
   module DoorStyle
     # Hinge / TIP-ON components for the cutlist.
     #
-    # Placed just BEHIND the door (against its back face, where the real hinge
-    # sits), on the DOOR tag - so hiding DOOR hides them with the doors. They are
+    # Placed just BEHIND the door slab (Y = DOOR_T, where the real hinge sits),
+    # always true size (scale 1), with DC position formulas. On the DOOR tag -
+    # so hiding DOOR hides them with the doors. They are
     # never hidden themselves (cutlist software skips hidden components). Faces and
     # instance carry the material "HARDWARE" so the cutlist can split them out, and
     # the colour tool never repaints them.
@@ -71,40 +72,87 @@ module HarryWardrobes
         inst
       end
 
-      def self.hinge_heights(h, n)
-        box = HINGE_BOX[2].mm
-        inset = Settings.mm('hinge_end_inset_mm')
-        inset = h / 4.0 if h < (2 * inset + box)
-        return [h / 2.0] if n <= 1
-        step = (h - 2 * inset) / (n - 1).to_f
-        Array.new(n) { |i| inset + i * step }
+      # Top/bottom inset: the setting, but never more than a quarter of the door
+      # height (same rule as the hinge Z formula below).
+      def self.inset(h)
+        [Settings.mm('hinge_end_inset_mm'), h / 4.0].min
       end
 
-      # Adds hardware to a door definition. min = local corner of the door body
-      # (front face at min.y, back face at min.y + t). Returns { hinges: n, tip_on: n }.
-      def self.add(door_def, min, w, t, h, kind, hinge_type)
+      def self.hinge_heights(h, n)
+        return [h / 2.0] if n <= 1
+        i = inset(h)
+        step = (h - 2 * i) / (n - 1).to_f
+        Array.new(n) { |k| i + k * step }
+      end
+
+      # Len formulas pin hardware to its true size, so a DC redraw can never stretch it.
+      def self.lock_size(inst, prefix, bounds)
+        DC.formula(inst, 'lenx', "parent!#{prefix}_W", bounds.width)
+        DC.formula(inst, 'leny', "parent!#{prefix}_D", bounds.height)
+        DC.formula(inst, 'lenz', "parent!#{prefix}_HT", bounds.depth)
+      end
+
+      # Adds hardware to a door wrapper definition, positioned from the wrapper
+      # origin with DC formulas so it follows DOOR_W / DOOR_T / DOOR_H when the
+      # door is resized (hinge COUNT still needs a re-run).
+      # wrappers = [definition, instances...] that carry the helper attributes.
+      # Returns { hinges: n, tip_on: n }.
+      def self.add(door_def, wrappers, w, t, h, kind, hinge_type)
         return { hinges: 0, tip_on: 0 } unless kind == :door
         model = door_def.model
         ents = door_def.entities
         gap = EDGE_GAP.mm
-        back = min.y + t
 
         hd = definition(model, hinge_type, HINGE_BOX)
         hb = hd.bounds
-        heights = hinge_heights(h, Settings.hinge_count(h))
-        heights.each do |zc|
-          p = Geom::Point3d.new(min.x + gap - hb.min.x, back - hb.min.y,
-                                min.z + zc - hb.depth / 2.0 - hb.min.z)
-          place(ents, hd, p, model, 'hinge', hinge_type)
+        n = Settings.hinge_count(h)
+        heights = hinge_heights(h, n)
+
+        DC.length_attr(wrappers, 'ZZ_HINGE_X', nil, gap - hb.min.x)
+        DC.length_attr(wrappers, 'ZZ_HINGE_INSET', nil, Settings.mm('hinge_end_inset_mm'))
+        DC.length_attr(wrappers, 'ZZ_HINGE_HALF', nil, hb.depth / 2.0 + hb.min.z)
+        DC.number_attr(wrappers, 'ZZ_HINGE_GAPS', nil, [n - 1, 1].max)
+        DC.length_attr(wrappers, 'ZZ_HINGE_W', nil, hb.width)
+        DC.length_attr(wrappers, 'ZZ_HINGE_D', nil, hb.height)
+        DC.length_attr(wrappers, 'ZZ_HINGE_HT', nil, hb.depth)
+        DC.child(hd, hinge_type)
+
+        inset_f = 'SMALLEST(parent!ZZ_HINGE_INSET, parent!DOOR_H/4)'
+        heights.each_with_index do |zc, i|
+          p = Geom::Point3d.new(gap - hb.min.x, t - hb.min.y, zc - hb.depth / 2.0 - hb.min.z)
+          inst = place(ents, hd, p, model, 'hinge', hinge_type)
+          DC.child(inst, hinge_type)
+          DC.number_attr(inst, 'ZZ_HINGE_I', nil, i)
+          z_f = if n <= 1
+                  'parent!DOOR_H/2 - parent!ZZ_HINGE_HALF'
+                else
+                  "#{inset_f} + ZZ_HINGE_I*(parent!DOOR_H - 2*#{inset_f})/parent!ZZ_HINGE_GAPS - parent!ZZ_HINGE_HALF"
+                end
+          DC.formula(inst, 'x', 'parent!ZZ_HINGE_X', p.x)
+          DC.formula(inst, 'y', 'parent!DOOR_T', p.y)
+          DC.formula(inst, 'z', z_f, p.z)
+          lock_size(inst, 'ZZ_HINGE', hb)
         end
 
         tips = 0
         if Settings.pto?(hinge_type)
           td = definition(model, 'tip_on', TIP_ON_BOX)
           tb = td.bounds
-          p = Geom::Point3d.new(min.x + w - tb.width - gap - tb.min.x, back - tb.min.y,
-                                min.z + h - tb.depth - 20.mm - tb.min.z)
-          place(ents, td, p, model, 'tip_on', 'tip_on')
+          tip_x = tb.width + gap + tb.min.x
+          tip_z = tb.depth + 20.mm + tb.min.z
+          DC.length_attr(wrappers, 'ZZ_TIP_X', nil, tip_x)
+          DC.length_attr(wrappers, 'ZZ_TIP_Z', nil, tip_z)
+          DC.length_attr(wrappers, 'ZZ_TIP_W', nil, tb.width)
+          DC.length_attr(wrappers, 'ZZ_TIP_D', nil, tb.height)
+          DC.length_attr(wrappers, 'ZZ_TIP_HT', nil, tb.depth)
+          DC.child(td, 'tip_on')
+          p = Geom::Point3d.new(w - tip_x, t - tb.min.y, h - tip_z)
+          inst = place(ents, td, p, model, 'tip_on', 'tip_on')
+          DC.child(inst, 'tip_on')
+          DC.formula(inst, 'x', 'parent!DOOR_W - parent!ZZ_TIP_X', p.x)
+          DC.formula(inst, 'y', 'parent!DOOR_T', p.y)
+          DC.formula(inst, 'z', 'parent!DOOR_H - parent!ZZ_TIP_Z', p.z)
+          lock_size(inst, 'ZZ_TIP', tb)
           tips = 1
         end
 

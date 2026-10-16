@@ -41,29 +41,43 @@ Plain 18 mm slab at the component's real size.
 - If a panel would be smaller than 40 mm in either direction, the item stays
   flat and the summary flags it ("too small for shaker").
 
-## 3. How the geometry is stored
+## 3. How the geometry is stored (wrapper contract, v0.7.0)
 
-Our components are Dynamic Components that are **scaled** to size (e.g.
-`WRD_DOOR` is drawn 1,942.5 mm tall and stretched to 2,024 mm). A shaker
-frame inside a scaled component would stretch with it, so on conversion:
+Doors used to be drawn by scaling: the wrapper (`WRD_DOOR`, `LIN_DOOR`, ...) had LenX/LenY/LenZ
+formulas, so the DC engine stretched everything inside it. Once hinges sat behind the slab the
+wrapper was 30 mm deep, and LenY = 18 mm squashed it to 0.6, leaving 10.8 mm thick doors. Hinges
+and shaker frames were distorted too. Every door now follows this contract:
 
-1. Doors are grouped by original definition + style + real size. Each group
-   gets one definition (made unique only where needed). Same-name, same-size
-   doors keep sharing one definition. Different sizes get `#n` definitions
-   (SketchUp naming; instance names are left alone).
-2. The instance's scale is reset to 1 and the geometry is rebuilt at real size
-   in the same position. DC values (LenX/LenY/LenZ) stay consistent.
-3. Inside the door definition:
-   - `STYLE_SHAKER` / `STYLE_FLAT` — nested component holding the visible
-     geometry. The door instance's own tag is untouched.
-   - Hinge components (e.g. 4 × `soft_close_110`) and, for PTO, one `tip_on`,
-     on tag `HARDWARE`, **hidden** so they never appear in renders.
-4. Settings used are written to the `hw_door_style` attribute dictionary.
+**Wrapper** (`WRD_DOOR`, `TPBX_DOOR_TOP`, `BRGFR_DOOR`, ...)
+- No LenX/LenY/LenZ formulas; scale 1.
+- Hidden attributes `DOOR_W`, `DOOR_T`, `DOOR_H` (access NONE, units MILLIMETERS, formulas in
+  CENTIMETERS) carry the formulas the old Len formulas had, set on definition **and** instance.
+- Hidden `ZZ_HINGE_*` / `ZZ_TIP_*` values used by the hardware formulas (no bare constants
+  in any formula).
 
-**Known trade-off:** if a wardrobe is resized afterwards, the DC engine
-stretches the door again. **Rebuild styles** redraws every styled item at its
-new size. Recommended workflow: design flat, convert when the layout is settled,
-press Rebuild after any resize.
+**Slab** — the visible door
+- Definition and DC `_name` = `DOOR` (drawer fronts: `FRONT`). `STYLE_*` names are no longer used.
+- `DOOR_STYLE` = `FLAT` or `SHAKER` (hidden text attribute).
+- X/Y/Z = 0; LenX/LenY/LenZ = `parent!DOOR_W` / `parent!DOOR_T` / `parent!DOOR_H`.
+- Geometry built at true size. A shaker slab is never scaled: one slab definition per
+  style + size, shared between same-size doors.
+
+**Hardware**
+- Hinges and TIP-ON at true size (scale 1), at Y = `DOOR_T` (behind the door).
+- DC position formulas, so they follow a resize from Component Options:
+  hinge Z = `SMALLEST(parent!ZZ_HINGE_INSET, parent!DOOR_H/4) + ZZ_HINGE_I*(spacing) - parent!ZZ_HINGE_HALF`.
+  (DC has no `MIN()`; use `SMALLEST()`.) Size is locked with Len formulas to `ZZ_HINGE_W/D/HT`.
+- The **number** of hinges is set when the door is converted. If a resize changes the hinge
+  rule (e.g. 1,300 mm → 2,300 mm), press **Shaker** again or run **Repair doors in model**;
+  the Summary flags "Needs Repair / re-run".
+
+**Repair doors in model** (Extensions menu) brings every door and styled drawer front up to this
+contract in one undo step: it migrates Len formulas to DOOR_W/T/H, resets scale, renames slabs,
+re-applies hinges, removes unused `STYLE_*` definitions and redraws the top-level components.
+It reports what changed. Running it again on a correct model changes nothing.
+
+Acceptance tests: `tools/acceptance_test.rb` (WARDROBE, WALK-IN, LINEN_PRESS, TOPBOX,
+BRIDGE_FRAME × single/double × 300×400, 450×1300, 600×2300; run inside an aborted operation).
 
 ## 3a. Tags inside components
 
@@ -82,14 +96,14 @@ on demand from **Apply DOOR / DRAWER_FRONT tags**. Tag names are editable in Set
 - Hinge type is per job (stored in the model). Default: Soft Close 110.
   Options: Soft Close 110, Soft Close 155, PTO 110, PTO 155. PTO adds one TIP-ON per door.
 - Hinges per door by height: <=900 mm 2, <=1,600 mm 3, <=2,000 mm 4, <=2,400 mm 5, above 6.
-- Hardware sits **behind the door**, against its back face (hinge 35x10x35 mm, 5 mm from
+- Hardware sits **behind the door**, against its back face (hinge at true size, 5 mm from
   the left edge; TIP-ON 20x10x40 mm top right). It is on the **DOOR** tag, so hiding DOOR
   hides the hinges with the doors. Components are never hidden themselves (cutlist software
   skips hidden components).
 - Faces, back faces and instance carry the material **HARDWARE** so the cutlist can split
   them out. The colour tool never repaints hardware.
-- Door sizes are measured from the door body only (hardware ignored). Thickness prefers the
-  DC LenY, so if a Dynamic Component ever squashes a door to fit the hinges, Rebuild corrects it.
+- Door sizes are measured from the door body only (hardware ignored). Sizes come from the
+  wrapper's DOOR_W / DOOR_T / DOOR_H attributes.
 - If a definition named `soft_close_110` (etc.) already exists and wasn't made by the plugin,
   it is reused as-is.
 
