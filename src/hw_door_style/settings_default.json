@@ -99,11 +99,13 @@
     "exterior": "Default",
     "interior": "Default",
     "worktop": "Default",
-    "drawer_box": "Windsor Oak"
+    "drawer_box": "Windsor Oak",
+    "panels_22": "White"
   },
   "drawer_box_parts": [
     "DRW_BOX"
   ],
   "box_thickness_follows_finish": true,
+  "panel_22_mm": 22,
   "settings_version": 2
 }

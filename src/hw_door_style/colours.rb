@@ -9,6 +9,8 @@ module HarryWardrobes
     #   exterior  Exterior Panel / Trim colour    FACING, END_PAN, NOSING, FILLER
     #   interior  Interior colour                 STL, SH, DIV, INT_DIV, FL, DRAWER, BACK, WALKIN, MDF
     #   worktop   Worktop colour                  WORKTOP
+    #   panels_22 22mm Panels                     any panel 22mm thick (by size, not tag),
+    #                                             e.g. bookcase shelves/dividers/ends. Default White.
     #
     # Choices per job are stored in the model. "Default" = no material.
     module Colours
@@ -21,6 +23,7 @@ module HarryWardrobes
         ['exterior', 'Exterior Panel / Trim Colour'],
         ['interior', 'Interior Colour'],
         ['worktop',  'Worktop Colour'],
+        ['panels_22', '22mm Panels'],
         ['drawer_box', 'Drawer Box']
       ].freeze
 
@@ -28,8 +31,40 @@ module HarryWardrobes
         @library ||= JSON.parse(File.read(FILE))['colours']
       end
 
+      # Colours offered on every row (door colours).
       def self.names
-        library.map { |c| c['name'] }
+        library.reject { |c| c['only'] }.map { |c| c['name'] }
+      end
+
+      # Colours offered on one row (adds row-only colours such as White for 22mm panels).
+      def self.names_for(gid)
+        library.select { |c| c['only'].nil? || c['only'].include?(gid) }.map { |c| c['name'] }
+      end
+
+      # --- 22mm panels (matched by thickness) ---
+
+      PANEL_TOL = 0.3 # mm
+
+      def self.panel_mm
+        Settings.get['panel_22_mm'].to_f.then { |v| v > 0 ? v : 22.0 }
+      end
+
+      PANEL_MIN_FACE = 50 # mm: both other sides at least this, so rails / blocks don't count
+
+      # Real dimensions in mm, thinnest first (DC LenX/Y/Z, else bounds x scale).
+      def self.dims_mm(inst)
+        dims = %w[lenx leny lenz].map { |k| DC.read(inst, k) }
+        unless dims.all? { |v| v.is_a?(Numeric) && v > 0 }
+          s, = Finder.decompose(inst.transformation)
+          b = inst.definition.bounds
+          dims = [b.width * s[0], b.height * s[1], b.depth * s[2]]
+        end
+        dims.map { |v| v.to_f * 25.4 }.sort
+      end
+
+      def self.panel_22?(inst)
+        t, a, = dims_mm(inst)
+        (t - panel_mm).abs <= PANEL_TOL && a >= PANEL_MIN_FACE
       end
 
       def self.spec(name)
@@ -61,7 +96,8 @@ module HarryWardrobes
       end
 
       def self.defaults
-        d = Settings.get['default_colours'] || {}
+        # Shipped defaults fill rows the saved settings don't have yet (e.g. new 22mm Panels row).
+        d = (Settings.defaults['default_colours'] || {}).merge(Settings.get['default_colours'] || {})
         GROUPS.to_h { |id, _| [id, d[id] || (id == 'drawer_box' ? DrawerBox::DEFAULT : DEFAULT)] }
       end
 
@@ -88,7 +124,9 @@ module HarryWardrobes
       end
 
       def self.skip?(inst)
-        Finder.hardware?(inst) || Hardware.ours?(inst.definition)
+        Finder.hardware?(inst) || Hardware.ours?(inst.definition) ||
+          !Tagger.hardware_tag_name(inst.definition).nil? ||
+          Settings.hardware_tags.key?(inst.layer.name) || inst.layer.name.casecmp?(Tagger::OLD_HARDWARE_TAG)
       end
 
       # Paints every matching instance with the group's material (nil = Default).
@@ -117,6 +155,8 @@ module HarryWardrobes
           next if skip?(inst)
           # Drawer box parts only ever take the Drawer Box finish, never a tag-group colour.
           gid = DrawerBox.part?(inst) ? 'drawer_box' : lookup[effective_tag(inst)]
+          # 22mm panels take their own colour (never doors / drawer fronts / boxes).
+          gid = 'panels_22' if gid != 'door' && gid != 'drawer_box' && choices.key?('panels_22') && panel_22?(inst)
           next unless gid && choices.key?(gid)
           mat = mats[gid]
           inst.material = mat unless inst.material == mat
@@ -156,6 +196,7 @@ module HarryWardrobes
         {
           'job' => File.basename(model.path.to_s, '.skp'),
           'groups' => GROUPS, 'names' => names, 'swatches' => swatches,
+          'group_names' => GROUPS.to_h { |id, _| [id, names_for(id)] },
           'box' => DrawerBox.library.map { |b| { 'name' => b['name'], 'thickness' => b['thickness_mm'], 'code' => b['code'], 'material' => b['material'] } },
           'box_swatches' => box_swatches,
           'current' => job_choices(model), 'defaults' => defaults
@@ -164,7 +205,7 @@ module HarryWardrobes
 
       # Writes every library colour and drawer box finish to <dir>/<material name>.skm.
       def self.export_skm(model, dir)
-        mats = names.map { |n| material(model, n) } + DrawerBox.names.map { |n| DrawerBox.material(model, n) }
+        mats = library.map { |c| material(model, c['name']) } + DrawerBox.names.map { |n| DrawerBox.material(model, n) }
         mats.map do |m|
           path = File.join(dir, "#{m.name}.skm")
           m.save_as(path)

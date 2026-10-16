@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0 — 2026-10-16
+- Colours window: new **22mm Panels** row, default **White** (a plain white offered only on this row).
+  Matches any flat panel 22 mm thick by size, not tag (today: bookcase shelves, dividers and end
+  panels), and overrides its tag group. Hardware, doors, drawer fronts and drawer boxes are never matched.
+- Settings → Materials: panel thickness for that row (default 22 mm).
+- Saved default colours missing a row now fall back to the shipped default.
+
 ## 0.8.0 — 2026-10-16
 - Hinges are now round 35 mm euro-hinge cups (12 mm deep). Repair / Shaker rebuilds old square ones.
 - Hinges on the **hinges** tag (was DOOR). New Settings → **Hardware tags**: shelf brackets →

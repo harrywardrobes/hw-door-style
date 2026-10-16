@@ -1,5 +1,5 @@
 {
-  "_note": "Harry Wardrobes door colour library. rgb = plain colour (no texture, so no tile borders). texture = file in textures/, size_mm = real-world tile size.",
+  "_note": "Harry Wardrobes door colour library. rgb = plain colour (no texture, so no tile borders). texture = file in textures/, size_mm = real-world tile size. only = list of colour rows that offer this colour (others: every row).",
   "colours": [
     {
       "name": "Alby Blue",
@@ -107,6 +107,17 @@
         167,
         151,
         136
+      ]
+    },
+    {
+      "name": "White",
+      "rgb": [
+        248,
+        248,
+        246
+      ],
+      "only": [
+        "panels_22"
       ]
     }
   ],

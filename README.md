@@ -29,6 +29,7 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 |---|---|
 | Choose colours for the job (needed before editing doors) | Toolbar: Colours (palette) |
 | Drawer box finish (and matching 15/16mm box thickness) | Toolbar: Colours → Drawer Box |
+| 22mm panels (bookcase etc.), White by default | Toolbar: Colours → 22mm Panels |
 | Make every door **and** external drawer front Shaker | Toolbar: Shaker (door icon) |
 | Redraw after resizing a wardrobe | Toolbar: press Shaker again |
 | Everything back to Flat (hinges kept) | Toolbar: Reset to Flat |
