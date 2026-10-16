@@ -86,6 +86,9 @@ module HarryWardrobes
       end
 
       def self.export_order(model = Sketchup.active_model)
+        unless Scribe.on?(model) || Scribe.units(model.entities).empty?
+          return nil unless UI.messagebox("Scribes are OFF - every runout is 0, so sizes may be wrong.\n\nExport the door order anyway?", MB_YESNO) == IDYES
+        end
         if model.path.to_s.empty?
           UI.messagebox('Save the SketchUp file first - the door order is saved next to it and named after it.')
           return nil
@@ -118,7 +121,8 @@ module HarryWardrobes
           'date' => Time.now.strftime('%d/%m/%Y %H:%M'),
           'version' => VERSION,
           'last_export' => model.get_attribute(DICT, 'export_version', 0).to_i,
-          'rows' => r, 'totals' => totals(r)
+          'rows' => r, 'totals' => totals(r),
+          'runouts' => { 'on' => Scribe.on?(model), 'changed' => Scribe.report(model) }
         }
       end
 

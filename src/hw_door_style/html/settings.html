@@ -70,6 +70,18 @@
     <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET, BKS_SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag, so nothing stays on HARDWARE.</div>
   </fieldset>
 
+  <fieldset class="wide"><legend>Scribe / runout (pencil)</legend>
+    <div class="f t"><span>Dropdown values (mm)</span><input type="text" id="runout_values_mm" title="0 is always included"></div>
+    <div class="row3">
+      <div class="f t2"><span>Floor</span><input type="number" id="rd_floor"></div>
+      <div class="f t2"><span>Ceiling</span><input type="number" id="rd_ceiling"></div>
+      <div class="f t2"><span>Back</span><input type="number" id="rd_back"></div>
+      <div class="f t2"><span>Left</span><input type="number" id="rd_left"></div>
+      <div class="f t2"><span>Right</span><input type="number" id="rd_right"></div>
+    </div>
+    <div class="hint">Defaults used the first time the pencil is pressed on a job. Changing the list updates every component's dropdown next time the pencil is used.</div>
+  </fieldset>
+
   <fieldset class="wide"><legend>Export components (library file)</legend>
     <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
     <div class="f t"><span>Older file names</span><textarea id="export_aliases" rows="4" title="One per line: COMPONENT: OLD_NAME, OLD_NAME"></textarea></div>
@@ -115,6 +127,9 @@ function load(s){
   $('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
   var ht = s.hardware_tags || {};
   $('hardware_tags').value = Object.keys(ht).map(function(t){ return t + ': ' + (ht[t]||[]).join(', '); }).join('\n');
+  $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
+  var rd = s.runout_defaults_mm || {};
+  ['floor','ceiling','back','left','right'].forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
   var ea = s.export_aliases || {};
   $('export_aliases').value = Object.keys(ea).map(function(t){ return t + ': ' + (ea[t]||[]).join(', '); }).join('\n');
   var cg = s.colour_groups || {};
@@ -130,6 +145,9 @@ function collect(){
   o.hinge_rules = $('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
   o.colour_groups = {};
   GROUPS.forEach(function(g){ o.colour_groups[g] = split($('cg_'+g).value); });
+  o.runout_values_mm = $('runout_values_mm').value.split(',').map(function(x){ return parseFloat(x); }).filter(function(x){ return x > 0; });
+  o.runout_defaults_mm = {};
+  ['floor','ceiling','back','left','right'].forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
   o.export_aliases = {};
   $('export_aliases').value.split('\n').forEach(function(line){
     var i = line.indexOf(':'); if (i < 1) return;

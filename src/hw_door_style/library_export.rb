@@ -287,6 +287,10 @@ module HarryWardrobes
           Colours.apply(model, Colours.all_default, root: inst, record: false)
           inst.material = nil
           close_drawers(inst.definition.entities)
+          # Library files always carry runouts at 0 (the job sets them with the pencil).
+          if Scribe.set_values(inst, Scribe::SIDES.to_h { |sd, _, _| [sd, 0.0] })
+            DC.redraw(inst)
+          end
           # Carry the instance's Dynamic Component values ("as drawn") into the file.
           if (dc = inst.attribute_dictionary('dynamic_attributes'))
             dc.each_pair { |k, val| inst.definition.set_attribute('dynamic_attributes', k, val) }

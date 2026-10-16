@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 — 2026-10-16
+- **Scribe / runout** (pencil, right of the rocket). Pressed = every unit has the job runouts;
+  click = all runouts 0 (easier to move units); click again = window with floor / ceiling / left /
+  right / back dropdowns, applied to every unit. Progress bar, one undo step, drawers closed first.
+- Right-click a unit -> **Runouts...** to change just that unit; the Summary flags hand-changed units
+  and scribes off. Door order export warns when scribes are off.
+- Export components saves library files with every runout at 0.
+- One-off standardise (asked on first use): SCRIBE_L/R -> RUNOUT_L/R in keys and formulas, every
+  runout dropdown 0 / 25 / 50 / 75 / 100 / 150 mm (Settings). Verified on all 17 V19 units: same
+  geometry before/after, at current values and at 100 mm with every wall switch on.
+- Settings: runout dropdown values and defaults (25 mm each side).
+
 ## 0.10.1 — 2026-10-16
 - Clean model: purge removes unused components only; materials are never purged.
 

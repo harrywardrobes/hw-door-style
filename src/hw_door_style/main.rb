@@ -18,6 +18,7 @@ module HarryWardrobes
     Sketchup.require(File.join(PATH, 'report'))
     Sketchup.require(File.join(PATH, 'repair'))
     Sketchup.require(File.join(PATH, 'library_export'))
+    Sketchup.require(File.join(PATH, 'scribe'))
 
     STYLED_KINDS = [:door, :ext_drawer].freeze
 
@@ -321,6 +322,15 @@ module HarryWardrobes
                            'Library file only: export each component to its own versioned file (old versions to _old).',
                            'rocket') { LibraryExport.show }
       menu.add_item(cmd_export)
+      cmd_scribe = command('Scribe / runout',
+                           'Pressed: every unit has the job runouts. Click to set all to 0 (easier to move); click again to choose floor, ceiling, left, right and back.',
+                           'pencil') { Scribe.toggle }
+      cmd_scribe.set_validation_proc { Scribe.on? ? MF_CHECKED : MF_UNCHECKED }
+      menu.add_item(cmd_scribe)
+      menu.add_item('Runouts - re-apply job values to every unit') do
+        m = Sketchup.active_model
+        Scribe.show(m, nil) if Scribe.ready?(m)
+      end
 
       tb = UI::Toolbar.new('HW Door Style')
       tb.add_item(cmd_colours)
@@ -331,12 +341,22 @@ module HarryWardrobes
       tb.add_item(cmd_settings)
       tb.add_separator
       tb.add_item(cmd_export)
+      tb.add_item(cmd_scribe)
       tb.restore
 
       UI.add_context_menu_handler do |cm|
         targets = selection_targets
-        next if targets.empty?
+        units = Scribe.selected_units
+        next if targets.empty? && units.empty?
         sub = cm.add_submenu('HW Door Style')
+        unless units.empty?
+          sub.add_item(units.size == 1 ? 'Runouts (this unit)...' : "Runouts (#{units.size} units)...") do
+            m = Sketchup.active_model
+            Scribe.show(m, units) if Scribe.ready?(m)
+          end
+          next if targets.empty?
+          sub.add_separator
+        end
         if targets.all? { |_i, k| k == :int_drawer }
           id = sub.add_item('Internal drawer fronts stay flat') {}
           sub.set_validation_proc(id) { MF_GRAYED }

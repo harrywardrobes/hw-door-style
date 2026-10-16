@@ -42,6 +42,7 @@
   <button class="primary" onclick="sketchup.exportOrder()">Export door order (CSV + PDF)</button>
   <span class="meta" id="last" style="align-self:center"></span>
 </div>
+<div id="runouts"></div>
 <div class="totals" id="totals"></div>
 <div id="table"></div>
 <script>
@@ -54,6 +55,11 @@ function render(d){
   document.getElementById('meta').textContent = (d.job||'Unsaved model')+'  |  Hinge type: '+d.hinge_type+'  |  '+d.date;
   document.getElementById('ver').textContent = 'HW Door Style v'+d.version;
   document.getElementById('last').textContent = d.last_export ? ('Last export: v'+d.last_export) : 'Not exported yet';
+  var ro = d.runouts || {};
+  var rh = '';
+  if (ro.on === false) rh += '<div class="card" style="border-color:#efcdb9;background:#fbefe8;margin-bottom:10px"><b>Scribes are OFF</b> - every runout is 0. Press the pencil before ordering or cutting.</div>';
+  if (ro.changed && ro.changed.length) rh += '<div class="card" style="border-color:#f0d79a;background:#fff8e6;margin-bottom:10px"><h2>Runouts changed by hand ('+ro.changed.length+')</h2>' + ro.changed.map(function(c){ return '<div><span>'+esc(c[0])+'</span><b>'+esc(c[1].join(', '))+'</b></div>'; }).join('') + '</div>';
+  document.getElementById('runouts').innerHTML = rh;
   var t = d.totals;
   var extra = {}; extra['Items'] = t.items; extra['TIP-ON'] = t.tip_on; extra['Handles / knobs'] = t.handles;
   document.getElementById('totals').innerHTML = card('Items by style', t.by_style) + card('Hinges', t.hinges) + card('Totals', extra);

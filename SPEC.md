@@ -261,6 +261,26 @@ of unused components (materials are never purged), so it can be checked first. O
 the next `Components V<n>` and older `Components V*.skp/.skb` move to `_old`. A progress bar runs
 during export; Explorer opens on the folder at the end.
 
+## 7b. Scribe / runout (pencil)
+
+Every unit (outermost component carrying runout attributes) has five runouts:
+`RUNOUT_FLOOR`, `RUNOUT_CEILING`, `RUNOUT_L`, `RUNOUT_R`, `RUNOUT_BACK_WALL` (DC string values in inches,
+dropdown 0 / 25 / 50 / 75 / 100 / 150 mm from Settings). The plugin only sets values; each component's
+switches decide what is used: `WALL_LEFT` / `WALL_RIGHT` / `WALL_BACK`, topped off (no ceiling runout);
+floor always applies.
+
+- **Pencil pressed (scribes on)** - every unit has the job values (Settings defaults 25 mm, then the last
+  values used on the job, stored in the model).
+- **Click** -> scribes off: every runout 0 so units line up and move easily (one undo step, progress bar).
+- **Click again** -> window with floor / ceiling / left / right / back dropdowns -> applied to every unit.
+- **Right-click a unit -> HW Door Style -> Runouts...** changes just that unit (or the selected units).
+- **Summary** flags scribes off, and every unit whose runouts differ from the job values.
+- **Export door order** warns when scribes are off.
+- **Export components** saves every library file with runouts at 0.
+- One-off **standardise** (asked the first time the pencil is used): `SCRIBE_L/R` renamed `RUNOUT_L/R` in keys
+  and every formula (`parent!SCRIBE_L` too; hidden `ZZ_SCRIBE_*` untouched); every runout dropdown gets the
+  Settings list. Open drawers are closed before each redraw.
+
 ## 8. Not in v0.1 (future)
 
 - Hinge side (L/R), and `DOOR L` / `DOOR R` naming.

@@ -134,5 +134,19 @@
   "export_skip": [
     "FLOOR"
   ],
+  "runout_values_mm": [
+    25,
+    50,
+    75,
+    100,
+    150
+  ],
+  "runout_defaults_mm": {
+    "floor": 25,
+    "ceiling": 25,
+    "left": 25,
+    "right": 25,
+    "back": 25
+  },
   "settings_version": 2
 }

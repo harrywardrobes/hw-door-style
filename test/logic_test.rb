@@ -209,5 +209,17 @@ Dir.mktmpdir do |root|
   check 'export: unsafe characters removed from names', LE.safe('A/B:C') == 'A_B_C'
 end
 
+# --- scribe / runout
+require 'hw_door_style/scribe'
+SC = Scribe
+check 'runout dropdown 0/25/50/75/100/150', SC.options_string == '&0mm=0.0' + [25, 50, 75, 100, 150].map { |v| "&#{v}mm=#{v / 25.4}" }.join + '&'
+check 'runout defaults 25 all sides', SC.defaults.values.uniq == [25.0] && SC.defaults.keys == %w[floor ceiling left right back]
+check 'rename SCRIBE_L key', SC.rename_key('scribe_l') == 'runout_l' && SC.rename_key('_scribe_r_label') == '_runout_r_label' && SC.rename_key('_inst__scribe_l_formula') == '_inst__runout_l_formula'
+check 'rename leaves others', SC.rename_key('zz_scribe_l') == 'zz_scribe_l' && SC.rename_key('scribe_1_label') == 'scribe_1_label' && SC.rename_key('_scribe_l_options') == '_runout_l_options'
+check 'rename formulas', SC.rename_formula('IF(WALL_LEFT="TRUE", SCRIBE_L, 0)') == 'IF(WALL_LEFT="TRUE", RUNOUT_L, 0)' &&
+                         SC.rename_formula('(THICKNESS / 2) + parent!SCRIBE_R') == '(THICKNESS / 2) + parent!RUNOUT_R' &&
+                         SC.rename_formula('parent!ZZ_SCRIBE_L') == 'parent!ZZ_SCRIBE_L'
+check '25mm stored as inches string', SC.inch_s(25) == (25 / 25.4).to_s
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
