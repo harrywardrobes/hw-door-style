@@ -76,10 +76,10 @@ function load(d){
   $('sub').textContent = 'From ' + d.master + '  ->  ' + d.root;
   $('oldName').textContent = d.old;
   $('masterTxt').textContent = 'Also save this file as ' + d.next_master;
-  var u = d.unused || {components:[], materials:[]};
-  var n = u.components.length + u.materials.length;
-  $('purgeTxt').textContent = 'Also purge unused (' + u.components.length + ' components, ' + u.materials.length + ' materials)';
-  $('purgeLbl').title = n ? ('Components: ' + u.components.join(', ') + '\nMaterials: ' + u.materials.join(', ')) : 'Nothing unused';
+  var u = d.unused || {components:[]};
+  var n = u.components.length;
+  $('purgeTxt').textContent = 'Also purge unused components (' + n + ') - materials are kept';
+  $('purgeLbl').title = n ? ('Will remove: ' + u.components.join(', ')) : 'Nothing unused';
   $('purge').disabled = n === 0;
   var h = '';
   d.rows.forEach(function(r){

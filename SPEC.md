@@ -257,7 +257,7 @@ Each file is exported from the component definition inside an undone operation: 
 (the drawer box finish and HARDWARE material stay), drawers closed, DC values as drawn, SketchUp
 2026. A clash in `_old` gets a `_moved_<date>_<time>` suffix: nothing is overwritten.
 **Clean model** does the same cleaning on the library itself (one undo step), plus an optional purge
-of unused components and materials, so it can be checked first. Optionally the library is saved as
+of unused components (materials are never purged), so it can be checked first. Optionally the library is saved as
 the next `Components V<n>` and older `Components V*.skp/.skb` move to `_old`. A progress bar runs
 during export; Explorer opens on the folder at the end.
 

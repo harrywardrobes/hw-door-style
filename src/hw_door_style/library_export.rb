@@ -227,28 +227,13 @@ module HarryWardrobes
         end
         mark.call(model.entities)
         defs = model.definitions.reject { |d| d.image? || used[d] || d.group? }
-        { components: defs.map(&:name).sort, materials: unused_materials(model, used) }
-      end
-
-      def self.unused_materials(model, used)
-        inuse = {}
-        note = ->(m) { inuse[m] = true if m }
-        scan = lambda do |ents|
-          ents.each do |e|
-            note.call(e.material) if e.respond_to?(:material)
-            note.call(e.back_material) if e.respond_to?(:back_material)
-          end
-        end
-        scan.call(model.entities)
-        used.each_key { |d| scan.call(d.entities) }
-        model.definitions.select(&:group?).each { |d| scan.call(d.entities) }
-        model.materials.reject { |m| inuse[m] }.map(&:name).sort
+        { components: defs.map(&:name).sort }
       end
 
       # Clean the master in place (one undo step): colours Default, drawers closed,
-      # optionally purge unused components and materials.
+      # optionally purge unused components (materials are never purged).
       def self.clean_model(model, purge)
-        report = { painted: 0, closed: [], purged_components: 0, purged_materials: 0 }
+        report = { painted: 0, closed: [], purged_components: 0 }
         model.start_operation('Clean model for export', true)
         begin
           report[:painted] = Colours.apply(model, Colours.all_default).values.sum
@@ -256,9 +241,7 @@ module HarryWardrobes
           if purge
             u = unused(model)
             report[:purged_components] = u[:components].size
-            report[:purged_materials] = u[:materials].size
-            model.definitions.purge_unused
-            model.materials.purge_unused
+            model.definitions.purge_unused # components only - materials are always kept
           end
           model.commit_operation
         rescue StandardError => e
@@ -348,7 +331,7 @@ module HarryWardrobes
         u = unused(model)
         { 'master' => File.basename(model.path), 'root' => root(model), 'old' => File.basename(old_dir(model)),
           'folders' => folders(model), 'rows' => rows(model), 'next_master' => File.basename(next_master(model)),
-          'unused' => { 'components' => u[:components], 'materials' => u[:materials] } }
+          'unused' => { 'components' => u[:components] } }
       end
 
       def self.show
@@ -369,8 +352,8 @@ module HarryWardrobes
           begin
             r = clean_model(model, purge.to_s == 'true')
             msg = "Model cleaned (one undo step): #{r[:painted]} parts set to Default colour, " \
-                  "#{r[:closed].size} drawers closed, #{r[:purged_components]} unused components and " \
-                  "#{r[:purged_materials]} unused materials purged. Check it over, then export."
+                  "#{r[:closed].size} drawers closed, #{r[:purged_components]} unused components purged " \
+                  "(materials kept). Check it over, then export."
             dlg.execute_script("load(#{JSON.generate(payload(model))}); note(#{JSON.generate(msg)})")
           rescue StandardError => e
             dlg.execute_script("note(#{JSON.generate("Clean failed and was undone: #{e.message}")})")
