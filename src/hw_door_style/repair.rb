@@ -77,6 +77,8 @@ module HarryWardrobes
           p << "hinges #{hinges.size} (rule #{Settings.hinge_count(h)})" if hinges.size != Settings.hinge_count(h)
           p << 'hinge scaled' unless hinges.all? { |k| scale_ok?(k) }
           p << 'hinge size' unless hinges.all? { |k| DC.read(k, '_leny_formula').to_s.include?('ZZ_HINGE_D') }
+          p << 'hinge tag' unless hinges.all? { |k| k.layer.name == Settings.get['hinge_tag'] }
+          p << 'hinge shape' unless hinges.all? { |k| !Hardware.ours?(k.definition) || Hardware.shape_ok?(k.definition) }
           p << 'hinge formulas' unless hinges.all? { |k| (f = DC.read(k, '_z_formula').to_s).include?('DOOR_H') && f !~ /\bMIN\(/i }
         end
         p

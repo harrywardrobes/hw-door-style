@@ -56,7 +56,15 @@ def mm(v); (v * 25.4).round(1); end
 # --- settings
 check 'door frame 100mm', (mm(Settings.mm('door_frame_mm')) == 100.0)
 check 'drawer frame 50mm', (mm(Settings.mm('drawer_frame_mm')) == 50.0)
-check 'IDRW_FRONT is internal', Settings.names('int_drawer_names').include?('IDRW_FRONT')
+check 'INT_DRW_FRONT is internal', Settings.names('int_drawer_names') == ['INT_DRW_FRONT']
+check 'DRW_FRONT is external', Settings.names('ext_drawer_names') == ['DRW_FRONT']
+old = { 'ext_drawer_names' => ['XDRW_FRONT'], 'hinge_tag' => 'DOOR', 'colour_groups' => { 'exterior' => ['FACING', 'MY_TAG'] } }
+mig = Settings.migrate(old, Settings.defaults)
+check 'old settings migrated: drawer names', mig['ext_drawer_names'] == ['DRW_FRONT']
+check 'old settings migrated: hinge tag', mig['hinge_tag'] == 'hinges'
+check 'old settings migrated: EXT_SH + BOOKCASE added, own tags kept', (%w[EXT_SH BOOKCASE MY_TAG] - mig['colour_groups']['exterior']).empty?
+check 'migration runs once', Settings.migrate({ 'settings_version' => 2, 'hinge_tag' => 'X' }, Settings.defaults)['hinge_tag'] == 'X'
+check 'hardware tags list', Settings.hardware_tags['shelf_brackets'] == %w[SHELF_BRACKET BKS_SHELF_BRACKET] && Settings.hardware_tags['drawer_rails'] == ['DRW_RUNNER_410']
 check 'hinges 2024mm door = 5', Settings.hinge_count(2024.mm) == 5
 check 'hinges 1327mm door = 3', Settings.hinge_count(1327.mm) == 3
 check 'hinges 396mm door = 2', Settings.hinge_count(396.mm) == 2
@@ -124,7 +132,7 @@ check 'Default follows door colour', Colours.resolve('interior', 'Default', 'Cas
 check 'manual choice kept', Colours.resolve('worktop', 'Graphite', 'Cashmere') == 'Graphite'
 check 'door Default = no material', Colours.resolve('door', 'Default', nil) == 'Default'
 check 'others Default with no door = no material', Colours.resolve('exterior', 'Default', 'Default') == 'Default'
-check 'hinges on DOOR tag', Settings.get['hinge_tag'] == 'DOOR'
+check 'hinges on hinges tag', Settings.get['hinge_tag'] == 'hinges'
 
 # --- drawer box
 require 'hw_door_style/drawer_box'

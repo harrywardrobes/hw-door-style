@@ -8,15 +8,10 @@
     "TPBX_DOOR_TOP"
   ],
   "ext_drawer_names": [
-    "XDRW_FRONT",
-    "LIN_DRAWER_FRONT",
-    "BEDSIDE_DRW_FRONT",
-    "LINEN_PRESS_DRW_FRONT"
+    "DRW_FRONT"
   ],
   "int_drawer_names": [
-    "IDRW_FRONT",
-    "INT_DRAWER_DRW_FRONT",
-    "INT_DRAWER_PLUS_DRW_FRONT"
+    "INT_DRW_FRONT"
   ],
   "door_frame_mm": 100,
   "drawer_frame_mm": 50,
@@ -54,8 +49,24 @@
   "handles_on_pto_doors": false,
   "door_tag": "DOOR",
   "drawer_tag": "DRAWER_FRONT",
-  "hinge_tag": "DOOR",
+  "hinge_tag": "hinges",
   "hardware_material": "HARDWARE",
+  "hardware_tags": {
+    "hinges": [
+      "SOFT_CLOSE_110",
+      "SOFT_CLOSE_155",
+      "PTO_110",
+      "PTO_155",
+      "TIP_ON"
+    ],
+    "shelf_brackets": [
+      "SHELF_BRACKET",
+      "BKS_SHELF_BRACKET"
+    ],
+    "drawer_rails": [
+      "DRW_RUNNER_410"
+    ]
+  },
   "colour_groups": {
     "door": [
       "DOOR",
@@ -93,5 +104,6 @@
   "drawer_box_parts": [
     "DRW_BOX"
   ],
-  "box_thickness_follows_finish": true
+  "box_thickness_follows_finish": true,
+  "settings_version": 2
 }

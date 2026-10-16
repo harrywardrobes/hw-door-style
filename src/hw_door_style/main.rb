@@ -78,11 +78,20 @@ module HarryWardrobes
 
     def self.apply_tags
       model = Sketchup.active_model
-      model.start_operation('Apply door / drawer front tags', true)
+      model.start_operation('Apply door, drawer front and hardware tags', true)
       n = Tagger.tag_all(model)
       model.commit_operation
-      Sketchup.status_text = "Tags applied: #{n} faces/edges updated"
-      UI.messagebox("#{n} faces and edges re-tagged.") if n > 0
+      Sketchup.status_text = "Tags applied: #{n} items updated"
+      left = Tagger.hardware_leftovers(model)
+      msg = "#{n} faces, edges and hardware components re-tagged."
+      msg += "\n\nHardware tags:\n" + Settings.hardware_tags.map { |t, ns| "#{t}: #{ns.join(', ')}" }.join("\n")
+      if left.empty?
+        msg += "\n\nNothing is on the HARDWARE tag."
+      else
+        msg += "\n\nStill on HARDWARE (add these to Settings > Hardware tags):\n" +
+               left.map { |k, c| "#{k} x#{c}" }.join("\n")
+      end
+      UI.messagebox(msg)
     rescue StandardError => e
       model.abort_operation
       UI.messagebox("Tagging failed and was undone.\n\n#{e.message}")
@@ -286,7 +295,7 @@ module HarryWardrobes
       menu.add_item(cmd_reset)
 
       menu.add_item('Rebuild styles (keep each item\'s style)') { rebuild_all }
-      menu.add_item('Apply DOOR / DRAWER_FRONT tags') { apply_tags }
+      menu.add_item('Apply tags (doors, drawer fronts, hardware)') { apply_tags }
       menu.add_item('Repair doors in model') { repair_doors }
 
       hinge_menu = menu.add_submenu('Hinge type (this job)')

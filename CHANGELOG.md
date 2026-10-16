@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 — 2026-10-16
+- Hinges are now round 35 mm euro-hinge cups (12 mm deep). Repair / Shaker rebuilds old square ones.
+- Hinges on the **hinges** tag (was DOOR). New Settings → **Hardware tags**: shelf brackets →
+  `shelf_brackets`, drawer runners → `drawer_rails`. Nothing is left on HARDWARE; **Apply tags**
+  lists anything that is.
+- Simpler drawer front names: `DRW_FRONT` (external) and `INT_DRW_FRONT` (internal) replace
+  BEDSIDE_/LINEN_PRESS_/INT_DRAWER_/INT_DRAWER_PLUS_DRW_FRONT.
+- Saved settings are updated once automatically (drawer names, hinge tag, hardware tags,
+  EXT_SH and BOOKCASE in Exterior / Trim); your own extra tags are kept.
+
 ## 0.7.0 — 2026-10-16
 - **Fix: doors drawn 10.8 mm thick.** Wrappers no longer scale: Len formulas moved to hidden
   DOOR_W / DOOR_T / DOOR_H; wrapper and hardware scale is always 1.

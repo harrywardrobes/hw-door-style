@@ -3,8 +3,9 @@ module HarryWardrobes
     # Hinge / TIP-ON components for the cutlist.
     #
     # Placed just BEHIND the door slab (Y = DOOR_T, where the real hinge sits),
-    # always true size (scale 1), with DC position formulas. On the DOOR tag -
-    # so hiding DOOR hides them with the doors. They are
+    # always true size (scale 1), with DC position formulas. Hinges are a round
+    # 35mm euro-hinge cup, 12mm deep. Tag = Settings "hinge_tag" (default
+    # "hinges"). They are
     # never hidden themselves (cutlist software skips hidden components). Faces and
     # instance carry the material "HARDWARE" so the cutlist can split them out, and
     # the colour tool never repaints them.
@@ -12,7 +13,9 @@ module HarryWardrobes
     # If a definition with the same name already exists and was not made by this
     # plugin (e.g. a real Blum model named "soft_close_110"), it is reused as-is.
     module Hardware
-      HINGE_BOX  = [35, 10, 35].freeze # mm: x (across door), y (depth behind door), z (height)
+      HINGE_CUP  = [35, 12].freeze     # mm: cup diameter, depth behind the door
+      CUP_SEGMENTS = 24
+      SHAPE      = 'cup35_v1'.freeze   # bump to rebuild existing plugin hinges
       TIP_ON_BOX = [20, 10, 40].freeze
       EDGE_GAP   = 5 # mm from the door edge
 
@@ -47,15 +50,40 @@ module HarryWardrobes
         end
       end
 
+      # Round euro-hinge cup: circle in the XZ plane, pushed back DEPTH in +Y.
+      # Bounds start at the origin (0..D, 0..depth, 0..D).
+      def self.cup(ents, dia, depth)
+        r = dia / 2.0
+        edges = ents.add_circle(Geom::Point3d.new(r, 0, r), Y_AXIS, r, CUP_SEGMENTS)
+        f = ents.add_face(edges)
+        f.reverse! if f.normal.y > 0
+        f.pushpull(-depth)
+      end
+
+      def self.shape_ok?(d)
+        d.get_attribute(DICT, 'shape') == SHAPE
+      end
+
+      # size_mm: [w, t, h] box, or :cup for the round hinge cup.
       def self.definition(model, name, size_mm)
         d = model.definitions[name]
-        if d
-          paint(d, model) if ours?(d)
+        return d if d && !ours?(d)
+        if d && (size_mm != :cup || shape_ok?(d))
+          paint(d, model)
           return d
         end
-        d = model.definitions.add(name)
-        w, t, h = size_mm.map { |v| v.mm }
-        Styles.box(d.entities, w, t, h)
+        if d
+          d.entities.clear!
+        else
+          d = model.definitions.add(name)
+        end
+        if size_mm == :cup
+          cup(d.entities, HINGE_CUP[0].mm, HINGE_CUP[1].mm)
+          d.set_attribute(DICT, 'shape', SHAPE)
+        else
+          w, t, h = size_mm.map { |v| v.mm }
+          Styles.box(d.entities, w, t, h)
+        end
         d.set_attribute(DICT, 'role', 'hardware')
         d.description = 'HW Door Style hardware (cutlist part, behind the door)'
         paint(d, model)
@@ -103,7 +131,7 @@ module HarryWardrobes
         ents = door_def.entities
         gap = EDGE_GAP.mm
 
-        hd = definition(model, hinge_type, HINGE_BOX)
+        hd = definition(model, hinge_type, :cup)
         hb = hd.bounds
         n = Settings.hinge_count(h)
         heights = hinge_heights(h, n)

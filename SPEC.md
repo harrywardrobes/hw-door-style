@@ -17,8 +17,8 @@ definition name (`DRAWER_FRONT` / `DRAWER_FRONT#2`) while their DC names differ.
 | Kind | Default names | Behaviour |
 |---|---|---|
 | Door | `WRD_DOOR`, `LIN_DOOR`, `BRGFR_DOOR`, `WLK_DOOR`, `TPBX_DOOR`, `TPBX_DOOR_TOP` | Styled; gets hinges |
-| External drawer front | `XDRW_FRONT`, `LIN_DRAWER_FRONT` | Styled with the slim drawer frame; no hinges |
-| Internal drawer front | `IDRW_FRONT` | Always flat; listed in the summary only |
+| External drawer front | `DRW_FRONT` | Styled with the slim drawer frame; no hinges |
+| Internal drawer front | `INT_DRW_FRONT` | Always flat; listed in the summary only |
 
 All three lists are editable in Settings. `LINE_TOP_DOOR_LEFT/RIGHT` are
 door-swing indicator lines (tag `door_opening_dims`) and are deliberately not
@@ -63,7 +63,8 @@ and shaker frames were distorted too. Every door now follows this contract:
   style + size, shared between same-size doors.
 
 **Hardware**
-- Hinges and TIP-ON at true size (scale 1), at Y = `DOOR_T` (behind the door).
+- Hinges are a round 35 mm euro-hinge cup, 12 mm deep; TIP-ON a 20×10×40 mm block. True size
+  (scale 1), at Y = `DOOR_T` (behind the door), on the `hinges` tag.
 - DC position formulas, so they follow a resize from Component Options:
   hinge Z = `SMALLEST(parent!ZZ_HINGE_INSET, parent!DOOR_H/4) + ZZ_HINGE_I*(spacing) - parent!ZZ_HINGE_HALF`.
   (DC has no `MIN()`; use `SMALLEST()`.) Size is locked with Len formulas to `ZZ_HINGE_W/D/HT`.
@@ -85,7 +86,17 @@ Every face and edge **inside** each recognised item is tagged, so the tag travel
 with any copy of the component:
 - doors → `DOOR`
 - drawer fronts (external and internal) → `DRAWER_FRONT`
-- hinge / TIP-ON geometry → `HARDWARE`
+- hinge / TIP-ON (instance and geometry) → `hinges`
+- other hardware → its own tag from Settings → **Hardware tags**, so nothing stays on `HARDWARE`:
+
+| Tag | Components |
+|---|---|
+| `hinges` | soft_close_110, soft_close_155, pto_110, pto_155, tip_on |
+| `shelf_brackets` | SHELF_BRACKET, BKS_SHELF_BRACKET |
+| `drawer_rails` | DRW_RUNNER_410 |
+
+**Apply tags** (menu) re-tags everything and lists anything still on `HARDWARE`. The HARDWARE
+*material* is unchanged (the cutlist uses it).
 
 This applies to all recognised items, including internal drawer fronts and items
 not converted yet. It runs automatically with every convert, reset and rebuild, and
@@ -97,8 +108,7 @@ on demand from **Apply DOOR / DRAWER_FRONT tags**. Tag names are editable in Set
   Options: Soft Close 110, Soft Close 155, PTO 110, PTO 155. PTO adds one TIP-ON per door.
 - Hinges per door by height: <=900 mm 2, <=1,600 mm 3, <=2,000 mm 4, <=2,400 mm 5, above 6.
 - Hardware sits **behind the door**, against its back face (hinge at true size, 5 mm from
-  the left edge; TIP-ON 20x10x40 mm top right). It is on the **DOOR** tag, so hiding DOOR
-  hides the hinges with the doors. Components are never hidden themselves (cutlist software
+  the left edge; TIP-ON 20x10x40 mm top right). They are on the **hinges** tag. Components are never hidden themselves (cutlist software
   skips hidden components).
 - Faces, back faces and instance carry the material **HARDWARE** so the cutlist can split
   them out. The colour tool never repaints hardware.

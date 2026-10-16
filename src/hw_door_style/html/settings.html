@@ -66,6 +66,8 @@
       <div class="f t2"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
     </div>
     <div class="hint">Applied to the faces and edges inside each component.</div>
+    <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4" title="One tag per line: tag: COMPONENT, COMPONENT"></textarea></div>
+    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET, BKS_SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag, so nothing stays on HARDWARE.</div>
   </fieldset>
 
   <fieldset class="wide"><legend>Materials</legend>
@@ -93,7 +95,7 @@ var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts'];
 var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
-var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'DOOR', hardware_material:'HARDWARE' };
+var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE' };
 var GROUPS = ['door','exterior','interior','worktop'];
 function $(id){ return document.getElementById(id); }
 function split(v){ return v.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); }
@@ -103,6 +105,8 @@ function load(s){
   BOOLS.forEach(function(k){ $(k).checked = !!s[k]; });
   Object.keys(TEXTS).forEach(function(k){ $(k).value = s[k] || TEXTS[k]; });
   $('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
+  var ht = s.hardware_tags || {};
+  $('hardware_tags').value = Object.keys(ht).map(function(t){ return t + ': ' + (ht[t]||[]).join(', '); }).join('\n');
   var cg = s.colour_groups || {};
   GROUPS.forEach(function(g){ $('cg_'+g).value = (cg[g]||[]).join(', '); });
 }
@@ -116,6 +120,11 @@ function collect(){
   o.hinge_rules = $('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
   o.colour_groups = {};
   GROUPS.forEach(function(g){ o.colour_groups[g] = split($('cg_'+g).value); });
+  o.hardware_tags = {};
+  $('hardware_tags').value.split('\n').forEach(function(line){
+    var i = line.indexOf(':'); if (i < 1) return;
+    var t = line.slice(0, i).trim(); if (t) o.hardware_tags[t] = split(line.slice(i + 1));
+  });
   return o;
 }
 load(S);

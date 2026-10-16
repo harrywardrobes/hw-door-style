@@ -39,7 +39,7 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 | Redraw but keep individual doors' styles | Extensions → HW Door Style → Rebuild styles, or right-click → Rebuild selected |
 | Fix thin / stretched doors, old STYLE_* doors, hinges | Extensions → HW Door Style → Repair doors in model |
 | Set the job's hinge type | Extensions → HW Door Style → Hinge type (this job) |
-| Re-tag faces/edges inside doors and drawer fronts | Extensions → HW Door Style → Apply DOOR / DRAWER_FRONT tags |
+| Re-tag doors, drawer fronts and all hardware (hinges, shelf_brackets, drawer_rails) | Extensions → HW Door Style → Apply tags |
 | Save the 13 colours as .skm files | Extensions → HW Door Style → Export colour library (.skm) |
 
 Every action is a single undo (Ctrl+Z).
@@ -48,7 +48,7 @@ Every action is a single undo (Ctrl+Z).
 it again when a resize changes the number of hinges. Sizes, slab and hinge positions follow
 Component Options on their own; the Summary flags anything that needs a re-run.
 
-Internal drawer fronts (`IDRW_FRONT`) always stay flat.
+Drawer fronts are named `DRW_FRONT` (external) and `INT_DRW_FRONT` (internal). Internal drawer fronts always stay flat.
 
 ## Develop
 

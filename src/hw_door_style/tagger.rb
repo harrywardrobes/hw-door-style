@@ -4,7 +4,59 @@ module HarryWardrobes
     # travels with every copy of the component.
     #   doors                         -> DOOR
     #   drawer fronts (ext. and int.) -> DRAWER_FRONT
+    # and puts every hardware component on its own tag (Settings "hardware_tags":
+    # hinges, shelf_brackets, drawer_rails ...) so nothing is left on HARDWARE.
     module Tagger
+      OLD_HARDWARE_TAG = 'HARDWARE'.freeze
+
+      def self.base_name(defn)
+        defn.name.sub(/#\d+\z/, '').strip.upcase
+      end
+
+      # Tag for a hardware definition (by its name or DC _name), or nil.
+      def self.hardware_tag_name(defn)
+        names = [base_name(defn), defn.get_attribute('dynamic_attributes', '_name').to_s.strip.upcase]
+        Settings.hardware_tags.each { |tag, list| return tag if (names & list).any? }
+        nil
+      end
+
+      # Every listed hardware component: its instances and the faces/edges inside it.
+      # Returns { instances: n, geometry: n }.
+      def self.tag_hardware(model)
+        n = { instances: 0, geometry: 0 }
+        model.definitions.each do |d|
+          next if d.image? || d.group?
+          tname = Hardware.ours?(d) ? Settings.get['hinge_tag'] : hardware_tag_name(d)
+          next unless tname
+          tag = layer(model, tname)
+          n[:geometry] += tag_geometry(d.entities, tag)
+          d.instances.each do |i|
+            next if i.layer == tag
+            i.layer = tag
+            n[:instances] += 1
+          end
+        end
+        n
+      end
+
+      # Anything still on the old HARDWARE tag: { "name (instance|geometry)" => count }.
+      def self.hardware_leftovers(model)
+        old = model.layers[OLD_HARDWARE_TAG] or return {}
+        left = Hash.new(0)
+        model.definitions.each do |d|
+          next if d.image?
+          d.entities.each do |e|
+            next unless e.layer == old
+            if e.respond_to?(:definition)
+              left["#{base_name(e.definition)} (component)"] += 1
+            elsif e.is_a?(Sketchup::Face) || e.is_a?(Sketchup::Edge)
+              left["#{base_name(d)} (faces/edges)"] += 1
+            end
+          end
+        end
+        model.entities.each { |e| left["#{e.respond_to?(:definition) ? base_name(e.definition) : e.typename} (top level)"] += 1 if e.layer == old }
+        left
+      end
       def self.layer(model, name)
         model.layers[name] || model.layers.add(name)
       end
@@ -47,7 +99,8 @@ module HarryWardrobes
           seen[inst.definition.entityID] = true
           n += tag_item(inst, kind)
         end
-        n
+        hw = tag_hardware(model)
+        n + hw[:instances] + hw[:geometry]
       end
     end
   end

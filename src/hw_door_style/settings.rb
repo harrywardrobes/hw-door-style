@@ -20,11 +20,29 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
+      SETTINGS_VERSION = 2
+
+      # Brings settings saved by an older version up to date (names and tags
+      # that changed in the model). Never removes the user's own extra tags.
+      def self.migrate(user, d)
+        v = user['settings_version'].to_i
+        if v < 2
+          %w[ext_drawer_names int_drawer_names hinge_tag hardware_tags].each { |k| user[k] = d[k] }
+          cg = user['colour_groups']
+          if cg.is_a?(Hash)
+            ext = Array(cg['exterior'])
+            cg['exterior'] = ext + (d['colour_groups']['exterior'] - ext)
+          end
+        end
+        user['settings_version'] = SETTINGS_VERSION
+        user
+      end
+
       def self.load
         s = defaults
         if File.exist?(USER_FILE)
           begin
-            s.merge!(JSON.parse(File.read(USER_FILE)))
+            s.merge!(migrate(JSON.parse(File.read(USER_FILE)), s))
           rescue StandardError => e
             puts "HW Door Style: could not read settings.json (#{e.message}); using defaults."
           end
@@ -37,7 +55,7 @@ module HarryWardrobes
       end
 
       def self.save(hash)
-        File.write(USER_FILE, JSON.pretty_generate(hash))
+        File.write(USER_FILE, JSON.pretty_generate(hash.merge('settings_version' => SETTINGS_VERSION)))
         @settings = load
       end
 
@@ -69,7 +87,7 @@ module HarryWardrobes
         raw = JSON.parse(File.read(file))
         raise 'not an HW Door Style settings backup' unless raw.is_a?(Hash) && raw.key?(BACKUP_MARK)
         known = defaults.keys
-        data = raw.select { |k, _| known.include?(k) }
+        data = migrate(raw.select { |k, _| known.include?(k) }, defaults)
         raise 'no settings found in the file' if data.empty?
         data
       rescue StandardError => e
@@ -79,6 +97,14 @@ module HarryWardrobes
 
       def self.mm(key)
         get[key].to_f.mm
+      end
+
+      # { tag => [component names] } for hardware (hinges, brackets, runners ...).
+      def self.hardware_tags
+        h = get['hardware_tags']
+        return {} unless h.is_a?(Hash)
+        h.to_h { |tag, ns| [tag.to_s.strip, Array(ns).map { |n| n.to_s.strip.upcase }.reject(&:empty?)] }
+         .reject { |tag, _| tag.empty? }
       end
 
       def self.names(key)
