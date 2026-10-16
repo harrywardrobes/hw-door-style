@@ -17,6 +17,7 @@ module HarryWardrobes
     Sketchup.require(File.join(PATH, 'converter'))
     Sketchup.require(File.join(PATH, 'report'))
     Sketchup.require(File.join(PATH, 'repair'))
+    Sketchup.require(File.join(PATH, 'library_export'))
 
     STYLED_KINDS = [:door, :ext_drawer].freeze
 
@@ -315,6 +316,11 @@ module HarryWardrobes
       menu.add_item(cmd_summary)
       menu.add_item('Export door order (CSV + PDF)') { Report.export_order }
       menu.add_item(cmd_settings)
+      menu.add_separator
+      cmd_export = command('Export components',
+                           'Library file only: export each component to its own versioned file (old versions to _old).',
+                           'rocket') { LibraryExport.show }
+      menu.add_item(cmd_export)
 
       tb = UI::Toolbar.new('HW Door Style')
       tb.add_item(cmd_colours)
@@ -323,6 +329,8 @@ module HarryWardrobes
       tb.add_separator
       tb.add_item(cmd_summary)
       tb.add_item(cmd_settings)
+      tb.add_separator
+      tb.add_item(cmd_export)
       tb.restore
 
       UI.add_context_menu_handler do |cm|

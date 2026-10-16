@@ -144,14 +144,24 @@ module HarryWardrobes
         choices.to_h { |gid, name| [gid, resolve(gid, name, door)] }
       end
 
-      def self.apply(model, choices)
+      # root:   entities to walk (default the whole model); an instance is painted too.
+      # record: store the choices on the model as the job's colours.
+      def self.apply(model, choices, root: nil, record: true)
         tags = group_tags
         lookup = {}
         tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
         res = resolved(model, choices)
         mats = res.to_h { |gid, name| [gid, gid == 'drawer_box' ? DrawerBox.material(model, name) : material(model, name)] }
         counts = Hash.new(0)
-        Finder.each_instance(model.entities) do |inst|
+        walk = lambda do |&blk|
+          if root.is_a?(Sketchup::ComponentInstance)
+            blk.call(root)
+            Finder.each_instance(root.definition.entities, &blk)
+          else
+            Finder.each_instance(root || model.entities, &blk)
+          end
+        end
+        walk.call do |inst|
           next if skip?(inst)
           # Drawer box parts only ever take the Drawer Box finish, never a tag-group colour.
           gid = DrawerBox.part?(inst) ? 'drawer_box' : lookup[effective_tag(inst)]
@@ -166,8 +176,13 @@ module HarryWardrobes
           end
           counts[gid] += 1
         end
-        choices.each { |gid, name| model.set_attribute(DICT, "colour_#{gid}", name) }
+        choices.each { |gid, name| model.set_attribute(DICT, "colour_#{gid}", name) } if record
         counts
+      end
+
+      # Every colour row except the drawer box set to Default (no material).
+      def self.all_default
+        GROUPS.map(&:first).reject { |g| g == 'drawer_box' }.to_h { |g| [g, DEFAULT] }
       end
 
       # Re-applies the job's saved colours (used after converting doors so new

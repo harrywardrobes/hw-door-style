@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Export components</title>
+<style>
+  * { box-sizing:border-box; }
+  body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:12px 14px 70px; }
+  h1 { font-size:14px; margin:0 0 2px; }
+  .sub { color:#6a737d; font-size:11px; margin-bottom:8px; }
+  .clean { display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f4f6f5; border:1px solid #dfe5e2; border-radius:4px; margin-bottom:8px; }
+  .clean .txt { flex:1; color:#3b4a44; font-size:11.5px; }
+  .note { display:none; margin:0 0 8px; padding:7px 10px; border-radius:4px; background:#eef6f1; border:1px solid #cfe3d7; color:#24493a; font-size:11.5px; }
+  .note.err { background:#fbefe8; border-color:#efcdb9; color:#7a3412; }
+  table { width:100%; border-collapse:collapse; }
+  th { text-align:left; font-size:11px; color:#57606a; font-weight:600; padding:4px 6px; border-bottom:1px solid #d0d7de; position:sticky; top:0; background:#fff; }
+  td { padding:4px 6px; border-bottom:1px solid #eceef0; vertical-align:middle; }
+  td.name { font-weight:600; white-space:nowrap; }
+  td.cur, td.new { font-size:11px; color:#57606a; }
+  td.new { color:#1f2328; white-space:nowrap; }
+  select { font:inherit; font-size:11.5px; padding:2px 3px; border:1px solid #c9ced3; border-radius:3px; }
+  .st { font-size:10.5px; padding:1px 6px; border-radius:9px; white-space:nowrap; }
+  .st.changed, .st.new, .st.not { background:#fff1d6; color:#7a4d00; }
+  .st.unchanged { background:#eceef0; color:#57606a; }
+  tr.off td { opacity:.55; }
+  .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #d0d7de; padding:8px 14px; display:flex; gap:6px; align-items:center; }
+  .bar label { font-size:11.5px; display:flex; gap:5px; align-items:center; }
+  button { font:inherit; padding:5px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
+  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
+  button:disabled { opacity:.5; cursor:default; }
+  #prog { display:none; position:fixed; inset:0; background:rgba(255,255,255,.92); align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  #prog .track { width:70%; height:14px; border-radius:7px; background:#e4e8e6; overflow:hidden; }
+  #prog .fill { height:100%; width:0; background:#2f4a3f; transition:width .25s; }
+  #prog .msg { font-size:12.5px; color:#2f4a3f; }
+  #result { display:none; margin-top:10px; padding:10px; border:1px solid #d0d7de; border-radius:4px; font-size:11.5px; }
+  #result h2 { font-size:12.5px; margin:0 0 6px; }
+  #result ul { margin:0; padding-left:18px; }
+</style>
+</head>
+<body>
+<h1>Export components</h1>
+<div class="sub" id="sub"></div>
+
+<div class="clean">
+  <div class="txt"><b>1. Clean model first</b> - sets every colour to Default and closes open drawers, so you can check it all before exporting. One undo step.
+    <label style="display:inline-flex;gap:4px;margin-left:6px" id="purgeLbl"><input type="checkbox" id="purge"> <span id="purgeTxt"></span></label></div>
+  <button onclick="clean()">Clean model</button>
+</div>
+<div class="note" id="note"></div>
+
+<table>
+  <thead><tr><th style="width:24px"></th><th>Component</th><th>Folder</th><th>Status</th><th>Current file (goes to <span id="oldName">_old</span>)</th><th>New file</th></tr></thead>
+  <tbody id="rows"></tbody>
+</table>
+<div id="result"></div>
+
+<div class="bar">
+  <button onclick="setAll(true)">Select all</button>
+  <button onclick="setAll(false)">Deselect all</button>
+  <label title="Saves this library file as the next version and moves the older ones to the old folder"><input type="checkbox" id="saveMaster" checked> <span id="masterTxt"></span></label>
+  <span style="flex:1"></span>
+  <button onclick="sketchup.close()">Close</button>
+  <button onclick="go(true)">Export all</button>
+  <button class="primary" id="goSel" onclick="go(false)">Export selected</button>
+</div>
+
+<div id="prog"><div class="msg" id="progMsg">Starting...</div><div class="track"><div class="fill" id="fill"></div></div><div class="msg" id="progCount"></div></div>
+
+<script>
+var D = /*DATA*/null;
+var picked = {}, folder = {};
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function load(d){
+  D = d;
+  $('sub').textContent = 'From ' + d.master + '  ->  ' + d.root;
+  $('oldName').textContent = d.old;
+  $('masterTxt').textContent = 'Also save this file as ' + d.next_master;
+  var u = d.unused || {components:[], materials:[]};
+  var n = u.components.length + u.materials.length;
+  $('purgeTxt').textContent = 'Also purge unused (' + u.components.length + ' components, ' + u.materials.length + ' materials)';
+  $('purgeLbl').title = n ? ('Components: ' + u.components.join(', ') + '\nMaterials: ' + u.materials.join(', ')) : 'Nothing unused';
+  $('purge').disabled = n === 0;
+  var h = '';
+  d.rows.forEach(function(r){
+    if (!(r.name in picked)) picked[r.name] = r.status !== 'unchanged';
+    if (!(r.name in folder)) folder[r.name] = r.folder;
+    var opts = d.folders.map(function(f){ return '<option'+(f===folder[r.name]?' selected':'')+'>'+esc(f)+'</option>'; }).join('');
+    var cls = r.status === 'unchanged' ? 'unchanged' : (r.status === 'new' ? 'new' : (r.status === 'changed' ? 'changed' : 'not'));
+    h += '<tr id="tr_'+esc(r.name)+'" class="'+(picked[r.name]?'':'off')+'">' +
+      '<td><input type="checkbox" '+(picked[r.name]?'checked':'')+' onchange="pick(\''+esc(r.name)+'\', this.checked)"></td>' +
+      '<td class="name">'+esc(r.name)+'</td>' +
+      '<td><select onchange="folder[\''+esc(r.name)+'\']=this.value; refreshNew()">'+opts+'</select></td>' +
+      '<td><span class="st '+cls+'">'+esc(r.status)+'</span></td>' +
+      '<td class="cur">'+(r.current.length ? r.current.map(esc).join('<br>') : '-')+'</td>' +
+      '<td class="new" id="new_'+esc(r.name)+'"></td></tr>';
+  });
+  $('rows').innerHTML = h;
+  refreshNew();
+}
+function refreshNew(){ D.rows.forEach(function(r){ var c = $('new_'+r.name); if (c) c.textContent = folder[r.name] + ' / ' + r.file; }); }
+function pick(n, on){ picked[n] = on; $('tr_'+n).className = on ? '' : 'off'; }
+function setAll(on){ D.rows.forEach(function(r){ picked[r.name] = on; }); load(D); }
+function note(t, err){ var n = $('note'); n.textContent = t; n.className = 'note' + (err ? ' err' : ''); n.style.display = 'block'; }
+function clean(){ note('Cleaning...'); sketchup.clean($('purge').checked); }
+function go(all){
+  var rows = D.rows.filter(function(r){ return all || picked[r.name]; }).map(function(r){ return { name:r.name, id:r.id, folder:folder[r.name] }; });
+  if (!rows.length) { note('Nothing selected.', true); return; }
+  $('result').style.display = 'none';
+  $('prog').style.display = 'flex';
+  sketchup.export(JSON.stringify({ rows: rows, save_master: $('saveMaster').checked }));
+}
+function progress(i, n, msg){
+  $('prog').style.display = 'flex';
+  $('fill').style.width = (n ? Math.round(100 * i / n) : 0) + '%';
+  $('progMsg').textContent = msg;
+  $('progCount').textContent = i + ' of ' + n;
+}
+function finished(r){
+  setTimeout(function(){ $('prog').style.display = 'none'; }, 400);
+  var h = '<h2>Exported ' + r.done.length + (r.errors.length ? (', ' + r.errors.length + ' failed') : '') + '</h2><ul>';
+  r.done.forEach(function(d){ h += '<li><b>' + esc(d.file) + '</b>' + (d.moved.length ? ' &nbsp;(moved to old: ' + d.moved.map(esc).join(', ') + ')' : '') + '</li>'; });
+  if (r.master) h += '<li>Library saved as <b>' + esc(r.master.file) + '</b>' + (r.master.moved.length ? ' (moved to old: ' + r.master.moved.map(esc).join(', ') + ')' : '') + '</li>';
+  r.errors.forEach(function(e){ h += '<li style="color:#a33">' + esc(e) + '</li>'; });
+  $('result').innerHTML = h + '</ul>';
+  $('result').style.display = 'block';
+  picked = {};
+}
+load(D);
+</script>
+</body>
+</html>

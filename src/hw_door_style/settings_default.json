@@ -107,5 +107,38 @@
   ],
   "box_thickness_follows_finish": true,
   "panel_22_mm": 22,
+  "export_old_folder": "_old",
+  "export_aliases": {
+    "WARDROBE": [
+      "WRD"
+    ],
+    "WALK-IN": [
+      "WLK"
+    ],
+    "INT_DRAWER": [
+      "INT_DRAWER_228"
+    ],
+    "INT_DRAWER_PLUS": [
+      "INT_DRAWER_228_PLUS"
+    ],
+    "EXT_DRAWER": [
+      "EXT_DRAWER_228"
+    ],
+    "SHOE_PULL_OUT": [
+      "SHOE_UNIT"
+    ],
+    "BXSH": [
+      "BOX_SHELF"
+    ],
+    "BRGSK": [
+      "BRIDGE_SKELETON"
+    ],
+    "FACNG_BLOCK_L": [
+      "FACING_BLOCK_L"
+    ],
+    "TOPBOX": [
+      "TOPBOX_FRAME"
+    ]
+  },
   "settings_version": 2
 }

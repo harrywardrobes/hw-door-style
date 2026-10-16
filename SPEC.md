@@ -240,6 +240,27 @@ Stored inside the plugin folder:
 `settings_default.json` ships with the plugin; `settings.json` holds local
 overrides and survives plugin updates. The job hinge type lives in the model.
 
+## 7a. Export components (library file)
+
+Only in a saved file with "Components" in its name. Rocket button opens a window:
+
+| Column | |
+|---|---|
+| Tick | Pre-ticked unless the component is unchanged since its last export |
+| Component | Top-level component (one row per definition) |
+| Folder | Remembered choice, else the folder its current file is in, else a guess (WARDROBES, DRAWERS, BRIDGE, BOOKCASE, SHELVING, MAIN COMPONENTS) |
+| Status | new / not exported yet / changed / unchanged (fingerprint of every nested definition + DC values) |
+| Current file | Moves to `_old` on export (also files with older names from Settings, e.g. WRD for WARDROBE) |
+| New file | `<NAME>_V<n>.skp`, n = highest version anywhere (folder, main folder, `_old`) + 1; no suffix counts as V1 |
+
+Each file is exported from the component definition inside an undone operation: colours Default
+(the drawer box finish and HARDWARE material stay), drawers closed, DC values as drawn, SketchUp
+2026. A clash in `_old` gets a `_moved_<date>_<time>` suffix: nothing is overwritten.
+**Clean model** does the same cleaning on the library itself (one undo step), plus an optional purge
+of unused components and materials, so it can be checked first. Optionally the library is saved as
+the next `Components V<n>` and older `Components V*.skp/.skb` move to `_old`. A progress bar runs
+during export; Explorer opens on the folder at the end.
+
 ## 8. Not in v0.1 (future)
 
 - Hinge side (L/R), and `DOOR L` / `DOOR R` naming.

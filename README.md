@@ -39,6 +39,7 @@ Every version is a separate commit (see [CHANGELOG.md](CHANGELOG.md) and the com
 | Change one door | Select it (double-click into the wardrobe first), right-click → HW Door Style → Style |
 | Redraw but keep individual doors' styles | Extensions → HW Door Style → Rebuild styles, or right-click → Rebuild selected |
 | Fix thin / stretched doors, old STYLE_* doors, hinges | Extensions → HW Door Style → Repair doors in model |
+| Export library components to their folders (old versions to `_old`) | Toolbar: Export components (rocket), library file only |
 | Set the job's hinge type | Extensions → HW Door Style → Hinge type (this job) |
 | Re-tag doors, drawer fronts and all hardware (hinges, shelf_brackets, drawer_rails) | Extensions → HW Door Style → Apply tags |
 | Save the 13 colours as .skm files | Extensions → HW Door Style → Export colour library (.skm) |
@@ -63,6 +64,7 @@ src/hw_door_style/hardware.rb   hinge / TIP-ON cutlist parts
 src/hw_door_style/converter.rb  rebuilds wrappers to the DOOR_W/T/H contract
 src/hw_door_style/dc.rb         Dynamic Component attribute helpers
 src/hw_door_style/repair.rb     Repair doors in model + contract checks
+src/hw_door_style/library_export.rb  Export components (versioned files, _old)
 src/hw_door_style/report.rb     summary, CSV, export naming/versioning
 src/hw_door_style/pdf.rb        built-in PDF writer
 src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging

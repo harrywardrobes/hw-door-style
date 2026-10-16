@@ -172,5 +172,40 @@ Dir.mktmpdir do |dir|
   FileUtils.cp(pdf, ENV['PDF_OUT']) if ENV['PDF_OUT']
 end
 
+# --- library export (file names, versions, _old)
+require 'tmpdir'
+require 'hw_door_style/library_export'
+LE = LibraryExport
+Dir.mktmpdir do |root|
+  %w[_old WARDROBES DRAWERS BRIDGE BOOKCASE SHELVING HW\ Colours].each { |d| FileUtils.mkdir_p(File.join(root, d)) }
+  { 'WARDROBES' => %w[WRD_V1.skp TOPBOX_V5.skp LINEN_PRESS_V1.skp],
+    'DRAWERS' => ['INT_DRAWER_228_V3.skp', 'INT_DRAWER_228_PLUS_V2.skp', 'SHOE_UNIT V2.skp'],
+    'BRIDGE' => %w[BRIDGE_FRAME_V5.skp], 'BOOKCASE' => %w[BOOKCASE_4.skp],
+    '_old' => %w[BRIDGE_FRAME_V2.skp BRIDGE_FRAME_V4.skp BRIDGE_FRAME.skp INT_DRAWER_228.skp],
+    '.' => ['END_PAN.skp', 'Components V16.skp', 'Components V16.skb', 'Components V17.skp'] }.each do |d, fs|
+    fs.each { |f| File.write(File.join(root, d, f), 'x') }
+  end
+  model = Struct.new(:path).new(File.join(root, 'Components V17.skp'))
+  check 'export: only in a "Components" file', LE.master?(model) && !LE.master?(Struct.new(:path).new(File.join(root, 'Smith job.skp')))
+  check 'export: folders skip _old and HW Colours, add MAIN COMPONENTS', LE.folders(model) == ['BOOKCASE', 'BRIDGE', 'DRAWERS', 'MAIN COMPONENTS', 'SHELVING', 'WARDROBES']
+  w = LE.scan(model, 'WARDROBE')
+  check 'export: WARDROBE finds WRD_V1 -> next V2', w[:version] == 1 && w[:current].map { |p| File.basename(p) } == ['WRD_V1.skp']
+  check 'export: BRIDGE_FRAME next V6 (V5 current, older in _old)', LE.scan(model, 'BRIDGE_FRAME')[:version] == 5
+  i = LE.scan(model, 'INT_DRAWER')
+  check 'export: INT_DRAWER does not pick up INT_DRAWER_228_PLUS', i[:current].map { |p| File.basename(p) } == ['INT_DRAWER_228_V3.skp']
+  check 'export: SHOE_PULL_OUT finds "SHOE_UNIT V2"', LE.scan(model, 'SHOE_PULL_OUT')[:version] == 2
+  check 'export: BOOKCASE_4 counts as V4', LE.scan(model, 'BOOKCASE')[:version] == 4
+  check 'export: loose END_PAN in main folder found (V1)', LE.scan(model, 'END_PAN')[:current].size == 1
+  check 'export: brand new component starts at V1', LE.scan(model, 'NEW_THING')[:version].zero?
+  check 'export: folder guesses', LE.guess_folder('WALK-IN', LE.folders(model)) == 'WARDROBES' && LE.guess_folder('EXT_DRAWER', LE.folders(model)) == 'DRAWERS' && LE.guess_folder('BULLNOSE', LE.folders(model)) == 'MAIN COMPONENTS'
+  moved = LE.move_to_old(model, File.join(root, 'WARDROBES', 'WRD_V1.skp'))
+  check 'export: old file moved to _old', File.exist?(moved) && File.dirname(moved) == File.join(root, '_old') && !File.exist?(File.join(root, 'WARDROBES', 'WRD_V1.skp'))
+  File.write(File.join(root, 'BRIDGE', 'BRIDGE_FRAME_V2.skp'), 'y')
+  m2 = LE.move_to_old(model, File.join(root, 'BRIDGE', 'BRIDGE_FRAME_V2.skp'))
+  check 'export: name clash in _old never overwrites', File.basename(m2) =~ /\ABRIDGE_FRAME_V2_moved_\d+_\d+\.skp\z/ && File.read(File.join(root, '_old', 'BRIDGE_FRAME_V2.skp')) == 'x'
+  check 'export: next master is Components V18', File.basename(LE.next_master(model)) == 'Components V18.skp'
+  check 'export: unsafe characters removed from names', LE.safe('A/B:C') == 'A_B_C'
+end
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

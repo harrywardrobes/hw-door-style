@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.10.0 — 2026-10-16
+- **Export components** (rocket button). Library files only ("Components" in the name).
+  Window lists every top-level component with folder, status (new / changed / unchanged),
+  current file and the new file; Select all / Deselect all / Export all / Export selected.
+- Each export: cleaned (colours Default, drawers closed), as drawn, SketchUp 2026, saved as
+  `<FOLDER>/<NAME>_V<n>.skp` (n = highest version found, incl. `_old` and older file names, + 1).
+  The previous file(s) move to `_old` (never overwritten).
+- **Clean model** button: colours to Default, close drawers, optional purge of unused components and
+  materials (listed first). One undo step, so you can check before exporting.
+- Optional: save the library as the next `Components V<n>` and move older ones to `_old`.
+- Progress bar; Explorer opens on the folder when done. Folder per component is remembered.
+- Settings: old versions folder, older file names (e.g. `WARDROBE: WRD`).
+
 ## 0.9.0 — 2026-10-16
 - Colours window: new **22mm Panels** row, default **White** (a plain white offered only on this row).
   Matches any flat panel 22 mm thick by size, not tag (today: bookcase shelves, dividers and end
