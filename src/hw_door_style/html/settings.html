@@ -20,46 +20,57 @@
   textarea { height:22px; resize:vertical; }
   input[type=checkbox] { width:auto; margin:0; }
   .hint { color:#6a737d; font-size:10.5px; margin-top:2px; }
+  .tabs { display:flex; gap:2px; border-bottom:1px solid #d0d7de; margin:0 0 8px; }
+  .tabs button { border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0; background:none; padding:5px 12px; color:#57606a; margin-bottom:-1px; }
+  .tabs button.on { background:#fff; border-color:#d0d7de; color:#2f4a3f; font-weight:600; }
+  fieldset.hide { display:none; }
   .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
   button { font:inherit; padding:4px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
   button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
 </style>
 </head>
 <body>
+<div class="tabs" id="tabs">
+  <button data-t="doors">Doors &amp; hinges</button>
+  <button data-t="tags">Tags</button>
+  <button data-t="colours">Colours &amp; materials</button>
+  <button data-t="scribe">Scribe / runout</button>
+  <button data-t="export">Export</button>
+</div>
 <div class="grid">
-  <fieldset class="wide"><legend>Component names</legend>
+  <fieldset class="wide" data-tab="doors"><legend>Component names</legend>
     <div class="f t"><span>Doors</span><textarea id="door_names"></textarea></div>
     <div class="f t"><span>External drawers</span><textarea id="ext_drawer_names"></textarea></div>
     <div class="f t"><span>Internal drawers</span><textarea id="int_drawer_names"></textarea></div>
     <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name. Internal drawer fronts stay flat.</div>
   </fieldset>
 
-  <fieldset><legend>Shaker (mm)</legend>
+  <fieldset data-tab="doors"><legend>Shaker (mm)</legend>
     <div class="f"><span>Door frame width</span><input type="number" id="door_frame_mm"></div>
     <div class="f"><span>Drawer front frame width</span><input type="number" id="drawer_frame_mm"></div>
     <div class="f"><span>Recess depth</span><input type="number" step="0.5" id="recess_mm"></div>
     <div class="f"><span>Smallest panel</span><input type="number" id="min_panel_mm"></div>
   </fieldset>
 
-  <fieldset><legend>Mid-rail on doors (mm)</legend>
+  <fieldset data-tab="doors"><legend>Mid-rail on doors (mm)</legend>
     <div class="f"><span>Add when door taller than</span><input type="number" id="midrail_min_door_height_mm"></div>
     <div class="f"><span>Centre above door bottom</span><input type="number" id="midrail_centre_mm"></div>
     <div class="f"><span>Mid-rail width</span><input type="number" id="midrail_width_mm"></div>
   </fieldset>
 
-  <fieldset><legend>Hinges</legend>
+  <fieldset data-tab="doors"><legend>Hinges</legend>
     <div class="f t"><span>Hinges per door</span><input type="text" id="hinge_rules"></div>
     <div class="hint">max height:count - e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
     <div class="f"><span>Top / bottom inset (mm)</span><input type="number" id="hinge_end_inset_mm"></div>
   </fieldset>
 
-  <fieldset><legend>Handles / knobs</legend>
+  <fieldset data-tab="doors"><legend>Handles / knobs</legend>
     <div class="f"><span>2 on drawer fronts wider than (mm)</span><input type="number" id="handle_double_min_width_mm"></div>
     <div class="f c"><span>Count on internal drawer fronts</span><input type="checkbox" id="handles_on_internal_drawers"></div>
     <div class="f c"><span>Count on push-to-open doors</span><input type="checkbox" id="handles_on_pto_doors"></div>
   </fieldset>
 
-  <fieldset class="wide"><legend>Tags</legend>
+  <fieldset class="wide" data-tab="tags"><legend>Tags</legend>
     <div class="row3">
       <div class="f t2"><span>Doors</span><input type="text" id="door_tag"></div>
       <div class="f t2"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
@@ -70,7 +81,7 @@
     <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET, BKS_SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag, so nothing stays on HARDWARE.</div>
   </fieldset>
 
-  <fieldset class="wide"><legend>Scribe / runout (pencil)</legend>
+  <fieldset class="wide" data-tab="scribe"><legend>Scribe / runout (pencil)</legend>
     <div class="f t"><span>Dropdown values (mm)</span><input type="text" id="runout_values_mm" title="0 is always included"></div>
     <div class="row3">
       <div class="f t2"><span>Floor</span><input type="number" id="rd_floor"></div>
@@ -82,14 +93,14 @@
     <div class="hint">Defaults used the first time the pencil is pressed on a job. Changing the list updates every component's dropdown next time the pencil is used.</div>
   </fieldset>
 
-  <fieldset class="wide"><legend>Export components (library file)</legend>
+  <fieldset class="wide" data-tab="export"><legend>Export components (library file)</legend>
     <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
     <div class="f t"><span>Older file names</span><textarea id="export_aliases" rows="4" title="One per line: COMPONENT: OLD_NAME, OLD_NAME"></textarea></div>
     <div class="f t"><span>Never export</span><input type="text" id="export_skip" title="Top-level components left out of the export list"></div>
     <div class="hint">One line per component, e.g. <code>WARDROBE: WRD</code>. Files with an older name are moved to the old folder and counted for the next version number.</div>
   </fieldset>
 
-  <fieldset class="wide"><legend>Materials</legend>
+  <fieldset class="wide" data-tab="colours"><legend>Materials</legend>
     <div class="f t"><span>Hinge / TIP-ON material</span><input type="text" id="hardware_material"></div>
     <div class="f t"><span>Door / Drawer tags</span><input type="text" id="cg_door"></div>
     <div class="f t"><span>Exterior / Trim tags</span><input type="text" id="cg_exterior"></div>
@@ -161,6 +172,14 @@ function collect(){
   return o;
 }
 load(S);
+function tab(t){
+  document.querySelectorAll('fieldset[data-tab]').forEach(function(f){ f.classList.toggle('hide', f.getAttribute('data-tab') !== t); });
+  document.querySelectorAll('#tabs button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); });
+  try { localStorage.setItem('hw_settings_tab', t); } catch(e) {}
+}
+document.querySelectorAll('#tabs button').forEach(function(b){ b.onclick = function(){ tab(b.getAttribute('data-t')); }; });
+var last = 'doors'; try { last = localStorage.getItem('hw_settings_tab') || 'doors'; } catch(e) {}
+tab(last);
 </script>
 </body>
 </html>

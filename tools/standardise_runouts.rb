@@ -10,7 +10,10 @@ module HWStandardise
   DCD = 'dynamic_attributes'.freeze
 
   WALL_BACK_UNITS = %w[WARDROBE WALK-IN LINEN_PRESS TOPBOX END_PAN BXEND BOOKCASE].freeze
-  NEW_TOPPED_UNITS = %w[END_PAN BXEND BULLNOSE BOOKCASE].freeze
+  NEW_TOPPED_UNITS = %w[END_PAN BXEND BULLNOSE BOOKCASE FACING_BLOCK_L FACING_BLOCK_R].freeze
+  NO_BACK_UNITS = %w[BULLNOSE].freeze
+  FLOOR_CEILING_PARTS = %w[FACING_L INT_FACING_L FACING_R INT_FACING_R].freeze
+  RUNOUT_KEYS = %w[runout_floor runout_ceiling runout_l runout_r runout_back_wall topped wall_left wall_right wall_back].freeze
   NO_RUNOUT_UNITS = %w[INT_DRAWER INT_DRAWER_PLUS SHOE_PULL_OUT].freeze
   FACING_TOP = %w[WRD_FACING_TOP LIN_FACING_TOP TPBX_FACING_TOP].freeze
   FACING_BTM = %w[WRD_FACING_BTM WLK_FACING_BTM LIN_FACING_BTM TPBX_FACING_BTM].freeze
@@ -114,6 +117,47 @@ module HWStandardise
       formula!(d, 'z', z.empty? || z == '0' ? '-parent!RUNOUT_FLOOR' : "#{z} - parent!RUNOUT_FLOOR")
       log[:facings] << "#{base(d)} lenz/z +floor"
     end
+    # Facing blocks: full-height facings take floor AND ceiling.
+    defs(model, FLOOR_CEILING_PARTS).each do |d|
+      f = read_formula(d, 'lenz').to_s
+      next if f.strip.empty?
+      add = []
+      add << 'parent!RUNOUT_FLOOR' unless f =~ /RUNOUT_FLOOR/i
+      add << 'parent!RUNOUT_CEILING' unless f =~ /RUNOUT_CEILING/i
+      next if add.empty?
+      formula!(d, 'lenz', ([f] + add).join(' + '))
+      if add.include?('parent!RUNOUT_FLOOR')
+        z = read_formula(d, 'z').to_s.strip
+        formula!(d, 'z', z.empty? || z == '0' ? '-parent!RUNOUT_FLOOR' : "#{z} - parent!RUNOUT_FLOOR")
+      end
+      log[:facings] << "#{base(d)} lenz +#{add.map { |a| a[/FLOOR|CEILING/].downcase }.join('+')}"
+    end
+  end
+
+  # BULLNOSE etc.: no back runout at all.
+  def self.drop_back!(model, log)
+    defs(model, NO_BACK_UNITS).each do |d|
+      used = false
+      DS::Finder.each_instance(d.entities) { |i| [i, i.definition].each { |o| dict(o)&.each_pair { |k, v| used = true if k.end_with?('_formula') && v.to_s =~ /RUNOUT_BACK/i } } }
+      next log[:kept_back] << base(d) if used
+      objs(d).each { |o| (dd = dict(o)) && dd.keys.grep(/\A_?(inst__)?(runout_back_wall|zz_runout_back|wall_back)(_|\z)/).each { |k| dd.delete_key(k) } }
+      log[:back_removed] << base(d)
+    end
+  end
+
+  # Every runout / switch shows in Component Options (access LIST).
+  def self.visible!(model, log)
+    model.entities.grep(Sketchup::ComponentInstance).map(&:definition).uniq.each do |d|
+      RUNOUT_KEYS.each do |k|
+        next unless has?(d, k)
+        objs(d).each do |o|
+          next unless dict(o)
+          next if dict(o)["_#{k}_access"] == 'LIST'
+          o.set_attribute(DCD, "_#{k}_access", 'LIST')
+          log[:made_visible] |= ["#{base(d)}.#{k}"]
+        end
+      end
+    end
   end
 
   # --- 5. switched values ------------------------------------------------
@@ -186,6 +230,8 @@ module HWStandardise
       has?(p, 'topped') ? 'IF(TOPPED, 0, RUNOUT_CEILING)' : 'RUNOUT_CEILING'
     end
     drop_runouts!(model, log)
+    drop_back!(model, log)
+    visible!(model, log)
     log
   end
 end

@@ -225,7 +225,7 @@ module HarryWardrobes
     def self.show_settings
       @settings_dlg&.close
       dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style - Settings', preferences_key: 'hw_door_style_settings',
-                               width: 640, height: 750, resizable: true, scrollable: true,
+                               width: 660, height: 520, resizable: true, scrollable: true,
                                style: UI::HtmlDialog::STYLE_DIALOG)
       html = File.read(File.join(PATH, 'html', 'settings.html'))
       dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Settings.get)))

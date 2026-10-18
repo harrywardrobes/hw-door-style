@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.2 — 2026-10-18
+- Settings window in tabs: Doors & hinges, Tags, Colours & materials, Scribe / runout, Export
+  (remembers the last tab); smaller window.
+- Includes the 0.11.1 redraw fix for the pencil.
+
 ## 0.11.1 — 2026-10-18
 - Fix: pencil "can't convert NilClass into an exact number" on every unit. Redraws now run without
   the DC progress bar (which isn't initialised on a fresh SketchUp) and fall back to the other DC
