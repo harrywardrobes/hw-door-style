@@ -294,6 +294,7 @@ floor always applies.
 - `WALL_BACK` added to WARDROBE, WALK-IN, LINEN_PRESS, TOPBOX, END_PAN, BXEND, BOOKCASE.
 - Wardrobe facings: top facing + ceiling runout (when not topped), bottom facing down by the floor runout.
 - BOOKCASE sides and facings go down by the floor runout.
+- Dividers / end panels (WRD/WLK/LIN/TPBX_DIV, _R, BKS_DIV) take floor, ceiling (when not topped) and back.
 - Shelf groups pass `ZZ_RUNOUT_BACK` through to their shelves.
 - INT_DRAWER, INT_DRAWER_PLUS, SHOE_PULL_OUT carry no runouts.
 - Applied once with `tools/standardise_runouts.rb`.
