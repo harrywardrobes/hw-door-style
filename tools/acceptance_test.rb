@@ -98,8 +98,8 @@ module HWDoorAcceptance
           SIZES.each do |w, h|
             m = cfg[:margin]
             frame = dbl == '1' ? 2 * w + 3 * m : w + 2 * m
-            set([unit, unit.definition], cfg[:double], dbl)
-            set([unit, unit.definition], cfg[:width], frame / MM)
+            set([unit, unit.definition], DS::DC.key(unit, cfg[:double]) || cfg[:double], dbl)
+            set([unit, unit.definition], DS::DC.key(unit, cfg[:width]) || cfg[:width], frame / MM)
             # Door height: override the wrappers' DOOR_H (what the unit formulas feed).
             wrappers_in(unit).each { |wr| set([wr, wr.definition], 'door_h', h / MM, format('%g', h / 10.0)) }
             DS::DC.redraw(unit)

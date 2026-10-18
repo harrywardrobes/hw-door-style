@@ -210,6 +210,7 @@ Dir.mktmpdir do |root|
 end
 
 # --- scribe / runout
+require 'hw_door_style/dc'
 require 'hw_door_style/scribe'
 SC = Scribe
 check 'runout dropdown 0/25/50/75/100/150', SC.options_string == '&0mm=0.0' + [25, 50, 75, 100, 150].map { |v| "&#{v}mm=#{v / 25.4}" }.join + '&'
@@ -219,6 +220,10 @@ check 'rename leaves others', SC.rename_key('zz_scribe_l') == 'zz_scribe_l' && S
 check 'rename formulas', SC.rename_formula('IF(WALL_LEFT="TRUE", SCRIBE_L, 0)') == 'IF(WALL_LEFT="TRUE", RUNOUT_L, 0)' &&
                          SC.rename_formula('(THICKNESS / 2) + parent!SCRIBE_R') == '(THICKNESS / 2) + parent!RUNOUT_R' &&
                          SC.rename_formula('parent!ZZ_SCRIBE_L') == 'parent!ZZ_SCRIBE_L'
+h = { 'j01_runout_floor' => '1', 'runout_ceiling' => '2', 'a01_frame_width' => 3, 'zz_runout_back' => 4 }
+check 'prefixed key found', DC.key_in(h, 'runout_floor') == 'j01_runout_floor' && DC.key_in(h, 'frame_width') == 'a01_frame_width'
+check 'plain key still found', DC.key_in(h, 'runout_ceiling') == 'runout_ceiling'
+check 'no false match (zz_ / partial)', DC.key_in(h, 'runout_back') .nil? && DC.key_in(h, 'width').nil?
 check '25mm stored as inches string', SC.inch_s(25) == (25 / 25.4).to_s
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"

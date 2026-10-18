@@ -25,6 +25,20 @@ module HarryWardrobes
         d && d[key]
       end
 
+      # Component Options are ordered by attribute name, so the library prefixes
+      # them with a section code ("j01_runout_floor"). Find the real key for a
+      # base name in one dictionary (exact name first, then any prefix).
+      def self.key_in(dd, base)
+        return nil unless dd
+        return base unless dd[base].nil?
+        dd.keys.find { |k| k =~ /\A[a-z]\d{1,2}_#{Regexp.escape(base)}\z/ }
+      end
+
+      # Real key for base on an instance (instance first, then its definition).
+      def self.key(inst, base)
+        key_in(dict(inst), base) || (inst.respond_to?(:definition) ? key_in(dict(inst.definition), base) : nil)
+      end
+
       # Reads a key from the instance, falling back to the definition.
       def self.read(inst, key)
         v = get(inst, key)

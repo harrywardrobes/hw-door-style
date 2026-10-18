@@ -55,9 +55,16 @@ module HarryWardrobes
 
       # --- units --------------------------------------------------------------
 
+      # key may be a base name ("runout_floor"); the library may store it with
+      # a section prefix ("j01_runout_floor").
+      def self.real_key(inst, key)
+        DC.key(inst, key) || key
+      end
+
       def self.read(inst, key)
-        v = inst.get_attribute(DCD, key)
-        v = inst.definition.get_attribute(DCD, key) if v.nil?
+        k = real_key(inst, key)
+        v = inst.get_attribute(DCD, k)
+        v = inst.definition.get_attribute(DCD, k) if v.nil?
         v
       end
 
@@ -149,7 +156,8 @@ module HarryWardrobes
             rep[:formulas] += 1
           end
           # 3. dropdowns + labels
-          SIDES.each do |_s, key, label|
+          SIDES.each do |_s, base, label|
+            key = DC.key_in(dd, base) || base
             next if dd[key].nil? && dd["_#{key}_label"].nil?
             dd["_#{key}_options"] = options_string
             dd["_#{key}_formlabel"] = label
@@ -163,8 +171,9 @@ module HarryWardrobes
       def self.needs_standardising?(model)
         model.definitions.any? do |d|
           dd = d.attribute_dictionary(DCD) or next false
+          fk = DC.key_in(dd, 'runout_floor')
           dd.keys.any? { |k| k =~ /\A_?scribe_[lr](_|\z)/ } ||
-            (dd['runout_floor'] && dd['_runout_floor_options'] != options_string)
+            (fk && dd["_#{fk}_options"] != options_string)
         end
       end
 
@@ -177,8 +186,9 @@ module HarryWardrobes
           key = KEYS[side.to_s] or next
           next if read(inst, key).nil?
           cur = read(inst, key).to_f * 25.4
-          next if (cur - mm.to_f).abs <= 0.05 && !inst.get_attribute(DCD, key).nil?
-          inst.set_attribute(DCD, key, inch_s(mm))
+          rk = real_key(inst, key)
+          next if (cur - mm.to_f).abs <= 0.05 && !inst.get_attribute(DCD, rk).nil?
+          inst.set_attribute(DCD, rk, inch_s(mm))
           changed = true
         end
         changed

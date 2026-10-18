@@ -298,6 +298,29 @@ floor always applies.
 - INT_DRAWER, INT_DRAWER_PLUS, SHOE_PULL_OUT carry no runouts.
 - Applied once with `tools/standardise_runouts.rb`.
 
+### Component Options order (library, from V19)
+
+Component Options lists attributes alphabetically by attribute name, so every visible option has a
+section prefix (labels unchanged). Same order on every unit; each unit only shows its sections:
+
+| Prefix | Section |
+|---|---|
+| `a..` | SIZE / FRAMEWORK / CABINET |
+| `b..` | DOORS |
+| `c..` | DEPTHS |
+| `d..` | FACING (and fillers) |
+| `e..` | DIV + END PANEL / COMPARTMENTS |
+| `f..` | SHELVES |
+| `g..` | RAILS / HANGING RAIL |
+| `h..` | DRAWERS / RUNNERS / FITTING |
+| `i..` | WALL / TOPPED |
+| `j..` | RUNOUT (floor, ceiling, left, right, back) |
+
+e.g. `j01_runout_floor`, `i04_topped`, `a01_frame_width`. Formulas (own, `parent!` and named
+references like `INT_DRAWER!...`) were rewritten; shelf groups that pass values through got aliases.
+The plugin finds attributes with or without the prefix (`DC.key`), so old job files still work.
+Applied once with `tools/reorder_options.rb`.
+
 ## 8. Not in v0.1 (future)
 
 - Hinge side (L/R), and `DOOR L` / `DOOR R` naming.
