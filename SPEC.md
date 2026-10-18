@@ -277,6 +277,9 @@ floor always applies.
 - **Summary** flags scribes off, and every unit whose runouts differ from the job values.
 - **Export door order** warns when scribes are off.
 - **Export components** saves every library file with runouts at 0.
+- **Ceiling height** (pencil window, required; or the Ceiling height button any time): every unit with
+  `I05_UP_TO_CEILING` = TRUE gets its height option set to it (stretched where the height comes from
+  CURRENT("LenZ")). BRIDGE_FRAME: ceiling - `A03_HEIGHT_BELOW` (skipped while 0). Scribes off keeps it.
 - One-off **standardise** (asked the first time the pencil is used): `SCRIBE_L/R` renamed `RUNOUT_L/R` in keys
   and every formula (`parent!SCRIBE_L` too; hidden `ZZ_SCRIBE_*` untouched); every runout dropdown gets the
   Settings list. Open drawers are closed before each redraw.

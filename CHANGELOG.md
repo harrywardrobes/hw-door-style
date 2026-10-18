@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.4 — 2026-10-18
+- **Ceiling height** for the whole job: on the pencil window (required, starts at 0) and on a new
+  **Ceiling height** button (floor / ceiling / arrows icon) that works any time. Every unit with
+  "Up to ceiling" = TRUE is built to it; runouts add on top; scribes off never changes it.
+  Heights that come from stretching are stretched (bottom fixed, corrected to the exact height);
+  BRIDGE_FRAME = ceiling - "Height below bridge".
+- Summary flags units whose height differs from the ceiling.
+- Library (V20): "Up to ceiling" (default TRUE) on the 4 wardrobes, BOOKCASE, facing blocks, END_PAN,
+  BULLNOSE, BXEND, BRIDGE_FRAME; BRIDGE_FRAME "Height below bridge (mm)"; THICKNESS hidden everywhere;
+  dividers take floor + ceiling runouts.
+
 ## 0.11.3 — 2026-10-18
 - Works with the re-ordered library: attributes are found with or without their section prefix
   (j01_runout_floor, i04_topped, a01_frame_width ...), so old job files still work too.

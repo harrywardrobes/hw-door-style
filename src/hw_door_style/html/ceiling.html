@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ceiling height</title>
+<style>
+  * { box-sizing:border-box; }
+  body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:12px 14px; }
+  h1 { font-size:14px; margin:0 0 2px; }
+  .sub { color:#6a737d; font-size:11px; margin-bottom:10px; }
+  input { font:inherit; padding:4px 6px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
+  .hint { color:#6a737d; font-size:10.5px; margin-top:4px; }
+  .err { color:#b4541a; font-size:11px; margin-top:4px; display:none; }
+  .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:12px; }
+  button { font:inherit; padding:5px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
+  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
+</style>
+</head>
+<body>
+<h1>Ceiling height (mm)</h1>
+<div class="sub" id="sub"></div>
+<input type="number" id="c" min="0" step="1">
+<div class="hint">What is the maximum ceiling height of the wardrobes?</div>
+<div class="err" id="err">Enter the ceiling height.</div>
+<div class="bar">
+  <button onclick="sketchup.cancel()">Cancel</button>
+  <button class="primary" onclick="go()">Apply</button>
+</div>
+<script>
+var D = /*DATA*/null;
+document.getElementById('sub').textContent = 'Applies to every unit with "Up to ceiling" = TRUE (' + D.count + ' now). Runouts and scribes are not changed.';
+document.getElementById('c').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
+function go(){ var v = parseFloat(document.getElementById('c').value); if (!(v > 0)) { document.getElementById('err').style.display = 'block'; return; } sketchup.apply(String(v)); }
+</script>
+</body>
+</html>

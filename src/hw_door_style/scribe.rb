@@ -101,11 +101,84 @@ module HarryWardrobes
       # Sides of this unit that differ from what the job expects ([] = standard).
       def self.differences(inst, model = Sketchup.active_model)
         exp = expected(model)
-        SIDES.filter_map do |s, _, _|
+        out = SIDES.filter_map do |s, _, _|
           v = mm_of(inst, s)
           next if v.nil? || (v - exp[s]).abs <= TOL
           "#{s} #{v.round}mm (job #{exp[s].round})"
         end
+        want = target_height_mm(inst, ceiling_mm(model))
+        h = height_mm(inst)
+        out << "height #{h.round}mm (ceiling #{want.round})" if want && h && (h - want).abs > 1
+        out
+      end
+
+      # --- ceiling height ---------------------------------------------------
+      # Every unit with "Up to ceiling" = TRUE (missing = TRUE) is built to the
+      # job's ceiling height. Runouts add on top. Scribes off never changes it.
+      HEIGHT_KEYS = %w[frame_height_ceiling frame_height ceiling_height size_height height].freeze
+
+      def self.ceiling_mm(model = Sketchup.active_model)
+        model.get_attribute(DICT, 'ceiling_mm', 0).to_f
+      end
+
+      def self.height_key(inst)
+        HEIGHT_KEYS.each do |b|
+          k = DC.key(inst, b)
+          return k if k
+        end
+        nil
+      end
+
+      # Only units that have the switch (so drawers etc. are never touched).
+      def self.up_to_ceiling?(inst)
+        v = read(inst, 'up_to_ceiling')
+        !v.nil? && v.to_s.upcase != 'FALSE'
+      end
+
+      def self.height_mm(inst)
+        k = height_key(inst) or return nil
+        v = read(inst, k)
+        v.nil? || v.to_s.strip.empty? ? nil : (v.to_f * 25.4).round(1)
+      end
+
+      # Target height for this unit (nil = leave it). BRIDGE_FRAME sits on something:
+      # its height is the ceiling minus "Height below bridge".
+      def self.target_height_mm(inst, ceiling)
+        return nil unless ceiling.to_f.positive? && height_key(inst) && up_to_ceiling?(inst)
+        below = read(inst, 'height_below')
+        return ceiling.to_f unless below
+        b = below.to_f * 25.4
+        b.positive? ? ceiling.to_f - b : nil
+      end
+
+      # Sets the height. Heights worked out from the stretched size (CURRENT("LenZ"))
+      # are changed by stretching in Z about the unit's origin, like the Scale tool.
+      def self.set_height(inst, mm)
+        k = height_key(inst) or return false
+        cur = height_mm(inst)
+        return false if cur && (cur - mm).abs < 0.5
+        f = [inst.get_attribute(DCD, "_#{k}_formula"), inst.definition.get_attribute(DCD, "_#{k}_formula")].compact.join
+        if f =~ /CURRENT/i && cur.to_f.positive?
+          t = inst.transformation
+          inst.transformation = Geom::Transformation.scaling(t.origin, 1, 1, mm / cur) * t
+        else
+          old = read(inst, k)
+          inst.set_attribute(DCD, k, old.is_a?(String) ? (mm / 25.4).to_s : mm / 25.4)
+        end
+        true
+      end
+
+      # Sets the height and redraws, correcting up to 3 times (a stretched unit's
+      # size can differ slightly from its height option). Returns true if changed.
+      def self.fit_height(inst, mm)
+        changed = false
+        3.times do
+          break unless set_height(inst, mm)
+          changed = true
+          LibraryExport.close_drawers(inst.definition.entities)
+          DC.redraw(inst)
+        end
+        changed
       end
 
       # --- standardising the components ---------------------------------
@@ -197,7 +270,7 @@ module HarryWardrobes
       # Applies values to units with a progress window, one undo step.
       # values: { side => mm } or a lambda(inst) -> values.
       # before: optional lambda run inside the same undo step (job state changes).
-      def self.run(model, units, values, title, done_msg, before: nil)
+      def self.run(model, units, values, title, done_msg, before: nil, ceiling: nil)
         return UI.messagebox('No units with runout settings found.') if units.empty?
         dlg = progress_dialog(title)
         queue = units.dup
@@ -226,7 +299,13 @@ module HarryWardrobes
             end
             begin
               v = values.respond_to?(:call) ? values.call(inst) : values
-              if set_values(inst, v)
+              changed = v ? set_values(inst, v) : false
+              want = ceiling ? target_height_mm(inst, ceiling) : nil
+              # fit_height redraws itself; otherwise redraw once for the runouts.
+              if want && fit_height(inst, want)
+                changed = false
+              end
+              if changed
                 LibraryExport.close_drawers(inst.definition.entities)
                 DC.redraw(inst)
               end
@@ -283,7 +362,8 @@ module HarryWardrobes
           'title' => sel ? "Runouts - #{targets.size == 1 ? Finder.label(targets.first) : "#{targets.size} selected units"}" : 'Scribes on - runouts for every unit',
           'selection' => sel ? true : false,
           'sides' => SIDES.map { |s, _, l| [s, l.sub(/\ARunout - /, '').sub(' (mm)', '')] },
-          'values' => [0.0] + values_list, 'current' => cur, 'job' => job_values(model)
+          'values' => [0.0] + values_list, 'current' => cur, 'job' => job_values(model),
+          'ceiling' => sel ? nil : ceiling_mm(model)
         }
         @dlg = dlg = UI::HtmlDialog.new(dialog_title: 'HW - Scribe / runout', preferences_key: 'hw_scribe',
                                         width: 380, height: 360, resizable: false, scrollable: false,
@@ -291,18 +371,41 @@ module HarryWardrobes
         dlg.set_html(File.read(File.join(PATH, 'html', 'scribe.html')).sub('/*DATA*/null', JSON.generate(data)))
         dlg.add_action_callback('cancel') { |_c| dlg.close }
         dlg.add_action_callback('apply') do |_c, json|
-          v = JSON.parse(json).transform_values(&:to_f).slice(*KEYS.keys)
+          raw = JSON.parse(json)
+          ceil = raw['ceiling'].to_f
+          v = raw.transform_values(&:to_f).slice(*KEYS.keys)
           dlg.close
           if sel
             run(model, targets, v, 'Runouts (selected)', "Runouts updated on #{targets.size} unit(s).")
           else
             run(model, units(model.entities), v, 'Scribes on',
-                "Scribes on: #{SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm.",
+                "Scribes on: #{SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm. Ceiling #{ceil.round} mm.",
+                ceiling: ceil,
                 before: lambda {
                   model.set_attribute(DICT, 'scribe_on', true)
                   model.set_attribute(DICT, 'scribe_values', JSON.generate(v))
+                  model.set_attribute(DICT, 'ceiling_mm', ceil)
                 })
           end
+        end
+        dlg.show
+      end
+
+      # Ceiling height button: any time, scribes on or off. Runouts untouched.
+      def self.show_ceiling(model = Sketchup.active_model)
+        @cdlg&.close
+        data = { 'ceiling' => ceiling_mm(model), 'count' => units(model.entities).count { |u| target_height_mm(u, 1.0) } }
+        @cdlg = dlg = UI::HtmlDialog.new(dialog_title: 'HW - Ceiling height', preferences_key: 'hw_ceiling',
+                                         width: 360, height: 230, resizable: false, scrollable: false,
+                                         style: UI::HtmlDialog::STYLE_DIALOG)
+        dlg.set_html(File.read(File.join(PATH, 'html', 'ceiling.html')).sub('/*DATA*/null', JSON.generate(data)))
+        dlg.add_action_callback('cancel') { |_c| dlg.close }
+        dlg.add_action_callback('apply') do |_c, mm|
+          ceil = mm.to_f
+          dlg.close
+          next unless ceil.positive?
+          run(model, units(model.entities), nil, 'Ceiling height', "Ceiling height #{ceil.round} mm applied to every 'Up to ceiling' unit.",
+              ceiling: ceil, before: -> { model.set_attribute(DICT, 'ceiling_mm', ceil) })
         end
         dlg.show
       end

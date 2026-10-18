@@ -21,6 +21,7 @@
 <body>
 <h1 id="title"></h1>
 <div class="sub" id="sub"></div>
+<div id="ceilRow" class="row" style="display:none"><label>Ceiling height<small id="ceilReq">required</small></label><div><input type="number" id="ceiling" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px">What is the maximum ceiling height of the wardrobes? (mm)</div></div></div>
 <div id="rows"></div>
 <div class="hint">Walls, back and "topped off" switches on each component decide what is used. Floor always applies.</div>
 <div class="bar">
@@ -40,7 +41,16 @@ D.sides.forEach(function(s){
   h += '</select>' + (D.selection && Math.abs(cur - D.job[s[0]]) > 0.3 ? '<small>job: '+Math.round(D.job[s[0]])+' mm</small>' : '') + '</div></div>';
 });
 document.getElementById('rows').innerHTML = h;
-function apply(){ var o = {}; D.sides.forEach(function(s){ o[s[0]] = parseFloat(document.getElementById('s_'+s[0]).value); }); sketchup.apply(JSON.stringify(o)); }
+if (D.ceiling !== null && D.ceiling !== undefined) {
+  document.getElementById('ceilRow').style.display = '';
+  document.getElementById('ceiling').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
+}
+function apply(){ var o = {};
+  if (D.ceiling !== null && D.ceiling !== undefined) {
+    var c = parseFloat(document.getElementById('ceiling').value);
+    if (!(c > 0)) { var r = document.getElementById('ceilReq'); r.textContent = 'required - enter the ceiling height'; document.getElementById('ceiling').focus(); return; }
+    o.ceiling = c;
+  } D.sides.forEach(function(s){ o[s[0]] = parseFloat(document.getElementById('s_'+s[0]).value); }); sketchup.apply(JSON.stringify(o)); }
 </script>
 </body>
 </html>

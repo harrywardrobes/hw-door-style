@@ -327,6 +327,10 @@ module HarryWardrobes
                            'pencil') { Scribe.toggle }
       cmd_scribe.set_validation_proc { Scribe.on? ? MF_CHECKED : MF_UNCHECKED }
       menu.add_item(cmd_scribe)
+      cmd_ceiling = command('Ceiling height',
+                            'Set the ceiling height for every unit with "Up to ceiling" = TRUE (any time; scribes not changed).',
+                            'ceiling') { m = Sketchup.active_model; Scribe.show_ceiling(m) if Scribe.ready?(m) }
+      menu.add_item(cmd_ceiling)
       menu.add_item('Runouts - re-apply job values to every unit') do
         m = Sketchup.active_model
         Scribe.show(m, nil) if Scribe.ready?(m)
@@ -342,6 +346,7 @@ module HarryWardrobes
       tb.add_separator
       tb.add_item(cmd_export)
       tb.add_item(cmd_scribe)
+      tb.add_item(cmd_ceiling)
       tb.restore
 
       UI.add_context_menu_handler do |cm|
