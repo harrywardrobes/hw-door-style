@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.3 — 2026-10-18
+- Works with the re-ordered library: attributes are found with or without their section prefix
+  (j01_runout_floor, i04_topped, a01_frame_width ...), so old job files still work too.
+- Library (tools/reorder_options.rb, applied to Components V19): Component Options in the same order on
+  every unit - Size, Doors, Depths, Facing, Div / End panel, Shelves, Rails, Drawers, Wall / Topped,
+  Runout. Labels unchanged; all formulas rewritten; verified identical geometry and no new errors on
+  all 17 units.
+
 ## 0.11.2 — 2026-10-18
 - Settings window in tabs: Doors & hinges, Tags, Colours & materials, Scribe / runout, Export
   (remembers the last tab); smaller window.
