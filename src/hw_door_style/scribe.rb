@@ -222,6 +222,7 @@ module HarryWardrobes
               end
             rescue StandardError => e
               errors << "#{Finder.label(inst)}: #{e.message}"
+              puts "HW Door Style scribe: #{Finder.label(inst)}: #{e.class}: #{e.message}\n  #{e.backtrace.first(5).join("\n  ")}"
             end
             model.commit_operation
             n += 1

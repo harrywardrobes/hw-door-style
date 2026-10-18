@@ -109,11 +109,28 @@ module HarryWardrobes
       end
 
       # Redraws a top-level DC through the Dynamic Components engine (no own undo step).
+      # The DC progress bar keeps a start time that is only set once DC has shown
+      # it at least once; on a fresh SketchUp a plain redraw(inst) can fail with
+      # "can't convert NilClass into an exact number". So: no DC progress bar
+      # (we show our own), and fall back to the other entry points.
       def self.redraw(inst)
         klass = defined?($dc_observers) && $dc_observers ? $dc_observers.get_latest_class : nil
         return false unless klass
-        klass.respond_to?(:redraw) ? klass.redraw(inst) : klass.redraw_with_undo(inst)
-        true
+        attempts = []
+        attempts << -> { klass.redraw(inst, false) } if klass.respond_to?(:redraw) && klass.method(:redraw).arity != 1
+        attempts << -> { klass.redraw(inst) } if klass.respond_to?(:redraw)
+        attempts << -> { klass.redraw_with_undo(inst) } if klass.respond_to?(:redraw_with_undo)
+        last = nil
+        attempts.each do |a|
+          begin
+            a.call
+            return true
+          rescue TypeError, ArgumentError, NoMethodError => e
+            last = e
+          end
+        end
+        raise last if last
+        false
       end
     end
   end

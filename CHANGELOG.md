@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.1 — 2026-10-18
+- Fix: pencil "can't convert NilClass into an exact number" on every unit. Redraws now run without
+  the DC progress bar (which isn't initialised on a fresh SketchUp) and fall back to the other DC
+  redraw entry points; any failure is logged to the Ruby Console with its source line.
+
 ## 0.11.0 — 2026-10-16
 - **Scribe / runout** (pencil, right of the rocket). Pressed = every unit has the job runouts;
   click = all runouts 0 (easier to move units); click again = window with floor / ceiling / left /
