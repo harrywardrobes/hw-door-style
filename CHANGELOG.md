@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.30.0 — 2026-10-19
+- **Import from supplier** (Settings > Products): reads HPP, Interfit and Handles4u's handle and knob sections from
+  this computer - following every sub-category and numbered page - and lists each item with its picture,
+  name, SKU, supplier link and website price. Filter by group or text, click the ones to keep, tick their
+  categories (e.g. Robe handle + Drawer handle), then Add to HubSpot: each becomes a Non-inventory product
+  with the supplier set, the link copied and the picture copied into HubSpot. Items already in HubSpot are
+  marked. Optional: fill Cost with the website price (usually retail - check it).
+  - HPP: each code from the family pages (e.g. H200.032.CH) with the picture for its finish.
+  - Interfit: the exact SKU is read from the product page when it's added.
+  - Handles4u: needs "Handles4u" in HubSpot's Supplier list for the supplier to be set.
+
 ## 0.29.0 — 2026-10-19
 - **Renamed scenes stay in step with Settings.** Rename a scene in the Scenes panel and every setting that
   names it is renamed too - for now Settings > HubSpot > Pictures to HubSpot (the scenes ticked to start).

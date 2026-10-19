@@ -13,7 +13,7 @@ Everything lives in the module `HarryWardrobes::DoorStyle`.
 | `doors/` | `Styles` (Flat / Shaker builders), `Converter`, `Hardware` (hinges / TIP-ON), `Tagger`, `Repair`, `DrawerBox`, `Doors` (what the door menu items do). |
 | `colours/` | `Colours`: the library, painting by tag group, 22mm panels. |
 | `job/` | `Runouts`, `Ceiling`, `Pencil` (button state + window + observers), `Standardise` (one-off component update), `Report` (summary, door order), `Pdf`. |
-| `export/` | `LibraryExport` (Export components), `OpenCutList`, `HubSpot` (API calls, key in SketchUp prefs only), `HubSpotRoom` (file <-> Room link, field mapping, send window), `HubSpotPictures` (scenes -> images -> Room file fields), `HubSpotProducts` (Settings > Products <-> HubSpot Products; local copy products.json). |
+| `export/` | `LibraryExport` (Export components), `OpenCutList`, `HubSpot` (API calls, key in SketchUp prefs only), `HubSpotRoom` (file <-> Room link, field mapping, send window), `HubSpotPictures` (scenes -> images -> Room file fields), `HubSpotProducts` (Settings > Products <-> HubSpot Products; local copy products.json), `SupplierImport` (one reader per supplier site: start pages, links, items). |
 | `ui/` | `Dialog` (opens every window), `ColoursWindow`, `SettingsWindow`, `Menus` (menu, toolbar, right-click). |
 | `html/` | One page per window, plus `hw.css` / `hw.js` shared by all of them. |
 

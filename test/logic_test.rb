@@ -548,6 +548,20 @@ Settings.save(Settings.get.merge('hubspot_pictures' => [{ 'field' => 'render_1',
 check 'renamed scene renamed in Settings (any case)', Scenes.rename_in_settings([['d external', 'view 1']]) && Settings.get['hubspot_pictures'][0]['scenes'] == ['view 1', 'D internal']
 check 'scene not in Settings: nothing saved', !Scenes.rename_in_settings([['room', 'room 2']])
 Settings.reset
+require 'hw_door_style/export/supplier_import'
+SI = SupplierImport
+if_html = '<h2 class="container-header">Pull Handles</h2>  <div class="category-main-image 3"></div><ul><li class="product"><article class="listItem"><figure><a href="https://www.interfitco.com/lines/"><img class="listItem-image lazyload" src="https://x/loading.svg" data-src="https://cdn/FTD710BSB.jpg?c=1" alt="FTD710 Lines Pull Handle - Satin Brass"></a></figure><h4 class="listItem-title"><a href="https://www.interfitco.com/lines/">Lines Pull Handle - Satin Brass</a></h4><span data-product-price-without-tax class="price">£12.60</span></article></li></ul>'
+it = SI::INTERFIT['items'].call(if_html, 'https://www.interfitco.com/pull-handles/').first
+check 'Interfit: name, picture, code guess, group, price', it && it['name'] == 'Lines Pull Handle - Satin Brass' && it['image'] == 'https://cdn/FTD710BSB.jpg?c=1' && it['sku'] == 'FTD710' && it['group'] == 'Pull Handles' && it['price'] == '£12.60'
+check 'Interfit: exact SKU from the product page', SI::INTERFIT['sku'].call('var BCData = {"product_attributes":{"sku":"FTD710BSB","upc":null}}') == 'FTD710BSB'
+hpp = '<h3 id="5138" class="two-col__heading">Banbury Knob</h3><div class="category__images swiper" data-x="1"><div class="swiper-wrapper"><div class="swiper-slide"><img alt="Brushed Satin Brass" src="/imagehandler/1/a"></div><div class="swiper-slide"><img alt="Chrome" src="/imagehandler/2/b"></div></div><div class="swiper-nav"></div></div>' \
+      '<div data-sortdirection="ASC" class="metricGroup" data-nodeid="5138" data-category1="Banbury Handle and Knob"><table><tbody><tr data-productcode="H200.032.CH" class="GridRepeaterBodyRow" title="Banbury Knob &amp; Plate Chrome, 32mm"><td>x</td><td class="GridRepeaterRowMetric" data-metric="Finish">Chrome</td></tr></tbody></table></div>'
+h = SI::HPP['items'].call(hpp, 'https://www.hpponline.co.uk/cat/5136/banbury').first
+check 'HPP: code, name, picture of the same finish, link to the section', h && h['sku'] == 'H200.032.CH' && h['name'] == 'Banbury Knob & Plate Chrome, 32mm' && h['image'] == 'https://www.hpponline.co.uk/imagehandler/2/b' && h['url'].end_with?('#5138')
+h4 = 'var x = "{\"@type\":\"Product\",\"name\":\"Hanover Knob 30mm\",\"offers\":[{\"@type\":\"Offer\",\"price\":4.37,\"url\":\"https:\\\/\\\/handles4u.co.uk\\\/products\\\/A\\\/123\",\"availability\":\"InStock\"}],\"sku\":\"AW821-30-AB\",\"mpn\":\"AW821\",\"image\":\"https:\\\/\\\/handles4u.co.uk\\\/img\\\/AW821.jpg\"}"'
+k = SI::HANDLES4U['items'].call(h4, 'https://www.handles4u.co.uk/products/Cabinet+Furniture/Cabinet+Knobs/Brass+Knobs').first
+check 'Handles4u: name, SKU, picture, link, price from the page data', k && k['sku'] == 'AW821-30-AB' && k['image'] == 'https://handles4u.co.uk/img/AW821.jpg' && k['url'] == 'https://handles4u.co.uk/products/A/123' && k['price'] == '£4.37' && k['group'] == 'Brass Knobs'
+check 'one address per page', SI.same_site('https://a.co/x/', '/x/?page=1') == 'https://a.co/x' && SI.same_site('https://a.co/x/', '/x/?page=2') == 'https://a.co/x?page=2' && SI.same_site('https://a.co/', 'https://b.co/y').nil?
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

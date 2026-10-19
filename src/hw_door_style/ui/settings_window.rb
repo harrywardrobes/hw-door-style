@@ -163,6 +163,7 @@ module HarryWardrobes
                     done: ->(_r) { dlg.execute_script("prodList(#{JSON.generate('data' => HubSpotProducts.local, 'made' => made)})") },
                     fail: ->(e) { dlg.execute_script("prodList(#{JSON.generate('error' => e.message)})") })
         end
+        dlg.add_action_callback('prodImport') { |_c| SupplierImport.show }
         dlg.add_action_callback('prodPickImage') do |_c|
           f = UI.openpanel('Picture of the product', nil, 'Images|*.jpg;*.jpeg;*.png;*.webp||')
           next unless f
