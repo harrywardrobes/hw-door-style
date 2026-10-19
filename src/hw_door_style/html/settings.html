@@ -695,6 +695,7 @@ function updInfo(u){
   var t = 'Running ' + (S._version || '') + '. ';
   if (!u.folder_ok) t += 'Updates folder not found.';
   else if (u.newer) t += 'Version ' + u.latest + ' is in the updates folder.';
+  else if (u.ahead) t += 'This is a test build, newer than the released ' + u.latest + ' in the updates folder - it becomes the release when it is copied there.';
   else t += u.latest ? 'Up to date (newest in the folder: ' + u.latest + ').' : 'No versions in the updates folder yet.';
   $('updLine').textContent = t;
 }

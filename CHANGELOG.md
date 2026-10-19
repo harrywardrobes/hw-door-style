@@ -12,6 +12,7 @@
 - Scribe / runout window: Room size (width x length) next to the ceiling height - Apply resizes the floor and ceiling and moves the ceiling to the ceiling height, even before any units are in the file. The Ceiling height window and a ceiling height taken from HubSpot move the ceiling too.
 - New room from HubSpot uses the open file when it is just the template's floor and ceiling (it used to open another new file).
 - Add component: the window always closes before the component is put in your cursor, and the model window gets the focus, so you can click straight into the model.
+- Settings > updates: a test build newer than the released version now says so, instead of "Up to date (newest in the folder: 0.41.0)".
 
 ## 0.41.0 — 2026-10-19
 - **Shortening a wardrobe no longer breaks the shelf and rails** (double hanging especially):

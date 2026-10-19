@@ -33,7 +33,8 @@ module HarryWardrobes
       def self.update_info(dir = Updater.folder)
         r = Updater.latest(dir)
         { 'folder_ok' => !dir.to_s.empty? && Dir.exist?(dir), 'latest' => r && r[:version],
-          'newer' => r ? Updater.newer?(r[:version], VERSION) : false }
+          'newer' => r ? Updater.newer?(r[:version], VERSION) : false,
+          'ahead' => r ? Updater.newer?(VERSION, r[:version]) : false }
       rescue StandardError
         { 'folder_ok' => false }
       end
