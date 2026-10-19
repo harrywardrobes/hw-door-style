@@ -1,7 +1,7 @@
 # Changelog
 
-## 0.44.3 — 2026-10-19
-- Workshop window: Refresh, Open folder and Close on the left of the bottom bar; the two save buttons stay on the right.
+## 0.44.4 — 2026-10-19
+- Workshop window: Refresh and Open folder on the left of the bottom bar, the two save buttons on the right; no Close button (close the window itself).
 
 ## 0.44.2 — 2026-10-19
 - Workshop: 22mm panels (e.g. Frost White 22 mm) are on the Doors / Vinyl tab under "22mm (White Back)" - ordered with the doors, so they're out of Sheet goods and the MFC sheet count. Same in the parts list PDF.
