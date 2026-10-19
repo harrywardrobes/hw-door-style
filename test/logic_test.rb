@@ -537,6 +537,10 @@ check 'steps: run in order, bar shown then hidden', got == [1, 2] && fd.js.first
 err = nil
 Steps.run(fd, [['Bad', -> { raise HubSpot::Error, 'nope' }], ['Never', -> { got = :ran }]], fail: ->(e) { err = e.message })
 check 'steps: an error stops the rest', err == 'nope' && got == [1, 2]
+require 'hw_door_style/doors/hardware' unless defined?(HarryWardrobes::DoorStyle::Hardware)
+check 'unit option values: 1 / "1" / TRUE are on; 0 / "0" / blank off', [1, '1', 'TRUE', 1.0].all? { |v| Hardware.truthy?(v) } && [0, '0', '0.0', '', nil, 'FALSE'].none? { |v| Hardware.truthy?(v) }
+require 'hw_door_style/core/updater' unless Updater.respond_to?(:read_new_version)
+check 'updater reads the installed version and file list', (Updater.read_new_version rescue nil).then { |v, f| v.to_s =~ /\A\d+\.\d+\.\d+\z/ && Array(f).include?('core/updater') }
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

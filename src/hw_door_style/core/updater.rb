@@ -81,42 +81,100 @@ module HarryWardrobes
 
       # Installs an .rbz over the current plugin and loads the new code.
       # Returns true when installed (the new code loads a moment later), nil if cancelled / failed.
+      # Installs the .rbz and loads the new code straight away, with a progress window
+      # (one step per timer tick, so SketchUp never looks frozen):
+      # install -> each code file -> settings and windows.
       def self.install(path)
         Dialog.close_all
-        ok = Sketchup.install_from_archive(path)
-        return nil unless ok
         before = VERSION
-        # Let SketchUp finish its own install first, then load the new code.
-        UI.start_timer(0.5, false) do
-          reload!
+        win = progress_window
+        show = ->(i, n, msg) { win.execute_script("progress(#{i}, #{n}, #{JSON.generate(msg)})") rescue nil }
+        version = files = nil
+        total = 3
+        i = 0
+        later = ->(&blk) { UI.start_timer(0.05, false, &blk) }
+        fail = lambda do |msg, e|
+          win.close rescue nil
+          Log.error('update', e) if e
+          UI.messagebox(msg)
+        end
+        finish = lambda do
+          verbose = $VERBOSE
+          $VERBOSE = nil
+          begin
+            apply_version(version, files)
+          ensure
+            $VERBOSE = verbose
+          end
+          show.call(total, total, 'Done')
           Sketchup.write_default(Settings::PREFS, 'update_skipped', '')
-          UI.messagebox("HW Door Style #{VERSION} is running (was #{before}).\n\n" \
-                        'If this version added a new toolbar button or menu item, it appears after the next restart.')
-        rescue StandardError => e
-          UI.messagebox("The new version is installed but couldn't be loaded straight away (#{e.message}). Restart SketchUp to use it.")
-          Log.error('update reload', e)
+          UI.start_timer(0.4, false) do
+            win.close rescue nil
+            UI.messagebox("HW Door Style #{VERSION} is running (was #{before}).\n\n" \
+                          'If this version added a new toolbar button or menu item, it appears after the next restart.')
+          end
+        end
+        load_next = lambda do
+          f = files[i - 2]
+          next finish.call if f.nil?
+          show.call(i, total, "Loading the new version: #{f}")
+          later.call do
+            begin
+              verbose = $VERBOSE
+              $VERBOSE = nil
+              load File.join(PATH, "#{f}.rb")
+              $VERBOSE = verbose
+              i += 1
+              load_next.call
+            rescue StandardError, ScriptError => e
+              $VERBOSE = verbose
+              fail.call("The new version is installed but couldn't be loaded straight away (#{e.message}). Restart SketchUp to use it.", e)
+            end
+          end
+        end
+        show.call(0, total, 'Installing the new version - SketchUp may ask you to confirm...')
+        later.call do
+          begin
+            ok = Sketchup.install_from_archive(path)
+            next win.close unless ok
+            # Let SketchUp finish its own install first, then load the new code.
+            UI.start_timer(0.5, false) do
+              begin
+                version, files = read_new_version
+                total = files.size + 2
+                i = 2
+                load_next.call
+              rescue StandardError => e
+                fail.call("The new version is installed but couldn't be loaded straight away (#{e.message}). Restart SketchUp to use it.", e)
+              end
+            end
+          rescue Interrupt
+            win.close rescue nil # cancelled in SketchUp's install prompt
+          rescue StandardError => e
+            fail.call("Update not installed: #{e.message}", e)
+          end
         end
         true
-      rescue Interrupt
-        nil # cancelled in SketchUp's install prompt
-      rescue StandardError => e
-        UI.messagebox("Update not installed: #{e.message}")
-        Log.error('update', e)
-        nil
       end
 
-      # Loads the plugin's code again from disk without re-running the start-up
-      # files: VERSION is read from the loader and the file list from main.rb (so
-      # files added by the new version are loaded too); menus are left as they are.
-      def self.reload!
-        verbose = $VERBOSE
-        $VERBOSE = nil
+      def self.progress_window
+        d = Dialog.open('progress', title: 'HW Door Style - Updating', key: 'hw_update_progress', width: 440, height: 150,
+                                    resizable: false, scrollable: false, utility: true)
+        d.show
+        d
+      end
+
+      # VERSION from the loader and the file list from main.rb of the installed copy.
+      def self.read_new_version
         loader = File.read(File.join(File.dirname(PATH), 'hw_door_style.rb'), encoding: 'UTF-8')
         main = File.read(File.join(PATH, 'main.rb'), encoding: 'UTF-8')
         version = loader[/VERSION\s*=\s*'([^']+)'/, 1]
         files = main[/FILES\s*=\s*%w\[(.*?)\]/m, 1].to_s.split
         raise 'could not read the new version / file list' if version.nil? || files.empty?
-        files.each { |f| load File.join(PATH, "#{f}.rb") }
+        [version, files]
+      end
+
+      def self.apply_version(version, files)
         DoorStyle.send(:remove_const, :VERSION)
         DoorStyle.const_set(:VERSION, version.freeze)
         DoorStyle.send(:remove_const, :FILES)
@@ -126,6 +184,16 @@ module HarryWardrobes
         Pencil.invalidate
         UI.refresh_toolbars if UI.respond_to?(:refresh_toolbars)
         Sketchup.status_text = "HW Door Style #{VERSION} loaded"
+      end
+
+      # Loads the plugin's code again from disk without re-running the start-up
+      # files (Developer > Reload plugin code): menus are left as they are.
+      def self.reload!
+        verbose = $VERBOSE
+        $VERBOSE = nil
+        version, files = read_new_version
+        files.each { |f| load File.join(PATH, "#{f}.rb") }
+        apply_version(version, files)
       ensure
         $VERBOSE = verbose
       end

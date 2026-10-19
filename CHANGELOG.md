@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.27.0 — 2026-10-19
+- **Hinges on the correct side.** Double doors: the left door is hinged on its left edge, the right door on its
+  right. Single door: new unit option "Hinge side (single door)" (Left / Right), added next to Double / Single
+  the first time the unit's doors are drawn. TIP-ON goes on the opposite edge. These are component formulas,
+  so changing Double / Single or the side in Component Options moves the hinges when the unit redraws.
+  Existing jobs: press Apply in the Door style window (or Rebuild styles) once to redraw the hinges.
+- **Tags:** every door is on the DOOR tag (two were on Layer0), hinges stay on "hinges", and scenes that hide
+  DOOR (D internal, S front internal...) now hide "hinges" too - so D internal no longer shows hinges.
+  Scenes named HARDWARE / HINGE are left alone.
+- **Updating shows a progress window** (installing, then loading each file) instead of looking frozen.
+  It appears from the next update after this one.
+
 ## 0.26.0 — 2026-10-19
 - **Two toolbars.** "HW measure once": Colours, Door style, Scribe / runout, Ceiling height | Door summary,
   Send to HubSpot. "HW dev": Settings, Export components. (The old "HW Door Style" toolbar is gone.)

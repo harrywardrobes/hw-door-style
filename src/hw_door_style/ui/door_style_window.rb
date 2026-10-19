@@ -97,10 +97,10 @@ module HarryWardrobes
             work << ["#{label}: #{Styles.label(style)} (#{chunk.size})", chunk, style, reset ? false : nil]
           end
         end
-        if hinge != old_hinge
-          rest = Doors.processed(model, [:door]).reject { |i, _| touched[i.entityID] }
-          rest.group_by { |i, _| i.definition }.each_value { |chunk| work << ["Doors: new hinges (#{chunk.size})", chunk, nil, nil] }
-        end
+        # New hinge type, or doors drawn before hinges knew their side (0.27): redraw them.
+        rest = Doors.processed(model, [:door]).reject { |i, _| touched[i.entityID] }
+        rest = rest.select { |i, _| DC.get(i.definition, 'zz_hinge_right').nil? } if hinge == old_hinge
+        rest.group_by { |i, _| i.definition }.each_value { |chunk| work << ["Doors: hinges (#{chunk.size})", chunk, nil, nil] }
         work
       end
 

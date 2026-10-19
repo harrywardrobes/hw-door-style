@@ -60,11 +60,12 @@ module HarryWardrobes
         jobs = pairs.map do |inst, kind|
           s = style || current_style(inst)
           { inst: inst, kind: kind, style: s, defn: inst.definition, size: Finder.real_size(inst),
-            formulas: wrapper_formulas(inst), override: override.nil? ? override?(inst) : override }
+            formulas: wrapper_formulas(inst), override: override.nil? ? override?(inst) : override,
+            right: kind == :door ? Hardware.right?(inst) : false }
         end
 
         groups = jobs.group_by do |j|
-          [j[:defn].entityID, j[:style], j[:kind], j[:override], j[:size].map { |v| (v * 25.4 * 2).round }]
+          [j[:defn].entityID, j[:style], j[:kind], j[:override], j[:right], j[:size].map { |v| (v * 25.4 * 2).round }]
         end
 
         style_cache = {}

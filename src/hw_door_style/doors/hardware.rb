@@ -120,6 +120,81 @@ module HarryWardrobes
         DC.formula(inst, 'lenz', "parent!#{prefix}_HT", bounds.depth)
       end
 
+      # --- hinge side -------------------------------------------------------------------
+      # Double doors: the first copy (left door) is hinged on its left edge, the second
+      # copy on its right. Single door: the unit's "Hinge side (single door)" option, added
+      # to the unit next to Double / Single the first time its doors are drawn.
+      # ZZ_HINGE_RIGHT on the door is a formula, so changing either option in Component
+      # Options moves the hinges (and TIP-ON, on the other edge) when the unit redraws.
+
+      def self.unit_def(inst)
+        inst.parent.is_a?(Sketchup::ComponentDefinition) ? inst.parent : nil
+      end
+
+      def self.double_key(unit)
+        dd = unit && DC.dict(unit) or return nil
+        DC.key_in(dd, 'door_double') || DC.key_in(dd, 'double')
+      end
+
+      def self.side_key(unit)
+        dd = unit && DC.dict(unit) or return nil
+        DC.key_in(dd, 'hinge_side')
+      end
+
+      # Adds the unit option if it's missing; returns its key.
+      def self.ensure_side_option(unit)
+        return nil unless unit
+        k = side_key(unit)
+        return k if k
+        dbl = double_key(unit)
+        letter = dbl.to_s[/\A([a-z])\d{1,2}_/, 1]
+        if letter
+          used = DC.dict(unit).keys.filter_map { |x| x[/\A_?#{letter}(\d{1,2})_/, 1]&.to_i }.max.to_i
+          k = format('%s%02d_hinge_side', letter, used + 1)
+        else
+          k = 'hinge_side'
+        end
+        ([unit] + unit.instances).each do |o|
+          o.set_attribute(DC::DICT_NAME, k, 0.0) if o == unit || DC.get(o, k).nil?
+          o.set_attribute(DC::DICT_NAME, "_#{k}_label", k.upcase)
+          o.set_attribute(DC::DICT_NAME, "_#{k}_formlabel", 'Hinge side (single door)')
+          o.set_attribute(DC::DICT_NAME, "_#{k}_access", 'LIST')
+          o.set_attribute(DC::DICT_NAME, "_#{k}_options", '&Left=0&Right=1&')
+          o.set_attribute(DC::DICT_NAME, "_#{k}_units", 'FLOAT')
+          o.set_attribute(DC::DICT_NAME, "_#{k}_formulaunits", 'FLOAT')
+        end
+        k
+      end
+
+      def self.truthy?(v)
+        return false if v.nil?
+        return v != 0 if v.is_a?(Numeric)
+        s = v.to_s.strip.upcase
+        !(s.empty? || s == '0' || s == '0.0' || s == 'FALSE')
+      end
+
+      # The value of a unit option: the unit instance's own value, else the definition's.
+      def self.unit_value(unit, key)
+        return nil unless unit && key
+        i = unit.instances.first
+        i ? DC.read(i, key) : DC.get(unit, key)
+      end
+
+      # Hinges on the door's right edge? (now, for drawing; the formula keeps it right later)
+      def self.right?(inst)
+        unit = unit_def(inst)
+        dbl = double_key(unit)
+        return DC.read(inst, 'copy').to_f >= 1 if dbl && truthy?(unit_value(unit, dbl))
+        truthy?(unit_value(unit, side_key(unit)))
+      end
+
+      def self.side_formula(unit)
+        dbl = double_key(unit)
+        side = side_key(unit)
+        single = side ? "IF(parent!#{side.upcase}=1, 1, 0)" : '0'
+        dbl ? "IF(parent!#{dbl.upcase}, IF(COPY>=1, 1, 0), #{single})" : single
+      end
+
       # Adds hardware to a door wrapper definition, positioned from the wrapper
       # origin with DC formulas so it follows DOOR_W / DOOR_T / DOOR_H when the
       # door is resized (hinge COUNT still needs a re-run).
@@ -137,6 +212,15 @@ module HarryWardrobes
         heights = hinge_heights(h, n)
 
         DC.length_attr(wrappers, 'ZZ_HINGE_X', nil, gap - hb.min.x)
+        DC.length_attr(wrappers, 'ZZ_HINGE_XR', nil, gap + hb.width + hb.min.x)
+        insts = wrappers.grep(Sketchup::ComponentInstance)
+        unit = insts.map { |i| unit_def(i) }.compact.first
+        ensure_side_option(unit)
+        right = insts.first ? right?(insts.first) : false
+        side_f = side_formula(unit)
+        wrappers.each do |o|
+          DC.number_attr(o, 'ZZ_HINGE_RIGHT', side_f, o.is_a?(Sketchup::ComponentInstance) ? (right?(o) ? 1 : 0) : (right ? 1 : 0))
+        end
         DC.length_attr(wrappers, 'ZZ_HINGE_INSET', nil, Settings.mm('hinge_end_inset_mm'))
         DC.length_attr(wrappers, 'ZZ_HINGE_HALF', nil, hb.depth / 2.0 + hb.min.z)
         DC.number_attr(wrappers, 'ZZ_HINGE_GAPS', nil, [n - 1, 1].max)
@@ -147,7 +231,8 @@ module HarryWardrobes
 
         inset_f = 'SMALLEST(parent!ZZ_HINGE_INSET, parent!DOOR_H/4)'
         heights.each_with_index do |zc, i|
-          p = Geom::Point3d.new(gap - hb.min.x, t - hb.min.y, zc - hb.depth / 2.0 - hb.min.z)
+          x = right ? w - (gap + hb.width + hb.min.x) : gap - hb.min.x
+          p = Geom::Point3d.new(x, t - hb.min.y, zc - hb.depth / 2.0 - hb.min.z)
           inst = place(ents, hd, p, model, 'hinge', hinge_type)
           DC.child(inst, hinge_type)
           DC.number_attr(inst, 'ZZ_HINGE_I', nil, i)
@@ -156,7 +241,7 @@ module HarryWardrobes
                 else
                   "#{inset_f} + ZZ_HINGE_I*(parent!DOOR_H - 2*#{inset_f})/parent!ZZ_HINGE_GAPS - parent!ZZ_HINGE_HALF"
                 end
-          DC.formula(inst, 'x', 'parent!ZZ_HINGE_X', p.x)
+          DC.formula(inst, 'x', 'IF(parent!ZZ_HINGE_RIGHT, parent!DOOR_W - parent!ZZ_HINGE_XR, parent!ZZ_HINGE_X)', p.x)
           DC.formula(inst, 'y', 'parent!DOOR_T', p.y)
           DC.formula(inst, 'z', z_f, p.z)
           lock_size(inst, 'ZZ_HINGE', hb)
@@ -169,15 +254,16 @@ module HarryWardrobes
           tip_x = tb.width + gap + tb.min.x
           tip_z = tb.depth + 20.mm + tb.min.z
           DC.length_attr(wrappers, 'ZZ_TIP_X', nil, tip_x)
+          DC.length_attr(wrappers, 'ZZ_TIP_XL', nil, gap - tb.min.x)
           DC.length_attr(wrappers, 'ZZ_TIP_Z', nil, tip_z)
           DC.length_attr(wrappers, 'ZZ_TIP_W', nil, tb.width)
           DC.length_attr(wrappers, 'ZZ_TIP_D', nil, tb.height)
           DC.length_attr(wrappers, 'ZZ_TIP_HT', nil, tb.depth)
           DC.child(td, 'tip_on')
-          p = Geom::Point3d.new(w - tip_x, t - tb.min.y, h - tip_z)
+          p = Geom::Point3d.new(right ? gap - tb.min.x : w - tip_x, t - tb.min.y, h - tip_z)
           inst = place(ents, td, p, model, 'tip_on', 'tip_on')
           DC.child(inst, 'tip_on')
-          DC.formula(inst, 'x', 'parent!DOOR_W - parent!ZZ_TIP_X', p.x)
+          DC.formula(inst, 'x', 'IF(parent!ZZ_HINGE_RIGHT, parent!ZZ_TIP_XL, parent!DOOR_W - parent!ZZ_TIP_X)', p.x)
           DC.formula(inst, 'y', 'parent!DOOR_T', p.y)
           DC.formula(inst, 'z', 'parent!DOOR_H - parent!ZZ_TIP_Z', p.z)
           lock_size(inst, 'ZZ_TIP', tb)

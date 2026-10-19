@@ -1,7 +1,8 @@
 module HarryWardrobes
   module DoorStyle
     # Tags the raw faces and edges INSIDE each door / drawer front so the tag
-    # travels with every copy of the component.
+    # travels with every copy of the component, and puts each door on DOOR (so its
+    # hinges hide with it).
     #   doors                         -> DOOR
     #   drawer fronts (ext. and int.) -> DRAWER_FRONT
     # and puts every hardware component on its own tag (Settings "hardware_tags":
@@ -94,13 +95,35 @@ module HarryWardrobes
       def self.tag_all(model)
         seen = {}
         n = 0
+        door_tag = tag_for(model, :door)
         Finder.all_targets(model, [:door, :ext_drawer, :int_drawer]).each do |inst, kind|
+          # The door itself on DOOR too, so hiding DOOR (e.g. scene "D internal") hides its hinges.
+          if kind == :door && inst.layer != door_tag
+            inst.layer = door_tag
+            n += 1
+          end
           next if seen[inst.definition.entityID]
           seen[inst.definition.entityID] = true
           n += tag_item(inst, kind)
         end
         hw = tag_hardware(model)
-        n + hw[:instances] + hw[:geometry]
+        n + hw[:instances] + hw[:geometry] + hide_hinges_with_doors(model)
+      end
+
+      # Every scene that hides the DOOR tag (e.g. "D internal") hides the hinges tag too
+      # (not scenes named HARDWARE / HINGE...),
+      # so hinges never show without their doors - even on a door the component made
+      # itself on Layer0 (a Double / Single change re-makes the second door).
+      def self.hide_hinges_with_doors(model)
+        door = model.layers[Settings.get['door_tag']] or return 0
+        hinge = model.layers[Settings.get['hinge_tag']] or return 0
+        model.pages.count do |pg|
+          hidden = Array(pg.layers)
+          next false if pg.name =~ /hardware|hinge/i # scenes for showing the hardware itself
+          next false unless pg.use_hidden_layers? && hidden.include?(door) && !hidden.include?(hinge)
+          pg.set_visibility(hinge, false)
+          true
+        end
       end
     end
   end
