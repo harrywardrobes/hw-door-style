@@ -236,7 +236,7 @@ module HarryWardrobes
         report = { painted: 0, closed: [], purged_components: 0 }
         model.start_operation('Clean model for export', true)
         begin
-          report[:painted] = Colours.apply(model, Colours.all_default).values.sum
+          report[:painted] = Colours.apply(model, Colours.all_default, plain: true).values.sum
           report[:closed] = close_drawers(model.entities)
           if purge
             u = unused(model)
@@ -284,7 +284,7 @@ module HarryWardrobes
 
         model.start_operation("Export #{row['name']}", true)
         begin
-          Colours.apply(model, Colours.all_default, root: inst, record: false)
+          Colours.apply(model, Colours.all_default, root: inst, record: false, plain: true)
           inst.material = nil
           close_drawers(inst.definition.entities)
           # Library files always carry runouts at 0 (the job sets them with the pencil).

@@ -100,7 +100,7 @@
     "interior": "Default",
     "worktop": "Default",
     "drawer_box": "Windsor Oak",
-    "panels_22": "White"
+    "panels_22": "Default"
   },
   "drawer_box_parts": [
     "DRW_BOX"
@@ -148,5 +148,6 @@
     "right": 25,
     "back": 25
   },
+  "panels_22_default": "Frost White",
   "settings_version": 2
 }

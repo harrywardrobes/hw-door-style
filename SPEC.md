@@ -160,7 +160,7 @@ Never changed: HARDWARE, hanging rail, Untagged, room tags, *_dims tags.
 - **Export colour library (.skm)** writes all 13 as .skm files to a chosen folder.
 
 ### 22mm Panels
-Colours window row **22mm Panels**, default **White** (RGB 248,248,246; only offered on this row).
+Colours window row **22mm Panels**, default **Default (Frost White)** - "Default" on this row means Frost White (setting `panels_22_default`), not the door colour.
 Any component whose thinnest real side is 22 mm (±0.3 mm, setting `panel_22_mm`) and whose other
 sides are at least 50 mm takes this colour instead of its tag group: today the bookcase shelves,
 dividers and end panels (BKS_THICKNESS = 22). Hardware, doors, drawer fronts and drawer boxes are

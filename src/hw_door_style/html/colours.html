@@ -51,6 +51,7 @@ function chipStyle(name, id){
 function effective(id){
   var v = document.getElementById('sel_'+id).value;
   if (v !== 'Default' || id === 'door' || id === 'drawer_box') return v;
+  if (id === 'panels_22') return D.panel_default || 'Frost White';
   return document.getElementById('sel_door').value;
 }
 function refreshDefaults(){
@@ -58,7 +59,7 @@ function refreshDefaults(){
   var label = door === 'Default' ? 'Default (no material)' : 'Default ('+door+')';
   D.groups.forEach(function(g){
     if (g[0] === 'door' || g[0] === 'drawer_box') return;
-    document.getElementById('sel_'+g[0]).options[0].text = label;
+    document.getElementById('sel_'+g[0]).options[0].text = g[0] === 'panels_22' ? 'Default ('+(D.panel_default || 'Frost White')+')' : label;
   });
 }
 function setChip(id){

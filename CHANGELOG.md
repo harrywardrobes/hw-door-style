@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.5 — 2026-10-19
+- 22mm Panels row: default is now "Default (Frost White)" (Settings: panels_22_default). The separate
+  plain White colour is gone; saved defaults of White become Default. Export / Clean model still strip it.
+
 ## 0.11.4 — 2026-10-18
 - **Ceiling height** for the whole job: on the pencil window (required, starts at 0) and on a new
   **Ceiling height** button (floor / ceiling / arrows icon) that works any time. Every unit with

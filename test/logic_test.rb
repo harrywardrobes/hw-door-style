@@ -127,8 +127,9 @@ require 'hw_door_style/colours'
 check '13 colours', Colours.names.size == 13 && Colours.names.include?('Stone Grey')
 check 'woodgrain textures bundled', Colours.library.select { |c| c['texture'] }.all? { |c| File.exist?(File.join(Colours::TEXTURES, c['texture'])) }
 check 'defaults start as Default (box, 22mm panels aside)', Colours.defaults.reject { |k, _| %w[drawer_box panels_22].include?(k) }.values.uniq == ['Default']
-check '22mm panels default White', Colours.defaults['panels_22'] == 'White'
-check 'White only offered on 22mm Panels row', Colours.names_for('panels_22').include?('White') && !Colours.names.include?('White') && !Colours.names_for('exterior').include?('White')
+check '22mm panels default = Default (Frost White)', Colours.defaults['panels_22'] == 'Default' && Colours.resolve('panels_22', 'Default', 'Cashmere') == 'Frost White'
+check 'no separate White colour; Frost White offered on 22mm row', !Colours.names_for('panels_22').include?('White') && Colours.names_for('panels_22').include?('Frost White')
+check 'plain (export) strips 22mm colour too', Colours.resolved(nil, { 'panels_22' => 'Default' }, plain: true)['panels_22'] == 'Default'
 check '22mm Panels row in the Colours window', Colours::GROUPS.map(&:first).include?('panels_22')
 check 'interior group has STL, not HARDWARE', Colours.group_tags['interior'].include?('STL') && !Colours.group_tags.values.flatten.include?('HARDWARE')
 check 'Default follows door colour', Colours.resolve('interior', 'Default', 'Cashmere') == 'Cashmere'

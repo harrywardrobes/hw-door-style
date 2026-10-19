@@ -10,7 +10,8 @@ module HarryWardrobes
     #   interior  Interior colour                 STL, SH, DIV, INT_DIV, FL, DRAWER, BACK, WALKIN, MDF
     #   worktop   Worktop colour                  WORKTOP
     #   panels_22 22mm Panels                     any panel 22mm thick (by size, not tag),
-    #                                             e.g. bookcase shelves/dividers/ends. Default White.
+    #                                             e.g. bookcase shelves/dividers/ends.
+    #                                             "Default" = Frost White (Settings panels_22_default).
     #
     # Choices per job are stored in the model. "Default" = no material.
     module Colours
@@ -98,6 +99,7 @@ module HarryWardrobes
       def self.defaults
         # Shipped defaults fill rows the saved settings don't have yet (e.g. new 22mm Panels row).
         d = (Settings.defaults['default_colours'] || {}).merge(Settings.get['default_colours'] || {})
+        d['panels_22'] = DEFAULT if d['panels_22'] && !names_for('panels_22').include?(d['panels_22'])
         GROUPS.to_h { |id, _| [id, d[id] || (id == 'drawer_box' ? DrawerBox::DEFAULT : DEFAULT)] }
       end
 
@@ -133,24 +135,33 @@ module HarryWardrobes
       # Returns { group_id => count }.
       # "Default" on Exterior / Interior / Worktop means "same as the door colour".
       # Default on the door itself means no material.
+      # Colour "Default" means on the 22mm Panels row (not the door colour).
+      def self.panel_default
+        n = Settings.get['panels_22_default'].to_s
+        n.empty? ? 'Frost White' : n
+      end
+
       def self.resolve(gid, name, door)
         return (name.nil? || name == DEFAULT ? DrawerBox::DEFAULT : name) if gid == 'drawer_box'
         return name unless name.nil? || name == DEFAULT
+        return panel_default if gid == 'panels_22'
         gid == 'door' ? DEFAULT : (door || DEFAULT)
       end
 
-      def self.resolved(model, choices)
+      # plain: every row resolves to no material (library export / Clean model).
+      def self.resolved(model, choices, plain: false)
+        return choices.to_h { |gid, _| [gid, DEFAULT] } if plain
         door = choices['door'] || model.get_attribute(DICT, 'colour_door', nil)
         choices.to_h { |gid, name| [gid, resolve(gid, name, door)] }
       end
 
       # root:   entities to walk (default the whole model); an instance is painted too.
       # record: store the choices on the model as the job's colours.
-      def self.apply(model, choices, root: nil, record: true)
+      def self.apply(model, choices, root: nil, record: true, plain: false)
         tags = group_tags
         lookup = {}
         tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
-        res = resolved(model, choices)
+        res = resolved(model, choices, plain: plain)
         mats = res.to_h { |gid, name| [gid, gid == 'drawer_box' ? DrawerBox.material(model, name) : material(model, name)] }
         counts = Hash.new(0)
         walk = lambda do |&blk|
@@ -211,7 +222,7 @@ module HarryWardrobes
         {
           'job' => File.basename(model.path.to_s, '.skp'),
           'groups' => GROUPS, 'names' => names, 'swatches' => swatches,
-          'group_names' => GROUPS.to_h { |id, _| [id, names_for(id)] },
+          'group_names' => GROUPS.to_h { |id, _| [id, names_for(id)] }, 'panel_default' => panel_default,
           'box' => DrawerBox.library.map { |b| { 'name' => b['name'], 'thickness' => b['thickness_mm'], 'code' => b['code'], 'material' => b['material'] } },
           'box_swatches' => box_swatches,
           'current' => job_choices(model), 'defaults' => defaults
