@@ -83,7 +83,8 @@ module HarryWardrobes
           'has_runouts' => !first_r.nil?, 'has_facing' => !first_f.nil?,
           'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
           'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm,
-          'own' => TopOfUnit.own_height(units)
+          'own' => TopOfUnit.own_height(units),
+          'room' => sel ? nil : (Room.get(model) || {}).merge('has_floor' => !Room.parts(model)[:floor].nil?, 'has_ceiling' => !Room.parts(model)[:ceiling].nil?)
         }
         # Taller, and resizable: ceiling + bottom facing + five runouts didn't fit in 400 (Apply was cut off).
         # New key so SketchUp doesn't reuse the old remembered size.
@@ -94,6 +95,8 @@ module HarryWardrobes
           ceil = raw.delete('ceiling_height').to_f
           facing = raw.key?('facing') ? raw['facing'].to_f : nil
           heights = raw.delete('own') || {}
+          room_w = raw.delete('room_width').to_f
+          room_l = raw.delete('room_length').to_f
           v = data['has_runouts'] ? raw.transform_values(&:to_f).slice(*Runouts::KEYS.keys) : nil
           dlg.close
           # Units with their own height (Custom Scribe Height / No Upper Facing): set the ones you changed.
@@ -105,6 +108,10 @@ module HarryWardrobes
                 Ceiling.fit(u, heights[o['id'].to_s].to_f)
               end
             end
+          end
+          # The room (floor / ceiling parts): its own step, so it happens even with no units yet.
+          unless sel
+            Ops.run(model, 'Room size') { Room.apply(model, width: room_w, length: room_l, ceiling: ceil) }
           end
           if sel
             Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / bottom facing updated on #{targets.size} unit(s).", facing: facing)

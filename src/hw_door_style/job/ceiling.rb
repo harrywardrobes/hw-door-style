@@ -157,6 +157,7 @@ module HarryWardrobes
           ceil = value.to_f
           dlg.close
           next unless ceil.positive?
+          Ops.run(model, 'Room ceiling') { Room.apply(model, ceiling: ceil) }
           Runouts.apply(model, units, nil, 'Ceiling height',
                         "Ceiling height #{ceil.round} mm (top doors #{top_door_mm.round} mm) applied to every 'Up to ceiling' unit.",
                         ceiling: ceil, before: -> { model.set_attribute(DICT, 'ceiling_mm', ceil) })

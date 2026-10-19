@@ -80,7 +80,17 @@ module HarryWardrobes
 
       # Saves the next version (inside a step that is undone again, so the library file
       # is left as it was). Returns { file:, moved:, installed: } or nil when unchanged.
-      def self.export(model, force: false)
+      def self.default? = Settings.get['template_default'] != false
+
+      # New files (File > New, and SketchUp's start-up file) start from it.
+      def self.make_default(path)
+        return unless path && Sketchup.respond_to?(:template=)
+        Sketchup.template = path
+      rescue StandardError => e
+        Log.error('set default template', e)
+      end
+
+      def self.export(model, force: false, default: default?)
         root = LibraryExport.root(model)
         fp = fingerprint(model)
         return nil if !force && record(model)['fingerprint'] == fp && !versions(dir(root)).empty?
@@ -108,7 +118,9 @@ module HarryWardrobes
         m = LibraryExport.meta(model)
         m[META_KEY] = { 'version' => v, 'file' => path, 'fingerprint' => fp, 'exported' => Time.now.strftime('%d/%m/%Y %H:%M') }
         Ops.run(model, 'Record template export', transparent: true) { LibraryExport.save_meta(model, m) }
-        { file: "#{FOLDER}/#{File.basename(path)}", moved: moved, installed: install_local(path) }
+        installed = install_local(path)
+        make_default(installed) if default
+        { file: "#{FOLDER}/#{File.basename(path)}", moved: moved, installed: installed, default: default && installed ? true : false }
       end
 
       # --- this computer's Welcome to SketchUp ---------------------------------
@@ -140,8 +152,13 @@ module HarryWardrobes
       def self.sync_local
         latest = versions(dir(LibraryCache.root)).first or return
         have = versions(user_dir).first
-        return if have && have[0] >= latest[0]
-        install_local(latest[1])
+        if have && have[0] >= latest[0]
+          # still the default if it should be (e.g. after SketchUp was reinstalled)
+          make_default(have[1]) if default? && Sketchup.template.to_s.empty?
+          return
+        end
+        dst = install_local(latest[1])
+        make_default(dst) if default? && (Sketchup.template.to_s.empty? || File.basename(Sketchup.template.to_s) =~ FILE_RE)
         Log.info("template #{File.basename(latest[1])} added to Welcome to SketchUp")
       rescue StandardError => e
         Log.error('template sync', e)

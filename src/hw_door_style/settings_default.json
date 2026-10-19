@@ -201,6 +201,7 @@
   "export_skip": [
     "FLOOR"
   ],
+  "template_default": true,
   "template_keep": [
     "FLOOR",
     "CEILING"

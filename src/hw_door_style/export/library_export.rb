@@ -316,7 +316,7 @@ module HarryWardrobes
         { 'master' => File.basename(model.path), 'root' => root(model), 'old' => File.basename(old_dir(model)),
           'folders' => folders(model), 'rows' => rows(model), 'next_master' => File.basename(next_master(model)),
           'unused' => { 'components' => u[:components] }, 'clean' => check(model),
-          'template' => (TemplateExport.status(model) rescue { 'status' => 'error', 'error' => $!.message }) }
+          'template' => (TemplateExport.status(model).merge('default' => TemplateExport.default?) rescue { 'status' => 'error', 'error' => $!.message }) }
       end
 
       def self.show
@@ -344,6 +344,9 @@ module HarryWardrobes
           req = JSON.parse(json)
           c = check(model)
           if c['ok']
+            if req.key?('template_default')
+              Settings.save(Settings.get.merge('template_default' => req['template_default'] ? true : false))
+            end
             run(model, dlg, req['rows'], req['save_master'], template: req['template'])
           else
             dlg.execute_script("load(#{JSON.generate(payload(model))}); stopped(#{JSON.generate(not_clean_message(c))})")

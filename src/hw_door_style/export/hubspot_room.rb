@@ -332,6 +332,7 @@ module HarryWardrobes
             case prop
             when 'ceiling_height_mm'
               model.set_attribute(DICT, 'ceiling_mm', v.to_f)
+              Room.apply(model, ceiling: v.to_f) if defined?(Room) && v.to_f.positive?
               took << 'ceiling'
             when 'bottom_facing_mm'
               model.set_attribute(DICT, 'facing_btm_mm', v.to_f)
@@ -465,7 +466,7 @@ module HarryWardrobes
           return Sketchup.open_file(path)
         end
         cur = Sketchup.active_model
-        fresh = cur.path.to_s.empty? && cur.entities.length.zero?
+        fresh = cur.path.to_s.empty? && (cur.entities.length.zero? || (defined?(Room) && Room.blank?(cur)))
         unless fresh
           guid = cur.guid
           Sketchup.file_new

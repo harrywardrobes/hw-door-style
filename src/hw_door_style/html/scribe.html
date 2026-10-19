@@ -22,6 +22,7 @@
 <h1 id="title"></h1>
 <div class="sub" id="sub"></div>
 <div id="ceilRow" class="row" style="display:none"><label>Ceiling height<small id="ceilReq">required</small></label><div><input type="number" id="ceiling" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px">What is the maximum ceiling height of the wardrobes? (mm)<span id="topDoor"></span></div></div></div>
+<div id="roomRow" class="row" style="display:none"><label>Room size</label><div><div style="display:flex;gap:6px"><input type="number" id="room_w" min="0" step="1" placeholder="width" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><input type="number" id="room_l" min="0" step="1" placeholder="length" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"></div><div class="hint" style="margin-top:3px" id="roomHint">Width (left-right) x length (into the room), mm. Sizes the floor and ceiling; the ceiling moves to the ceiling height.</div></div></div>
 <div id="facRow" class="row" style="display:none"><label>Bottom facing</label><div><input type="number" id="facing" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="facHint">Plinth height under the units (mm)</div></div></div>
 <div id="runHead" style="font-weight:600;font-size:12px;margin-top:10px">Runouts (scribe allowance)</div>
 <div id="rows"></div>
@@ -59,6 +60,11 @@ if (D.ceiling !== null && D.ceiling !== undefined) {
   document.getElementById('ceiling').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
   if (D.top_door > 0) document.getElementById('topDoor').textContent = ' Top doors ' + Math.round(D.top_door) + ' mm (Settings > Components).';
 }
+if (D.room && (D.room.has_floor || D.room.has_ceiling) && D.ceiling !== null && D.ceiling !== undefined) {
+  document.getElementById('roomRow').style.display = '';
+  if (D.room.width) document.getElementById('room_w').value = Math.round(D.room.width);
+  if (D.room.length) document.getElementById('room_l').value = Math.round(D.room.length);
+}
 if (D.own && D.own.length) {
   document.getElementById('ownBox').style.display = '';
   document.getElementById('own').innerHTML = D.own.map(function(u){ return '<div class="row"><label style="font-weight:normal">' + esc(u.name) + '<br><small style="color:#6a737d;margin:0">' + esc(u.top) + '</small></label><div><input type="number" min="100" step="1" data-own="' + u.id + '" value="' + u.height + '" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"></div></div>'; }).join('');
@@ -68,6 +74,7 @@ function apply(){ var o = {};
     var c = parseFloat(document.getElementById('ceiling').value);
     if (!(c > 0)) { var r = document.getElementById('ceilReq'); r.textContent = 'required - enter the ceiling height'; document.getElementById('ceiling').focus(); return; }
     o.ceiling_height = c; // not 'ceiling': that's the ceiling runout below
+    if (document.getElementById('roomRow').style.display === '') { o.room_width = parseFloat(document.getElementById('room_w').value) || 0; o.room_length = parseFloat(document.getElementById('room_l').value) || 0; }
   }
   if (D.has_facing) {
     var f = parseFloat(document.getElementById('facing').value);

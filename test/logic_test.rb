@@ -728,5 +728,17 @@ TX.install_local(File.join(td, 'Harry Wardrobes Template V10.skp'))
 check 'Welcome copy replaced by the new version, own templates untouched', TX.versions(TX.user_dir).map(&:first) == [10] && File.exist?(File.join(TX.user_dir, 'My own template.skp'))
 check 'template keeps floor and ceiling by default', HarryWardrobes::DoorStyle::Settings.names('template_keep') == %w[FLOOR CEILING]
 
+puts "\n== Room"
+require 'hw_door_style/job/room'
+RM = HarryWardrobes::DoorStyle::Room
+check 'file / folder names made safe', RM.safe('Liam Tunney: Chester/1.skp') == 'Liam Tunney Chester1' && RM.safe(' Smith ') == 'Smith'
+cf = Dir.mktmpdir('hw_cust')
+%w[Old_Customer New_Customer _archive].each { |d| FileUtils.mkdir_p(File.join(cf, d)) }
+File.utime(Time.now - 86_400, Time.now - 86_400, File.join(cf, 'Old_Customer'))
+check 'customer folders listed newest first, _ folders hidden', RM.customers(cf) == %w[New_Customer Old_Customer]
+rh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/room.html'))
+check 'room window sends width, length, ceiling, customer and file', %w[width length ceiling customer file sketchup.apply sketchup.browse sketchup.never].all? { |w| rh.include?(w) }
+check 'scribe window sends the room size with the ceiling', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.room_width')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
