@@ -22,7 +22,8 @@ module HarryWardrobes
 
       # --- fetching -------------------------------------------------------------------
 
-      def self.get(url, tries: 3)
+      # A page (as UTF-8 text), or with binary: true a file's bytes untouched (pictures).
+      def self.get(url, tries: 3, binary: false)
         uri = URI(url)
         1.upto(tries) do |attempt|
           begin
@@ -34,7 +35,7 @@ module HarryWardrobes
               http.read_timeout = 30
               req = Net::HTTP::Get.new(uri)
               req['User-Agent'] = UA
-              req['Accept'] = 'text/html,application/json;q=0.9,*/*;q=0.8'
+              req['Accept'] = binary ? 'image/jpeg,image/png;q=0.9,image/*;q=0.5' : 'text/html,application/json;q=0.9,*/*;q=0.8'
               req['Accept-Language'] = 'en-GB,en;q=0.9'
               res = http.request(req)
               if res.is_a?(Net::HTTPRedirection) && res['location']
@@ -43,6 +44,7 @@ module HarryWardrobes
               end
               raise Error, "#{uri.host} said #{res.code}" unless res.code.to_i.between?(200, 299)
               body = res.body.to_s
+              return body.b if binary
               return body.force_encoding('UTF-8').valid_encoding? ? body : body.encode('UTF-8', 'binary', invalid: :replace, undef: :replace)
             end
             raise Error, "too many redirects at #{url}"
@@ -53,10 +55,23 @@ module HarryWardrobes
         end
       end
 
+      # The real picture type from its first bytes (nil if it isn't a picture).
+      def self.image_ext(bytes)
+        b = bytes.to_s.b
+        return '.jpg' if b.start_with?("\xFF\xD8\xFF".b)
+        return '.png' if b.start_with?("\x89PNG".b)
+        return '.gif' if b.start_with?('GIF8')
+        return '.webp' if b[0, 4] == 'RIFF' && b[8, 4] == 'WEBP'
+        nil
+      end
+
+      # Saves a picture to a temporary file named for its real type; raises if what came
+      # back isn't a picture.
       def self.download(url)
-        ext = File.extname(URI(url).path)[/\.(jpe?g|png|webp|gif)\z/i] || '.jpg'
+        bytes = get(url, binary: true)
+        ext = image_ext(bytes) or raise Error, "#{URI(url).host} didn't send a picture"
         path = File.join(Dir.tmpdir, "hw_import_#{Process.pid}_#{rand(1_000_000)}#{ext}")
-        File.binwrite(path, get(url))
+        File.binwrite(path, bytes)
         path
       end
 
@@ -327,6 +342,42 @@ module HarryWardrobes
         HubSpotProducts.save(form, img)
       ensure
         File.delete(img) if img && File.exist?(img)
+      end
+
+      # Is a product's picture in HubSpot a real picture? (Pictures imported before 0.34 were
+      # damaged on the way in.) nil when it has none.
+      def self.picture_ok?(product)
+        u = product['hs_images'].to_s.split(';').first.to_s
+        return nil if u.empty?
+        bytes = get(u, binary: true)
+        # Damaged ones were turned into text, so they read as valid UTF-8; a real picture never does.
+        !image_ext(bytes).nil? && !bytes.dup.force_encoding('UTF-8').valid_encoding?
+      rescue Error
+        false
+      end
+
+      # Copies the picture again from the product's own page on the supplier's website
+      # (only pages that show one product, so a shared range page can't give the wrong
+      # finish). Returns the new picture link, or nil if the page has no single picture.
+      def self.repicture(product)
+        url = product['hs_url'].to_s
+        return nil if url.empty?
+        html = get(url)
+        list = GENERIC['items'].call(html, url).reject { |i| i['image'].to_s.empty? }
+        img = list.size == 1 ? list[0]['image'] : nil
+        return nil unless img
+        path = download(img)
+        begin
+          up = HubSpot.upload_file(path, '/products', access: 'PUBLIC_NOT_INDEXABLE')
+        ensure
+          File.delete(path) if File.exist?(path)
+        end
+        link = up['url'].to_s
+        HubSpot.patch("/crm/v3/objects/products/#{product['id']}", { properties: { hs_images: link } })
+        data = HubSpotProducts.local
+        Array(data['products']).each { |p| p['hs_images'] = link if p['id'].to_s == product['id'].to_s }
+        HubSpotProducts.save_local(data)
+        link
       end
 
       # --- window ---------------------------------------------------------------------

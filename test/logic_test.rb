@@ -578,5 +578,13 @@ check 'and from the local list', n == 102 && HPD.products.map { |p| p['id'] } ==
 HSD.define_singleton_method(:post, orig_post)
 keep_file ? File.write(HPD::FILE, keep_file) : File.delete(HPD::FILE)
 
+puts "\n== Supplier pictures"
+SIP = HarryWardrobes::DoorStyle::SupplierImport
+jpg = "\xFF\xD8\xFF\xE0\x00\x10JFIF\x00\x01\x01\x00\xC8\xFA".b
+webp = "RIFF\x10\x00\x00\x00WEBPVP8 \xA0\xB1".b
+check 'picture type read from its first bytes', SIP.image_ext(jpg) == '.jpg' && SIP.image_ext(webp) == '.webp' && SIP.image_ext("\x89PNG\r\n".b) == '.png' && SIP.image_ext('<html>').nil?
+damaged = jpg.dup.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace) rescue jpg.dup.force_encoding('UTF-8').scrub
+check 'a picture damaged into text is spotted', !damaged.b.force_encoding('UTF-8').valid_encoding? == false && jpg.dup.force_encoding('UTF-8').valid_encoding? == false
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

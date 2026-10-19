@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.34.0 — 2026-10-19
+- **Fixed: pictures from Import from supplier didn't show** in Settings > Products or HubSpot. The download
+  treated pictures as text and damaged them on the way in. Pictures are now copied byte for byte, saved
+  with their real type (JPG / PNG / WebP), and anything that isn't a picture is turned away. JPG or PNG is
+  asked for first, so they also work in HubSpot quotes.
+- The 74 products already imported had their pictures copied again from each product's page.
+
+## 0.34.0 — 2026-10-19
+- 
+
 ## 0.33.0 — 2026-10-19
 - **Delete products** in Settings > Products:
   - One at a time: open a product and press Delete (then click again to confirm).
