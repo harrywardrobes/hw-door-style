@@ -45,7 +45,7 @@ module HarryWardrobes
 
       # --- the link -------------------------------------------------------------------
 
-      LINK_KEYS = %w[hs_room_id hs_project_id hs_contact_id hs_room_name hs_customer hs_address hs_info].freeze
+      LINK_KEYS = %w[hs_room_id hs_project_id hs_contact_id hs_room_name hs_customer hs_first_name hs_last_name hs_address hs_info].freeze
 
       def self.link(model = Sketchup.active_model)
         h = LINK_KEYS.to_h { |k| [k.sub('hs_', ''), model.get_attribute(DICT, k, nil)] }
@@ -415,13 +415,29 @@ module HarryWardrobes
           r['exists'] = folder ? File.exist?(File.join(folder, r['file'])) : false
         end
         { 'project_id' => pid, 'rooms' => rooms.sort_by { |r| r['name'] }, 'contact_id' => contact_id, 'customer' => customer,
+          'first_name' => c['firstname'].to_s.strip, 'last_name' => c['lastname'].to_s.strip,
           'address' => [c['address'], c['city'], c['zip']].compact.map { |x| x.gsub(/[\s,]*\n\s*/, ', ').strip }.reject(&:empty?).join(', '),
           'folder' => folder, 'folder_name' => folder && File.basename(folder) }
       end
 
       def self.link_from(pick)
         { 'room_id' => pick['room_id'], 'project_id' => pick['project_id'], 'contact_id' => pick['contact_id'],
-          'room_name' => pick['room_name'], 'customer' => pick['customer'], 'address' => pick['address'], 'info' => {} }
+          'room_name' => pick['room_name'], 'customer' => pick['customer'], 'first_name' => pick['first_name'],
+          'last_name' => pick['last_name'], 'address' => pick['address'], 'info' => {} }
+      end
+
+      # "WILLIAMS Rebecca" (last name in capitals, first names capitalised). Files linked
+      # before the names were kept separately: the last word of the customer is the surname.
+      def self.customer_tag(l)
+        first = l['first_name'].to_s.strip
+        last = l['last_name'].to_s.strip
+        if first.empty? && last.empty?
+          words = l['customer'].to_s.split
+          last = words.pop.to_s
+          first = words.join(' ')
+        end
+        first = first.split(/(\s+|-)/).map { |w| w =~ /\A[\s-]+\z/ ? w : w[0].to_s.upcase + w[1..].to_s.downcase }.join
+        [last.upcase, first].reject(&:empty?).join(' ')
       end
 
       def self.create_file(pick)

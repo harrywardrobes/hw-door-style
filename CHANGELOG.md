@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.24.2 — 2026-10-19
+- Picture files are named "<room> - view 1, <SURNAME> <First names>", e.g.
+  "Master Bedroom - view 3, HASPREY Kenny.jpg". Views count up across every picture made and carry
+  on from the highest number already in the folder, so earlier pictures are never overwritten.
+- The customer's first and last names are kept on the link (files linked before use the last word
+  of the customer's name as the surname).
+
 ## 0.24.1 — 2026-10-19
 - Fixed: Upload to HubSpot stopped with "Invalid JSON for options input". Pictures are now uploaded
   as private files (only people signed in to HubSpot can open them).

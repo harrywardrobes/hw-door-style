@@ -84,7 +84,7 @@ function rooms(r){
 function choose(){
   if (!room || !P) return;
   sketchup.choose(JSON.stringify({ room_id: room.id, room_name: room.name, project_id: P.project_id, contact_id: P.contact_id,
-    customer: P.customer, address: P.address, folder: P.folder }));
+    customer: P.customer, first_name: P.first_name, last_name: P.last_name, address: P.address, folder: P.folder }));
 }
 go();
 </script>

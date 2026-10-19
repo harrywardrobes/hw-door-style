@@ -500,7 +500,14 @@ require 'hw_door_style/export/hubspot_pictures'
 P = HubSpotPictures
 check 'pictures: default scenes matched any case', P.preset(['room', 'D external', 'D internal', 'S top'], ['d external', 'S TOP', 'Gone']) == ['D external', 'S top']
 fm2 = Struct.new(:path).new('H:/x/WILLIAMS Rebecca (Rossett - 1)/SURVEY - felix - rebecca williams.skp')
-check 'pictures: file name', P.file_for('', fm2, 'Renders', 'D external', 'jpg') == 'SURVEY - felix - rebecca williams - Renders - D external.jpg'
+lk = { 'room_name' => "Rebecca Williams - Rossett - Felix's Room", 'first_name' => 'rebecca anne', 'last_name' => 'Williams' }
+check 'pictures: file name', P.file_for(lk, 3, 'jpg') == "Felix's Room - view 3, WILLIAMS Rebecca Anne.jpg"
+check 'customer tag: double-barrelled', R.customer_tag('first_name' => 'mary-jane', 'last_name' => 'Muir-Buckley') == 'MUIR-BUCKLEY Mary-Jane'
+check 'customer tag: older links (one name)', R.customer_tag('customer' => 'Kenny Hasprey') == 'HASPREY Kenny'
+Dir.mktmpdir do |d|
+  ["Felix's Room - view 1, WILLIAMS Rebecca Anne.jpg", "Felix's Room - view 4, WILLIAMS Rebecca Anne.png", "Beatrice's Room - view 9, WILLIAMS Rebecca.jpg"].each { |f| File.write(File.join(d, f), '') }
+  check 'views carry on from the highest in the folder (this room only)', P.last_view(d, lk) == 4 && P.last_view(File.join(d, 'none'), lk) == 0
+end
 check 'pictures: saved in SURVEY RENDERS next to the file', P.out_dir(fm2, 'SURVEY RENDERS').end_with?('(Rossett - 1)/SURVEY RENDERS') && P.out_dir(fm2, '').end_with?('(Rossett - 1)')
 cfg = P.config
 check 'pictures: settings defaults', cfg['rows'].map { |r| r['field'] } == %w[render_1 floor_plan survey_door_dimensions_1] && cfg['width'] == 1920 && cfg['format'] == 'jpg' && cfg['mode'] == 'replace'

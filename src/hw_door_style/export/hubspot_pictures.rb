@@ -38,12 +38,25 @@ module HarryWardrobes
         folder.to_s.strip.empty? ? base : File.join(base, folder.strip)
       end
 
-      def self.file_for(dir, model, label, scene, ext)
-        Report.safe_name("#{File.basename(model.path, '.skp')} - #{label} - #{scene}") + ".#{ext}"
+      # "Master Bedroom - view 3, WILLIAMS Rebecca.jpg". Views are numbered across every
+      # picture made, carrying on from the highest number already in the folder, so
+      # earlier pictures are never overwritten.
+      def self.stem(link)
+        "#{HubSpotRoom.room_part(link['room_name'])} - view "
+      end
+
+      def self.file_for(link, n, ext)
+        Report.safe_name("#{stem(link)}#{n}, #{HubSpotRoom.customer_tag(link)}") + ".#{ext}"
+      end
+
+      def self.last_view(dir, link)
+        return 0 unless Dir.exist?(dir)
+        pat = /\A#{Regexp.escape(Report.safe_name(stem(link)))}\s*(\d+),/i
+        Dir.children(dir).map { |f| f[pat, 1].to_i }.max.to_i
       end
 
       # picks: { field => [scene names] }. Returns { field => [{ 'scene', 'path', 'thumb' }] }.
-      def self.export(model, picks, cfg = config)
+      def self.export(model, picks, cfg = config, link = HubSpotRoom.link(model))
         dir = out_dir(model, cfg['folder'])
         FileUtils.mkdir_p(dir)
         view = model.active_view
@@ -53,7 +66,7 @@ module HarryWardrobes
         po = model.options['PageOptions']
         was_trans = po['ShowTransition']
         po['ShowTransition'] = false
-        labels = cfg['rows'].to_h { |r| [r['field'], r['label']] }
+        n = last_view(dir, link)
         thumb_file = File.join(Dir.tmpdir, "hw_thumb_#{Process.pid}.jpg")
         out = {}
         begin
@@ -62,7 +75,8 @@ module HarryWardrobes
               page = pages[name] or next
               pages.selected_page = page
               view.refresh
-              path = File.join(dir, file_for(dir, model, labels[field] || field, name, cfg['format']))
+              n += 1
+              path = File.join(dir, file_for(link, n, cfg['format']))
               opts = { filename: path, width: cfg['width'], height: cfg['height'], antialias: true, transparent: false }
               opts[:compression] = 0.9 if cfg['format'] == 'jpg'
               view.write_image(opts) or raise "Couldn't save #{File.basename(path)}"
@@ -119,7 +133,7 @@ module HarryWardrobes
         dlg.add_action_callback('make') do |_c, json|
           picks = JSON.parse(json)
           r = begin
-            { 'made' => export(model, picks, cfg) }
+            { 'made' => export(model, picks, cfg, l) }
           rescue StandardError => e
             Log.error('hubspot pictures', e)
             { 'error' => e.message }
