@@ -194,6 +194,18 @@ module HarryWardrobes
         [(b.width.to_f * sx * 25.4).round, (b.height.to_f * sy * 25.4).round]
       end
 
+      CABLE_OUTLET = /\ACABLE_OUTLET/i.freeze
+
+      # Cable outlets showing in the model (a WORKTOP's outlets switched off in its options
+      # are hidden, so they don't count).
+      def self.cable_outlets(ents)
+        ents.sum do |e|
+          next 0 unless (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) && e.visible?
+          next 1 if e.respond_to?(:definition) && e.definition.name =~ CABLE_OUTLET
+          cable_outlets(e.respond_to?(:definition) ? e.definition.entities : e.entities)
+        end
+      end
+
       def self.counts(model)
         rows = Report.rows(model)
         by_label = Settings::HINGE_TYPES.invert
@@ -204,7 +216,8 @@ module HarryWardrobes
         {
           'hinges' => hinges, 'tip_on' => rows.sum { |r| r['tip_on'].to_i },
           'ext_drawers' => kinds.call(:ext_drawer).size, 'int_drawers' => kinds.call(:int_drawer).size,
-          'h_door' => handles.call(:door), 'h_ext' => handles.call(:ext_drawer), 'h_int' => handles.call(:int_drawer)
+          'h_door' => handles.call(:door), 'h_ext' => handles.call(:ext_drawer), 'h_int' => handles.call(:int_drawer),
+          'cable_outlets' => cable_outlets(model.entities)
         }
       end
 
@@ -261,6 +274,7 @@ module HarryWardrobes
         put.call('main_robe_handle_quantity', c['h_door'])
         put.call('drawer_handle_quantity', c['h_ext'])
         put.call('interior_handle_quantity', c['h_int'])
+        put.call('cable_outlet_quantity', c['cable_outlets'])
         out
       end
 

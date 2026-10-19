@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.42.2 — 2026-10-19
+- Cable outlets go to HubSpot: the Room card's "Cable Outlet Quantity" (and the Workshop window's HubSpot tab) is filled from the cable outlets showing in the model - a WORKTOP's outlets that are switched off in its options don't count.
+- Parts list: a hardware component made of sub-parts (like a cable outlet with its rim and lid) is listed as the one piece of hardware, not its parts. (CABLE_OUTLET_80 in the library is now one part anyway, so OpenCutList lists it as one too.)
+
 ## 0.42.1 — 2026-10-19
 - New Settings > Components "Worktop height (mm)" (default 771, the height of the half units): the bottom of every WORKTOP board. The pencil (and the + window) sets it on each worktop, like the top door height.
 - Settings: cable_outlets hardware tag (CABLE_OUTLET_80) in the defaults.

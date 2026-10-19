@@ -171,6 +171,13 @@ module HarryWardrobes
             count += collect(e.entities, path + [e], out, cache)
           elsif e.is_a?(Sketchup::ComponentInstance)
             next if e.definition.behavior.always_face_camera?
+            # HW: a hardware component made of sub-parts (CABLE_OUTLET_80 = rim + lid) is one
+            # piece of hardware, not its parts.
+            if Tagger.hardware_tag_name(e.definition) && e.definition.entities.grep(Sketchup::Face).empty?
+              bb = e.definition.bounds
+              out << [path + [e], bb] unless bb.empty?
+              next
+            end
             n = collect(e.definition.entities, path + [e], out, cache)
             if n > 0
               bb = (cache[e.definition] ||= faces_bounds(e.definition.entities))

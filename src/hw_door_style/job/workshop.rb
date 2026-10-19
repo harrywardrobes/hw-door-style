@@ -27,7 +27,7 @@ module HarryWardrobes
       QTY_FIELDS = (HubSpotRoom::HINGE_FIELDS.values + %w[blum_push_tipon_set drawer_total_quantity drawer_type
                                                           main_robe_handle main_robe_handle_id robe_handle_supplier main_robe_handle_quantity
                                                           drawer_handle drawer_handle_sku drawer_handle_supplier drawer_handle_quantity
-                                                          interior_handle interior_handle_sku interior_handle_supplier interior_handle_quantity]).freeze
+                                                          interior_handle interior_handle_sku interior_handle_supplier interior_handle_quantity cable_outlet_quantity]).freeze
 
       # Rows for the HubSpot tab: [{ prop, label, section, hubspot, value, shown, send, flag }].
       def self.plan(model, parts)
