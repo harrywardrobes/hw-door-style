@@ -14,6 +14,7 @@
     "INT_DRW_FRONT"
   ],
   "top_door_height_mm": 460,
+  "worktop_height_mm": 771,
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [
     [

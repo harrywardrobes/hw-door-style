@@ -168,6 +168,7 @@ module HarryWardrobes
         Batch.run(model, units, title, done: done_msg, before: before) do |inst|
           changed = values ? set(inst, values) : false
           changed = Facing.set(inst, facing) || changed if facing
+          changed = Ceiling.set_worktop(inst) || changed
           # The ceiling step redraws itself; otherwise redraw once for the runouts.
           changed = false if ceiling && Ceiling.apply_to(inst, ceiling)
           if changed

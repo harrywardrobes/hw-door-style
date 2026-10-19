@@ -167,6 +167,8 @@
   <div class="lead">Sizes the plugin sets on library components.</div>
   <fieldset><legend>Top box &amp; bridge</legend>
     <div class="f" style="grid-template-columns:150px 80px"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Worktop height (mm)</span><input type="number" id="worktop_height_mm"></div>
+    <div class="hint">Bottom of the WORKTOP board from the floor (the height of the half units). The pencil sets it on every worktop, like the top door height.</div>
     <div class="hint">The top doors on TOPBOX and the doors on BRIDGE_FRAME, so they line up along the run.
       BRIDGE_FRAME is built up from this door and BRIDGE_SKELETON sits under it, so the top of the bridge is at the ceiling.
       Applied with the ceiling height (pencil window or the ceiling button) to every unit set "Up to ceiling".</div>
@@ -438,7 +440,7 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep'];
-var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
+var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
@@ -582,6 +584,7 @@ function problems(){
        'Hinges per door: height:count pairs, heights going up, 1-10 hinges');
   need('hinges', 'hinge_end_inset_mm', num('hinge_end_inset_mm') >= 0, 'Inset can\'t be negative');
   need('hinges', 'handle_double_min_width_mm', num('handle_double_min_width_mm') > 0, 'Enter a width');
+  need('units', 'worktop_height_mm', num('worktop_height_mm') >= 100 && num('worktop_height_mm') <= 2000, 'Worktop height must be 100-2000 mm');
   need('units', 'top_door_height_mm', num('top_door_height_mm') >= 100 && num('top_door_height_mm') <= 1500, 'Top door height must be 100-1500 mm');
   need('colours', 'panel_22_mm', num('panel_22_mm') > 0, 'Enter the panel thickness');
   need('scribe', 'facing_bottom_mm', num('facing_bottom_mm') >= 0 && num('facing_bottom_mm') <= 300, 'Bottom facing must be 0-300 mm');

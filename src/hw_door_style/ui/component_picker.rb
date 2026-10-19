@@ -194,6 +194,7 @@ module HarryWardrobes
         units.each do |u|
           changed = Runouts.unit?(u) && Runouts.set(u, job['runouts'])
           changed = Facing.set(u, job['facing']) || changed if Facing.has?(u)
+          changed = Ceiling.set_worktop(u) || changed
           changed = false if job['ceiling'].to_f.positive? && Ceiling.apply_to(u, job['ceiling'])
           next unless changed
           Drawers.close(u.definition.entities)

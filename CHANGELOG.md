@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.42.1 — 2026-10-19
+- New Settings > Components "Worktop height (mm)" (default 771, the height of the half units): the bottom of every WORKTOP board. The pencil (and the + window) sets it on each worktop, like the top door height.
+- Settings: cable_outlets hardware tag (CABLE_OUTLET_80) in the defaults.
+
 ## 0.42.0 — 2026-10-19
 - New **Add component (+)** button (first on the HW measure once toolbar): picture cards of the latest version of every library component, grouped and colour coded by category (Wardrobes, Drawers, Bridge, Bookcase, Shelving, Main Components), with search (Enter places the first match; search looks in every category). Click a category to show only that one (All, or the same one again, shows everything). Click a card and the window closes so you can click straight into the model to place it - like File > Import without the file browser; the result shows in SketchUp's status bar. Opening the window checks the library at most every 10 minutes (Check library always checks).
 - Works from a copy on this computer (AppData\HW Door Style\library), so the window opens straight away and works offline; each time it opens it checks the library folder and copies any newer versions in the background (old copies replaced, removed components dropped). Library folder: Settings > Export > Add component.

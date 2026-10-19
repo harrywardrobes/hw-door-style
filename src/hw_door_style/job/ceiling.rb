@@ -120,6 +120,25 @@ module HarryWardrobes
         true
       end
 
+      # --- worktops -------------------------------------------------------------
+
+      def self.worktop_mm
+        Settings.get['worktop_height_mm'].to_f
+      end
+
+      # Sets a WORKTOP's height (bottom of the board, Settings "worktop_height_mm",
+      # the height of the half units). True if it changed; the caller redraws.
+      def self.set_worktop(inst)
+        want = worktop_mm
+        k = DC.key(inst, 'worktop_height')
+        return false unless want.positive? && k
+        cur = DC.read(inst, k)
+        return false if cur && (cur.to_f * mm_per(inst, k) - want).abs < 0.5
+        v = want / mm_per(inst, k)
+        inst.set_attribute(DC::DICT_NAME, k, cur.is_a?(String) ? v.to_s : v)
+        true
+      end
+
       # The ceiling height (and top door) for one unit, redrawn once.
       # Units without "Up to ceiling" are left alone. True if anything changed.
       def self.apply_to(inst, ceiling)
