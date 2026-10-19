@@ -183,6 +183,7 @@ module HarryWardrobes
         Dialog.reset!
         Pencil.invalidate
         Scenes.start if defined?(Scenes) # watchers added by a newer version start straight away
+        TopOfUnit.start if defined?(TopOfUnit) # upgrades the open model's units to the Top of unit dropdown
         UI.refresh_toolbars if UI.respond_to?(:refresh_toolbars)
         Sketchup.status_text = "HW Door Style #{VERSION} loaded"
       end

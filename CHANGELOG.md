@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.40.0 — 2026-10-19
+- **"Top of unit"** replaces the two switches "Topped off?" and "Up to ceiling" in the units' Component
+  Options (they sounded alike but did different things). One dropdown:
+  - **Scribed To Ceiling** - built to the job's ceiling height, top facing scribed to the ceiling;
+  - **Custom Scribe Height (Lower Section)** - its own height, top facing still scribed (bulkheads,
+    lower sections);
+  - **No Upper Facing** - its own height, no top facing and no ceiling runout.
+  The old two are kept inside the component (its formulas use them) but hidden and set from the dropdown.
+  Units are upgraded when a file is opened, keeping what they were set to, so older job files and the
+  library pick it up; Export components carries it into the library files. "height (ceiling)" is now
+  "Height (mm)".
+- **Scribe / runout window**: units with their own height are listed with a height you can type in
+  (no need to stretch them), and the runouts have their own heading.
+- Fixed: the Scribe window sent the ceiling height and the ceiling runout under the same name, so the
+  height could be replaced by the runout value (e.g. 25) when you pressed Apply.
+
+## 0.40.0 — 2026-10-19
+- 
+
 ## 0.39.1 — 2026-10-19
 - Fixed: the Scribe / runout window cut off the Apply button once ceiling height and bottom facing were
   shown (fixed 400px, no scrolling). It opens taller, can be resized, the fields scroll and Cancel / Apply

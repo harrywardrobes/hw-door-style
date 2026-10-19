@@ -29,6 +29,8 @@ module HarryWardrobes
 
       # Only units that have the switch.
       def self.up_to_ceiling?(inst)
+        c = TopOfUnit.choice(inst) if defined?(TopOfUnit)
+        return c == TopOfUnit::SCRIBED unless c.nil?
         v = DC.value(inst, 'up_to_ceiling')
         !v.nil? && v.to_s.upcase != 'FALSE'
       end

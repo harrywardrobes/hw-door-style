@@ -620,5 +620,18 @@ check 'strips: wider than 610 asks for sheets', mx.map { |p| p['number'] } == %w
 rv = PLX.room_values('groups' => [{ 'material' => 'Graphite', 'sheets' => 6, 'strips' => sx.reject { |x| x['width'] == 500 } }, { 'material' => 'Graphite', 'sheets' => 1, 'strips' => [] }, { 'material' => 'Frost White', 'sheets' => 2, 'strips' => [] }])
 check 'Room: sheets per colour, total, strips per width', rv['mfc_sheets_graphite'] == 7 && rv['mfc_sheets_frost_white'] == 2 && rv['mfc_quantity'] == 9 && rv['cut_and_edged_90mm_quantity'] == 3 && rv['cut_and_edged_300mm_quantity'] == 0
 
+puts "\n== Top of unit"
+require 'hw_door_style/core/top_of_unit'
+TU = HarryWardrobes::DoorStyle::TopOfUnit
+class TUFake
+  def initialize(h); @h = h; end
+  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
+end
+check 'old switches -> Top of unit', TU.from_old(TUFake.new('i04_topped' => '0', 'i05_up_to_ceiling' => 'TRUE'), 'i04_topped', 'i05_up_to_ceiling') == TU::SCRIBED &&
+  TU.from_old(TUFake.new('i04_topped' => '0', 'i05_up_to_ceiling' => 'FALSE'), 'i04_topped', 'i05_up_to_ceiling') == TU::CUSTOM &&
+  TU.from_old(TUFake.new('i04_topped' => '1', 'i05_up_to_ceiling' => 'TRUE'), 'i04_topped', 'i05_up_to_ceiling') == TU::NO_FACING
+check 'Top of unit options encoded for the DC list', TU.options_s == '&Scribed%20To%20Ceiling=1&Custom%20Scribe%20Height%20%28Lower%20Section%29=2&No%20Upper%20Facing=3&'
+check 'scribe window sends ceiling height apart from the ceiling runout', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.ceiling_height = c')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

@@ -67,6 +67,7 @@ module HarryWardrobes
       # bottom facing and (every unit only) the ceiling height.
       def self.show(model, targets)
         return unless Standardise.ready?(model)
+        TopOfUnit.upgrade(model)
         sel = targets && !targets.empty?
         units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities))
         job = Runouts.job_values(model)
@@ -81,7 +82,8 @@ module HarryWardrobes
           'values' => [0.0] + Runouts.values_list, 'current' => cur, 'job' => job,
           'has_runouts' => !first_r.nil?, 'has_facing' => !first_f.nil?,
           'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
-          'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm
+          'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm,
+          'own' => TopOfUnit.own_height(units)
         }
         # Taller, and resizable: ceiling + bottom facing + five runouts didn't fit in 400 (Apply was cut off).
         # New key so SketchUp doesn't reuse the old remembered size.
@@ -89,10 +91,21 @@ module HarryWardrobes
                                     data: data, resizable: true, scrollable: false)
         dlg.add_action_callback('apply') do |_c, json|
           raw = JSON.parse(json)
-          ceil = raw['ceiling'].to_f
+          ceil = raw.delete('ceiling_height').to_f
           facing = raw.key?('facing') ? raw['facing'].to_f : nil
+          heights = raw.delete('own') || {}
           v = data['has_runouts'] ? raw.transform_values(&:to_f).slice(*Runouts::KEYS.keys) : nil
           dlg.close
+          # Units with their own height (Custom Scribe Height / No Upper Facing): set the ones you changed.
+          changed = data['own'].select { |o| heights[o['id'].to_s].to_f.positive? && (heights[o['id'].to_s].to_f - o['height']).abs >= 1 }
+          unless changed.empty?
+            Ops.run(model, 'Unit heights') do
+              changed.each do |o|
+                u = units.find { |x| x.valid? && x.entityID == o['id'] } or next
+                Ceiling.fit(u, heights[o['id'].to_s].to_f)
+              end
+            end
+          end
           if sel
             Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / bottom facing updated on #{targets.size} unit(s).", facing: facing)
           else

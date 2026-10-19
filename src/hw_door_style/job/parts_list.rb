@@ -585,6 +585,7 @@ module HarryWardrobes
 
       def self.show
         model = Sketchup.active_model
+        TopOfUnit.upgrade(model)
         data = nil
         build = lambda do
           data = generate(model)

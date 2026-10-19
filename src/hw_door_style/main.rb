@@ -25,7 +25,7 @@ module HarryWardrobes
       export/library_export export/opencutlist export/hubspot
       ui/dialog core/batch core/steps core/scenes core/updater ui/colours_window ui/door_style_window ui/settings_window
       export/hubspot_room export/hubspot_pictures export/hubspot_products export/supplier_import
-      core/formula_parser job/parts_pdf job/labels job/parts_list job/workshop
+      core/top_of_unit core/formula_parser job/parts_pdf job/labels job/parts_list job/workshop
       dev/acceptance dev/developer ui/menus
     ].freeze
     FILES.each { |f| Sketchup.require(File.join(PATH, f)) }
@@ -34,6 +34,7 @@ module HarryWardrobes
       Menus.build
       Pencil.start_watching # keeps the pencil button in step with the open model
       Scenes.start # renamed scenes are renamed in Settings too
+      TopOfUnit.start # one 'Top of unit' dropdown in place of Topped off? / Up to ceiling
       Updater.check_at_startup # newer version in the updates folder? offer it
       file_loaded(__FILE__)
     end

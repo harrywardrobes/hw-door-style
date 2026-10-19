@@ -23,8 +23,14 @@
 <div class="sub" id="sub"></div>
 <div id="ceilRow" class="row" style="display:none"><label>Ceiling height<small id="ceilReq">required</small></label><div><input type="number" id="ceiling" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px">What is the maximum ceiling height of the wardrobes? (mm)<span id="topDoor"></span></div></div></div>
 <div id="facRow" class="row" style="display:none"><label>Bottom facing</label><div><input type="number" id="facing" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="facHint">Plinth height under the units (mm)</div></div></div>
+<div id="runHead" style="font-weight:600;font-size:12px;margin-top:10px">Runouts (scribe allowance)</div>
 <div id="rows"></div>
-<div class="hint" id="wallHint">Walls, back and "topped off" switches on each component decide what is used. Floor always applies.</div>
+<div id="ownBox" style="display:none;margin-top:10px">
+  <div style="font-weight:600;font-size:12px">Units with their own height</div>
+  <div class="hint" style="margin-top:2px">Top of unit = Custom Scribe Height (Lower Section) or No Upper Facing - the ceiling height doesn't change these. Type a new height to change one.</div>
+  <div id="own"></div>
+</div>
+<div class="hint" id="wallHint">Each unit's Wall left / right / back and "Top of unit" options decide which runouts it uses (No Upper Facing has no ceiling runout). Floor always applies.</div>
 </div>
 <div class="bar">
   <button onclick="sketchup.cancel()">Cancel</button>
@@ -42,6 +48,7 @@ D.sides.forEach(function(s){
   h += '</select>' + (D.selection && Math.abs(cur - D.job[s[0]]) > 0.3 ? '<small>job: '+Math.round(D.job[s[0]])+' mm</small>' : '') + '</div></div>';
 });
 document.getElementById('rows').innerHTML = D.has_runouts === false ? '' : h;
+if (D.has_runouts === false) document.getElementById('runHead').style.display = 'none';
 if (D.has_facing) {
   document.getElementById('facRow').style.display = '';
   document.getElementById('facing').value = Math.round(D.facing);
@@ -52,11 +59,15 @@ if (D.ceiling !== null && D.ceiling !== undefined) {
   document.getElementById('ceiling').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
   if (D.top_door > 0) document.getElementById('topDoor').textContent = ' Top doors ' + Math.round(D.top_door) + ' mm (Settings > Components).';
 }
+if (D.own && D.own.length) {
+  document.getElementById('ownBox').style.display = '';
+  document.getElementById('own').innerHTML = D.own.map(function(u){ return '<div class="row"><label style="font-weight:normal">' + esc(u.name) + '<br><small style="color:#6a737d;margin:0">' + esc(u.top) + '</small></label><div><input type="number" min="100" step="1" data-own="' + u.id + '" value="' + u.height + '" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"></div></div>'; }).join('');
+}
 function apply(){ var o = {};
   if (D.ceiling !== null && D.ceiling !== undefined) {
     var c = parseFloat(document.getElementById('ceiling').value);
     if (!(c > 0)) { var r = document.getElementById('ceilReq'); r.textContent = 'required - enter the ceiling height'; document.getElementById('ceiling').focus(); return; }
-    o.ceiling = c;
+    o.ceiling_height = c; // not 'ceiling': that's the ceiling runout below
   }
   if (D.has_facing) {
     var f = parseFloat(document.getElementById('facing').value);
@@ -64,6 +75,7 @@ function apply(){ var o = {};
     o.facing = f;
   }
   if (D.has_runouts !== false) D.sides.forEach(function(s){ o[s[0]] = parseFloat(document.getElementById('s_'+s[0]).value); });
+  var own = {}; Array.prototype.forEach.call(document.querySelectorAll('[data-own]'), function(i){ own[i.getAttribute('data-own')] = parseFloat(i.value); }); o.own = own;
   sketchup.apply(JSON.stringify(o)); }
 document.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && e.target.tagName !== 'BUTTON') { e.preventDefault(); apply(); } });
 </script>
