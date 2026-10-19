@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.44.2 — 2026-10-19
+- Workshop: 22mm panels (e.g. Frost White 22 mm) are on the Doors / Vinyl tab under "22mm (White Back)" - ordered with the doors, so they're out of Sheet goods and the MFC sheet count. Same in the parts list PDF.
+- Default 1000 x 2800 cut + edged colours: Cashmere, Dust Grey, Frost White, Light Grey, Lissa Oak, Opera Walnut.
+
 ## 0.44.1 — 2026-10-19
 - Door order and parts list are saved as PDF only by default (Export door order, Workshop window, and the files sent to HubSpot). Settings > Export > "Also save CSV files" turns the CSVs back on.
 

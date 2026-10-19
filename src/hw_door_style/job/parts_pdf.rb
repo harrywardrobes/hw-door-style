@@ -105,6 +105,12 @@ module HarryWardrobes
           doc.table([['#', 26, :left], ['Name', nil, :left], ['Colour', 120, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
                     vin.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], "#{f(g['thickness'])} mm", f(p['length']), f(p['width']), p['qty']] } })
         end
+        wb = d['groups'].select { |g| g['section'] == 'white_back' }
+        unless wb.empty?
+          doc.heading('22mm (White Back)', 'ordered with the doors (vinyl)')
+          doc.table([['#', 26, :left], ['Name', nil, :left], ['Colour', 120, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
+                    wb.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], f(p['length']), f(p['width']), p['qty']] } })
+        end
         strips = d['groups'].flat_map { |g| Array(g['strips']).map { |st| [g, st] } }
         unless strips.empty?
           doc.heading('Cut and edged strips', 'each part uses the next width up, packed end to end along the strip')
@@ -112,7 +118,7 @@ module HarryWardrobes
                     strips.map { |g, st| [g['material'], "#{f(g['thickness'])} mm", "#{st['width']} x #{f(st['length'])}", st['numbers'].join(', '), st['pieces'], st['count']] })
         end
         d['groups'].each do |g|
-          doc.heading("#{g['material']} - #{f(g['thickness'])} mm#{{ 'worktops' => ' (worktop)', 'vinyl' => ' (bullnose / cornice)' }[g['section']]}", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['std_ok'] ? '' : ', thickness not in the standard list'}")
+          doc.heading("#{g['material']} - #{f(g['thickness'])} mm#{{ 'worktops' => ' (worktop)', 'vinyl' => ' (bullnose / cornice)', 'white_back' => ' (white back)' }[g['section']]}", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['std_ok'] ? '' : ', thickness not in the standard list'}")
           doc.table([['#', 26, :left], ['Name', nil, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right],
                      ['Edge L1', 92, :left], ['Edge L2', 92, :left], ['Edge W1', 92, :left], ['Edge W2', 92, :left]],
                     g['parts'].map { |p| [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], p['edges']['ymin'], p['edges']['ymax'], p['edges']['xmin'], p['edges']['xmax']] })

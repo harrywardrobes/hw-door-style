@@ -12,7 +12,7 @@ module HarryWardrobes
       # Status field -> what in the model needs ordering.
       def self.needs(model, parts)
         c = HubSpotRoom.counts(model)
-        doors = Report.rows(model).size
+        doors = Report.rows(model).size + parts['groups'].select { |g| %w[vinyl white_back].include?(g['section']) }.sum { |g| g['count'].to_i }
         worktop = parts['groups'].any? { |g| g['section'] == 'worktops' }
         sheets = parts['groups'].any? { |g| g['section'] == 'sheets' }
         {

@@ -242,14 +242,16 @@ module HarryWardrobes
       # OpenCutList phase 1: a part = one definition at one size (and mirrored or not); the first
       # instance found sets its name and edges. Groups = material + standard thickness.
 
-      # Which Workshop tab a board part goes on: bullnose / cornice with the doors (vinyl),
-      # worktops (22 / 25 mm) on their own, the rest is sheet goods.
+      # Which Workshop tab a board part goes on: bullnose / cornice and 22mm (white back)
+      # panels with the doors (vinyl), worktops (22 / 25 mm) on their own, the rest is sheet goods.
       VINYL_RE = /BULLNOSE|CORNICE/i.freeze
       WORKTOP_RE = /WRKTP|WORKTOP/i.freeze
 
       def self.section_of(names, thickness, material)
         return 'vinyl' if names.any? { |n| n.to_s =~ VINYL_RE }
         return 'worktops' if names.any? { |n| n.to_s =~ WORKTOP_RE } && [22, 25].include?(thickness.to_f.round) && material.to_s !~ /\AMDF\z/i
+        # 22mm panels are white-backed vinyl, ordered with the doors.
+        return 'white_back' if thickness.to_f.round == 22 && material.to_s !~ /\AMDF\z/i
         'sheets'
       end
 
