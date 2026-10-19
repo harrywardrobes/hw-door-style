@@ -50,14 +50,35 @@ module HarryWardrobes
 
       # --- requests ---------------------------------------------------------------
 
-      def self.request(method, path, body = nil, tries: 3)
+      # Network hiccups worth another try. Some networks / security software drop a share
+      # of NEW connections straight away (ECONNRESET), so one connection is kept open and
+      # reused, and a dropped one is reopened and the call tried again.
+      NET_ERRORS = [Net::OpenTimeout, Net::ReadTimeout, SocketError, EOFError, IOError,
+                    Errno::ECONNRESET, Errno::ECONNABORTED, Errno::EPIPE, Errno::ETIMEDOUT,
+                    OpenSSL::SSL::SSLError].freeze
+
+      def self.request(method, path, body = nil, tries: 5)
         raise Error, 'No HubSpot key saved (Settings > HubSpot).' unless key?
         uri = URI("#{BASE}#{path}")
+        perform(tries) do
+          req = { get: Net::HTTP::Get, post: Net::HTTP::Post, patch: Net::HTTP::Patch }.fetch(method).new(uri)
+          req['Content-Type'] = 'application/json'
+          req.body = JSON.generate(body) if body
+          req
+        end
+      end
+
+      # Sends the request the block builds (a new one each try) on the shared connection.
+      # Returns the parsed JSON; raises HubSpot::Error with a plain-English message.
+      def self.perform(tries = 5, read_timeout: 30)
         1.upto(tries) do |attempt|
           begin
-            res = send_once(method, uri, body)
-          rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNRESET => e
-            next sleep(attempt * 1.5) if attempt < tries
+            req = yield
+            req['Authorization'] = "Bearer #{key}"
+            res = connection(read_timeout).request(req)
+          rescue *NET_ERRORS => e
+            drop_connection
+            next sleep(attempt < 3 ? 0.3 : attempt * 1.0) if attempt < tries
             raise Error, "Can't reach HubSpot (#{e.class.name.split('::').last}). Check the internet connection."
           end
           code = res.code.to_i
@@ -68,17 +89,26 @@ module HarryWardrobes
         end
       end
 
-      def self.send_once(method, uri, body)
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true
-        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        http.open_timeout = 15
-        http.read_timeout = 15
-        req = { get: Net::HTTP::Get, post: Net::HTTP::Post, patch: Net::HTTP::Patch }.fetch(method).new(uri)
-        req['Authorization'] = "Bearer #{key}"
-        req['Content-Type'] = 'application/json'
-        req.body = JSON.generate(body) if body
-        http.request(req)
+      def self.connection(read_timeout = 30)
+        if @http.nil? || !@http.started?
+          uri = URI(BASE)
+          @http = Net::HTTP.new(uri.host, uri.port)
+          @http.use_ssl = true
+          @http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+          @http.open_timeout = 15
+          @http.keep_alive_timeout = 30
+          @http.start
+        end
+        @http.read_timeout = read_timeout
+        @http
+      end
+
+      def self.drop_connection
+        @http&.finish
+      rescue StandardError
+        nil
+      ensure
+        @http = nil
       end
 
       def self.message_for(code, data)
@@ -215,29 +245,16 @@ module HarryWardrobes
         # PRIVATE: only signed-in HubSpot users can open it. (HIDDEN_PRIVATE, which HubSpot
         # itself uses for record files, is refused through the API as "Invalid JSON".)
         opts = JSON.generate(access: 'PRIVATE')
-        1.upto(3) do |attempt|
-          begin
-            res = File.open(path, 'rb') do |io|
-              http = Net::HTTP.new(uri.host, uri.port)
-              http.use_ssl = true
-              http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-              http.open_timeout = 15
-              http.read_timeout = 120
-              req = Net::HTTP::Post.new(uri)
-              req['Authorization'] = "Bearer #{key}"
-              req.set_form([['file', io, { filename: File.basename(path) }], ['folderPath', folder.to_s], ['options', opts]], 'multipart/form-data')
-              http.request(req)
-            end
-          rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNRESET => e
-            next sleep(attempt * 1.5) if attempt < 3
-            raise Error, "Can't reach HubSpot (#{e.class.name.split('::').last}). Check the internet connection."
+        data = nil
+        File.open(path, 'rb') do |io|
+          data = perform(5, read_timeout: 120) do
+            io.rewind
+            req = Net::HTTP::Post.new(uri)
+            req.set_form([['file', io, { filename: File.basename(path) }], ['folderPath', folder.to_s], ['options', opts]], 'multipart/form-data')
+            req
           end
-          code = res.code.to_i
-          next sleep(attempt * 1.5) if (code == 429 || code >= 500) && attempt < 3
-          data = (JSON.parse(res.body) rescue { 'message' => res.body.to_s[0, 200] })
-          raise Error.new(message_for(code, data), code) unless code.between?(200, 299)
-          return data['id'].to_s
         end
+        data['id'].to_s
       end
 
       def self.update_room(id, props)

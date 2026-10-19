@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.25.1 — 2026-10-19
+- Fixed: "Can't reach HubSpot (ECONNRESET)". About 1 in 4 new connections from this computer were being
+  cut off straight away (by the network or security software). The plugin now keeps one connection
+  open and reuses it, and if one drops it reconnects and tries again (up to 5 times).
+
 ## 0.25.0 — 2026-10-19
 - **Progress bars instead of "Not Responding".** Slow jobs in the HubSpot windows now run one step at a
   time with a bar along the bottom of the window saying what is happening (and "3 of 7"):
