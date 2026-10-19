@@ -16,7 +16,9 @@
   h2 { font-size:12.5px; margin:14px 0 2px; }
   .chk { display:flex; gap:6px; align-items:center; padding:3px 0; font-size:12px; }
   .chk input { width:auto; }
-  .hrow { display:grid; grid-template-columns:120px 1fr 120px 80px 34px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px solid #eceef0; font-size:11.5px; }
+  .pickers { display:flex; gap:4px; min-width:0; }
+  .pickers select { flex:1; min-width:0; }
+  .hrow { display:grid; grid-template-columns:100px 1fr 104px 72px 34px; gap:6px; align-items:center; padding:4px 0; border-bottom:1px solid #eceef0; font-size:11.5px; }
   .hrow.head { color:var(--muted); font-size:10.5px; border:0; padding-bottom:0; }
   .hrow input[readonly] { background:#f5f6f7; color:var(--muted); }
   .hrow img, .hrow .noimg { width:30px; height:30px; object-fit:contain; border:1px solid var(--line); border-radius:3px; background:#fff; }
@@ -42,7 +44,7 @@
 <div class="chk"><input type="checkbox" id="h_int"><label for="h_int">Handles on internal drawers</label></div>
 <div class="chk">Two handles on drawer fronts wider than <input type="number" id="h_width" style="width:80px"> mm</div>
 <div class="note" id="hdef"></div>
-<div class="hrow head"><span></span><span>Product</span><span>SKU</span><span>Supplier</span><span></span></div>
+<div class="hrow head"><span></span><span>Handle / knob - finish - size</span><span>SKU</span><span>Supplier</span><span></span></div>
 <div id="names"></div>
 <div class="note">Handles come from your products (Settings &gt; Products, synced with HubSpot) - <button class="link" onclick="refreshProducts()">refresh the list</button><span id="pat"></span>.
 Name, SKU and supplier go to the HubSpot Room with Send to HubSpot. Styles marked handleless count no handles.</div>
@@ -90,36 +92,64 @@ function render(){
 }
 var SUP = { main_robe_handle: 'robe_handle_supplier', drawer_handle: 'drawer_handle_supplier', interior_handle: 'interior_handle_supplier' };
 var SKU = { main_robe_handle: 'main_robe_handle_id', drawer_handle: 'drawer_handle_sku', interior_handle: 'interior_handle_sku' };
+// Each handle: N/A, or a handle / knob (range), then its finish, then its size when there's a choice.
+// Products are named "Range - Finish - Size" (Settings > Products).
+function parts(p){ var x = String(p.name).split(' - '); return { range: x[0], finish: x[1] || '', size: x.slice(2).join(' - ') }; }
+function rangesOf(k){ var r = []; D.handle_choices[k].products.forEach(function(p){ var n = parts(p).range; if (r.indexOf(n) < 0) r.push(n); }); return r.sort(function(a, b){ return a.localeCompare(b); }); }
+function inRange(k, range){ return D.handle_choices[k].products.filter(function(p){ return parts(p).range === range; }); }
+function opt(v, label, sel){ return '<option value="' + esc(v) + '"' + (sel ? ' selected' : '') + '>' + esc(label) + '</option>'; }
 function drawHandles(){
   $('pat').textContent = D.products_at ? ' (last read ' + D.products_at + ')' : ' (not read from HubSpot yet)';
   $('names').innerHTML = Object.keys(D.handle_choices).map(function(k){
-    var c = D.handle_choices[k], cur = (D.handle_products || {})[k] || '', old = D.names[k] || '';
-    var known = c.products.some(function(p){ return p.id === cur; });
-    var opts = '<option value="">-- no handle --</option>';
-    if (!known && old) { opts += '<option value="_keep" selected>' + esc(old) + ' (not a product yet)</option>'; cur = '_keep'; }
-    var by = {}, order = [];
-    c.products.forEach(function(p){ var r = String(p.name).split(' - ')[0]; if (!by[r]) { by[r] = []; order.push(r); } by[r].push(p); });
-    order.sort(function(a, b){ return a.localeCompare(b); });
-    opts += order.map(function(r){
-      return '<optgroup label="' + esc(r) + '">' + by[r].map(function(p){ var rest = String(p.name).split(' - ').slice(1).join(' - ');
-        return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>' + esc(rest || p.name) + '</option>'; }).join('') + '</optgroup>';
-    }).join('');
-    if (!c.products.length) opts += '<option disabled>No products in this category yet</option>';
-    return '<div class="hrow"><span>' + esc(c.label) + '</span><select id="hp_' + k + '" onchange="pickHandle(\'' + k + '\')">' + opts + '</select>' +
+    return '<div class="hrow"><span>' + esc(D.handle_choices[k].label) + '</span><div class="pickers"><select id="hr_' + k + '" onchange="pickRange(\'' + k + '\')"></select>' +
+      '<select id="hf_' + k + '" onchange="pickFinish(\'' + k + '\')"></select><select id="hz_' + k + '" onchange="pickHandle(\'' + k + '\')"></select></div>' +
       '<input type="text" readonly id="hs_' + k + '"><input type="text" readonly id="hsup_' + k + '"><span id="hi_' + k + '"></span></div>';
   }).join('');
-  Object.keys(D.handle_choices).forEach(pickHandle);
+  Object.keys(D.handle_choices).forEach(function(k){
+    var cur = (D.handle_products || {})[k] || '', old = D.names[k] || '';
+    var p = D.handle_choices[k].products.filter(function(x){ return x.id === cur; })[0];
+    var range = cur === '_na' || old.toLowerCase() === 'n/a' ? '_na' : (p ? parts(p).range : (old ? '_keep' : ''));
+    var r = '<option value="">-- choose --</option>' + opt('_na', 'N/A (not applicable)', range === '_na') +
+      (range === '_keep' ? opt('_keep', old + ' (not a product yet)', true) : '') +
+      rangesOf(k).map(function(n){ return opt(n, n, n === range); }).join('');
+    if (!rangesOf(k).length) r += '<option disabled>No products in this category yet</option>';
+    $('hr_' + k).innerHTML = r;
+    pickRange(k, p);
+  });
+}
+function pickRange(k, keep){
+  var range = $('hr_' + k).value, list = inRange(k, range);
+  var finishes = []; list.forEach(function(p){ var f = parts(p).finish; if (finishes.indexOf(f) < 0) finishes.push(f); });
+  var want = keep ? parts(keep).finish : (finishes.length === 1 ? finishes[0] : null);
+  $('hf_' + k).innerHTML = finishes.length ? (finishes.length > 1 ? '<option value="">-- finish --</option>' : '') + finishes.map(function(f){ return opt(f, f || '(one finish)', f === want); }).join('') : '';
+  $('hf_' + k).style.display = finishes.length && !(finishes.length === 1 && !finishes[0]) ? '' : 'none';
+  pickFinish(k, keep);
+}
+function pickFinish(k, keep){
+  var range = $('hr_' + k).value, finish = $('hf_' + k).value;
+  var list = inRange(k, range).filter(function(p){ return parts(p).finish === finish; });
+  var want = keep ? keep.id : (list.length === 1 ? list[0].id : null);
+  $('hz_' + k).innerHTML = list.length > 1 ? '<option value="">-- size --</option>' + list.map(function(p){ return opt(p.id, parts(p).size || p.name, p.id === want); }).join('') : list.map(function(p){ return opt(p.id, parts(p).size, true); }).join('');
+  $('hz_' + k).style.display = list.length > 1 ? '' : 'none';
+  pickHandle(k);
+}
+// The chosen product id, or _na / _keep / '' (none chosen yet).
+function chosen(k){
+  var r = $('hr_' + k).value;
+  if (r === '_na' || r === '_keep' || r === '') return r;
+  return $('hz_' + k).value || '';
 }
 function pickHandle(k){
-  var v = $('hp_' + k).value, p = D.handle_choices[k].products.filter(function(x){ return x.id === v; })[0];
-  var sku = p ? p.sku : (v === '_keep' ? D.names[SKU[k]] : ''), sup = p ? p.supplier : (v === '_keep' ? D.names[SUP[k]] : '');
-  $('hs_' + k).value = sku || ''; $('hsup_' + k).value = sup || '';
+  var v = chosen(k), p = D.handle_choices[k].products.filter(function(x){ return x.id === v; })[0];
+  var na = v === '_na';
+  $('hs_' + k).value = na ? 'n/a' : (p ? p.sku || '' : (v === '_keep' ? D.names[SKU[k]] || '' : ''));
+  $('hsup_' + k).value = na ? 'N/A' : (p ? p.supplier || '' : (v === '_keep' ? D.names[SUP[k]] || '' : ''));
   $('hi_' + k).innerHTML = p && p.image ? '<img src="' + esc(p.image) + '">' : '<span class="noimg" style="display:inline-block"></span>';
 }
 function refreshProducts(){ sketchup.refreshProducts(); }
 function productsRefreshed(r){
   if (r.error) { $('status').innerHTML = '<span class="err">' + esc(r.error) + '</span>'; return; }
-  var keep = {}; Object.keys(D.handle_choices).forEach(function(k){ keep[k] = $('hp_' + k).value; });
+  var keep = {}; Object.keys(D.handle_choices).forEach(function(k){ keep[k] = chosen(k); });
   D.handle_choices = r.choices; D.products_at = r.at; D.handle_products = keep; drawHandles();
   $('status').textContent = 'Products read from HubSpot.';
 }
@@ -129,7 +159,9 @@ function apply(){
   var o = { styles: {}, hinge: $('hinge').value, reset: !!($('reset') && $('reset').checked),
             handles: { handles_on_pto_doors: $('h_pto').checked, handles_on_internal_drawers: $('h_int').checked, handle_double_min_width_mm: w }, names: {} };
   D.rows.forEach(function(r){ o.styles[r[0]] = $('sty_' + r[0]).value; });
-  o.handle_products = {}; Object.keys(D.handle_choices).forEach(function(k){ o.handle_products[k] = $('hp_' + k).value; });
+  o.handle_products = {}; var half = [];
+  Object.keys(D.handle_choices).forEach(function(k){ o.handle_products[k] = chosen(k); if ($('hr_' + k).value && !chosen(k)) half.push(D.handle_choices[k].label); });
+  if (half.length) { $('status').innerHTML = '<span class="err">Choose the finish / size for: ' + esc(half.join(', ')) + '</span>'; return; }
   $('status').textContent = '';
   sketchup.apply(JSON.stringify(o));
 }

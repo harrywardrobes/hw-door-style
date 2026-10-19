@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.32.0 — 2026-10-19
+- **Handles can be N/A** on the Door style window (Robe, Drawer and Interior handle). N/A sends "n/a" as the
+  handle name and SKU, N/A as the supplier, and 0 as the quantity to the HubSpot Room; the door summary
+  counts no handles for it either.
+- **Handle pickers go Handle / knob, then Finish, then Size** - only the finishes (and sizes) that product
+  actually comes in are offered. Size only shows when a finish comes in more than one size. Apply won't
+  run until the finish/size is chosen.
+- Handles4u added to the product Supplier list; Handles4u and N/A added to the Room handle-supplier fields.
+
 ## 0.31.0 — 2026-10-19
 - **Products are grouped by range: Range - Finish - Size** (e.g. "Venice Handle - Aged Brass - 128mm").
   - Import from supplier works out the range, finish and size of every item (HPP from its tables; others from

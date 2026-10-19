@@ -16,7 +16,7 @@ module HarryWardrobes
       PROPS = %w[name hs_sku price hs_cost_of_goods_sold hs_url hs_product_type hs_images description
                  supplier product_category].freeze
 
-      SUPPLIERS = %w[Integral HPP Interfit].freeze
+      SUPPLIERS = %w[Integral HPP Interfit Handles4u].freeze
       CATEGORIES = ['Robe handle', 'Drawer handle', 'Interior handle', 'Hinge', 'TIP-ON', 'Drawer box',
                     'Drawer runner', 'Mirror', 'Cable outlet', 'Other hardware'].freeze
 
@@ -57,10 +57,19 @@ module HarryWardrobes
                                                         description: 'Where it can be chosen in SketchUp (HW Door Style)' })
           made << 'Product: Category'
         end
-        rooms = HubSpot.get('/crm/v3/properties/listings')['results'].map { |p| p['name'] }
-        sup = supplier_options
+        rooms = HubSpot.get('/crm/v3/properties/listings')['results'].to_h { |p| [p['name'], p] }
+        sup = supplier_options + [['N/A', 'na']]
         ROOM_SUPPLIER.each_value do |name, label|
-          next if rooms.include?(name)
+          if (have_room = rooms[name])
+            # Suppliers added to the product field in HubSpot are added here too (and N/A).
+            opts = Array(have_room['options']).map { |o| o.slice('label', 'value', 'displayOrder', 'hidden') }
+            extra = sup.reject { |_l, v| opts.any? { |o| o['value'] == v } }
+            next if extra.empty?
+            extra.each { |l, v| opts << { 'label' => l, 'value' => v, 'displayOrder' => opts.size, 'hidden' => false } }
+            HubSpot.patch("/crm/v3/properties/listings/#{name}", { options: opts })
+            made << "Room: #{label} (+#{extra.map(&:first).join(', ')})"
+            next
+          end
           HubSpot.post('/crm/v3/properties/listings', { name: name, label: label, type: 'enumeration', fieldType: 'select',
                                                         groupName: 'listing_information', description: 'Filled from the product (HW Door Style)',
                                                         options: sup.each_with_index.map { |(l, v), i| { label: l, value: v, displayOrder: i } } })
@@ -128,6 +137,7 @@ module HarryWardrobes
       end
 
       def self.supplier_label(value)
+        return 'N/A' if value.to_s == 'na'
         hit = Array(local.dig('options', 'suppliers')).find { |_l, v| v == value.to_s }
         hit ? hit[0] : value.to_s
       end

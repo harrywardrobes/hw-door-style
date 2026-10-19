@@ -19,6 +19,14 @@ module HarryWardrobes
         ['int_drawer', 'Internal drawers', 'Internal drawer fronts - usually Flat']
       ].freeze
 
+      NA = 'n/a'.freeze
+      NA_SUPPLIER = 'na'.freeze # the Room supplier fields' "N/A" choice
+
+      # Is this handle set to N/A (no handle there)? key: main_robe_handle / drawer_handle / interior_handle
+      def self.na?(key, model = Sketchup.active_model)
+        handle_names(model)[key].to_s.strip.casecmp?(NA)
+      end
+
       HANDLE_NAMES = [
         ['main_robe_handle', 'Robe handle'], ['main_robe_handle_id', 'Robe handle SKU'],
         ['drawer_handle', 'Drawer handle'], ['drawer_handle_sku', 'Drawer handle SKU'],
@@ -75,7 +83,11 @@ module HarryWardrobes
           sku_key = HANDLE_NAMES.map(&:first)[HANDLE_NAMES.map(&:first).index(key) + 1]
           sup_key = HubSpotProducts::ROOM_SUPPLIER[key][0]
           id = picks[key].to_s
-          if id == '_keep'
+          if id == '_na'
+            out[key] = 'n/a'
+            out[sku_key] = 'n/a'
+            out[sup_key] = NA_SUPPLIER
+          elsif id == '_keep'
             [key, sku_key, sup_key].each { |k| out[k] = old[k].to_s }
           elsif (p = HubSpotProducts.find(id))
             out[key] = p['name'].to_s

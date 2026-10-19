@@ -19,6 +19,9 @@ module HarryWardrobes
         rows = []
         pto = Settings.pto?(Settings.job_hinge_type(model))
         rules = Settings.job_handles(model)
+        # Handles set to N/A in the Door style window count none.
+        none = { door: DoorStyleWindow.na?('main_robe_handle', model), ext_drawer: DoorStyleWindow.na?('drawer_handle', model),
+                 int_drawer: DoorStyleWindow.na?('interior_handle', model) }
         Finder.each_occurrence(model.entities) do |inst, kind, path|
           d = inst.definition
           w, _t, h = Finder.real_size(inst)
@@ -40,7 +43,7 @@ module HarryWardrobes
             'midrail' => d.get_attribute(DICT, 'midrail') ? 'Yes' : '',
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
-            'handles' => Settings.handle_count(kind, w, pto, rules: rules,
+            'handles' => none[kind] ? 0 : Settings.handle_count(kind, w, pto, rules: rules,
                                                 handleless: Styles.handleless?(d.get_attribute(DICT, 'requested_style') || style || 'flat')),
             'notes' => notes.reject(&:empty?).join('; ')
           }
