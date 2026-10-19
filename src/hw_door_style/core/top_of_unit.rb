@@ -22,15 +22,30 @@ module HarryWardrobes
         s.gsub(/[^A-Za-z0-9]/) { |c| format('%%%02X', c.ord) }
       end
 
-      def self.options_s
-        '&' + OPTIONS.map { |l, v| "#{enc(l)}=#{v}" }.join('&') + '&'
+      # The options a component can offer: Scribed To Ceiling needs its "Up to ceiling"
+      # switch, No Upper Facing its "Topped off?" switch (a unit with only one of them gets two).
+      def self.choices(tk, uk)
+        OPTIONS.select { |_l, v| (v != SCRIBED || uk) && (v != NO_FACING || tk) }
       end
 
+      def self.options_s(list = OPTIONS)
+        '&' + list.map { |l, v| "#{enc(l)}=#{v}" }.join('&') + '&'
+      end
+
+      TOPPED_RE = /\A(?:[a-z]\d\d_)?topped(?:_off)?\z/.freeze
+      UP_RE = /\A(?:[a-z]\d\d_)?up_to_ceiling\z/.freeze
+
+      # [topped key or nil, up to ceiling key or nil, dropdown key], or nil if the
+      # component has neither switch. The dropdown sits where the old switch was
+      # (same section prefix).
       def self.keys_of(dict)
         return nil unless dict
-        t = dict.keys.find { |k| k =~ /\A[a-z]\d\d_topped\z/ }
-        u = dict.keys.find { |k| k =~ /\A[a-z]\d\d_up_to_ceiling\z/ }
-        t && u ? [t, u, t.sub('topped', 'top_of_unit')] : nil
+        ks = dict.keys
+        t = ks.find { |k| k =~ TOPPED_RE }
+        u = ks.find { |k| k =~ UP_RE }
+        return nil unless t || u
+        n = t ? t.sub(/topped(?:_off)?\z/, 'top_of_unit') : u.sub(/up_to_ceiling\z/, 'top_of_unit')
+        [t, u, n]
       end
 
       def self.keys(inst)
@@ -41,12 +56,12 @@ module HarryWardrobes
         !v.nil? && !%w[FALSE 0 NO].include?(v.to_s.strip.upcase) && !v.to_s.strip.empty?
       end
 
-      # The setting from the old two (instance value first, then the definition's).
+      # The setting from the old switches (instance value first, then the definition's).
       def self.from_old(inst, tk, uk)
         defn = inst.respond_to?(:definition) ? inst.definition : nil
-        read = ->(k) { inst.get_attribute(D, k, defn ? defn.get_attribute(D, k) : nil) }
-        return NO_FACING if truthy?(read.call(tk))
-        truthy?(read.call(uk)) ? SCRIBED : CUSTOM
+        read = ->(k) { k && inst.get_attribute(D, k, defn ? defn.get_attribute(D, k) : nil) }
+        return NO_FACING if tk && truthy?(read.call(tk))
+        uk && truthy?(read.call(uk)) ? SCRIBED : CUSTOM
       end
 
       # 1 / 2 / 3, or nil if the unit has neither switch.
@@ -60,21 +75,35 @@ module HarryWardrobes
         OPTIONS.find { |_l, v| v == choice }&.first
       end
 
+      # An old switch still showing in Component Options (parts inside a unit carry
+      # hidden copies that follow the unit - those are left alone).
+      def self.shown?(defn, k)
+        k && %w[LIST TEXTBOX].include?(defn.get_attribute(D, "_#{k}_access").to_s.upcase)
+      end
+
+      def self.needs_upgrade?(defn)
+        tk, uk, = keys_of(defn.attribute_dictionary(D))
+        shown?(defn, tk) || shown?(defn, uk)
+      end
+
       # Turns one definition over to the dropdown. Returns true if it changed.
       def self.upgrade_definition(defn)
+        return false unless needs_upgrade?(defn)
         d = defn.attribute_dictionary(D)
         tk, uk, nk = keys_of(d)
-        return false unless nk
-        return false if defn.get_attribute(D, "_#{nk}_access") == 'LIST' && defn.get_attribute(D, "_#{tk}_access") == 'NONE'
         up = nk.upcase
         defn.set_attribute(D, nk, from_old(defn, tk, uk).to_s) if defn.get_attribute(D, nk).nil?
-        { 'access' => 'LIST', 'formlabel' => LABEL, 'label' => up, 'options' => options_s, 'units' => 'STRING', 'formulaunits' => 'STRING' }.each do |m, v|
+        { 'access' => 'LIST', 'formlabel' => LABEL, 'label' => up, 'options' => options_s(choices(tk, uk)), 'units' => 'STRING', 'formulaunits' => 'STRING' }.each do |m, v|
           defn.set_attribute(D, "_#{nk}_#{m}", v)
         end
-        defn.set_attribute(D, "_#{tk}_formula", "IF(#{up}=#{NO_FACING}, 1, 0)")
-        defn.set_attribute(D, "_#{tk}_access", 'NONE')
-        defn.set_attribute(D, "_#{uk}_formula", %(IF(#{up}=#{SCRIBED}, "TRUE", "FALSE")))
-        defn.set_attribute(D, "_#{uk}_access", 'NONE')
+        if tk
+          defn.set_attribute(D, "_#{tk}_formula", "IF(#{up}=#{NO_FACING}, 1, 0)")
+          defn.set_attribute(D, "_#{tk}_access", 'NONE')
+        end
+        if uk
+          defn.set_attribute(D, "_#{uk}_formula", %(IF(#{up}=#{SCRIBED}, "TRUE", "FALSE")))
+          defn.set_attribute(D, "_#{uk}_access", 'NONE')
+        end
         # The height box: plain words (it's the unit's height whichever option is chosen).
         hk = d.keys.find { |k| k =~ /\A[a-z]\d\d_frame_height_ceiling\z/ }
         defn.set_attribute(D, "_#{hk}_formlabel", 'Height (mm)') if hk
@@ -85,7 +114,7 @@ module HarryWardrobes
       # Returns the number of units changed.
       def self.upgrade(model = Sketchup.active_model)
         ComponentFixes.apply(model) if defined?(ComponentFixes)
-        todo = model.definitions.select { |dfn| (ks = keys_of(dfn.attribute_dictionary(D))) && dfn.get_attribute(D, "_#{ks[0]}_access") != 'NONE' }
+        todo = model.definitions.reject(&:image?).select { |dfn| needs_upgrade?(dfn) }
         return 0 if todo.empty?
         n = 0
         Ops.run(model, 'Top of unit (upgrade)', transparent: true) do

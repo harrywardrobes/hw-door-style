@@ -631,6 +631,21 @@ check 'old switches -> Top of unit', TU.from_old(TUFake.new('i04_topped' => '0',
   TU.from_old(TUFake.new('i04_topped' => '0', 'i05_up_to_ceiling' => 'FALSE'), 'i04_topped', 'i05_up_to_ceiling') == TU::CUSTOM &&
   TU.from_old(TUFake.new('i04_topped' => '1', 'i05_up_to_ceiling' => 'TRUE'), 'i04_topped', 'i05_up_to_ceiling') == TU::NO_FACING
 check 'Top of unit options encoded for the DC list', TU.options_s == '&Scribed%20To%20Ceiling=1&Custom%20Scribe%20Height%20%28Lower%20Section%29=2&No%20Upper%20Facing=3&'
+class TUDict
+  def initialize(keys); @keys = keys; end
+  attr_reader :keys
+end
+check 'Top of unit keys: both switches, one switch, unprefixed', TU.keys_of(TUDict.new(%w[i04_topped i05_up_to_ceiling])) == ['i04_topped', 'i05_up_to_ceiling', 'i04_top_of_unit'] &&
+  TU.keys_of(TUDict.new(%w[b02_up_to_ceiling lenx])) == [nil, 'b02_up_to_ceiling', 'b02_top_of_unit'] &&
+  TU.keys_of(TUDict.new(%w[topped_off])) == ['topped_off', nil, 'top_of_unit'] && TU.keys_of(TUDict.new(%w[lenx])).nil?
+check 'one switch only: two options (no option that does nothing)', TU.choices(nil, 'u').map(&:last) == [1, 2] && TU.choices('t', nil).map(&:last) == [2, 3] && TU.choices('t', 'u').size == 3
+check 'one switch only: setting read from it', TU.from_old(TUFake.new('b02_up_to_ceiling' => 'TRUE'), nil, 'b02_up_to_ceiling') == TU::SCRIBED &&
+  TU.from_old(TUFake.new('topped' => '1'), 'topped', nil) == TU::NO_FACING && TU.from_old(TUFake.new('topped' => '0'), 'topped', nil) == TU::CUSTOM
+class TUDefn
+  def initialize(h); @h = h; end
+  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
+end
+check 'only switches still showing are upgraded (hidden copies in parts left alone)', TU.shown?(TUDefn.new('_a_access' => 'LIST'), 'a') && !TU.shown?(TUDefn.new('_a_access' => 'NONE'), 'a') && !TU.shown?(TUDefn.new({}), 'a') && !TU.shown?(TUDefn.new({}), nil)
 check 'scribe window sends ceiling height apart from the ceiling runout', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.ceiling_height = c')
 
 puts "\n== Component fixes"
