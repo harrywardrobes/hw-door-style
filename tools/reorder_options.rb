@@ -209,8 +209,11 @@ module HWReorder
           end
         end
       end
-      # Parts anywhere inside the unit that name it directly (INT_DRAWER!FLLR_RIGHT).
+      # Parts anywhere inside the unit that name it directly (INT_DRAWER!FLLR_RIGHT),
+      # and the unit naming itself (TOPBOX!SH_NO in TOPBOX - missed in V20, fixed in V22).
       names = ([d.name.sub(/#\d+\z/, '')] + objs(d).map { |o| dict(o)&.[]('_name').to_s }).reject(&:empty?).uniq
+      self_n = objs(d).sum { |o| names.sum { |nm| rewrite_named(o, renames, nm) } }
+      log[:named_refs] << "#{d.name} (itself):#{self_n}" if self_n.positive?
       each_descendant(d) do |dsc|
         n = objs(dsc).sum do |o|
           names.sum { |nm| rewrite_named(o, renames, nm) }
