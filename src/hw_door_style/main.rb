@@ -21,7 +21,7 @@ module HarryWardrobes
       core/log core/settings core/dc core/finder core/ops core/drawers
       doors/styles doors/tagger doors/hardware doors/drawer_box doors/converter doors/repair doors/actions
       colours/colours
-      job/runouts job/ceiling job/standardise job/pencil job/pdf job/report
+      job/runouts job/ceiling job/facing job/standardise job/pencil job/pdf job/report
       export/library_export export/opencutlist
       ui/dialog core/batch core/updater ui/colours_window ui/settings_window
       dev/acceptance dev/developer ui/menus

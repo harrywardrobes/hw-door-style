@@ -228,6 +228,10 @@
     </div>
     <div class="hint">Defaults used the first time the pencil is pressed on a job (mm).</div>
   </fieldset>
+  <fieldset><legend>Bottom facing</legend>
+    <div class="f" style="grid-template-columns:190px 80px"><span>Default bottom facing (mm)</span><input type="number" id="facing_bottom_mm"></div>
+    <div class="hint">Plinth height under the units, used until a job sets its own in the pencil window. One unit can differ: right-click it > HW Door Style > Runouts / bottom facing.</div>
+  </fieldset>
   <fieldset><legend>Ceiling height</legend>
     <div class="hint" style="margin-top:0">Set per job, in the pencil window or with the ceiling button, and applied to every unit set "Up to ceiling". Top door height is under Components.</div>
   </fieldset>
@@ -328,7 +332,7 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
-var NUMS = ['door_frame_mm','drawer_stile_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm'];
+var NUMS = ['door_frame_mm','drawer_stile_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
 var GROUPS = ['door','exterior','interior','worktop'];
@@ -445,6 +449,7 @@ function problems(){
   need('hinges', 'handle_double_min_width_mm', num('handle_double_min_width_mm') > 0, 'Enter a width');
   need('units', 'top_door_height_mm', num('top_door_height_mm') >= 100 && num('top_door_height_mm') <= 1500, 'Top door height must be 100-1500 mm');
   need('colours', 'panel_22_mm', num('panel_22_mm') > 0, 'Enter the panel thickness');
+  need('scribe', 'facing_bottom_mm', num('facing_bottom_mm') >= 0 && num('facing_bottom_mm') <= 300, 'Bottom facing must be 0-300 mm');
   var vals = $('runout_values_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
   need('scribe', 'runout_values_mm', vals.length > 0, 'Enter at least one runout value');
   SIDES.forEach(function(k){
@@ -536,7 +541,7 @@ function textureChosen(i, name, img){ var c = LIB[i]; if (!c) return; c.texture 
 function renderInfo(){
   var j = S._job || {};
   $('jobInfo').innerHTML = 'This job' + (j.title ? ' (' + esc(j.title) + ')' : '') + ': scribes <b>' + (j.scribes_on ? 'on' : 'off') + '</b>, ceiling <b>' +
-    (j.ceiling > 0 ? Math.round(j.ceiling) + ' mm' : 'not set') + '</b>, ' + (j.units || 0) + ' units with runouts.';
+    (j.ceiling > 0 ? Math.round(j.ceiling) + ' mm' : 'not set') + '</b>, bottom facing <b>' + Math.round(j.facing || 0) + ' mm</b>, ' + (j.units || 0) + ' units with runouts.';
   renderOcl(S._ocl || {});
   $('verLine').textContent = 'HW Door Style ' + (S._version || '') + ' - Harry Wardrobes (Gautier Design Ltd)';
   $('news').innerHTML = (S._whats_new || []).map(function(e){

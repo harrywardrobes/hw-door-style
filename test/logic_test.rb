@@ -441,5 +441,15 @@ Dir.mktmpdir do |d|
   check 'missing folder: nothing offered', Updater.latest(File.join(d, 'nope')).nil? && Updater.latest('').nil?
 end
 
+# --- bottom facing (0.19) ---
+require 'hw_door_style/job/facing'
+check 'bottom facing default 79', Facing.default_mm == 79.0
+fw = FDcInst.new({ 'd01_facing_btm' => (79 / 25.4).to_s }, {})
+check 'facing read (prefixed)', Facing.of(fw) == 79.0
+check 'facing set keeps text', Facing.set(fw, 100) && fw.attrs['d01_facing_btm'].is_a?(String) && Facing.of(fw) == 100.0 && !Facing.set(fw, 100)
+fb = FDcInst.new({ 'facing_btm' => 79 / 25.4 }, {})
+check 'facing set keeps number (unprefixed key)', Facing.set(fb, 90) && fb.attrs['facing_btm'].is_a?(Float) && Facing.of(fb) == 90.0
+check 'no facing option: untouched', !Facing.set(FDcInst.new({ 'a01_frame_width' => 1.0 }, {}), 90)
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

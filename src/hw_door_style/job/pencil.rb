@@ -63,36 +63,45 @@ module HarryWardrobes
         on?(model) ? Runouts.all_off(model) : show(model, nil)
       end
 
-      # Window: every unit (targets nil) or just the selected units.
+      # Window: every unit (targets nil) or just the selected units. Runouts,
+      # bottom facing and (every unit only) the ceiling height.
       def self.show(model, targets)
         return unless Standardise.ready?(model)
         sel = targets && !targets.empty?
+        units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities))
         job = Runouts.job_values(model)
-        cur = sel ? Runouts::SIDES.to_h { |s, _, _| [s, Runouts.mm_of(targets.first, s) || job[s]] } : job
+        first_r = units.find { |u| Runouts.unit?(u) }
+        first_f = units.find { |u| Facing.has?(u) }
+        cur = sel && first_r ? Runouts::SIDES.to_h { |s, _, _| [s, Runouts.mm_of(first_r, s) || job[s]] } : job
+        label = sel ? (targets.size == 1 ? Finder.label(targets.first) : "#{targets.size} selected units") : nil
         data = {
-          'title' => sel ? "Runouts - #{targets.size == 1 ? Finder.label(targets.first) : "#{targets.size} selected units"}" : 'Scribes on - runouts for every unit',
+          'title' => sel ? "Runouts & bottom facing - #{label}" : 'Scribes on - runouts for every unit',
           'selection' => sel ? true : false,
           'sides' => Runouts::SIDES.map { |s, _, l| [s, l.sub(/\ARunout - /, '').sub(' (mm)', '')] },
           'values' => [0.0] + Runouts.values_list, 'current' => cur, 'job' => job,
+          'has_runouts' => !first_r.nil?, 'has_facing' => !first_f.nil?,
+          'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
           'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm
         }
-        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe', width: 380, height: 360,
+        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe', width: 380, height: 400,
                                     data: data, resizable: false, scrollable: false)
         dlg.add_action_callback('apply') do |_c, json|
           raw = JSON.parse(json)
           ceil = raw['ceiling'].to_f
-          v = raw.transform_values(&:to_f).slice(*Runouts::KEYS.keys)
+          facing = raw.key?('facing') ? raw['facing'].to_f : nil
+          v = data['has_runouts'] ? raw.transform_values(&:to_f).slice(*Runouts::KEYS.keys) : nil
           dlg.close
           if sel
-            Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts updated on #{targets.size} unit(s).")
+            Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / bottom facing updated on #{targets.size} unit(s).", facing: facing)
           else
-            Runouts.apply(model, Runouts.units(model.entities), v, 'Scribes on',
-                          "Scribes on: #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm. Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm.",
-                          ceiling: ceil,
+            Runouts.apply(model, units, v, 'Scribes on',
+                          "Scribes on: #{v ? Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ') + ' mm. ' : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm.",
+                          ceiling: ceil, facing: facing,
                           before: lambda {
                             model.set_attribute(DICT, 'scribe_on', true)
-                            model.set_attribute(DICT, 'scribe_values', JSON.generate(v))
+                            model.set_attribute(DICT, 'scribe_values', JSON.generate(v)) if v
                             model.set_attribute(DICT, 'ceiling_mm', ceil)
+                            model.set_attribute(DICT, 'facing_btm_mm', facing) if facing
                           })
           end
         end

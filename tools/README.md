@@ -21,6 +21,7 @@ undo step**: call it inside yours (or inside one you abort, to try it).
 | `reorder_options.rb` | Components V19 → V20 | Section prefixes (`a01_` … `j05_`) so Component Options lists sections in order; formulas and `NAME!X` references rewritten. |
 | `div_runouts.rb` | Components V20 | Dividers / end panels take the floor and ceiling runouts as well as back. |
 | `ceiling_switch.rb` | Components V20 | `i05_up_to_ceiling` on every unit with a height; `a03_height_below` on BRIDGE_FRAME (removed again in V21). |
+| `hide_facing_bottom.rb` | Components V22 | The bottom facing option ("bottom", d01_facing_btm) hidden in Component Options on every component, plus FACING section headers left empty (BOX_SHELF, BXEND, EXT_DRAWER). Set in the pencil window from 0.19. |
 | `bridge_door_height.rb` | Components V21 | BRIDGE_FRAME built from "Top door height" (b02, 460): height = door + facing top + gaps, top at "Ceiling height" (a02) by a Z formula; "Height below bridge" removed. BRIDGE_SKELETON gets the same options and sits under the frame. |
 
 Before running any of them on a library: `model.save_copy` first.

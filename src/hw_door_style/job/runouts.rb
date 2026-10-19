@@ -75,14 +75,16 @@ module HarryWardrobes
       # Yields each outermost unit (looking inside groups and plain components).
       # Definitions with no units inside are remembered for the rest of the
       # walk, so repeated parts (hinges, shelves, drawer boxes) are looked into once.
-      def self.each_unit(entities, &blk)
+      # is_unit: which instances count (default: has runout options).
+      def self.each_unit(entities, is_unit = nil, &blk)
+        is_unit ||= method(:unit?)
         empty = {}
         walk = lambda do |ents|
           any = false
           ents.each do |e|
             next unless e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)
             defn = e.definition
-            if e.is_a?(Sketchup::ComponentInstance) && unit?(e)
+            if e.is_a?(Sketchup::ComponentInstance) && is_unit.call(e)
               any = true
               blk.call(e)
             elsif !empty[defn]
@@ -145,12 +147,12 @@ module HarryWardrobes
           next if v.nil? || (v - exp[s]).abs <= TOL
           "#{s} #{v.round}mm (job #{exp[s].round})"
         end
-        out.concat(Ceiling.differences(inst, model))
+        out.concat(Ceiling.differences(inst, model)).concat(Facing.differences(inst, model))
       end
 
       # Every unit that differs from the job: [[label, [differences]]].
       def self.report(model = Sketchup.active_model)
-        units(model.entities).filter_map do |u|
+        (units(model.entities) | Facing.units(model.entities)).filter_map do |u|
           d = differences(u, model)
           [Finder.label(u), d] unless d.empty?
         end
@@ -160,10 +162,12 @@ module HarryWardrobes
 
       # Applies values (and optionally the ceiling height) to units, one undo
       # step with a progress window. values: { side => mm } or nil.
-      def self.apply(model, units, values, title, done_msg, before: nil, ceiling: nil)
+      # facing: bottom facing (mm) for units that have the option.
+      def self.apply(model, units, values, title, done_msg, before: nil, ceiling: nil, facing: nil)
         return UI.messagebox('No units with runout settings found.') if units.empty?
         Batch.run(model, units, title, done: done_msg, before: before) do |inst|
           changed = values ? set(inst, values) : false
+          changed = Facing.set(inst, facing) || changed if facing
           # The ceiling step redraws itself; otherwise redraw once for the runouts.
           changed = false if ceiling && Ceiling.apply_to(inst, ceiling)
           if changed

@@ -14,7 +14,7 @@ module HarryWardrobes
       MM = 25.4
       TOL = 0.11 # mm
 
-      SUITES = %w[doors runouts ceiling colours cutlist export].freeze
+      SUITES = %w[doors runouts facing ceiling colours cutlist export].freeze
 
       def self.mm(v) = v.to_f * MM
 
@@ -189,6 +189,29 @@ module HarryWardrobes
             b = start[u][0]
             same = a.zip(b).all? { |x, y| (x - y).abs <= 0.5 }
             rows << row('runouts', Finder.label(u), 'back to the start exactly', same, same ? '' : "#{b} -> #{a}")
+          end
+        end
+        rows
+      end
+
+      # --- bottom facing: every unit takes 120mm and goes back exactly ---------------
+
+      def self.suite_facing(model)
+        rows = []
+        units = Facing.units(model.entities)
+        return [row('facing', 'model', 'units with a bottom facing', true, 'none - skipped')] if units.empty?
+        Ops.throwaway(model, 'HW tests: bottom facing (discarded)') do
+          start = units.to_h { |u| [u, [bounds_mm(u), Facing.of(u)]] }
+          units.each { |u| Facing.set(u, 120.0); Drawers.close(u.definition.entities); DC.redraw(u) }
+          units.each do |u|
+            errs = formula_errors([u])
+            rows << row('facing', Finder.label(u), 'bottom facing 120 mm', errs.empty? && (Facing.of(u) - 120).abs < 0.5,
+                        errs.empty? ? (bounds_mm(u) == start[u][0] ? 'no size change' : 'redrawn') : errs.join(', '))
+          end
+          units.each { |u| Facing.set(u, start[u][1]); Drawers.close(u.definition.entities); DC.redraw(u) }
+          units.each do |u|
+            same = bounds_mm(u).zip(start[u][0]).all? { |x, y| (x - y).abs <= 0.5 }
+            rows << row('facing', Finder.label(u), 'back to the start exactly', same)
           end
         end
         rows

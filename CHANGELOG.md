@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.19.0 — 2026-10-19
+- **Bottom facing (plinth) is a job value**, like the ceiling height: set it in the pencil
+  window for every unit (default 79 mm, Settings > Scribe & ceiling).
+  - One unit different: right-click it > HW Door Style > Runouts / bottom facing.
+  - Works on every component with the option, including internal drawers and the shoe pull-out.
+  - The door summary flags a unit whose bottom facing differs from the job.
+- Component library (Components V22): the "bottom" option is hidden in Component Options on
+  every component (the value stays, so formulas keep working).
+- New test suite: bottom facing (every unit takes 120 mm and goes back exactly).
+- First version delivered through the updates folder.
+
 ## 0.18.0 — 2026-10-19
 - **Updates without uninstalling or restarting**: Settings > General > Updates.
   - New versions are saved to the updates folder on Google Drive

@@ -36,7 +36,7 @@ module HarryWardrobes
 
       def self.job_info(model)
         { 'title' => File.basename(model.path.to_s, '.skp'), 'scribes_on' => Pencil.on?(model),
-          'ceiling' => Ceiling.mm(model), 'units' => Runouts.units(model.entities).size }
+          'ceiling' => Ceiling.mm(model), 'facing' => Facing.mm(model), 'units' => Runouts.units(model.entities).size }
       rescue StandardError
         {}
       end
