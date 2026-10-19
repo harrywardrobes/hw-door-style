@@ -214,7 +214,8 @@ module HarryWardrobes
 
       # root:   entities to walk (default the whole model); an instance is painted too.
       # record: store the choices on the model as the job's colours.
-      def self.apply(model, choices, root: nil, record: true, plain: false)
+      # dry:    change nothing; count only the parts that would change.
+      def self.apply(model, choices, root: nil, record: true, plain: false, dry: false)
         tags = group_tags
         lookup = {}
         tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
@@ -237,14 +238,18 @@ module HarryWardrobes
           gid = 'panels_22' if gid != 'door' && gid != 'drawer_box' && choices.key?('panels_22') && panel_22?(inst)
           next unless gid && choices.key?(gid)
           mat = mats[gid]
-          inst.material = mat unless inst.material == mat
           dc = inst.attribute_dictionary('dynamic_attributes')
-          if dc && dc.keys.include?('material') && !dc['_material_formula'].to_s.strip.start_with?('=')
-            inst.set_attribute('dynamic_attributes', 'material', mat ? mat.name : '')
+          dc_mat = dc && dc.keys.include?('material') && !dc['_material_formula'].to_s.strip.start_with?('=')
+          if dry
+            want = mat ? mat.name : ''
+            counts[gid] += 1 if inst.material != mat || (dc_mat && dc['material'].to_s != want)
+            next
           end
+          inst.material = mat unless inst.material == mat
+          inst.set_attribute('dynamic_attributes', 'material', mat ? mat.name : '') if dc_mat
           counts[gid] += 1
         end
-        choices.each { |gid, name| model.set_attribute(DICT, "colour_#{gid}", name) } if record
+        choices.each { |gid, name| model.set_attribute(DICT, "colour_#{gid}", name) } if record && !dry
         counts
       end
 

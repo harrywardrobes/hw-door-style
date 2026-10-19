@@ -8,6 +8,9 @@
   body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:12px 14px 70px; }
   .sub { color:#6a737d; font-size:11px; margin-bottom:8px; }
   .clean { display:flex; align-items:center; gap:10px; padding:8px 10px; background:#f4f6f5; border:1px solid #dfe5e2; border-radius:4px; margin-bottom:8px; }
+  .cstate { font-size:11.5px; padding:5px 10px; border-radius:4px; margin:-4px 0 8px; }
+  .cstate.no { background:#fdf1f0; color:#a33; border:1px solid #efc9c5; }
+  .cstate.yes { background:#eef6f1; color:#2c6b47; border:1px solid #cfe3d6; }
   .clean .txt { flex:1; color:#3b4a44; font-size:11.5px; }
   .note { display:none; margin:0 0 8px; padding:7px 10px; border-radius:4px; background:#eef6f1; border:1px solid #cfe3d7; color:#24493a; font-size:11.5px; }
   .note.err { background:#fbefe8; border-color:#efcdb9; color:#7a3412; }
@@ -37,11 +40,12 @@
 <h1>Export components</h1>
 <div class="sub" id="sub"></div>
 
-<div class="clean">
+<div class="clean" id="cleanBox">
   <div class="txt"><b>1. Clean model first</b> - sets every colour to Default and closes open drawers, so you can check it all before exporting. One undo step.
     <label style="display:inline-flex;gap:4px;margin-left:6px" id="purgeLbl"><input type="checkbox" id="purge"> <span id="purgeTxt"></span></label></div>
   <button onclick="clean()">Clean model</button>
 </div>
+<div class="cstate" id="cstate"></div>
 <div class="note" id="note"></div>
 
 <table>
@@ -56,7 +60,7 @@
   <label title="Saves this library file as the next version and moves the older ones to the old folder"><input type="checkbox" id="saveMaster" checked> <span id="masterTxt"></span></label>
   <span style="flex:1"></span>
   <button onclick="sketchup.close()">Close</button>
-  <button onclick="go(true)">Export all</button>
+  <button id="goAll" onclick="go(true)">Export all</button>
   <button class="primary" id="goSel" onclick="go(false)">Export selected</button>
 </div>
 
@@ -75,6 +79,12 @@ function load(d){
   $('purgeTxt').textContent = 'Also purge unused components (' + n + ') - materials are kept';
   $('purgeLbl').title = n ? ('Will remove: ' + u.components.join(', ')) : 'Nothing unused';
   $('purge').disabled = n === 0;
+  var c = d.clean || { ok: true };
+  $('cstate').className = 'cstate ' + (c.ok ? 'yes' : 'no');
+  $('cstate').textContent = c.ok ? 'Model is clean - every colour Default, every drawer closed. Ready to export.'
+    : 'Not clean yet: ' + [c.painted ? c.painted + ' part(s) still have a colour' : '', c.open ? c.open + ' drawer(s) open' + (c.open_names && c.open_names.length ? ' (' + c.open_names.join(', ') + ')' : '') : ''].filter(Boolean).join(', ') + '. Export is locked until you press Clean model.';
+  $('goAll').disabled = $('goSel').disabled = !c.ok;
+  $('goAll').title = $('goSel').title = c.ok ? '' : 'Clean the model first';
   var h = '';
   d.rows.forEach(function(r){
     if (!(r.name in picked)) picked[r.name] = r.status !== 'unchanged';
@@ -97,7 +107,9 @@ function pick(n, on){ picked[n] = on; $('tr_'+n).className = on ? '' : 'off'; }
 function setAll(on){ D.rows.forEach(function(r){ picked[r.name] = on; }); load(D); }
 function note(t, err){ var n = $('note'); n.textContent = t; n.className = 'note' + (err ? ' err' : ''); n.style.display = 'block'; }
 function clean(){ note('Cleaning...'); sketchup.clean($('purge').checked); }
+function stopped(msg){ $('prog').style.display = 'none'; note(msg, true); }
 function go(all){
+  if (D.clean && !D.clean.ok) { note('Clean the model first.', true); return; }
   var rows = D.rows.filter(function(r){ return all || picked[r.name]; }).map(function(r){ return { name:r.name, id:r.id, folder:folder[r.name] }; });
   if (!rows.length) { note('Nothing selected.', true); return; }
   $('result').style.display = 'none';

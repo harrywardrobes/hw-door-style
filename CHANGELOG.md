@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.35.0 — 2026-10-19
+- **Export components now requires a clean model.** The window checks the library file when it opens, after
+  Clean model, and again when you press Export. Export all / Export selected stay locked while any part
+  still has a colour or any drawer is open, and the window says how many (and which drawers). Purging
+  unused components stays optional.
+
+## 0.35.0 — 2026-10-19
+- 
+
 ## 0.34.0 — 2026-10-19
 - **Fixed: pictures from Import from supplier didn't show** in Settings > Products or HubSpot. The download
   treated pictures as text and damaged them on the way in. Pictures are now copied byte for byte, saved

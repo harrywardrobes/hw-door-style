@@ -226,6 +226,21 @@ module HarryWardrobes
         report
       end
 
+      # What still needs cleaning before an export is allowed:
+      # { 'painted' => parts with a colour, 'open' => open drawers, 'ok' => true/false }.
+      def self.check(model)
+        painted = Colours.apply(model, Colours.all_default, record: false, plain: true, dry: true).values.sum
+        open = Drawers.open_ones(model.entities)
+        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'ok' => painted.zero? && open.empty? }
+      end
+
+      def self.not_clean_message(c)
+        bits = []
+        bits << "#{c['painted']} part(s) still have a colour" if c['painted'].positive?
+        bits << "#{c['open']} drawer(s) are open" if c['open'].positive?
+        "Clean the model first: #{bits.join(' and ')}. Press Clean model, check it over, then export."
+      end
+
       # --- exporting ------------------------------------------------------
 
       def self.move_to_old(model, path)
@@ -300,7 +315,7 @@ module HarryWardrobes
         u = unused(model)
         { 'master' => File.basename(model.path), 'root' => root(model), 'old' => File.basename(old_dir(model)),
           'folders' => folders(model), 'rows' => rows(model), 'next_master' => File.basename(next_master(model)),
-          'unused' => { 'components' => u[:components] } }
+          'unused' => { 'components' => u[:components] }, 'clean' => check(model) }
       end
 
       def self.show
@@ -326,7 +341,12 @@ module HarryWardrobes
         end
         dlg.add_action_callback('export') do |_c, json|
           req = JSON.parse(json)
-          run(model, dlg, req['rows'], req['save_master'])
+          c = check(model)
+          if c['ok']
+            run(model, dlg, req['rows'], req['save_master'])
+          else
+            dlg.execute_script("load(#{JSON.generate(payload(model))}); stopped(#{JSON.generate(not_clean_message(c))})")
+          end
         end
         dlg.show
       end
