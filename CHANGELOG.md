@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.45.0 — 2026-10-19
+- **Product List** - new first tab in the Workshop: every product in the job (wardrobes, bridge units, worktops, drawer units, box shelf sections, bookcases...) with a T number (T1, T2...), its name (type + width, e.g. "Wardrobe 824"), size W x D x H, and depth / finished depth from the component (e.g. 570/588 - back wall to the back of the facing / to the front of the door). Facings, bullnose, end panels, floor and ceiling aren't products.
+- Parts that belong to a product join it automatically: internal drawers / shoe pull-outs in a wardrobe, a box end under a worktop, the bridge frame on its skeleton; box shelves / box ends next to each other make one section. Units side by side stay separate. Any part can be moved to another product or split off as its own in the Product List (kept with the file).
+- T numbers are given left to right the first time and kept on each product after that - a new unit gets the next number; "Renumber left to right" gives them out again. Click a T number to select the product in the model. The library file is never numbered.
+- "Show T numbers on the plan": T1 (570/588) over each product on its own "T numbers" tag, shown only in the plan scenes (e.g. "S top").
+- Doors / Vinyl tab and the door order PDF: the Unit column is now the product's T number (hover for the component path).
+- New Settings > Product list: component -> product name, parts that join another product, never-products, depth options, front thickness, number prefix, plan label tag and scenes.
+
 ## 0.44.4 — 2026-10-19
 - Workshop window: Refresh and Open folder on the left of the bottom bar, the two save buttons on the right; no Close button (close the window itself).
 

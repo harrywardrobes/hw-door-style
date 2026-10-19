@@ -204,6 +204,30 @@
       "TOPBOX_FRAME"
     ]
   },
+  "product_types": {
+    "WARDROBE": "Wardrobe",
+    "WALK-IN": "Walk-in",
+    "LINEN_PRESS": "Linen press",
+    "TOPBOX": "Top box wardrobe",
+    "BOOKCASE": "Bookcase",
+    "BRIDGE_SKELETON": "Bridge unit",
+    "BRIDGE_FRAME": "Bridge unit",
+    "WORKTOP": "Worktop",
+    "EXT_DRAWER": "Drawer unit",
+    "INT_DRAWER": "Internal drawers",
+    "INT_DRAWER_PLUS": "Internal drawers",
+    "SHOE_PULL_OUT": "Shoe pull-out",
+    "BOX_SHELF": "Box shelves",
+    "BXEND": "Box end",
+    "CAB": "Cabinet"
+  },
+  "product_joiners": ["BRIDGE_FRAME", "INT_DRAWER", "INT_DRAWER_PLUS", "SHOE_PULL_OUT", "BOX_SHELF", "BXEND"],
+  "product_skip": ["FACING_BLOCK", "FACING", "BULLNOSE", "END_PAN", "FLOOR", "CEILING", "CABLE_OUTLET"],
+  "product_prefix": "T",
+  "product_depth_keys": ["size_depth", "depth", "cab_depth", "depth_fl_div"],
+  "product_front_mm": 18,
+  "product_label_tag": "T numbers",
+  "product_label_scenes": "top|plan",
   "export_skip": [
     "FLOOR"
   ],

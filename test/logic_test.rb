@@ -740,5 +740,13 @@ rh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/room.html'))
 check 'room window sends width, length, ceiling, customer and file', %w[width length ceiling customer file sketchup.apply sketchup.browse sketchup.never].all? { |w| rh.include?(w) }
 check 'scribe window sends the room size with the ceiling', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.room_width')
 
+puts "\n== Product list"
+require 'hw_door_style/job/products'
+PR = HarryWardrobes::DoorStyle::Products
+pc = { 'types' => { 'WARDROBE' => 'Wardrobe', 'INT_DRAWER' => 'Internal drawers', 'INT_DRAWER_PLUS' => 'Internal drawers+', 'BRIDGE_SKELETON' => 'Bridge unit' }, 'joiners' => %w[INT_DRAWER BOX_SHELF], 'skip' => %w[FACING_BLOCK BULLNOSE], 'prefix' => 'T' }
+check 'product types: exact, longer names, longest match wins', PR.type_of('WARDROBE', pc) == 'Wardrobe' && PR.type_of('WARDROBE_LEFT', pc) == 'Wardrobe' && PR.type_of('INT_DRAWER_PLUS', pc) == 'Internal drawers+' && PR.type_of('FLOOR', pc).nil?
+check 'joiners and skipped components', PR.joiner?('INT_DRAWER_PLUS', pc) && PR.joiner?('BOX_SHELF', pc) && !PR.joiner?('WARDROBE', pc) && PR.skip?('FACING_BLOCK_L_HALF', pc) && PR.skip?('BULLNOSE', pc) && !PR.skip?('WARDROBE', pc)
+check 'Workshop has the Product List first', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')) =~ /data-t="products" class="on">Product List/
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

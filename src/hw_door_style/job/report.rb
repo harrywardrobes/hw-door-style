@@ -49,7 +49,7 @@ module HarryWardrobes
             notes << "Needs Repair / re-run: #{pr.join(', ')}" unless pr.empty?
           end
           rows << {
-            'unit' => path_label(path), 'item' => Finder.label(inst),
+            'unit' => path_label(path), 'item' => Finder.label(inst), 'top_id' => (path.first || inst).entityID,
             'kind' => kind_label(kind, d), 'kind_id' => kind.to_s, 'width' => Finder.mm_s(w), 'height' => Finder.mm_s(h),
             'style' => Styles.label(style || 'flat'),
             'midrail' => midrail_text(d, style),
@@ -149,6 +149,13 @@ module HarryWardrobes
 
       def self.payload(model = Sketchup.active_model)
         r = rows(model)
+        # Unit = the product's T number (Product List); the component path stays as 'unit_path'.
+        tops = (Products.list(model)[1] rescue {})
+        r.each do |x|
+          x['unit_path'] = x['unit']
+          x['t'] = tops[x['top_id']].to_s
+          x['unit'] = x['t'].empty? ? x['unit'] : x['t']
+        end
         {
           'job' => File.basename(model.path.to_s, '.skp'),
           'hinge_type' => Settings::HINGE_TYPES[Settings.job_hinge_type(model)],

@@ -696,6 +696,9 @@ module HarryWardrobes
           data = generate(model)
           data['door'] = Report.payload(model)
           data['export_csv'] = Report.csv?
+          prods, _tops = Products.list(model)
+          data['products'] = prods
+          data['product_prefix'] = Products.cfg['prefix']
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
         fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }
@@ -706,6 +709,24 @@ module HarryWardrobes
         dlg.add_action_callback('ready') { |_c| reload.call }
         dlg.add_action_callback('refresh') { |_c| reload.call }
         dlg.add_action_callback('close') { |_c| dlg.close }
+        # Product list: move a part to another product / its own, renumber, label the plan.
+        dlg.add_action_callback('setHost') do |_c, json|
+          req = JSON.parse(json)
+          Products.set_host(model, req['pid'], req['host'])
+          reload.call
+        end
+        dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
+        dlg.add_action_callback('labelPlan') do |_c|
+          n = Products.label(model)
+          dlg.execute_script("planLabelled(#{n})")
+        end
+        dlg.add_action_callback('selectProduct') do |_c, pid|
+          e = Products.find(model, pid)
+          if e
+            model.selection.clear
+            model.selection.add(e)
+          end
+        end
         dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{File.dirname(model.path).tr('\\', '/')}") unless model.path.to_s.empty? }
         dlg.add_action_callback('labels') do |_c, json|
           req = JSON.parse(json)

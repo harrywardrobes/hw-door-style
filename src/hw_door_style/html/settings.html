@@ -108,6 +108,7 @@
   <a data-s="tags">Tags<i class="dot"></i></a>
   <a data-s="scribe">Scribe &amp; ceiling<i class="dot"></i></a>
   <h3>Output</h3>
+  <a data-s="productlist">Product list<i class="dot"></i></a>
   <a data-s="export">Export<i class="dot"></i></a>
   <a data-s="cutlist">Cut list<i class="dot"></i></a>
   <a data-s="hubspot">HubSpot<i class="dot"></i></a>
@@ -257,6 +258,29 @@
 </section>
 
 <!-- ======================= EXPORT ======================= -->
+<!-- ======================= PRODUCT LIST ======================= -->
+<section id="s_productlist">
+  <h2>Product list</h2>
+  <div class="lead">The products in a job (Workshop &gt; Product List) - each with a T number used on the other tabs, the door order and the floor plan.</div>
+  <fieldset><legend>Products</legend>
+    <div class="f t"><span>Component : product name</span><textarea id="product_types" rows="10"></textarea></div>
+    <div class="hint" style="margin-bottom:6px">One per line, e.g. <code>WARDROBE: Wardrobe</code>. A component named here is a product, shown as its name + width (e.g. "Wardrobe 824"). Copies (WARDROBE#2) and longer names (WARDROBE_LEFT) count too.</div>
+    <div class="f t"><span>Part of another product</span><input type="text" id="product_joiners"></div>
+    <div class="hint" style="margin-bottom:6px">These belong to the product they sit in, under or on (internal drawers in a wardrobe, a box end under a worktop, the bridge frame on its skeleton). On their own they're a product; box shelves / box ends next to each other make one. Change any one in the Product List.</div>
+    <div class="f t"><span>Never products</span><input type="text" id="product_skip"></div>
+    <div class="hint">Left out of the Product List (facings, bullnose, end panels, floor, ceiling...). A name here also covers names starting with it.</div>
+  </fieldset>
+  <fieldset><legend>T numbers</legend>
+    <div class="f t"><span>Depth options</span><input type="text" id="product_depth_keys"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Front (door / facing) mm</span><input type="number" id="product_front_mm"></div>
+    <div class="hint" style="margin-bottom:6px">Depth / finished depth (e.g. 580/598): the first of these component options found (back wall to the back of the facing); finished = its "_finished" option if it has one, else depth + the front thickness.</div>
+    <div class="f t"><span>Number starts with</span><input type="text" id="product_prefix" style="max-width:80px"></div>
+    <div class="f t"><span>Plan label tag</span><input type="text" id="product_label_tag"></div>
+    <div class="f t"><span>Plan scenes</span><input type="text" id="product_label_scenes"></div>
+    <div class="hint">"Show T numbers on the plan" puts T1 (580/598) - the number with depth / finished depth - over each product on its own tag, shown only in scenes whose name matches (e.g. <code>top|plan</code> for "S top").</div>
+  </fieldset>
+</section>
+
 <section id="s_export">
   <h2>Export</h2>
   <div class="lead">Export components (rocket) - library file only.</div>
@@ -444,10 +468,11 @@
 
 <script>
 var S = /*DATA*/null;
-var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep'];
-var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
+var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip'];
+var LOWER_LISTS = ['product_depth_keys'];
+var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', product_prefix:'T', product_label_tag:'T numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
@@ -459,6 +484,7 @@ function opts(sel, list, cur){ sel.innerHTML = list.map(function(o){ var v = o[0
 // ---------- load / collect ----------
 function load(s){
   LISTS.forEach(function(k){ $(k).value = (s[k]||[]).join(', '); });
+  LOWER_LISTS.forEach(function(k){ $(k).value = (s[k]||[]).join(', '); });
   NUMS.forEach(function(k){ $(k).value = s[k]; });
   BOOLS.forEach(function(k){ $(k).checked = !!s[k]; });
   Object.keys(TEXTS).forEach(function(k){ $(k).value = s[k] || TEXTS[k]; });
@@ -469,6 +495,8 @@ function load(s){
   $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
   var rd = s.runout_defaults_mm || {};
   SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
+  var pt = s.product_types || {};
+  $('product_types').value = Object.keys(pt).map(function(k){ return k + ': ' + pt[k]; }).join('\n');
   var ea = s.export_aliases || {};
   $('export_aliases').value = Object.keys(ea).map(function(t){ return t + ': ' + (ea[t]||[]).join(', '); }).join('\n');
   var cg = s.colour_groups || {};
@@ -514,6 +542,7 @@ function load(s){
 function collect(){
   var o = {};
   LISTS.forEach(function(k){ o[k] = split($(k).value); });
+  LOWER_LISTS.forEach(function(k){ o[k] = $(k).value.split(',').map(function(x){ return x.trim().toLowerCase(); }).filter(Boolean); });
   NUMS.forEach(function(k){ o[k] = parseFloat($(k).value); });
   BOOLS.forEach(function(k){ o[k] = $(k).checked; });
   Object.keys(TEXTS).forEach(function(k){ o[k] = $(k).value.trim() || TEXTS[k]; });
@@ -528,6 +557,11 @@ function collect(){
   o.runout_defaults_mm = {};
   SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
+  o.product_types = {};
+  $('product_types').value.split('\n').forEach(function(line){
+    var i = line.indexOf(':'); if (i < 1) return;
+    var k = line.slice(0, i).trim().toUpperCase(), v = line.slice(i + 1).trim(); if (k && v) o.product_types[k] = v;
+  });
   o.export_aliases = {};
   $('export_aliases').value.split('\n').forEach(function(line){
     var i = line.indexOf(':'); if (i < 1) return;

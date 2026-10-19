@@ -61,7 +61,8 @@
 <div class="sub" id="sub">Reading the model...</div>
 <div id="warns"></div>
 <div class="tabs" id="tabs">
-  <button data-t="door" class="on">Doors / Vinyl</button>
+  <button data-t="products" class="on">Product List</button>
+  <button data-t="door">Doors / Vinyl</button>
   <button data-t="worktops">Worktops</button>
   <button data-t="sheets">Sheet goods</button>
   <button data-t="boxes">Drawer Boxes</button>
@@ -69,7 +70,8 @@
   <button data-t="labels">Labels</button>
   <button data-t="hubspot">HubSpot</button>
 </div>
-<div class="pane on" id="p_door"></div>
+<div class="pane on" id="p_products"></div>
+<div class="pane" id="p_door"></div>
 <div class="pane" id="p_worktops"></div>
 <div class="pane" id="p_sheets"></div>
 <div class="pane" id="p_boxes"></div>
@@ -109,7 +111,7 @@ function edgeCell(name, color){ return name ? '<span class="edge"><span class="s
 function render(d){
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
-  $('sub').textContent = d.job + ' - ' + d.date + '. Doors, drawer fronts, 22mm (white back), bullnose and cornice are on the Doors / Vinyl tab; everything else comes from the parts.';
+  $('sub').textContent = d.job + ' - ' + d.date + '. Products (T numbers) on the Product List; doors, drawer fronts, 22mm (white back), bullnose and cornice on Doors / Vinyl; everything else comes from the parts.';
   var w = [];
   if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
   if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
@@ -121,15 +123,16 @@ function render(d){
     if (!g.sheet && !g.strip_group) w.push(g.material + ': no sheet size set - no board count.');
   });
   $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
+  renderProducts(d);
   // door order (the door summary)
   var dd = d.door, t = dd.totals;
   var card = function(title, pairs){ return '<div class="card"><h4>' + esc(title) + '</h4>' + pairs.map(function(p){ return '<div><span>' + esc(p[0]) + '</span><b>' + esc(p[1]) + '</b></div>'; }).join('') + '</div>'; };
   var dh = '<div class="cards">' + card('Items by style', Object.keys(t.by_style).map(function(k){ return [k, t.by_style[k]]; })) +
     card('Hinges (' + dd.hinge_type + ')', Object.keys(t.hinges).map(function(k){ return [k, t.hinges[k]]; })) +
     card('Totals', [['Items', t.items], ['TIP-ON', t.tip_on], ['Handles / knobs', t.handles]]) + '</div>';
-  var cols = [['n', '#'], ['unit', 'Unit'], ['item', 'Item'], ['kind', 'Kind'], ['width', 'W', 1], ['height', 'H', 1], ['style', 'Style'], ['midrail', 'Mid-rail'], ['hinge_type', 'Hinge type'], ['hinges', 'Hinges', 1], ['tip_on', 'TIP-ON', 1], ['handles', 'Handles', 1], ['notes', 'Notes']];
+  var cols = [['n', '#'], ['unit', 'Product'], ['item', 'Item'], ['kind', 'Kind'], ['width', 'W', 1], ['height', 'H', 1], ['style', 'Style'], ['midrail', 'Mid-rail'], ['hinge_type', 'Hinge type'], ['hinges', 'Hinges', 1], ['tip_on', 'TIP-ON', 1], ['handles', 'Handles', 1], ['notes', 'Notes']];
   dh += dd.rows.length ? '<table><tr>' + cols.map(function(c){ return '<th' + (c[2] ? ' class="n"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr>' +
-    dd.rows.map(function(r){ return '<tr>' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
+    dd.rows.map(function(r){ return '<tr title="' + esc(r.unit_path || '') + '">' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
   if (dd.last_export) dh += '<div class="hint">Last door order saved: v' + dd.last_export + '.</div>';
   var wb = d.groups.filter(function(g){ return g.section === 'white_back'; });
   wb.forEach(function(g){
@@ -184,6 +187,24 @@ function boards(groups, sheetGoods){
   });
   return h;
 }
+// ---------- Product List ----------
+function renderProducts(d){
+  var P = d.products || [];
+  var opts = function(cur, self, here){ return '<option value=""' + (cur === '' ? ' selected' : '') + '>Automatic' + (cur === '' ? ' (' + esc(here) + ')' : '') + '</option><option value="own"' + (cur === 'own' ? ' selected' : '') + '>Its own product</option>' +
+    P.filter(function(p){ return p.pid !== self; }).map(function(p){ return '<option value="' + esc(p.pid) + '"' + (cur === p.pid ? ' selected' : '') + '>Part of ' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join(''); };
+  var h = '<div class="lbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="hint" style="margin:0;flex:1">' + P.length + ' products. T numbers are kept on each product; new ones get the next number. Facings, bullnose and end panels aren\'t products (Settings &gt; Product list).</span>' +
+    '<button onclick="sketchup.labelPlan()" title="Puts T1, T2... (with depth / finished depth) over each product, shown in the plan scenes only">Show T numbers on the plan</button><button id="renumBtn" onclick="renumber(this)">Renumber left to right</button></div>';
+  h += P.length ? '<table><tr><th>T</th><th>Product</th><th>Component</th><th class="n">W x D x H (mm)</th><th class="n">Depth / finished</th><th>Includes</th></tr>' + P.map(function(p){
+    var inc = p.members.map(function(m){
+      return '<div style="display:flex;gap:6px;align-items:center;margin:1px 0"><span style="flex:1">' + esc(m.name) + ' <span style="color:var(--muted)">' + m.size.join(' x ') + '</span></span><select style="font-size:11px" onchange="setHost(\'' + esc(m.pid) + '\', this.value)">' + opts(m.auto ? '' : p.pid, m.pid, p.t) + '</select></div>';
+    }).join('');
+    return '<tr><td><b><a href="#" onclick="sketchup.selectProduct(\'' + esc(p.pid) + '\');return false" title="Select it in the model">' + esc(p.t) + '</a></b></td><td>' + esc(p.name) + '</td><td style="color:var(--muted)">' + esc(p.component) + '</td><td class="n">' + p.size.join(' x ') + '</td><td class="n">' + (p.depth ? '<b>' + p.depth + (p.finished ? ' / ' + p.finished : '') + '</b>' : '-') + '</td><td>' + (inc || '<span style="color:var(--muted)">-</span>') + '</td></tr>';
+  }).join('') + '</table><div class="hint">Includes: parts that belong to the product (internal drawers in a wardrobe, a box end under a worktop, box shelves next to each other...). Change one to split it off as its own product or move it to another.</div>' : '<div class="hint">No products found - check the names in Settings &gt; Product list.</div>';
+  $('p_products').innerHTML = h;
+}
+function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
+function setHost(pid, host){ $('status').textContent = 'Updating the product list...'; sketchup.setHost(JSON.stringify({ pid: pid, host: host })); }
+function planLabelled(n){ $('status').textContent = n + ' T number(s) put on the plan (tag "T numbers", shown in the plan scenes).'; }
 function renderLabels(d){
   // labels
   var names = Object.keys(d.labels.presets), cur = $('lPreset').value;
