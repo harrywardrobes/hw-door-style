@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.43.0 — 2026-10-19
+- Door summary: a door with a mid-rail is a "Wardrobe Door", and Mid-rail says where it is - "Yes - 815mm" (the mid-rail's centre above the bottom of the door, from the style).
+- Workshop tabs: Doors / Vinyl (was Door order) also lists bullnose and cornice; new Worktops tab (22 / 25 mm worktops, with their own sheet count, not counted in the MFC sheets sent to HubSpot); Sheet goods; Drawer Boxes (in place of Edging - the drawer boxes come off the Hardware tab); Hardware; Labels; HubSpot. Edging is at the bottom of Sheet goods.
+- Parts list PDF follows the same split: worktops, bullnose / cornice and drawer boxes in their own tables.
+- HubSpot worktop order status: needs ordering when the parts list has a worktop (a part named WRKTP / WORKTOP at 22 or 25 mm).
+
 ## 0.42.2 — 2026-10-19
 - Cable outlets go to HubSpot: the Room card's "Cable Outlet Quantity" (and the Workshop window's HubSpot tab) is filled from the cable outlets showing in the model - a WORKTOP's outlets that are switched off in its options don't count.
 - Parts list: a hardware component made of sub-parts (like a cable outlet with its rim and lid) is listed as the one piece of hardware, not its parts. (CABLE_OUTLET_80 in the library is now one part anyway, so OpenCutList lists it as one too.)

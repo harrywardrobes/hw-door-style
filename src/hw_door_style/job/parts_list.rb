@@ -242,6 +242,25 @@ module HarryWardrobes
       # OpenCutList phase 1: a part = one definition at one size (and mirrored or not); the first
       # instance found sets its name and edges. Groups = material + standard thickness.
 
+      # Which Workshop tab a board part goes on: bullnose / cornice with the doors (vinyl),
+      # worktops (22 / 25 mm) on their own, the rest is sheet goods.
+      VINYL_RE = /BULLNOSE|CORNICE/i.freeze
+      WORKTOP_RE = /WRKTP|WORKTOP/i.freeze
+
+      def self.section_of(names, thickness, material)
+        return 'vinyl' if names.any? { |n| n.to_s =~ VINYL_RE }
+        return 'worktops' if names.any? { |n| n.to_s =~ WORKTOP_RE } && [22, 25].include?(thickness.to_f.round) && material.to_s !~ /\AMDF\z/i
+        'sheets'
+      end
+
+      def self.gid_of(material, thickness, section)
+        "#{material}|#{f1(thickness)}#{section == 'sheets' ? '' : "|#{section}"}"
+      end
+
+      def self.drawer_box?(name)
+        Settings.names('drawer_box_parts').include?(name.to_s.sub(/#\d+\z/, '').strip.upcase)
+      end
+
       def self.generate(model = Sketchup.active_model)
         opts = cutlist_options(model)
         found = []
@@ -271,8 +290,9 @@ module HarryWardrobes
           when TYPE_SHEET_GOOD
             std = mm_list(mat.get_attribute(OCL, 'std_thicknesses', ''))
             th_std, available = std_thickness(th_mm, std)
-            gid = "#{mat.name}|#{th_std}"
-            g = (groups[gid] ||= { 'material' => mat.name, 'thickness' => th_std, 'std_ok' => true, 'grained' => mat.get_attribute(OCL, 'grained', false) ? true : false,
+            section = section_of([name, defn.name], th_std, mat.name)
+            gid = gid_of(mat.name, th_std, section)
+            g = (groups[gid] ||= { 'material' => mat.name, 'thickness' => th_std, 'std_ok' => true, 'section' => section, 'grained' => mat.get_attribute(OCL, 'grained', false) ? true : false,
                                    'sheet' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')).max_by { |a, b| a * b },
                                    'all_sizes' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')), 'parts' => {} })
             g['std_ok'] &&= available
@@ -294,7 +314,7 @@ module HarryWardrobes
             p['instances'] << instance_info(path)
           when TYPE_HARDWARE
             hg = (hardware[mat.name] ||= {})
-            h = (hg[pid] ||= { 'name' => name, 'material' => mat.name, 'length' => l_mm, 'width' => w_mm, 'thickness' => th_mm, 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
+            h = (hg[pid] ||= { 'name' => name, 'material' => mat.name, 'drawer_box' => drawer_box?(defn.name) || drawer_box?(name), 'length' => l_mm, 'width' => w_mm, 'thickness' => th_mm, 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
                                'edge_pattern' => '', 'edge_count' => 0, 'tags' => tags_of(defn), 'instances' => [] })
             h['qty'] += 1
             h['instances'] << instance_info(path)
@@ -445,7 +465,8 @@ module HarryWardrobes
       def self.room_values(d)
         out = {}
         per = Hash.new(0)
-        d['groups'].each { |g| per[g['material']] += g['sheets'].to_i }
+        # MFC sheets only: worktops and bullnose / cornice are ordered on their own.
+        d['groups'].each { |g| per[g['material']] += g['sheets'].to_i if g['section'].to_s.empty? || g['section'] == 'sheets' }
         per.each { |m, n| out["mfc_sheets_#{slug(m)}"] = n }
         out['mfc_quantity'] = per.values.sum
         widths = (strip_widths('') + [1000.0]).map(&:round).uniq
@@ -490,7 +511,7 @@ module HarryWardrobes
             estimate = usable > 0 ? (area / usable).ceil : nil
           end
           estimate = 0 if manual.empty?
-          gid = "#{g['material']}|#{f1(g['thickness'])}"
+          gid = gid_of(g['material'], g['thickness'], g['section'])
           entered = entered_sheets[gid]
           # 18mm: strips cover what they can; anything else you enter. Other thicknesses: the estimate, unless you changed it.
           ask = strip_group?(g) && !manual.empty?

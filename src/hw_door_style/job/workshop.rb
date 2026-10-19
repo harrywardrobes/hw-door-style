@@ -13,14 +13,14 @@ module HarryWardrobes
       def self.needs(model, parts)
         c = HubSpotRoom.counts(model)
         doors = Report.rows(model).size
-        worktop = parts['groups'].any? { |g| (g['thickness'] - 25).abs < 0.5 && g['material'] != 'MDF' }
-        sheets = parts['groups'].any? { |g| !((g['thickness'] - 25).abs < 0.5 && g['material'] != 'MDF') }
+        worktop = parts['groups'].any? { |g| g['section'] == 'worktops' }
+        sheets = parts['groups'].any? { |g| g['section'] == 'sheets' }
         {
           'door_vinyl_order_status' => [doors.positive?, "#{doors} door(s) / drawer front(s)"],
           'drawer_order_status' => [(c['ext_drawers'] + c['int_drawers']).positive?, "#{c['ext_drawers'] + c['int_drawers']} drawer(s)"],
           'sheets_order_status' => [sheets, sheets ? 'board in the parts list' : 'no boards'],
           'hardware_order_status' => [!parts['hardware'].empty? || parts['handles'].any? { |h| h['qty'].to_i.positive? }, "#{parts['hardware'].sum { |h| h['qty'] }} hardware piece(s)"],
-          'worktop_order_status' => [worktop, worktop ? '25mm board (worktop)' : 'no 25mm worktop board']
+          'worktop_order_status' => [worktop, worktop ? 'worktop in the parts list' : 'no worktop (22 / 25 mm)']
         }
       end
 

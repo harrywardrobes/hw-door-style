@@ -15,6 +15,18 @@ module HarryWardrobes
         end.join(' > ')
       end
 
+      # A door with a mid-rail is a wardrobe door.
+      def self.kind_label(kind, defn)
+        kind == :door && defn.get_attribute(DICT, 'midrail') ? 'Wardrobe Door' : Finder::KINDS[kind]
+      end
+
+      # "Yes - 815mm": the mid-rail's centre above the bottom of the door, from the style.
+      def self.midrail_text(defn, style)
+        return '' unless defn.get_attribute(DICT, 'midrail')
+        c = (Styles.profile(style || 'shaker') || {})['midrail_centre_mm']
+        c ? "Yes - #{c.to_f.round}mm" : 'Yes'
+      end
+
       def self.rows(model = Sketchup.active_model)
         rows = []
         pto = Settings.pto?(Settings.job_hinge_type(model))
@@ -38,9 +50,9 @@ module HarryWardrobes
           end
           rows << {
             'unit' => path_label(path), 'item' => Finder.label(inst),
-            'kind' => Finder::KINDS[kind], 'width' => Finder.mm_s(w), 'height' => Finder.mm_s(h),
+            'kind' => kind_label(kind, d), 'kind_id' => kind.to_s, 'width' => Finder.mm_s(w), 'height' => Finder.mm_s(h),
             'style' => Styles.label(style || 'flat'),
-            'midrail' => d.get_attribute(DICT, 'midrail') ? 'Yes' : '',
+            'midrail' => midrail_text(d, style),
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
             'handles' => none[kind] ? 0 : Settings.handle_count(kind, w, pto, rules: rules,

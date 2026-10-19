@@ -61,16 +61,18 @@
 <div class="sub" id="sub">Reading the model...</div>
 <div id="warns"></div>
 <div class="tabs" id="tabs">
-  <button data-t="door" class="on">Door order</button>
+  <button data-t="door" class="on">Doors / Vinyl</button>
+  <button data-t="worktops">Worktops</button>
   <button data-t="sheets">Sheet goods</button>
-  <button data-t="edging">Edging</button>
+  <button data-t="boxes">Drawer Boxes</button>
   <button data-t="hardware">Hardware</button>
   <button data-t="labels">Labels</button>
   <button data-t="hubspot">HubSpot</button>
 </div>
 <div class="pane on" id="p_door"></div>
+<div class="pane" id="p_worktops"></div>
 <div class="pane" id="p_sheets"></div>
-<div class="pane" id="p_edging"></div>
+<div class="pane" id="p_boxes"></div>
 <div class="pane" id="p_hardware"></div>
 <div class="pane" id="p_labels">
   <div class="lbar">
@@ -108,7 +110,7 @@ function edgeCell(name, color){ return name ? '<span class="edge"><span class="s
 function render(d){
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
-  $('sub').textContent = d.job + ' - ' + d.date + '. Doors and drawer fronts are on the Door order tab; everything else comes from the parts.';
+  $('sub').textContent = d.job + ' - ' + d.date + '. Doors, drawer fronts, bullnose and cornice are on the Doors / Vinyl tab; everything else comes from the parts.';
   var w = [];
   if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
   if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
@@ -129,33 +131,51 @@ function render(d){
   dh += dd.rows.length ? '<table><tr>' + cols.map(function(c){ return '<th' + (c[2] ? ' class="n"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr>' +
     dd.rows.map(function(r){ return '<tr>' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
   if (dd.last_export) dh += '<div class="hint">Last door order saved: v' + dd.last_export + '.</div>';
+  var vin = d.groups.filter(function(g){ return g.section === 'vinyl'; });
+  if (vin.length) dh += '<div class="grp" style="margin-top:10px"><h3>Bullnose / cornice <span>ordered with the doors</span></h3><table><tr><th>#</th><th>Name</th><th>Colour</th><th class="n">Thickness</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th></tr>' +
+    vin.map(function(g){ return g.parts.map(function(p){ return '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td>' + esc(g.material) + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n"><b>' + p.qty + '</b></td></tr>'; }).join(''); }).join('') + '</table></div>';
   $('p_door').innerHTML = dh;
-  // sheet goods
-  var h = '<div class="grp"><h3>Boards <span>18mm goes into cut and edged strips (next width up); full sheets only for what doesn\'t fit. Other thicknesses: part area + ' + f(d.waste_pct) + '% waste. Change any count - it\'s kept with the file.</span></h3><table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Parts</th><th>Strips</th><th>Needs full sheets</th><th class="n">Sheet</th><th class="n">Full sheets</th></tr>' +
-    d.groups.map(function(g){
+  // sheet goods and worktops (same layout, each its own groups)
+  var sheetGroups = d.groups.filter(function(g){ return !g.section || g.section === 'sheets'; });
+  var wtGroups = d.groups.filter(function(g){ return g.section === 'worktops'; });
+  $('p_sheets').innerHTML = sheetGroups.length ? boards(sheetGroups, true) : '<div class="hint">No sheet goods found.</div>';
+  $('p_worktops').innerHTML = wtGroups.length ? boards(wtGroups, false) : '<div class="hint">No worktops (22 / 25 mm) found.</div>';
+  // edging: at the bottom of Sheet goods
+  if (d.edging.length) $('p_sheets').innerHTML += '<div class="grp"><h3>Edging <span>total length of the edges that carry an edge material, from each part\'s length / width - add your own allowance for trimming</span></h3><table><tr><th>Edge</th><th class="n">Board thickness</th><th class="n">Edges</th><th class="n">Metres</th></tr>' +
+    d.edging.map(function(e){ return '<tr><td>' + esc(e.material) + '</td><td class="n">' + f(e.height) + ' mm</td><td class="n">' + e.parts + '</td><td class="n"><b>' + e.metres.toFixed(1) + '</b></td></tr>'; }).join('') + '</table></div>';
+  Array.prototype.forEach.call(document.querySelectorAll('.sheetIn'), function(i){
+    i.onchange = function(){ var m = {}; m[i.getAttribute('data-gid')] = i.value; sketchup.setSheets(JSON.stringify(m)); }; // only the one you changed is kept as entered
+  });
+  var boxes = d.hardware.filter(function(x){ return x.drawer_box; }), hws = d.hardware.filter(function(x){ return !x.drawer_box; });
+  $('p_boxes').innerHTML = boxes.length ? '<table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
+    boxes.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') +
+    '<tr><td></td><td><b>Total</b></td><td></td><td></td><td class="n"><b>' + boxes.reduce(function(a, x){ return a + x.qty; }, 0) + '</b></td></tr></table>' : '<div class="hint">No drawer boxes found.</div>';
+  var hw = hws.length ? '<div class="grp"><h3>From the model</h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
+    hws.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
+    d.handles.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
+  renderLabels(d);
+}
+// Boards table (+ strips + parts per group) for a list of groups.
+function boards(groups, sheetGoods){
+  var h = '<div class="grp">' + (sheetGoods ? '<h3>Boards <span>18mm goes into cut and edged strips (next width up); full sheets only for what doesn\'t fit. Other thicknesses: part area + ' + f(D.waste_pct) + '% waste. Change any count - it\'s kept with the file.</span></h3>' : '<h3>Worktops <span>22 / 25 mm worktops - ordered on their own, not in the MFC sheet count. Change any count - it\'s kept with the file.</span></h3>') + '<table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Parts</th><th>Strips</th><th>Needs full sheets</th><th class="n">Sheet</th><th class="n">Full sheets</th></tr>' +
+    groups.map(function(g){
       var need = g.ask ? '<span class="' + (g.sheets == null ? 'bad' : '') + '">' + esc(g.manual.join(', ')) + '</span>' : (g.strip_group ? '<span style="color:var(--muted)">none</span>' : '<span style="color:var(--muted)">' + g.area_m2.toFixed(2) + ' m&sup2;</span>');
       var box = '<input type="number" min="0" step="1" class="sheetIn" data-gid="' + esc(g.gid) + '" value="' + (g.sheets == null ? '' : g.sheets) + '" placeholder="' + (g.ask ? 'enter' : '') + '" title="' + (g.estimate != null && g.ask ? 'Estimate from area: ' + g.estimate : '') + '" style="width:60px;text-align:right' + (g.ask && g.sheets == null ? ';border-color:#c0392b;background:#fdf1f0' : '') + '">' + (g.entered ? ' <span class="hint" style="margin:0" title="Entered by you">&#9998;</span>' : '');
       return '<tr><td>' + esc(g.material) + (g.grained ? ' <span style="color:var(--muted)">(grained)</span>' : '') + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + g.count + '</td><td>' + (g.strips.length ? g.strips.map(function(st){ return st.count + ' x ' + st.width; }).join(', ') : '-') + '</td><td>' + need + '</td><td class="n">' + (g.sheet ? f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '-') + '</td><td class="n">' + box + '</td></tr>';
     }).join('') + '</table></div>';
   var strips = [];
-  d.groups.forEach(function(g){ g.strips.forEach(function(st){ strips.push([g, st]); }); });
+  groups.forEach(function(g){ g.strips.forEach(function(st){ strips.push([g, st]); }); });
   if (strips.length) h += '<div class="grp"><h3>Cut and edged strips <span>each part uses the next width up, packed end to end along the strip</span></h3><table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Strip</th><th>Parts</th><th class="n">Pieces</th><th class="n">Strips</th></tr>' +
     strips.map(function(x){ return '<tr><td>' + esc(x[0].material) + '</td><td class="n">' + f(x[0].thickness) + ' mm</td><td class="n">' + x[1].width + ' x ' + f(x[1].length) + '</td><td>' + esc(x[1].numbers.join(', ')) + '</td><td class="n">' + x[1].pieces + '</td><td class="n"><b>' + x[1].count + '</b></td></tr>'; }).join('') + '</table></div>';
-  d.groups.forEach(function(g){
+  groups.forEach(function(g){
     h += '<div class="grp"><h3>' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
       g.parts.map(function(p){ return '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n">' + p.qty + '</td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
   });
-  $('p_sheets').innerHTML = d.groups.length ? h : '<div class="hint">No sheet goods found.</div>';
-  Array.prototype.forEach.call(document.querySelectorAll('.sheetIn'), function(i){
-    i.onchange = function(){ var m = {}; m[i.getAttribute('data-gid')] = i.value; sketchup.setSheets(JSON.stringify(m)); }; // only the one you changed is kept as entered
-  });
-  $('p_edging').innerHTML = d.edging.length ? '<table><tr><th>Edge</th><th class="n">Board thickness</th><th class="n">Edges</th><th class="n">Metres</th></tr>' +
-    d.edging.map(function(e){ return '<tr><td>' + esc(e.material) + '</td><td class="n">' + f(e.height) + ' mm</td><td class="n">' + e.parts + '</td><td class="n"><b>' + e.metres.toFixed(1) + '</b></td></tr>'; }).join('') + '</table><div class="hint">Total length of the edges that carry an edge material, from each part\'s length / width. Add your own allowance for trimming.</div>' : '<div class="hint">No edging found.</div>';
-  var hw = d.hardware.length ? '<div class="grp"><h3>From the model</h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
-    d.hardware.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
-  hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
-    d.handles.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
-  $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
+  return h;
+}
+function renderLabels(d){
   // labels
   var names = Object.keys(d.labels.presets), cur = $('lPreset').value;
   $('lPreset').innerHTML = names.map(function(n){ return '<option' + (n === (cur || d.labels.active) ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('');

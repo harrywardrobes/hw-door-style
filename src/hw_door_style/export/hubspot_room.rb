@@ -211,7 +211,7 @@ module HarryWardrobes
         by_label = Settings::HINGE_TYPES.invert
         hinges = Hash.new(0)
         rows.each { |r| hinges[by_label[r['hinge_type']] || r['hinge_type']] += r['hinges'].to_i if r['hinges'].to_i > 0 }
-        kinds = ->(k) { rows.select { |r| r['kind'] == Finder::KINDS[k] } }
+        kinds = ->(k) { rows.select { |r| r['kind_id'] == k.to_s } }
         handles = ->(k) { kinds.call(k).sum { |r| r['handles'].to_i } }
         {
           'hinges' => hinges, 'tip_on' => rows.sum { |r| r['tip_on'].to_i },
