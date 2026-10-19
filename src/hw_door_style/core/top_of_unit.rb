@@ -84,6 +84,7 @@ module HarryWardrobes
       # Every unit in the model: definitions upgraded, each placed unit keeps its own setting.
       # Returns the number of units changed.
       def self.upgrade(model = Sketchup.active_model)
+        ComponentFixes.apply(model) if defined?(ComponentFixes)
         todo = model.definitions.select { |dfn| (ks = keys_of(dfn.attribute_dictionary(D))) && dfn.get_attribute(D, "_#{ks[0]}_access") != 'NONE' }
         return 0 if todo.empty?
         n = 0

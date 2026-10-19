@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.41.0 — 2026-10-19
+- **Shortening a wardrobe no longer breaks the shelf and rails** (double hanging especially):
+  - the top shelf now stops under the top frame rail - before, it ran into the rail once the wardrobe was
+    shorter than about 2.1m;
+  - the lower hanging rail keeps its drop (950mm) while it fits; on a shorter wardrobe it sits halfway
+    between the floor and the shelf, so both hanging sections stay usable instead of the lower rail
+    sliding down towards the floor.
+  Standard heights are unchanged. Applied to old files when they're opened (only where the original
+  formula is still there) and takes effect the next time the unit is redrawn; Export components carries
+  it into the library.
+
+## 0.41.0 — 2026-10-19
+- 
+
 ## 0.40.0 — 2026-10-19
 - **"Top of unit"** replaces the two switches "Topped off?" and "Up to ceiling" in the units' Component
   Options (they sounded alike but did different things). One dropdown:

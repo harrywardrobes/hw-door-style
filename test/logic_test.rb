@@ -633,5 +633,11 @@ check 'old switches -> Top of unit', TU.from_old(TUFake.new('i04_topped' => '0',
 check 'Top of unit options encoded for the DC list', TU.options_s == '&Scribed%20To%20Ceiling=1&Custom%20Scribe%20Height%20%28Lower%20Section%29=2&No%20Upper%20Facing=3&'
 check 'scribe window sends ceiling height apart from the ceiling runout', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.ceiling_height = c')
 
+puts "\n== Component fixes"
+require 'hw_door_style/core/component_fixes'
+CFX = HarryWardrobes::DoorStyle::ComponentFixes
+check 'old formulas matched however they are spaced / quoted', CFX.norm('A02_FRAME_HEIGHT_CEILING - D02_FACING_TOP-ZZ_FLOOR_HEIGHT') == CFX.norm(CFX::FIXES[0][:old]) && CFX.norm('parent!G06_RAIL_DROP ') == CFX.norm('parent!G06_RAIL_DROP')
+check 'new formulas differ from old (so a fixed file is left alone)', CFX::FIXES.all? { |f| CFX.norm(f[:new]) != CFX.norm(f[:old]) }
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
