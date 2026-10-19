@@ -314,7 +314,7 @@ module HarryWardrobes
             p['instances'] << instance_info(path)
           when TYPE_HARDWARE
             hg = (hardware[mat.name] ||= {})
-            h = (hg[pid] ||= { 'name' => name, 'material' => mat.name, 'drawer_box' => drawer_box?(defn.name) || drawer_box?(name), 'length' => l_mm, 'width' => w_mm, 'thickness' => th_mm, 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
+            h = (hg[pid] ||= { 'name' => name, 'material' => mat.name, 'drawer_box' => drawer_box?(defn.name) || drawer_box?(name) || runner?(defn.name), 'length' => l_mm, 'width' => w_mm, 'thickness' => th_mm, 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
                                'edge_pattern' => '', 'edge_count' => 0, 'tags' => tags_of(defn), 'instances' => [] })
             h['qty'] += 1
             h['instances'] << instance_info(path)
@@ -532,7 +532,7 @@ module HarryWardrobes
         end
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
-          'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'handles' => handles(model),
+          'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
           'skipped' => skipped, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,
           'labels' => Labels.options(model), 'cutlist_options' => opts
@@ -540,6 +540,81 @@ module HarryWardrobes
       end
 
       # HW: handles aren't drawn - they come from the Door style window and the door summary counts.
+      # --- drawer boxes (Drawer Boxes tab) ------------------------------------------------
+      # One row per drawer unit, box material, size and runner: parent unit, internal cabinet
+      # width (box width + the box clearance each side), box height (warning under 100 mm),
+      # runner length with its type, quantity. Pull-outs with runners but no box get a row too.
+      RUNNER_RE = /RUNNER_?(\d+)/i.freeze
+      BOX_MIN_MM = 100
+
+      def self.runner_label(mm)
+        mm ? "#{mm.round}mm #{Settings.get['drawer_runner_type'].to_s.strip.then { |t| t.empty? ? 'Drawer Runners' : t }}" : '-'
+      end
+
+      def self.runner?(name)
+        name.to_s =~ RUNNER_RE ? true : false
+      end
+
+      def self.unit_mm(unit, base)
+        v = DC.value(unit, base)
+        v.nil? || v.to_s.strip.empty? ? nil : v.to_f * 25.4
+      end
+
+      def self.drawer_boxes(model)
+        rows = {}
+        add = lambda do |unit, mat, width, height, runner|
+          key = [unit.definition.name, mat, width, height, runner]
+          r = (rows[key] ||= { 'parent' => unit.definition.name, 'material' => mat, 'width' => width, 'height' => height,
+                               'runner_mm' => runner, 'runner' => runner_label(runner), 'qty' => 0,
+                               'warn' => height && height < BOX_MIN_MM ? "Box height under #{BOX_MIN_MM} mm" : nil })
+          r['qty'] += 1
+        end
+        walk = lambda do |ents, path, unit|
+          ents.each do |e|
+            next unless e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)
+            next unless e.visible?
+            here = path + [e]
+            u = unit
+            u = e if e.is_a?(Sketchup::ComponentInstance) && DC.key(e, 'blum_runner_length')
+            if e.is_a?(Sketchup::ComponentInstance) && drawer_box?(e.definition.name) && u
+              i0 = here.index(u)
+              t = transformation_of(here[i0..])
+              sx, _sy, sz = scale_of(t)
+              b = e.definition.bounds
+              clear = unit_mm(u, 'drwr_box_clearance') || 5.0
+              width = (b.width * sx * 25.4 + 2 * clear).round
+              height = (b.depth * sz * 25.4).round
+              runner = unit_mm(u, 'blum_runner_length')&.round
+              add.call(u, material_of(here)&.name || '-', width, height, runner)
+              next
+            end
+            if e.is_a?(Sketchup::ComponentInstance) && runner?(e.definition.name) && u
+              # a pull-out (no box): one row per pair of runners
+              (@pullout ||= Hash.new(0))[[u.entityID, path.last&.entityID]] += 1
+            end
+            walk.call(e.respond_to?(:definition) ? e.definition.entities : e.entities, here, u)
+          end
+        end
+        @pullout = Hash.new(0)
+        walk.call(model.entities, [], nil)
+        list = rows.values
+        boxed_units = list.map { |r| r['parent'] }
+        units = {}
+        model.definitions.each { |d| d.instances.each { |i| units[i.entityID] = i } } unless @pullout.empty?
+        @pullout.each_key do |(uid, _grp)|
+          u = units[uid] or next
+          next if boxed_units.include?(u.definition.name)
+          runner = unit_mm(u, 'blum_runner_length')&.round
+          width = (unit_mm(u, 'width') || unit_mm(u, 'cab_width'))&.round
+          key = [u.definition.name, '(pull-out)', width, nil, runner]
+          r = (rows[key] ||= { 'parent' => u.definition.name, 'material' => '(pull-out, no box)', 'width' => width, 'height' => nil,
+                               'runner_mm' => runner, 'runner' => runner_label(runner), 'qty' => 0, 'warn' => nil })
+          r['qty'] += 1
+        end
+        letter = 'A'
+        rows.values.sort_by { |r| [r['parent'], r['material'].to_s, -(r['height'] || 0)] }.each { |r| r['number'] = letter; letter = letter.succ }
+      end
+
       def self.handles(model)
         c = HubSpotRoom.counts(model)
         names = DoorStyleWindow.handle_names(model)

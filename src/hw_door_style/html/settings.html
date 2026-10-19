@@ -168,6 +168,7 @@
   <fieldset><legend>Top box &amp; bridge</legend>
     <div class="f" style="grid-template-columns:150px 80px"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm"></div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Worktop height (mm)</span><input type="number" id="worktop_height_mm"></div>
+    <div class="f t"><span>Drawer runner type</span><input type="text" id="drawer_runner_type"></div>
     <div class="hint">Bottom of the WORKTOP board from the floor (the height of the half units). The pencil sets it on every worktop, like the top door height.</div>
     <div class="hint">The top doors on TOPBOX and the doors on BRIDGE_FRAME, so they line up along the run.
       BRIDGE_FRAME is built up from this door and BRIDGE_SKELETON sits under it, so the top of the bridge is at the ceiling.
@@ -442,7 +443,7 @@ var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
-var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]

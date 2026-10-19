@@ -15,6 +15,7 @@
   ],
   "top_door_height_mm": 460,
   "worktop_height_mm": 771,
+  "drawer_runner_type": "Hook/Peg Drawer Runners",
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [
     [

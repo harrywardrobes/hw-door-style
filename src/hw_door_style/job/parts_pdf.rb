@@ -122,11 +122,11 @@ module HarryWardrobes
           doc.table([['Edge', nil, :left], ['Board thickness', 90, :right], ['Edges', 50, :right], ['Metres', 60, :right]],
                     d['edging'].map { |e| [e['material'], "#{f(e['height'])} mm", e['parts'], format('%.1f', e['metres'])] })
         end
-        boxes = d['hardware'].select { |h| h['drawer_box'] }
+        boxes = Array(d['drawer_boxes'])
         unless boxes.empty?
-          doc.heading('Drawer boxes', 'counted from the model')
-          doc.table([['#', 26, :left], ['Name', nil, :left], ['Material', 150, :left], ['Size (mm)', 120, :right], ['Qty', 40, :right]],
-                    boxes.map { |h| [h['number'], h['name'], h['material'], "#{f(h['length'])} x #{f(h['width'])} x #{f(h['thickness'])}", h['qty']] })
+          doc.heading('Drawer boxes', 'internal cabinet width; runners in pairs, one pair per box')
+          doc.table([['#', 26, :left], ['Parent', 120, :left], ['Material', nil, :left], ['Int. cab width', 75, :right], ['Height', 50, :right], ['Runners', 170, :left], ['Qty', 30, :right]],
+                    boxes.map { |b| [b['number'], b['parent'], b['material'], b['width'] ? "#{b['width']} mm" : '-', b['height'] ? "#{b['height']} mm#{b['warn'] ? ' (!)' : ''}" : '-', b['runner'], b['qty']] })
         end
         hws = d['hardware'].reject { |h| h['drawer_box'] }
         unless hws.empty?

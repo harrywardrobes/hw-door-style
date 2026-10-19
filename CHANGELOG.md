@@ -3,6 +3,7 @@
 ## 0.43.0 — 2026-10-19
 - Door summary: a door with a mid-rail is a "Wardrobe Door", and Mid-rail says where it is - "Yes - 815mm" (the mid-rail's centre above the bottom of the door, from the style).
 - Workshop tabs: Doors / Vinyl (was Door order) also lists bullnose and cornice; new Worktops tab (22 / 25 mm worktops, with their own sheet count, not counted in the MFC sheets sent to HubSpot); Sheet goods; Drawer Boxes (in place of Edging - the drawer boxes come off the Hardware tab); Hardware; Labels; HubSpot. Edging is at the bottom of Sheet goods.
+- Drawer Boxes tab: #, Parent (the drawer unit, e.g. EXT_DRAWER#1), Material, Internal cabinet width (box width + the box clearance each side), Height (a warning under 100 mm), Runners (e.g. "410mm Hook/Peg Drawer Runners" - one pair per box; the type is Settings > Components "Drawer runner type") and Quantity. Pull-outs with runners but no box get a row too. The runners come off the Hardware tab.
 - Parts list PDF follows the same split: worktops, bullnose / cornice and drawer boxes in their own tables.
 - HubSpot worktop order status: needs ordering when the parts list has a worktop (a part named WRKTP / WORKTOP at 22 or 25 mm).
 

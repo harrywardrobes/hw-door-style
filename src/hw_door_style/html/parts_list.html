@@ -115,7 +115,7 @@ function render(d){
   if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
   if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
   d.groups.forEach(function(g){
-    if (!g.std_ok) w.push(g.material + ': some parts are ' + f(g.thickness) + ' mm, which isn\'t one of its standard thicknesses.');
+    if (!g.std_ok && g.section !== 'vinyl') w.push(g.material + ': some parts are ' + f(g.thickness) + ' mm, which isn\'t one of its standard thicknesses.');
     if (g.too_big.length) w.push(g.material + ' ' + f(g.thickness) + ' mm: part(s) ' + g.too_big.join(', ') + ' are bigger than the sheet.');
     if (g.ask && g.sheets == null) w.push(g.material + ' ' + f(g.thickness) + ' mm: part(s) ' + g.manual.join(', ') + ' are too wide (or long) for the strips - enter the full sheets needed (Sheet goods tab).');
     if (!g.sheet && !g.strip_group) w.push(g.material + ': no sheet size set - no board count.');
@@ -147,9 +147,13 @@ function render(d){
     i.onchange = function(){ var m = {}; m[i.getAttribute('data-gid')] = i.value; sketchup.setSheets(JSON.stringify(m)); }; // only the one you changed is kept as entered
   });
   var boxes = d.hardware.filter(function(x){ return x.drawer_box; }), hws = d.hardware.filter(function(x){ return !x.drawer_box; });
-  $('p_boxes').innerHTML = boxes.length ? '<table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
-    boxes.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') +
-    '<tr><td></td><td><b>Total</b></td><td></td><td></td><td class="n"><b>' + boxes.reduce(function(a, x){ return a + x.qty; }, 0) + '</b></td></tr></table>' : '<div class="hint">No drawer boxes found.</div>';
+  var dbx = d.drawer_boxes || [];
+  $('p_boxes').innerHTML = dbx.length ? '<table><tr><th>#</th><th>Parent</th><th>Material</th><th class="n">Internal cabinet width</th><th class="n">Height</th><th>Runners</th><th class="n">Qty</th></tr>' +
+    dbx.map(function(x){ return '<tr' + (x.warn ? ' class="warnrow"' : '') + '><td class="num">' + esc(x.number) + '</td><td>' + esc(x.parent) + '</td><td>' + esc(x.material) + '</td><td class="n">' + (x.width ? x.width + ' mm' : '-') + '</td><td class="n">' + (x.height ? (x.warn ? '<span class="bad" title="' + esc(x.warn) + '">&#9888; ' + x.height + ' mm</span>' : x.height + ' mm') : '-') + '</td><td>' + esc(x.runner) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') +
+    '<tr><td></td><td><b>Total</b></td><td></td><td></td><td></td><td></td><td class="n"><b>' + dbx.reduce(function(a, x){ return a + x.qty; }, 0) + '</b></td></tr></table>' +
+    '<div class="hint">One pair of runners per box. Internal cabinet width = box width + the box clearance each side.</div>' : '<div class="hint">No drawer boxes found.</div>';
+  dbx.forEach(function(x){ if (x.warn) w.push(x.parent + ': drawer box ' + x.height + ' mm high - under 100 mm (Drawer Boxes tab).'); });
+  $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
   var hw = hws.length ? '<div class="grp"><h3>From the model</h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
     hws.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
   hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
