@@ -132,9 +132,18 @@ module HarryWardrobes
         @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']))
         model.add_observer(@watch)
         # Out of the way so the model can be clicked; the result goes to SketchUp's status bar.
-        dlg.close if dlg && dlg.visible?
-        model.place_component(defn, false)
-        Sketchup.status_text = "Click to place #{LibraryCache.pretty(e['name'])} (Esc to cancel)."
+        # Closed first, then placed on the next tick with the model window in focus - placing
+        # from inside the click left the window open on top and the model without focus.
+        begin
+          dlg&.close
+        rescue StandardError
+          nil
+        end
+        UI.start_timer(0.05, false) do
+          Sketchup.focus if Sketchup.respond_to?(:focus)
+          model.place_component(defn, false)
+          Sketchup.status_text = "Click to place #{LibraryCache.pretty(e['name'])} (Esc to cancel)."
+        end
       rescue StandardError => err
         Log.error('place component', err)
         UI.messagebox("Couldn't load that component: #{err.message}")

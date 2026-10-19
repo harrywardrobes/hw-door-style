@@ -11,6 +11,7 @@
 - **Room setup**: a file without a room asks for it when it is opened (Not now / Don't ask for this file). A new, unsaved job is saved first: customers folder (remembered, starts at 1_CUSTOMERS), customer folder (pick an existing one - newest first - or type a new name) and file name. Then the room width (left-right, red), length (into the room, green) and ceiling height: the floor and ceiling are stretched to the room and the ceiling's underside moved to the ceiling height, and that height becomes the job's ceiling height for units.
 - Scribe / runout window: Room size (width x length) next to the ceiling height - Apply resizes the floor and ceiling and moves the ceiling to the ceiling height, even before any units are in the file. The Ceiling height window and a ceiling height taken from HubSpot move the ceiling too.
 - New room from HubSpot uses the open file when it is just the template's floor and ceiling (it used to open another new file).
+- Add component: the window always closes before the component is put in your cursor, and the model window gets the focus, so you can click straight into the model.
 
 ## 0.41.0 — 2026-10-19
 - **Shortening a wardrobe no longer breaks the shelf and rails** (double hanging especially):
