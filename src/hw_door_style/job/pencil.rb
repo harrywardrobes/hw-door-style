@@ -69,7 +69,7 @@ module HarryWardrobes
         return unless Standardise.ready?(model)
         TopOfUnit.upgrade(model)
         sel = targets && !targets.empty?
-        units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities))
+        units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities) | Depth.units(model.entities))
         job = Runouts.job_values(model)
         first_r = units.find { |u| Runouts.unit?(u) }
         first_f = units.find { |u| Facing.has?(u) }
@@ -84,6 +84,7 @@ module HarryWardrobes
           'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
           'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm,
           'own' => TopOfUnit.own_height(units),
+          'depth' => sel ? nil : Depth.job_values(model),
           'room' => sel ? nil : (Room.get(model) || {}).merge('has_floor' => !Room.parts(model)[:floor].nil?, 'has_ceiling' => !Room.parts(model)[:ceiling].nil?)
         }
         # Taller, and resizable: ceiling + bottom facing + five runouts didn't fit in 400 (Apply was cut off).
@@ -95,6 +96,7 @@ module HarryWardrobes
           ceil = raw.delete('ceiling_height').to_f
           facing = raw.key?('facing') ? raw['facing'].to_f : nil
           heights = raw.delete('own') || {}
+          dep = raw.delete('depth')
           room_w = raw.delete('room_width').to_f
           room_l = raw.delete('room_length').to_f
           v = data['has_runouts'] ? raw.transform_values(&:to_f).slice(*Runouts::KEYS.keys) : nil
@@ -118,11 +120,12 @@ module HarryWardrobes
           else
             Runouts.apply(model, units, v, 'Scribes on',
                           "Scribes on: #{v ? Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ') + ' mm. ' : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm.",
-                          ceiling: ceil, facing: facing,
+                          ceiling: ceil, facing: facing, depth: !dep.nil?,
                           before: lambda {
                             model.set_attribute(DICT, 'scribe_on', true)
                             model.set_attribute(DICT, 'scribe_values', JSON.generate(v)) if v
                             model.set_attribute(DICT, 'ceiling_mm', ceil)
+                            model.set_attribute(DICT, 'depth_job', JSON.generate(dep)) if dep
                             model.set_attribute(DICT, 'facing_btm_mm', facing) if facing
                           })
           end

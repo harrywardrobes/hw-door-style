@@ -113,8 +113,13 @@ module HarryWardrobes
         UI.add_context_menu_handler do |cm|
           targets = Doors.selection_targets
           units = Runouts.selected | Facing.selected
-          next if targets.empty? && units.empty?
+          deep = Depth.selected
+          next if targets.empty? && units.empty? && deep.empty?
           sub = cm.add_submenu('HW Door Style')
+          unless deep.empty?
+            Depth.menu(sub, deep)
+            sub.add_separator unless units.empty? && targets.empty?
+          end
           unless units.empty?
             sub.add_item(units.size == 1 ? 'Runouts / bottom facing (this unit)...' : "Runouts / bottom facing (#{units.size} units)...") do
               Pencil.show(Sketchup.active_model, units)

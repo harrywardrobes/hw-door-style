@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.46.0 — 2026-10-20
+- **Depth** on every unit: back wall to the back of the facing (finished depth adds the facing / door, e.g. 580 / 598). Standard 580, bridge units / worktops / box ends 500 (Settings > Components, with own depths for box shelves and the bookcase). New units from the + window get it; the Scribe / runout window has the job's depths (standard and bridge / worktop) and sets every unit; right-click > HW Door Style > Depth changes any unit (standard, bridge / worktop, job depth for each, or a number).
+- Library components (from Components V29): Depth in Component Options in place of the old depth boxes - a wardrobe's floor / divider and shelf depth follow it (shelves keep their setback, the linen press worktop its gap), the bridge / box shelf / box end / end panel / bookcase / worktop depth follows it (less the back runout). Axis at the back-left corner on the floor, so units go straight against the wall and changing Depth moves the front only. Units already in job files keep their old axis.
+- Product List depth / finished depth reads the new Depth option.
+
 ## 0.45.0 — 2026-10-19
 - **Product List** - new first tab in the Workshop: every product in the job (wardrobes, bridge units, worktops, drawer units, box shelf sections, bookcases...) with a T number (T1, T2...), its name (type + width, e.g. "Wardrobe 824"), size W x D x H, and depth / finished depth from the component (e.g. 570/588 - back wall to the back of the facing / to the front of the door). Facings, bullnose, end panels, floor and ceiling aren't products.
 - Parts that belong to a product join it automatically: internal drawers / shoe pull-outs in a wardrobe, a box end under a worktop, the bridge frame on its skeleton; box shelves / box ends next to each other make one section. Units side by side stay separate. Any part can be moved to another product or split off as its own in the Product List (kept with the file).

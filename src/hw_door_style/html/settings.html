@@ -168,6 +168,11 @@
   <div class="lead">Sizes the plugin sets on library components.</div>
   <fieldset><legend>Top box &amp; bridge</legend>
     <div class="f" style="grid-template-columns:150px 80px"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Depth - standard (mm)</span><input type="number" id="depth_default_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Depth - bridge / worktop (mm)</span><input type="number" id="depth_short_mm"></div>
+    <div class="f t"><span>Bridge / worktop depth for</span><input type="text" id="depth_short_components"></div>
+    <div class="f t"><span>Own depth (component: mm)</span><input type="text" id="depth_by_component"></div>
+    <div class="hint">Depth = back wall to the back of the facing (finished depth adds the facing / door, e.g. 580 / 598). New units get it from the + window, the Scribe window sets it on every unit for the job, and right-click &gt; Depth changes any unit. Own depth: e.g. <code>BOX_SHELF: 225, BOOKCASE: 475</code>.</div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Worktop height (mm)</span><input type="number" id="worktop_height_mm"></div>
     <div class="f t"><span>Drawer runner type</span><input type="text" id="drawer_runner_type"></div>
     <div class="hint">Bottom of the WORKTOP board from the floor (the height of the half units). The pencil sets it on every worktop, like the top door height.</div>
@@ -468,9 +473,9 @@
 
 <script>
 var S = /*DATA*/null;
-var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip'];
+var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip','depth_short_components'];
 var LOWER_LISTS = ['product_depth_keys'];
-var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm'];
+var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', product_prefix:'T', product_label_tag:'T numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
@@ -495,6 +500,8 @@ function load(s){
   $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
   var rd = s.runout_defaults_mm || {};
   SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
+  var dbc = s.depth_by_component || {};
+  $('depth_by_component').value = Object.keys(dbc).map(function(k){ return k + ': ' + dbc[k]; }).join(', ');
   var pt = s.product_types || {};
   $('product_types').value = Object.keys(pt).map(function(k){ return k + ': ' + pt[k]; }).join('\n');
   var ea = s.export_aliases || {};
@@ -557,6 +564,8 @@ function collect(){
   o.runout_defaults_mm = {};
   SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
+  o.depth_by_component = {};
+  $('depth_by_component').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = parseFloat(x.slice(i + 1)); if (k && v > 0) o.depth_by_component[k] = v; });
   o.product_types = {};
   $('product_types').value.split('\n').forEach(function(line){
     var i = line.indexOf(':'); if (i < 1) return;

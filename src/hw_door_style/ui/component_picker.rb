@@ -190,11 +190,12 @@ module HarryWardrobes
         TopOfUnit.upgrade_definition(inst.definition) if TopOfUnit.keys(inst)
 
         # 1. sizes: runouts, bottom facing, ceiling - then one redraw (ceiling redraws itself)
-        units = Runouts.unit?(inst) || Facing.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities))
+        units = Runouts.unit?(inst) || Facing.has?(inst) || Depth.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities) | Depth.units(inst.definition.entities))
         units.each do |u|
           changed = Runouts.unit?(u) && Runouts.set(u, job['runouts'])
           changed = Facing.set(u, job['facing']) || changed if Facing.has?(u)
           changed = Ceiling.set_worktop(u) || changed
+          changed = Depth.set(u, Depth.target(u, model)) || changed if Depth.has?(u)
           changed = false if job['ceiling'].to_f.positive? && Ceiling.apply_to(u, job['ceiling'])
           next unless changed
           Drawers.close(u.definition.entities)

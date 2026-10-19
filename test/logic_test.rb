@@ -748,5 +748,10 @@ check 'product types: exact, longer names, longest match wins', PR.type_of('WARD
 check 'joiners and skipped components', PR.joiner?('INT_DRAWER_PLUS', pc) && PR.joiner?('BOX_SHELF', pc) && !PR.joiner?('WARDROBE', pc) && PR.skip?('FACING_BLOCK_L_HALF', pc) && PR.skip?('BULLNOSE', pc) && !PR.skip?('WARDROBE', pc)
 check 'Workshop has the Product List first', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')) =~ /data-t="products" class="on">Product List/
 
+puts "\n== Depth"
+require 'hw_door_style/job/depth'
+DPT = HarryWardrobes::DoorStyle::Depth
+check 'Depth option names: wardrobe c01_depth and the others a03_wall_depth', %w[c01_depth a03_wall_depth].all? { |k| k =~ DPT::KEY_RE } && !('c01_depth_fl_div' =~ DPT::KEY_RE) && !('a04_depth_finished' =~ DPT::KEY_RE)
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
