@@ -157,7 +157,11 @@ module HarryWardrobes
       end
 
       def self.render(data)
-        pages = layout(data)
+        document(layout(data))
+      end
+
+      # Page content streams -> PDF bytes.
+      def self.document(pages)
         objs = []
         objs << '<< /Type /Catalog /Pages 2 0 R >>'
         kids = pages.each_index.map { |i| "#{5 + i * 2} 0 R" }

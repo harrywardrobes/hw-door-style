@@ -288,6 +288,8 @@
     <div class="hint" style="margin-bottom:6px">The 22mm Panels colour also gets the 22mm panel thickness.</div>
     <div class="f t"><span>Stock sizes (mm)</span><textarea id="ocl_sheet_sizes" rows="3"></textarea></div>
     <div class="hint">Length x width, comma separated - full sheets and pre-cut strips, e.g. <code>2800x2070, 2800x610</code>.</div>
+    <div class="f" style="grid-template-columns:1fr 70px;margin-top:6px"><span>Parts list: waste allowed when counting sheets (%)</span><input type="number" id="parts_sheet_waste_pct" min="0" max="80" step="1"></div>
+    <div class="hint">Parts list board count = part area + this much, divided by the largest stock size of the colour.</div>
   </fieldset>
   <fieldset><legend>Doors &amp; drawer fronts</legend>
     <div class="f c"><span>Bought-in (from HPP): tag them so they can be left off the cutting diagrams</span><input type="checkbox" id="ocl_doors_bought_in"></div>
@@ -374,6 +376,7 @@
 <section id="s_general">
   <h2>General</h2>
   <div class="lead" id="verLine"></div>
+  <div class="hint" style="margin:-4px 0 10px">The parts list and labels are adapted from <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), used under the GNU GPL v3.0 - so HW Door Style is GPL-3.0 too (LICENSE in the plugin folder).</div>
   <fieldset><legend>What's new</legend><div class="news" id="news"></div></fieldset>
   <fieldset><legend>Updates</legend>
     <div class="info" id="updLine" style="margin-bottom:6px"></div>

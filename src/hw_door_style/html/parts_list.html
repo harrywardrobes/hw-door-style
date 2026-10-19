@@ -1,0 +1,247 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Parts list</title>
+<!--HW-->
+<!--
+  Labels: drawing ported from OpenCutList by L'Air du Bois (twig/tabs/cutlist/_slide-labels.twig and
+  _label-element.twig), https://github.com/lairdubois/lairdubois-opencutlist-sketchup-extension, GPL-3.0.
+-->
+<style>
+  body { display:flex; flex-direction:column; height:100vh; }
+  .tabs { display:flex; gap:2px; border-bottom:1px solid var(--line); margin:6px 0 8px; }
+  .tabs button { border:1px solid var(--line); border-bottom:none; border-radius:4px 4px 0 0; background:#f4f6f5; padding:5px 12px; }
+  .tabs button.on { background:#fff; font-weight:600; position:relative; top:1px; }
+  .pane { flex:1; overflow:auto; display:none; }
+  .pane.on { display:block; }
+  table { border-collapse:collapse; width:100%; font-size:11.5px; }
+  th, td { border-bottom:1px solid var(--rule, #e4e7ea); padding:3px 6px; text-align:left; vertical-align:top; }
+  th { background:#f3f4f6; font-weight:600; position:sticky; top:0; z-index:1; }
+  td.n, th.n { text-align:right; white-space:nowrap; }
+  td.num { font-weight:700; }
+  .grp { margin:0 0 14px; }
+  .grp h3 { font-size:12.5px; margin:6px 0 4px; display:flex; gap:10px; align-items:baseline; }
+  .grp h3 span { color:var(--muted); font-weight:normal; font-size:11px; }
+  .warnbox { background:#fff6e5; border:1px solid #f0d9a8; color:#7a5300; padding:6px 10px; border-radius:4px; font-size:11.5px; margin-bottom:8px; }
+  .bad { color:#a33; }
+  .edge { font-size:10.5px; color:#3b4a44; }
+  .swatch { display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:-1px; margin-right:3px; border:1px solid rgba(0,0,0,.2); }
+  .lbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; font-size:11.5px; }
+  .lbar select { font:inherit; padding:3px 6px; border:1px solid var(--line); border-radius:3px; }
+  .lpages { display:flex; flex-wrap:wrap; gap:14px; padding:4px; }
+  .lpage { background:#fff; box-shadow:2px 2px 8px #999; }
+  .lpage svg { display:block; }
+  .grid-line { stroke:#000; }
+  .grid-line.no-print { stroke:#ddd; }
+  .credit { font-size:10.5px; color:var(--muted); margin-top:6px; }
+  #printArea { display:none; }
+  @media print {
+    body > *:not(#printArea) { display:none !important; }
+    body { padding:0 !important; margin:0 !important; height:auto; display:block; }
+    #printArea { display:block; }
+    .pp { page-break-after:always; break-after:page; overflow:hidden; }
+    .pp:last-child { page-break-after:auto; break-after:auto; }
+    .no-print { display:none; }
+  }
+</style>
+<style id="pageSize"></style>
+</head>
+<body>
+<h1>Parts list</h1>
+<div class="sub" id="sub">Reading the model...</div>
+<div id="warns"></div>
+<div class="tabs" id="tabs">
+  <button data-t="sheets" class="on">Sheet goods</button>
+  <button data-t="edging">Edging</button>
+  <button data-t="hardware">Hardware</button>
+  <button data-t="labels">Labels</button>
+</div>
+<div class="pane on" id="p_sheets"></div>
+<div class="pane" id="p_edging"></div>
+<div class="pane" id="p_hardware"></div>
+<div class="pane" id="p_labels">
+  <div class="lbar">
+    Layout <select id="lPreset" onchange="labels()"></select>
+    Labels for <select id="lWhich" onchange="labels()"></select>
+    <span id="lInfo" style="color:var(--muted)"></span>
+    <span style="flex:1"></span>
+    <button class="primary" onclick="printLabels()">Print labels</button>
+  </div>
+  <div class="lpages" id="lPages"></div>
+</div>
+<div class="credit">Parts list and labels follow <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), GPL-3.0. Label layouts are the ones saved in OpenCutList.</div>
+<div class="bar">
+  <span id="status" style="align-self:center;margin-right:auto;font-size:11.5px;color:var(--muted)"></span>
+  <button onclick="sketchup.refresh()">Refresh</button>
+  <button onclick="sketchup.openFolder()">Open folder</button>
+  <button onclick="sketchup.close()">Close</button>
+  <button onclick="sketchup.export()">Save CSV + PDF</button>
+  <button class="primary" onclick="sketchup.send()">Save + attach to HubSpot Room</button>
+</div>
+<div id="printArea"></div>
+<script>
+var D = null, ENTRIES = [];
+function f(v){ v = +v; return Math.round(v) === v ? String(v) : v.toFixed(1); }
+Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){
+  b.onclick = function(){
+    Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(x){ x.classList.toggle('on', x === b); });
+    Array.prototype.forEach.call(document.querySelectorAll('.pane'), function(p){ p.classList.toggle('on', p.id === 'p_' + b.getAttribute('data-t')); });
+    if (b.getAttribute('data-t') === 'labels' && D) labels();
+  };
+});
+function edgeCell(name, color){ return name ? '<span class="edge"><span class="swatch" style="background:' + esc(color || '#999') + '"></span>' + esc(name) + '</span>' : ''; }
+function render(d){
+  D = d;
+  $('status').textContent = '';
+  $('sub').textContent = d.job + ' - ' + d.date + '. Doors and drawer fronts are on the door summary.';
+  var w = [];
+  if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
+  if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
+  d.groups.forEach(function(g){
+    if (!g.std_ok) w.push(g.material + ': some parts are ' + f(g.thickness) + ' mm, which isn\'t one of its standard thicknesses.');
+    if (g.too_big.length) w.push(g.material + ' ' + f(g.thickness) + ' mm: part(s) ' + g.too_big.join(', ') + ' are bigger than the sheet.');
+    if (!g.sheet) w.push(g.material + ': no sheet size set - no board count.');
+  });
+  $('warns').innerHTML = w.map(function(t){ return '<div class="warnbox">' + esc(t) + '</div>'; }).join('');
+  // sheet goods
+  var h = '<div class="grp"><h3>Boards <span>estimate: part area + ' + f(d.waste_pct) + '% waste per full sheet (Settings > Cut list)</span></h3><table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Parts</th><th class="n">Area m&sup2;</th><th class="n">Sheet</th><th class="n">Sheets</th></tr>' +
+    d.groups.map(function(g){ return '<tr><td>' + esc(g.material) + (g.grained ? ' <span style="color:var(--muted)">(grained)</span>' : '') + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + g.count + '</td><td class="n">' + g.area_m2.toFixed(2) + '</td><td class="n">' + (g.sheet ? f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '-') + '</td><td class="n"><b>' + (g.sheets == null ? '-' : g.sheets) + '</b></td></tr>'; }).join('') + '</table></div>';
+  d.groups.forEach(function(g){
+    h += '<div class="grp"><h3>' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
+      g.parts.map(function(p){ return '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n">' + p.qty + '</td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
+  });
+  $('p_sheets').innerHTML = d.groups.length ? h : '<div class="hint">No sheet goods found.</div>';
+  $('p_edging').innerHTML = d.edging.length ? '<table><tr><th>Edge</th><th class="n">Board thickness</th><th class="n">Edges</th><th class="n">Metres</th></tr>' +
+    d.edging.map(function(e){ return '<tr><td>' + esc(e.material) + '</td><td class="n">' + f(e.height) + ' mm</td><td class="n">' + e.parts + '</td><td class="n"><b>' + e.metres.toFixed(1) + '</b></td></tr>'; }).join('') + '</table><div class="hint">Total length of the edges that carry an edge material, from each part\'s length / width. Add your own allowance for trimming.</div>' : '<div class="hint">No edging found.</div>';
+  var hw = d.hardware.length ? '<div class="grp"><h3>From the model</h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
+    d.hardware.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
+    d.handles.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
+  // labels
+  var names = Object.keys(d.labels.presets), cur = $('lPreset').value;
+  $('lPreset').innerHTML = names.map(function(n){ return '<option' + (n === (cur || d.labels.active) ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('');
+  var wcur = $('lWhich').value;
+  $('lWhich').innerHTML = '<option value="">All parts</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
+  if (wcur) $('lWhich').value = wcur;
+  if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
+}
+function failed(msg){ $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
+function exported(r){ $('status').textContent = 'Saved parts list v' + r.v + ': ' + r.csv + ' and ' + r.pdf + '.'; }
+function sent(r){ $('status').textContent = 'Saved v' + r.v + ' and attached ' + r.n + ' file(s) to the Room\'s Order / Parts List.'; }
+
+// ---------- labels (OpenCutList _slide-labels.twig / _label-element.twig) ----------
+function labels(){ $('lInfo').textContent = 'Preparing labels...'; sketchup.labels(JSON.stringify({ preset: $('lPreset').value, which: $('lWhich').value })); }
+function labelEntries(r){
+  ENTRIES = r.entries || [];
+  var o = D.labels.presets[$('lPreset').value];
+  var pages = paginate(o);
+  $('lInfo').textContent = ENTRIES.length + ' label(s) on ' + pages.length + ' page(s) of ' + f(o.page_width) + ' x ' + f(o.page_height) + ' mm' + (r.errors ? ' - ' + r.errors + ' formula error(s), shown in red' : '');
+  var scale = Math.min(1, 300 / o.page_width);
+  $('lPages').innerHTML = pages.slice(0, 60).map(function(p){ return '<div class="lpage">' + pageSvg(o, p, true, (o.page_width * scale * 3.78) + 'px', (o.page_height * scale * 3.78) + 'px') + '</div>'; }).join('') +
+    (pages.length > 60 ? '<div class="hint">... and ' + (pages.length - 60) + ' more page(s) (all are printed).</div>' : '');
+}
+function paginate(o){
+  var per = o.col_count * o.row_count, pages = [], off = Math.min(o.offset || 0, per - 1), cur = [];
+  for (var i = 0; i < off; i++) cur.push(null);
+  ENTRIES.forEach(function(e){ cur.push(e); if (cur.length === per) { pages.push(cur); cur = []; } });
+  if (cur.length) pages.push(cur);
+  return pages;
+}
+function pageSvg(o, entries, preview, w, h){
+  var lw = (o.page_width - o.margin_left - o.margin_right - o.spacing_v * (o.col_count - 1)) / o.col_count;
+  var lh = (o.page_height - o.margin_top - o.margin_bottom - o.spacing_h * (o.row_count - 1)) / o.row_count;
+  var minUnit = Math.min(lw / 12, lh / 12), sw = 0.01 * 25.4, cm = sw * 10;
+  var s = '<svg viewBox="0 0 ' + o.page_width + ' ' + o.page_height + '" width="' + w + '" height="' + h + '" font-family="Helvetica Neue, Helvetica, Arial, sans-serif"><g transform="translate(' + o.margin_left + ' ' + o.margin_top + ')">';
+  for (var row = 0; row < o.row_count; row++) {
+    var ly = row * (lh + o.spacing_h);
+    for (var col = 0; col < o.col_count; col++) {
+      var lx = col * (lw + o.spacing_v), e = entries[row * o.col_count + col];
+      if (e) {
+        s += '<g transform="translate(' + (lx + lw / 2) + ' ' + (ly + lh / 2) + ')">';
+        o.layout.forEach(function(el, i){ s += '<g transform="translate(' + (el.x * lw) + ' ' + (el.y * lh) + ')' + (el.rotation ? ' rotate(' + el.rotation + ')' : '') + '">' + element(el, e, i, minUnit) + '</g>'; });
+        s += '</g>';
+      }
+      var lines = [];
+      if (o.margin_top > 0 || row > 0) lines.push([lx, ly, lx + lw, ly, lw]);
+      if ((o.margin_bottom > 0 && row === o.row_count - 1) || (o.spacing_h > 0 && row < o.row_count - 1)) lines.push([lx + lw, ly + lh, lx, ly + lh, lw]);
+      if (o.margin_left > 0 || col > 0) lines.push([lx, ly + lh, lx, ly, lh]);
+      if ((o.margin_right > 0 && col === o.col_count - 1) || (o.spacing_v > 0 && col < o.col_count - 1)) lines.push([lx + lw, ly, lx + lw, ly + lh, lh]);
+      lines.forEach(function(l){
+        if (preview) s += '<line class="grid-line no-print" x1="' + l[0] + '" y1="' + l[1] + '" x2="' + l[2] + '" y2="' + l[3] + '" stroke-width="' + sw + '" stroke-dasharray="' + sw + '"/>';
+        if (o.cutting_marks) s += '<line class="grid-line" x1="' + l[0] + '" y1="' + l[1] + '" x2="' + l[2] + '" y2="' + l[3] + '" stroke-width="' + sw + '" stroke-dasharray="' + cm + ',' + (l[4] - 2 * cm) + '"/>';
+      });
+    }
+  }
+  return s + '</g></svg>';
+}
+function anchorX(anchor, size){ return anchor.indexOf('middle') === 0 ? size * -0.5 : (anchor.indexOf('end') === 0 ? -size : 0); }
+function element(el, e, idx, minUnit){
+  var terms = el.formula.split('.'), anchor = el.anchor || 'middle', color = el.color || '#000000';
+  if (terms[0] === 'thumbnail') {
+    var area = el.size * minUnit, tx = anchorX(anchor, area), ty = /top$/.test(anchor) ? 0 : -area;
+    var prop = terms[1] === 'proportional', pw = minUnit / 7;
+    var rw = (area - pw) * (prop ? e.l_ratio : 1), rh = (area - pw) * (prop ? e.w_ratio : 1), dw = minUnit / 20;
+    var s = '<g transform="translate(' + (tx + (area - rw) / 2) + ' ' + (ty + (area - rh) / 2) + ')">';
+    s += '<rect x="0" y="0" width="' + Math.max(0, rw) + '" height="' + Math.max(0, rh) + '" fill="#ffffff" stroke="none"/>';
+    if (e.grained) {
+      var am = minUnit / 4, ax = am, ay = am, aw = rw - am * 2, al = rh - am * 2;
+      var pat = [[0, 1/3], [1/2, 1/3], [1/2, 0], [1, 1/2], [1/2, 1], [1/2, 2/3], [0, 2/3], [0, 1/3]];
+      s += '<polyline points="' + pat.map(function(p){ return (ax + aw * p[0]) + ',' + (ay + al * p[1]); }).join(' ') + '" stroke="' + color + '" stroke-width="' + (minUnit / 20) + '" fill="none"/>';
+    }
+    var line = function(x1, y1, x2, y2, key){
+      var n = e.edges && e.edges[key];
+      return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke-linecap="square" ' +
+        (n ? 'stroke="' + (e.edge_colors[key] || color) + '" stroke-width="' + pw + '"' : 'stroke="' + color + '" stroke-width="' + dw + '" stroke-dasharray="' + (dw * 4) + '"') + '/>';
+    };
+    s += line(0, 0, rw, 0, 'ymax') + line(rw, rh, 0, rh, 'ymin') + line(rw, 0, rw, rh, 'xmax') + line(0, rh, 0, 0, 'xmin');
+    return s + '</g>';
+  }
+  var value = '', error = null, key = terms[1];
+  if (terms[0] === 'part') {
+    if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = e.length + ' x ' + e.width;
+    else if (key === 'batch') value = e.position + '/' + e.count;
+    else if (key === 'count') value = String(e.count);
+    else if (key === 'entity_named_path') value = e.entity_named_path;
+    else if (key === 'entity_name') value = e.entity_name;
+    else if (key === 'length' || key === 'cutting_length') value = e.length;
+    else if (key === 'width' || key === 'cutting_width') value = e.width;
+    else if (key === 'thickness' || key === 'cutting_thickness') value = e.thickness;
+    else if (key === 'edge') value = e.edges[terms[2]] || '';
+    else if (key === 'bin' || key === 'description' || key === 'tags' || key === 'face') value = '';
+    else value = e[key] == null ? '' : String(e[key]);
+  } else if (terms[0] === 'group') {
+    if (key === 'material') value = e.material_name + (e.std_dimension ? ' / ' + e.std_dimension : '');
+    else if (key === 'material_name') value = e.material_name;
+    else if (key === 'std_dimension') value = e.std_dimension;
+    else value = '';
+  } else if (terms[0] === 'filename') value = D.filename;
+  else if (terms[0] === 'model_name') value = D.model_name;
+  else if (terms[0] === 'page_name') value = D.page_name;
+  else if (terms[0] === 'length_unit') value = 'mm';
+  else if (terms[0] === 'generated_at') value = D.date.split(' ')[0];
+  else if (terms[0] === 'custom') {
+    var c = e.custom && e.custom[idx];
+    if (c && typeof c === 'object') error = c.error || 'error'; else value = c == null ? '' : String(c);
+  }
+  var lines = String(value).split('\n');
+  var textAnchor = /top$/.test(anchor) ? anchor.split('-')[0] : anchor, ty2 = /top$/.test(anchor) ? el.size * minUnit * lines.length : 0;
+  var fs = error ? 0.5 * minUnit : el.size * minUnit;
+  var body;
+  if (error) body = esc(String(error).trim());
+  else if (lines.length > 1) body = lines.map(function(l, i){ return '<tspan ' + (i === 0 ? 'dy="-' + (el.size * minUnit * (lines.length - 1)) + '"' : 'x="0" dy="' + (el.size * minUnit) + '"') + '>' + esc(l.trim()) + '</tspan>'; }).join('');
+  else body = esc(String(value).trim());
+  return '<text x="0" y="' + ty2 + '" font-size="' + fs + '" text-anchor="' + textAnchor + '" fill="' + (error ? 'red' : color) + '">' + body + '</text>';
+}
+function printLabels(){
+  if (!ENTRIES.length) return;
+  var o = D.labels.presets[$('lPreset').value];
+  $('pageSize').textContent = '@page { size: ' + o.page_width + 'mm ' + o.page_height + 'mm; margin: 0; }';
+  $('printArea').innerHTML = paginate(o).map(function(p){ return '<div class="pp" style="width:' + o.page_width + 'mm;height:' + o.page_height + 'mm">' + pageSvg(o, p, false, o.page_width + 'mm', o.page_height + 'mm') + '</div>'; }).join('');
+  setTimeout(function(){ window.print(); }, 50);
+}
+window.onload = function(){ sketchup.ready(); };
+</script>
+</body>
+</html>

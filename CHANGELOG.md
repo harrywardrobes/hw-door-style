@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.37.0 — 2026-10-19
+- **Parts list** (new toolbar button, after Door summary), built on OpenCutList's rules:
+  - **Sheet goods** per colour and thickness: every part with its letter, length, width, quantity and the
+    edge material on each edge (L1 / L2 along the length, W1 / W2 the ends). Uses OpenCutList's own cut list
+    settings saved in the model (letters from A in each group, mirrored parts separate, its sort order), so
+    letters and counts match OpenCutList exactly. Doors and drawer fronts (bought-in tag) are left for the
+    door summary.
+  - **Board count** per colour: part area + a waste allowance (Settings > Cut list, default 20%) over the
+    colour's largest stock size; warns about parts bigger than the sheet and non-standard thicknesses.
+  - **Edging**: metres of each edge tape.
+  - **Hardware** counted from the model (hinges, runners, rails, brackets, drawer boxes...), plus the
+    handles from the Door style window with SKU, supplier and quantity.
+  - **Labels**: one per piece, drawn from the label layouts saved in OpenCutList (this model's, then your
+    saved presets) - number, name, size, material, custom formulas such as @layer / @filename / @batch, and
+    the thumbnail with its edges - and printed one label per page at the label size.
+  - **Save CSV + PDF** next to the .skp (PARTS_LIST_v<N>_...), and **Save + attach to HubSpot Room**: both
+    files go in the Room's new **Order / Parts List** file field (made the first time).
+- **Licence:** the parts list and labels adapt OpenCutList by L'Air du Bois (GPL-3.0), so HW Door Style is
+  now GPL-3.0 (LICENSE and NOTICE.md in the plugin; credited in the window and Settings > General).
+
+## 0.37.0 — 2026-10-19
+- 
+
 ## 0.36.0 — 2026-10-19
 - **Toolbar tidied:** the Ceiling height button is gone from "HW measure once" (the Scribe / runouts window
   already asks for the ceiling height). Scribe / runouts now sits to the left of Door summary:

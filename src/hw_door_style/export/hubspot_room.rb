@@ -114,7 +114,7 @@ module HarryWardrobes
 
       # --- the Room card, as laid out in HubSpot ---------------------------------------------
 
-      FILE_FIELDS = %w[render_1 floor_plan survey_door_dimensions_1 installation_reference_images].freeze
+      FILE_FIELDS = %w[render_1 floor_plan survey_door_dimensions_1 installation_reference_images order_parts_list].freeze
 
       LAYOUT = [
         ['Survey (SketchUp)', %w[room_width_mm room_depth_mm bottom_facing_mm runout_floor_mm runout_ceiling_mm
@@ -133,7 +133,7 @@ module HarryWardrobes
         ['Order List', %w[door_vinyl_order_status door_vinyl_order_ref door_vinyl_delivery_date drawer_order_status
                           drawer_order_ref drawer_delivery_date sheets_order_status sheets_order_ref sheets_delivery_date
                           hardware_order_status hardware_order_ref hardware_delivery_date worktop_order_status
-                          worktop_order_ref worktop_delivery_date stock_screw_caps stock_wax_stick]],
+                          worktop_order_ref worktop_delivery_date stock_screw_caps stock_wax_stick order_parts_list]],
         ['Renders + Floor Plan', %w[render_1 floor_plan survey_door_dimensions_1]],
         ['Installation Info', %w[ceiling_height_mm hs_listing_type room_subtype project_surveyor_assigned installer_assigned
                                  installation_notes project_site_requirements installation_reference_images carpet_line_present]],

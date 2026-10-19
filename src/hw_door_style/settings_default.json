@@ -233,6 +233,7 @@
   ],
   "ocl_doors_bought_in": true,
   "ocl_bought_in_tag": "bought-in",
+  "parts_sheet_waste_pct": 20,
   "update_folder": "G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Harry Wardrobes\\_HW Door Style\\Updates",
   "update_check_at_start": true,
   "hubspot_pictures": [
