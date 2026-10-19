@@ -66,6 +66,16 @@
   table.ocl { width:100%; border-collapse:collapse; font-size:11px; }
   table.ocl th { text-align:left; color:#57606a; border-bottom:1px solid #d0d7de; padding:3px 4px; }
   table.ocl td { border-bottom:1px solid var(--rule); padding:3px 4px; }
+  .prange { margin:0 0 10px; }
+  .prange .rh { font-weight:600; font-size:12px; padding:4px 0; border-bottom:1px solid var(--rule); margin-bottom:6px; }
+  .prange .rh span { color:var(--muted); font-weight:normal; font-size:11px; margin-left:6px; }
+  .pgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:8px; }
+  .pcard { border:1px solid var(--line); border-radius:4px; padding:5px; font-size:11px; cursor:pointer; background:#fff; }
+  .pcard:hover { border-color:var(--accent); }
+  .pcard img, .pcard .noimg { width:100%; height:90px; object-fit:contain; background:#fafbfb; display:block; }
+  .pcard .f { font-weight:600; margin-top:4px; }
+  .pcard .s { color:var(--muted); }
+  .pcard .chips span { display:inline-block; background:#eef3f0; color:var(--accent); border-radius:2px; padding:0 4px; margin:2px 2px 0 0; font-size:9.5px; }
   .ok { color:#1a7f37; font-weight:600; } .no { color:var(--warn); font-weight:600; }
   ul.tips { margin:4px 0 0; padding-left:18px; } ul.tips li { margin:3px 0; }
   .news h4 { font-size:12px; margin:6px 0 2px; }
@@ -289,7 +299,7 @@
     <fieldset><legend id="prodTitle">New product</legend>
       <div style="display:grid;grid-template-columns:1fr 130px;gap:12px">
         <div>
-          <div class="f t"><span>Name</span><input type="text" id="pf_name"></div>
+          <div class="f t"><span>Name</span><input type="text" id="pf_name" placeholder="Range - Finish - Size, e.g. Venice Handle - Aged Brass - 128mm"></div>
           <div class="f t"><span>SKU</span><input type="text" id="pf_hs_sku"></div>
           <div class="f t"><span>Supplier</span><select id="pf_supplier"></select></div>
           <div class="f t"><span>Product type</span><select id="pf_hs_product_type"></select></div>
@@ -307,7 +317,11 @@
       <div class="btnrow"><button onclick="prodCancel()">Cancel</button><button class="primary" onclick="prodSave()">Save to HubSpot</button><span class="hint" id="prodMsg" style="align-self:center;margin:0"></span></div>
     </fieldset>
   </div>
-  <table class="ocl" style="margin-top:6px"><thead><tr><th style="width:40px"></th><th>Name</th><th>SKU</th><th>Category</th><th>Supplier</th><th style="width:60px"></th></tr></thead><tbody id="prodList"></tbody></table>
+  <div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px">
+    <input type="text" id="prodQ" placeholder="Filter by range, finish, size, SKU or supplier" oninput="prodDraw()" style="width:300px">
+    <select id="prodCat" onchange="prodDraw()" style="width:auto"><option value="">All categories</option></select>
+  </div>
+  <div id="prodList"></div>
   <div class="hint">New supplier names: add them to the product Supplier field in HubSpot, then Read from HubSpot.</div>
 </section>
 
@@ -694,14 +708,29 @@ function reqDraw(){
 var PROD = { products: [], options: {} }, PEDIT = null, PIMG = null;
 function prodOpts(k){ return (PROD.options && PROD.options[k]) || []; }
 function prodLabel(k, v){ var o = prodOpts(k).filter(function(x){ return x[1] === v; })[0]; return o ? o[0] : (v || ''); }
+// "Venice Handle - Aged Brass - 128mm" -> range "Venice Handle", rest "Aged Brass - 128mm".
+function prodParts(name){ var p = String(name || '').split(' - '); return [p[0], p.slice(1).join(' - ')]; }
 function prodDraw(){
   $('prodAt').textContent = PROD.at ? PROD.products.length + ' product(s), read ' + PROD.at : 'Not read from HubSpot yet - press Read from HubSpot.';
-  $('prodList').innerHTML = PROD.products.length ? PROD.products.map(function(p, i){
-    var img = (p.hs_images || '').split(';')[0];
-    var cats = (p.product_category || '').split(';').filter(Boolean).map(function(c){ return prodLabel('categories', c); }).join(', ');
-    return '<tr><td>' + (img ? '<img src="' + esc(img) + '" style="width:32px;height:32px;object-fit:contain">' : '') + '</td><td>' + esc(p.name) + '</td><td>' + esc(p.hs_sku || '') + '</td><td>' + esc(cats) + '</td><td>' + esc(prodLabel('suppliers', p.supplier)) + '</td>' +
-      '<td><button onclick="prodEdit(' + i + ')">Edit</button></td></tr>';
-  }).join('') : '<tr><td colspan="6" class="hint">No products yet.</td></tr>';
+  var cs = prodOpts('categories'), cur = $('prodCat').value;
+  $('prodCat').innerHTML = '<option value="">All categories</option>' + cs.map(function(c){ return '<option value="' + esc(c[1]) + '"' + (c[1] === cur ? ' selected' : '') + '>' + esc(c[0]) + '</option>'; }).join('');
+  var q = $('prodQ').value.trim().toLowerCase();
+  var list = PROD.products.map(function(p, i){ return [p, i]; }).filter(function(x){
+    var p = x[0];
+    if (cur && (p.product_category || '').split(';').indexOf(cur) < 0) return false;
+    return !q || [p.name, p.hs_sku, prodLabel('suppliers', p.supplier)].join(' ').toLowerCase().indexOf(q) >= 0;
+  });
+  var order = [], by = {};
+  list.forEach(function(x){ var r = prodParts(x[0].name)[0]; if (!by[r]) { by[r] = []; order.push(r); } by[r].push(x); });
+  order.sort(function(a, b){ return a.localeCompare(b); });
+  $('prodList').innerHTML = order.length ? order.map(function(r){
+    return '<div class="prange"><div class="rh">' + esc(r) + '<span>' + by[r].length + '</span></div><div class="pgrid">' + by[r].map(function(x){
+      var p = x[0], img = (p.hs_images || '').split(';')[0], rest = prodParts(p.name)[1];
+      var cats = (p.product_category || '').split(';').filter(Boolean).map(function(c){ return '<span>' + esc(prodLabel('categories', c)) + '</span>'; }).join('');
+      return '<div class="pcard" onclick="prodEdit(' + x[1] + ')" title="Edit ' + esc(p.name) + '">' + (img ? '<img loading="lazy" src="' + esc(img) + '">' : '<div class="noimg"></div>') +
+        '<div class="f">' + esc(rest || p.name) + '</div><div class="s">' + [esc(p.hs_sku || ''), p.supplier ? esc(prodLabel('suppliers', p.supplier)) : ''].filter(Boolean).join(' - ') + '</div><div class="chips">' + cats + '</div></div>';
+    }).join('') + '</div></div>';
+  }).join('') : '<div class="hint">' + (PROD.products.length ? 'Nothing matches.' : 'No products yet - New product, or Import from supplier.') + '</div>';
 }
 function prodLoad(){ $('prodAt').textContent = ''; sketchup.prodLoad(); }
 function prodList(r){

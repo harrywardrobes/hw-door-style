@@ -97,7 +97,13 @@ function drawHandles(){
     var known = c.products.some(function(p){ return p.id === cur; });
     var opts = '<option value="">-- no handle --</option>';
     if (!known && old) { opts += '<option value="_keep" selected>' + esc(old) + ' (not a product yet)</option>'; cur = '_keep'; }
-    opts += c.products.map(function(p){ return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('');
+    var by = {}, order = [];
+    c.products.forEach(function(p){ var r = String(p.name).split(' - ')[0]; if (!by[r]) { by[r] = []; order.push(r); } by[r].push(p); });
+    order.sort(function(a, b){ return a.localeCompare(b); });
+    opts += order.map(function(r){
+      return '<optgroup label="' + esc(r) + '">' + by[r].map(function(p){ var rest = String(p.name).split(' - ').slice(1).join(' - ');
+        return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>' + esc(rest || p.name) + '</option>'; }).join('') + '</optgroup>';
+    }).join('');
     if (!c.products.length) opts += '<option disabled>No products in this category yet</option>';
     return '<div class="hrow"><span>' + esc(c.label) + '</span><select id="hp_' + k + '" onchange="pickHandle(\'' + k + '\')">' + opts + '</select>' +
       '<input type="text" readonly id="hs_' + k + '"><input type="text" readonly id="hsup_' + k + '"><span id="hi_' + k + '"></span></div>';

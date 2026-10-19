@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.31.0 — 2026-10-19
+- **Products are grouped by range: Range - Finish - Size** (e.g. "Venice Handle - Aged Brass - 128mm").
+  - Import from supplier works out the range, finish and size of every item (HPP from its tables; others from
+    the name) and shows them under a heading per range, each card showing the finish and size, with a
+    "Tick range" button. Products are added to HubSpot with that name.
+  - Settings > Products now looks the same: picture cards grouped by range, filter by text or category,
+    click a card to edit it.
+  - The Door style handle dropdowns are grouped by range too.
+- **Paste a page address** in Import from supplier (any supplier: a category or a product page) and choose
+  its supplier. HPP, Interfit and Handles4u addresses use their own readers; other sites are read from the
+  page's product data (name, SKU, picture, price).
+
 ## 0.30.0 — 2026-10-19
 - **Import from supplier** (Settings > Products): reads HPP, Interfit and Handles4u's handle and knob sections from
   this computer - following every sub-category and numbered page - and lists each item with its picture,

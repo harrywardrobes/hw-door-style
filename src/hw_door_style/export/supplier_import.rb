@@ -135,7 +135,9 @@ module HarryWardrobes
               img = (list.find { |a, _| a.casecmp?(finish) } || list.first || [nil, fallback])[1]
               # HPP's picture service takes a size: 600 px is plenty for a product picture.
               img = img.to_s.sub(/\/(\d+)w\d+h\d+\//, '/\\1w600h600/').sub(/width=\d+&height=\d+/, 'width=600&height=600') if img
+              size = SupplierImport.text(row[%r{data-metric="(?:Centres|Diameter|Length|Size)">(.*?)</td>}m, 1])
               out << { 'name' => CGI.unescapeHTML(title), 'sku' => code, 'sku_exact' => true, 'image' => img,
+                       'finish' => finish, 'size' => size, 'range' => CGI.unescapeHTML([grp[/data-category3="([^"]*)"/, 1], grp[/data-category2="([^"]*)"/, 1]].find { |x| !x.to_s.strip.empty? }.to_s),
                        'url' => "#{url.sub(/#.*\z/, '')}#{node ? "##{node}" : ''}", 'group' => group, 'price' => '' }
             end
           end
@@ -167,6 +169,93 @@ module HarryWardrobes
         end
       }.freeze
 
+      # Any other site: products in the page's structured data (schema.org Product), else the
+      # page's own title and picture. Follows ?page=N on the same page only.
+      GENERIC = {
+        'links' => lambda do |html, url|
+          path = url.sub(/\?.*\z/, '')
+          html.scan(/href="([^"]*[?&]page=\d+[^"]*)"/).flatten.filter_map { |h| SupplierImport.same_site(url, h) }.select { |u| u.start_with?(path) }
+        end,
+        'items' => lambda do |html, url|
+          out = []
+          html.scan(%r{<script[^>]*application/ld\+json[^>]*>(.*?)</script>}m).each do |(js)|
+            data = (JSON.parse(js) rescue nil) or next
+            walk = lambda do |x|
+              case x
+              when Array then x.each { |y| walk.call(y) }
+              when Hash
+                if Array(x['@type']).include?('Product')
+                  img = x['image']
+                  img = img.first if img.is_a?(Array)
+                  img = img['url'] if img.is_a?(Hash)
+                  offer = x['offers'].is_a?(Array) ? x['offers'].first : x['offers']
+                  offer = {} unless offer.is_a?(Hash)
+                  code = (x['sku'] || x['mpn']).to_s
+                  out << { 'name' => CGI.unescapeHTML(x['name'].to_s), 'sku' => code, 'sku_exact' => !code.empty?,
+                           'image' => SupplierImport.abs(url, img.to_s), 'url' => SupplierImport.abs(url, (offer['url'] || x['url'] || url).to_s),
+                           'price' => offer['price'] ? "£#{offer['price']}" : '' }
+                end
+                x.each_value { |y| walk.call(y) if y.is_a?(Hash) || y.is_a?(Array) }
+              end
+            end
+            walk.call(data)
+          end
+          if out.empty?
+            title = CGI.unescapeHTML((html[/<meta property="og:title" content="([^"]*)"/, 1] || html[%r{<title>(.*?)</title>}m, 1]).to_s).strip
+            img = html[/<meta property="og:image" content="([^"]*)"/, 1]
+            out << { 'name' => title, 'sku' => '', 'sku_exact' => false, 'image' => SupplierImport.abs(url, img.to_s), 'url' => url, 'price' => '' } unless title.empty?
+          end
+          out.reject { |i| i['name'].to_s.empty? }
+        end
+      }.freeze
+
+      READERS = { 'hpp' => HPP, 'interfit' => INTERFIT, 'handles4u' => HANDLES4U, 'generic' => GENERIC }.freeze
+      HOSTS = { 'hpponline.co.uk' => 'hpp', 'interfitco.com' => 'interfit', 'handles4u.co.uk' => 'handles4u' }.freeze
+
+      # The reader for a pasted page address.
+      def self.reader_for(url)
+        HOSTS[URI(url).host.to_s.sub(/\Awww\./, '')] || 'generic'
+      rescue URI::Error
+        'generic'
+      end
+
+      # --- range - finish - size ------------------------------------------------------
+      FINISHES = ['Brushed Satin Brass', 'Satin Brass', 'Aged Brass', 'Antique Brass', 'Brushed Brass', 'Polished Brass', 'Unlacquered Brass',
+                  'Matt Black', 'Satin Black', 'Gloss Black', 'Black', 'Polished Chrome', 'Satin Chrome', 'Brushed Chrome', 'Chrome',
+                  'Satin Nickel', 'Brushed Nickel', 'Polished Nickel', 'Pewter', 'Dark Bronze', 'Antique Bronze', 'Satin Bronze', 'Bronze', 'Dark Grey', 'Light Grey', 'Grey', 'Antique Copper', 'Copper',
+                  'Stainless Steel', 'Brushed Steel', 'Satin Steel', 'Gunmetal', 'Graphite', 'Anthracite', 'Brushed Gold', 'Rose Gold', 'Gold',
+                  'Matt White', 'White', 'Oak', 'Walnut', 'Glass', 'Porcelain', 'Iron', 'Nickel', 'Brass', 'Steel', 'Aluminium', 'Champagne'].freeze
+      BRANDS = /\A(?:Alexander\s*&\s*Wilks|Carlisle Brass|Fingertip Design|Hafele|Häfele|M Marcus|Hoxton)\s+/i.freeze
+      SIZE = /(\d+(?:\.\d+)?)\s?mm(?:\s*(?:-|to|\/|&)\s*\d+(?:\.\d+)?\s?mm)?/i.freeze
+
+      def self.titleize(s)
+        s.to_s.split(/(\s+)/).map { |w| w =~ /\A[a-z]/ ? w.capitalize : w }.join
+      end
+
+      # { 'range', 'finish', 'size', 'title' } for an item: "Venice Handle - Aged Brass - 128mm".
+      def self.describe(item)
+        name = item['name'].to_s.sub(/\s*\|.*\z/, '').strip
+        finish = item['finish'].to_s.strip
+        finish = FINISHES.find { |x| name =~ /\b#{Regexp.escape(x)}\b/i }.to_s if finish.empty?
+        size = item['size'].to_s.strip
+        size = (name[SIZE] || '').gsub(/\s+/, '') if size.empty?
+        range = item['range'].to_s.strip
+        if range.empty?
+          r = name.sub(BRANDS, '')
+          r = r.gsub(/\b#{Regexp.escape(item['sku'].to_s)}\b/i, '') unless item['sku'].to_s.empty?
+          r = r.gsub(/\b[A-Z]{1,4}\d{2,}[A-Z0-9\-.]*\b/, '')                                   # other codes
+          r = r.gsub(/\b#{Regexp.escape(finish)}\b(?:\s+finish)?/i, '') unless finish.empty?
+          r = r.gsub(/#{SIZE.source}(?:\s+(?:centres|centers|diameter|dia))?/i, '')
+          r = r.gsub(/\s+by\s+[A-Z][\w&' ]+\z/, '')
+          parts = r.split(/\s+[-–]\s+|\s*,\s*|\s+in\s*(?=\z|\s+-)/i).map { |x| x.strip.sub(/\A(?:in|-)\s+/i, '').sub(/\s+(?:in|-)\z/i, '') }.reject(&:empty?)
+          range = parts.join(' ').gsub(/\s{2,}/, ' ').strip
+          range = name if range.empty?
+        end
+        range = titleize(range)
+        finish = titleize(finish)
+        { 'range' => range, 'finish' => finish, 'size' => size, 'title' => [range, finish, size].reject(&:empty?).join(' - ') }
+      end
+
       SOURCES = [
         { 'id' => 'hpp', 'name' => 'HPP', 'supplier' => 'HPP', 'reader' => HPP,
           'start' => ['https://www.hpponline.co.uk/cat/226/furniture-handles', 'https://www.hpponline.co.uk/cat/681/knobs'] },
@@ -181,23 +270,32 @@ module HarryWardrobes
       PAUSE = 0.15    # seconds between pages, to be polite to the supplier's site
 
       def self.source(id)
-        SOURCES.find { |s| s['id'] == id.to_s } or raise Error, "No reader for #{id}"
+        s = SOURCES.find { |x| x['id'] == id.to_s } or raise Error, "No reader for #{id}"
+        s.merge('reader_id' => s['id'])
+      end
+
+      # A pasted address: its own reader (a known supplier's, or the general one), starting there.
+      def self.url_source(url, supplier)
+        rid = reader_for(url)
+        u = same_site(url, url) || url
+        { 'id' => 'url', 'name' => URI(u).host.to_s.sub(/\Awww\./, ''), 'supplier' => supplier.to_s, 'reader' => READERS[rid],
+          'reader_id' => rid, 'start' => [u] }
       end
 
       # Reads one page: [items, more pages].
       def self.read_page(src, url)
         html = get(url)
         r = src['reader']
-        items = r['items'].call(html, url).map { |i| i.merge('source' => src['id']) }
+        items = r['items'].call(html, url).map { |i| i.merge('source' => src['id'], 'reader' => src['reader_id'], 'supplier' => src['supplier']).merge(describe(i)) }
         [items, r['links'].call(html, url).uniq]
       end
 
       # Exact SKU from the product page, when the listing only had a guess.
       def self.exact_sku(item)
         return item['sku'] if item['sku_exact'] || item['url'].to_s.empty?
-        src = source(item['source'])
-        return item['sku'] unless src['reader']['sku']
-        s = src['reader']['sku'].call(get(item['url']))
+        reader = READERS[item['reader'].to_s] or return item['sku']
+        return item['sku'] unless reader['sku']
+        s = reader['sku'].call(get(item['url']))
         s.to_s.strip.empty? ? item['sku'] : s.strip
       end
 
@@ -222,7 +320,7 @@ module HarryWardrobes
       def self.add(item, categories, use_price = false)
         sku = exact_sku(item)
         img = item['image'].to_s.empty? ? nil : (download(item['image']) rescue nil)
-        form = { 'name' => item['name'], 'hs_sku' => sku, 'supplier' => supplier_value(source(item['source'])['supplier']).to_s,
+        form = { 'name' => (item['title'].to_s.empty? ? item['name'] : item['title']), 'hs_sku' => sku, 'supplier' => supplier_value(item['supplier']).to_s,
                  'hs_product_type' => 'non_inventory', 'hs_url' => item['url'], 'product_category' => Array(categories) }
         price = item['price'].to_s[/[\d.]+/]
         form['hs_cost_of_goods_sold'] = price if use_price && price && price.to_f > 0
@@ -237,11 +335,13 @@ module HarryWardrobes
         return unless HubSpotRoom.ready?
         data = { 'sources' => SOURCES.map { |s| { 'id' => s['id'], 'name' => s['name'], 'supplier' => s['supplier'],
                                                   'supplier_ok' => !supplier_value(s['supplier']).nil? } },
+                 'suppliers' => Array(HubSpotProducts.local.dig('options', 'suppliers')),
                  'categories' => Array(HubSpotProducts.local.dig('options', 'categories')) }
         dlg = Dialog.open('product_import', title: 'HW - Import products from a supplier', key: 'hw_product_import', width: 900, height: 720, data: data)
         items = []
-        dlg.add_action_callback('read') do |_c, sid|
-          src = source(sid)
+        dlg.add_action_callback('read') do |_c, json|
+          req = JSON.parse(json)
+          src = req['url'].to_s.strip.empty? ? source(req['source']) : url_source(req['url'].strip, req['supplier'])
           @h4u_roots = src['start'].map { |u| URI(u).path.sub(%r{/\z}, '') } # Handles4u: stay inside these sections
           items = []
           seen_items = {}
@@ -285,9 +385,9 @@ module HarryWardrobes
         end
         dlg.add_action_callback('add') do |_c, json|
           req = JSON.parse(json)
-          chosen = req['urls'].filter_map { |u| items.find { |i| i['url'] == u } }
+          chosen = req['keys'].filter_map { |k| items.find { |i| "#{i['url']}|#{i['sku']}" == k } }
           done = []
-          steps = chosen.map { |i| ["Adding #{i['name']}", -> { done << add(i, req['categories'], req['use_price']); i['have'] = true }] }
+          steps = chosen.map { |i| ["Adding #{i['title'] || i['name']}", -> { done << add(i, req['categories'], req['use_price']); i['have'] = true }] }
           Steps.run(dlg, steps,
                     done: lambda { |_r|
                       dlg.execute_script("added(#{JSON.generate('n' => done.size, 'items' => items)})")

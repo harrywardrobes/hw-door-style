@@ -6,19 +6,24 @@
 <!--HW-->
 <style>
   body { display:flex; flex-direction:column; height:100vh; }
-  .top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+  .top { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:6px; }
   .top select, .top input[type=text] { font:inherit; padding:3px 6px; border:1px solid var(--line); border-radius:3px; }
-  .top input[type=text] { width:200px; }
+  #url { width:330px; }
   .warn { color:var(--warn); font-size:11px; }
-  .grid { flex:1; overflow:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; align-content:start; padding:2px; }
+  .wrap { flex:1; overflow:auto; padding:2px; }
+  .range { margin:0 0 10px; }
+  .rhead { display:flex; align-items:center; gap:8px; position:sticky; top:0; background:#fff; padding:5px 0 4px; z-index:1; border-bottom:1px solid var(--rule); margin-bottom:6px; }
+  .rhead b { font-size:12.5px; }
+  .rhead .cnt { color:var(--muted); font-size:11px; }
+  .rhead button { font-size:10.5px; padding:1px 7px; margin-left:auto; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:8px; }
   .it { border:1px solid var(--line); border-radius:4px; padding:5px; font-size:11px; cursor:pointer; position:relative; background:#fff; }
   .it.on { outline:2px solid var(--accent); outline-offset:-1px; background:#f1f6f3; }
-  .it.have { opacity:.55; cursor:default; }
-  .it img { width:100%; height:110px; object-fit:contain; background:#fafbfb; display:block; }
-  .it .n { font-weight:600; margin-top:4px; line-height:1.25; }
+  .it.have { opacity:.5; cursor:default; }
+  .it img { width:100%; height:100px; object-fit:contain; background:#fafbfb; display:block; }
+  .it .f { font-weight:600; margin-top:4px; line-height:1.25; }
   .it .s { color:var(--muted); }
   .it .tag { position:absolute; top:4px; right:4px; background:var(--accent); color:#fff; border-radius:2px; font-size:9.5px; padding:0 4px; }
-  .it a { color:var(--muted); font-size:10px; }
   .cats { display:flex; flex-wrap:wrap; gap:2px 12px; font-size:11.5px; }
   .cats label { display:flex; gap:4px; align-items:center; }
   .cats input { width:auto; }
@@ -27,16 +32,19 @@
 </head>
 <body>
 <h1>Import products from a supplier</h1>
-<div class="sub">Reads the supplier's handle and knob pages. Click the ones to keep, choose their categories, then Add to HubSpot - they're added as Non-inventory, with the supplier, SKU, link and picture. Costs aren't read; add them in Settings &gt; Products.</div>
+<div class="sub">Reads the supplier's handle and knob pages (and every page under them), grouped by range - e.g. Venice Handle - Aged Brass - 128mm. Click the ones to keep, choose their categories, then Add to HubSpot: they're added as Non-inventory with that name, the supplier, SKU, link and picture.</div>
 <div class="top">
-  <select id="src"></select>
-  <button onclick="read()">Read the range</button>
-  <select id="grp" onchange="draw()"><option value="">All</option></select>
-  <input type="text" id="q" placeholder="Filter by name or SKU" oninput="draw()">
-  <label style="font-size:11.5px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="hideHave" checked onchange="draw()"> Hide ones already in HubSpot</label>
+  <select id="src" onchange="srcInfo()"></select>
+  <span id="urlBox" style="display:none;gap:6px;align-items:center"><input type="text" id="url" placeholder="Paste the page address (a category or a product)"> Supplier <select id="sup"></select></span>
+  <button onclick="read()">Read</button>
   <span class="warn" id="supWarn"></span>
 </div>
-<div class="grid" id="grid"><div class="hint">Choose a supplier and press Read the range.</div></div>
+<div class="top">
+  <input type="text" id="q" placeholder="Filter by range, finish, size or SKU" oninput="draw()" style="width:260px">
+  <select id="grp" onchange="draw()"><option value="">All sections</option></select>
+  <label style="font-size:11.5px;display:flex;gap:4px;align-items:center"><input type="checkbox" id="hideHave" checked onchange="draw()" style="width:auto"> Hide ones already in HubSpot</label>
+</div>
+<div class="wrap" id="wrap"><div class="hint">Choose a supplier (or paste a page address) and press Read.</div></div>
 <div style="margin-top:8px;font-size:11.5px;font-weight:600">Add the ticked ones as</div>
 <div class="cats" id="cats"></div>
 <label style="font-size:11.5px;display:flex;gap:5px;align-items:center;margin-top:6px"><input type="checkbox" id="usePrice" style="width:auto"> Fill Cost with the price shown on the website (usually retail, not your trade price - check it)</label>
@@ -50,45 +58,68 @@
 <script>
 var D = /*DATA*/null;
 var ITEMS = [], ON = {};
-$('src').innerHTML = D.sources.map(function(s){ return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>'; }).join('');
-$('src').onchange = srcInfo;
+$('src').innerHTML = D.sources.map(function(s){ return '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>'; }).join('') + '<option value="_url">Paste a page address...</option>';
+$('sup').innerHTML = '<option value="">--</option>' + (D.suppliers || []).map(function(o){ return '<option value="' + esc(o[0]) + '">' + esc(o[0]) + '</option>'; }).join('');
 $('cats').innerHTML = D.categories.map(function(c){ return '<label><input type="checkbox" value="' + esc(c[1]) + '"> ' + esc(c[0]) + '</label>'; }).join('');
 Array.prototype.forEach.call($('cats').querySelectorAll('input'), function(c){ c.onchange = count; });
 function cur(){ var id = $('src').value; return D.sources.filter(function(s){ return s.id === id; })[0]; }
 function srcInfo(){
-  var s = cur();
+  var s = cur(), url = $('src').value === '_url';
+  $('urlBox').style.display = url ? 'inline-flex' : 'none';
   $('supWarn').textContent = s && !s.supplier_ok ? '"' + s.supplier + '" isn\'t in HubSpot\'s Supplier list yet - products are added without a supplier until it is.' : '';
 }
-function groups(){
-  var g = {}; ITEMS.forEach(function(i){ if (i.group) g[i.group] = (g[i.group] || 0) + 1; });
-  $('grp').innerHTML = '<option value="">All groups</option>' + Object.keys(g).sort().map(function(k){ return '<option value="' + esc(k) + '">' + esc(k) + ' (' + g[k] + ')</option>'; }).join('');
+function read(){
+  var o = $('src').value === '_url' ? { url: $('url').value.trim(), supplier: $('sup').value } : { source: $('src').value };
+  if (o.url === '') { $('status').innerHTML = '<span class="warn">Paste a page address first.</span>'; return; }
+  if (o.url !== undefined && !/^https?:\/\//i.test(o.url)) { $('status').innerHTML = '<span class="warn">The address should start with https://</span>'; return; }
+  ITEMS = []; ON = {}; $('wrap').innerHTML = ''; $('status').textContent = '';
+  sketchup.read(JSON.stringify(o));
 }
-function read(){ ITEMS = []; ON = {}; $('grid').innerHTML = ''; $('status').textContent = ''; sketchup.read($('src').value); }
+function partial(n, pages){ $('status').textContent = n + ' found so far (' + pages + ' pages read)...'; }
 function listed(r){
-  ITEMS = r.items || []; groups(); draw();
-  $('status').innerHTML = (r.error ? '<span class="warn">Stopped: ' + esc(r.error) + '</span> ' : '') + ITEMS.length + ' found, ' + ITEMS.filter(function(i){ return i.have; }).length + ' already in HubSpot.';
+  ITEMS = r.items || []; sections(); draw();
+  $('status').innerHTML = (r.error ? '<span class="warn">' + esc(r.error) + '</span> ' : '') + ITEMS.length + ' found in ' + ranges(ITEMS).length + ' ranges, ' + ITEMS.filter(function(i){ return i.have; }).length + ' already in HubSpot.';
+}
+function sections(){
+  var g = {}; ITEMS.forEach(function(i){ if (i.group) g[i.group] = (g[i.group] || 0) + 1; });
+  $('grp').innerHTML = '<option value="">All sections</option>' + Object.keys(g).sort().map(function(k){ return '<option value="' + esc(k) + '">' + esc(k) + ' (' + g[k] + ')</option>'; }).join('');
 }
 function shown(){
   var q = $('q').value.trim().toLowerCase(), g = $('grp').value, hide = $('hideHave').checked;
   return ITEMS.filter(function(i){
     if (hide && i.have) return false;
     if (g && i.group !== g) return false;
-    return !q || (i.name + ' ' + i.sku).toLowerCase().indexOf(q) >= 0;
+    return !q || [i.title, i.name, i.sku].join(' ').toLowerCase().indexOf(q) >= 0;
   });
 }
+// [[range, [items]]] in order of first appearance; items sorted by finish then size.
+function ranges(list){
+  var order = [], by = {};
+  list.forEach(function(i){ var r = i.range || i.name; if (!by[r]) { by[r] = []; order.push(r); } by[r].push(i); });
+  return order.map(function(r){ return [r, by[r].sort(function(a, b){ return ((a.finish || '') + (a.size || '')).localeCompare((b.finish || '') + (b.size || ''), undefined, { numeric: true }); })]; });
+}
+function key(i){ return i.url + '|' + i.sku; }
+function card(i){
+  var label = [i.finish, i.size].filter(Boolean).join(' - ') || i.name;
+  return '<div class="it' + (ON[key(i)] ? ' on' : '') + (i.have ? ' have' : '') + '" data-k="' + esc(key(i)) + '" title="' + esc(i.name) + '">' + (i.have ? '<span class="tag">In HubSpot</span>' : '') +
+    '<img loading="lazy" src="' + esc(i.image || '') + '"><div class="f">' + esc(label) + '</div><div class="s">' + [i.sku ? esc(i.sku) + (i.sku_exact ? '' : ' (checked when added)') : '', esc(i.price || '')].filter(Boolean).join(' - ') + '</div></div>';
+}
 function draw(){
-  var list = shown();
-  $('grid').innerHTML = list.length ? list.map(function(i){
-    return '<div class="it' + (ON[i.url] ? ' on' : '') + (i.have ? ' have' : '') + '" data-u="' + esc(i.url) + '">' + (i.have ? '<span class="tag">In HubSpot</span>' : '') +
-      '<img loading="lazy" src="' + esc(i.image || '') + '"><div class="n">' + esc(i.name) + '</div><div class="s">' + esc(i.sku || '') + (i.sku && !i.sku_exact ? ' (checked when added)' : '') + (i.price ? ' - ' + esc(i.price) : '') + '</div>' +
-      '<a href="#" onclick="event.stopPropagation();return false" title="' + esc(i.url) + '">' + esc(i.group) + '</a></div>';
+  var rs = ranges(shown());
+  $('wrap').innerHTML = rs.length ? rs.map(function(r, n){
+    return '<div class="range"><div class="rhead"><b>' + esc(r[0]) + '</b><span class="cnt">' + r[1].length + '</span><button data-r="' + n + '">Tick range</button></div><div class="grid">' + r[1].map(card).join('') + '</div></div>';
   }).join('') : '<div class="hint">' + (ITEMS.length ? 'Nothing matches.' : 'Nothing read yet.') + '</div>';
-  Array.prototype.forEach.call($('grid').querySelectorAll('.it'), function(el){
-    el.onclick = function(){ var u = el.getAttribute('data-u'), it = ITEMS.filter(function(x){ return x.url === u; })[0]; if (!it || it.have) return; ON[u] = !ON[u]; el.classList.toggle('on', !!ON[u]); count(); };
+  Array.prototype.forEach.call($('wrap').querySelectorAll('.it'), function(el){
+    el.onclick = function(){ var k = el.getAttribute('data-k'), it = byKey(k); if (!it || it.have) return; ON[k] = !ON[k]; el.classList.toggle('on', !!ON[k]); count(); };
+  });
+  Array.prototype.forEach.call($('wrap').querySelectorAll('[data-r]'), function(b){
+    b.onclick = function(){ var list = rs[+b.getAttribute('data-r')][1].filter(function(i){ return !i.have; }), all = list.every(function(i){ return ON[key(i)]; });
+      list.forEach(function(i){ ON[key(i)] = !all; }); draw(); };
   });
   count();
 }
-function tickShown(v){ shown().forEach(function(i){ if (!i.have) { if (v) ON[i.url] = true; else delete ON[i.url]; } }); if (!v) ON = {}; draw(); }
+function byKey(k){ for (var n = 0; n < ITEMS.length; n++) if (key(ITEMS[n]) === k) return ITEMS[n]; return null; }
+function tickShown(v){ if (!v) { ON = {}; } else shown().forEach(function(i){ if (!i.have) ON[key(i)] = true; }); draw(); }
 function cats(){ return Array.prototype.filter.call($('cats').querySelectorAll('input'), function(c){ return c.checked; }).map(function(c){ return c.value; }); }
 function count(){
   var n = Object.keys(ON).filter(function(k){ return ON[k]; }).length;
@@ -97,8 +128,7 @@ function count(){
   if (n && !cats().length) $('status').textContent = 'Tick at least one category for them.';
   else if ($('status').textContent === 'Tick at least one category for them.') $('status').textContent = n + ' ticked.';
 }
-function add(){ sketchup.add(JSON.stringify({ urls: Object.keys(ON).filter(function(k){ return ON[k]; }), categories: cats(), use_price: $('usePrice').checked })); }
-function partial(n, pages){ $('status').textContent = n + ' found so far (' + pages + ' pages read)...'; }
+function add(){ sketchup.add(JSON.stringify({ keys: Object.keys(ON).filter(function(k){ return ON[k]; }), categories: cats(), use_price: $('usePrice').checked })); }
 function added(r){
   ITEMS = r.items || ITEMS; ON = {}; draw();
   $('status').innerHTML = (r.error ? '<span class="warn">Stopped: ' + esc(r.error) + '</span> ' : '') + r.n + ' added to HubSpot.';
