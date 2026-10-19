@@ -38,7 +38,23 @@ module HarryWardrobes
       def self.height_mm(inst)
         k = height_key(inst) or return nil
         v = DC.read(inst, k)
-        v.nil? || v.to_s.strip.empty? ? nil : (v.to_f * 25.4).round(1)
+        v.nil? || v.to_s.strip.empty? ? nil : (v.to_f * mm_per(inst, k)).round(1)
+      end
+
+      # mm per stored unit. Options with units are stored in inches; one with no units
+      # set (BXEND "height" = ROUND(CURRENT("LenZ"), 1)) is kept by DC in the model's own
+      # family - cm in a metric model. Reading that 94.5 (cm) as inches gave 2400 mm, so
+      # a 945 mm BXEND looked as if it was already at a 2400 ceiling and was never stretched.
+      def self.mm_per(inst, k)
+        u = inst.definition.get_attribute(DC::DICT_NAME, "_#{k}_units").to_s.upcase
+        return 25.4 unless u.empty? || u == 'DEFAULT'
+        metric?(inst.model) ? 10.0 : 25.4
+      end
+
+      def self.metric?(model)
+        [2, 3, 4].include?(model.options['UnitsOptions']['LengthUnit'].to_i)
+      rescue StandardError
+        true
       end
 
       # Target height for this unit (nil = leave it). A BRIDGE_FRAME from before
@@ -63,7 +79,8 @@ module HarryWardrobes
           inst.transformation = Geom::Transformation.scaling(t.origin, 1, 1, mm / cur) * t
         else
           old = DC.read(inst, k)
-          inst.set_attribute(DC::DICT_NAME, k, old.is_a?(String) ? (mm / 25.4).to_s : mm / 25.4)
+          v = mm / mm_per(inst, k)
+          inst.set_attribute(DC::DICT_NAME, k, old.is_a?(String) ? v.to_s : v)
         end
         true
       end

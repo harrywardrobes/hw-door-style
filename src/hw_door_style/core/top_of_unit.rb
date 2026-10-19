@@ -75,24 +75,43 @@ module HarryWardrobes
         OPTIONS.find { |_l, v| v == choice }&.first
       end
 
+      SHOWN = %w[LIST TEXTBOX].freeze
+
       # An old switch still showing in Component Options (parts inside a unit carry
       # hidden copies that follow the unit - those are left alone).
       def self.shown?(defn, k)
-        k && %w[LIST TEXTBOX].include?(defn.get_attribute(D, "_#{k}_access").to_s.upcase)
+        k && SHOWN.include?(defn.get_attribute(D, "_#{k}_access").to_s.upcase)
       end
 
+      # What still needs doing on a definition: the old switches showing (on the definition,
+      # or on a placed copy - DC keeps per-copy "_access" overrides that win over the
+      # definition's), or an already-made dropdown whose old switches lost their formulas.
       def self.needs_upgrade?(defn)
-        tk, uk, = keys_of(defn.attribute_dictionary(D))
-        shown?(defn, tk) || shown?(defn, uk)
+        tk, uk, nk = keys_of(defn.attribute_dictionary(D))
+        return false unless nk
+        olds = [tk, uk].compact
+        return true if olds.any? { |k| shown?(defn, k) }
+        made = defn.get_attribute(D, "_#{nk}_access") == 'LIST'
+        return false unless made
+        return true if olds.any? { |k| defn.get_attribute(D, "_#{k}_formula").to_s.strip.empty? }
+        defn.instances.any? { |i| olds.any? { |k| shown?(i, k) } }
       end
 
-      # Turns one definition over to the dropdown. Returns true if it changed.
+      # Turns one definition (and its placed copies) over to the dropdown. True if it changed.
       def self.upgrade_definition(defn)
         return false unless needs_upgrade?(defn)
         d = defn.attribute_dictionary(D)
         tk, uk, nk = keys_of(d)
         up = nk.upcase
-        defn.set_attribute(D, nk, from_old(defn, tk, uk).to_s) if defn.get_attribute(D, nk).nil?
+        # Old switches that lost their formulas still decide how the unit is drawn, so
+        # the dropdown is set from them (it may have drifted) before they follow it again.
+        relink = [tk, uk].compact.any? { |k| defn.get_attribute(D, "_#{k}_formula").to_s.strip.empty? }
+        # each placed copy keeps its own setting
+        defn.instances.each do |inst|
+          inst.set_attribute(D, nk, from_old(inst, tk, uk).to_s) if relink || inst.get_attribute(D, nk).nil?
+          [tk, uk].compact.each { |k| inst.set_attribute(D, "_#{k}_access", 'NONE') if shown?(inst, k) }
+        end
+        defn.set_attribute(D, nk, from_old(defn, tk, uk).to_s) if relink || defn.get_attribute(D, nk).nil?
         { 'access' => 'LIST', 'formlabel' => LABEL, 'label' => up, 'options' => options_s(choices(tk, uk)), 'units' => 'STRING', 'formulaunits' => 'STRING' }.each do |m, v|
           defn.set_attribute(D, "_#{nk}_#{m}", v)
         end
@@ -118,17 +137,9 @@ module HarryWardrobes
         return 0 if todo.empty?
         n = 0
         Ops.run(model, 'Top of unit (upgrade)', transparent: true) do
-          todo.each do |dfn|
-            tk, uk, nk = keys_of(dfn.attribute_dictionary(D))
-            dfn.instances.each do |inst|
-              next unless inst.get_attribute(D, nk).nil?
-              inst.set_attribute(D, nk, from_old(inst, tk, uk).to_s)
-              n += 1
-            end
-            upgrade_definition(dfn)
-          end
+          todo.each { |dfn| n += 1 if upgrade_definition(dfn) }
         end
-        Log.info("Top of unit: #{todo.size} component(s), #{n} unit(s) upgraded") if n.positive? || todo.any?
+        Log.info("Top of unit: #{n} component(s) upgraded")
         n
       rescue StandardError => e
         Log.error('top of unit upgrade', e)

@@ -646,6 +646,29 @@ class TUDefn
   def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
 end
 check 'only switches still showing are upgraded (hidden copies in parts left alone)', TU.shown?(TUDefn.new('_a_access' => 'LIST'), 'a') && !TU.shown?(TUDefn.new('_a_access' => 'NONE'), 'a') && !TU.shown?(TUDefn.new({}), 'a') && !TU.shown?(TUDefn.new({}), nil)
+class TUObj
+  attr_reader :h, :instances
+  def initialize(h, instances = []); @h = h; @instances = instances; end
+  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
+  def set_attribute(_d, k, v); @h[k] = v; end
+  def attribute_dictionary(_d); TUDict.new(@h.keys); end
+  attr_writer :defn
+  def definition; @defn || self; end
+end
+done_def = { 'i04_topped' => '0', 'i05_up_to_ceiling' => 'TRUE', 'i04_top_of_unit' => '1', '_i04_top_of_unit_access' => 'LIST',
+             '_i04_topped_access' => 'NONE', '_i05_up_to_ceiling_access' => 'NONE', '_i04_topped_formula' => 'IF(I04_TOP_OF_UNIT=3, 1, 0)', '_i05_up_to_ceiling_formula' => 'x' }
+clean = TUObj.new(done_def.dup, [TUObj.new({})])
+check 'upgraded component with clean copies: nothing to do', !TU.needs_upgrade?(clean)
+ov_inst = TUObj.new('_i04_topped_access' => 'LIST', '_i05_up_to_ceiling_access' => 'LIST')
+ov = TUObj.new(done_def.dup, [ov_inst])
+ov_inst.defn = ov
+check 'placed copy still showing the old switches (its own _access) is found', TU.needs_upgrade?(ov)
+TU.upgrade_definition(ov)
+check '... and hidden on the copy', ov_inst.h['_i04_topped_access'] == 'NONE' && ov_inst.h['_i05_up_to_ceiling_access'] == 'NONE' && ov_inst.h['i04_top_of_unit'] == '1'
+lost_inst = TUObj.new('i04_top_of_unit' => '2', 'i04_topped' => '1', 'i05_up_to_ceiling' => 'FALSE')
+lost = TUObj.new(done_def.merge('_i04_topped_formula' => '', '_i05_up_to_ceiling_formula' => ''), [lost_inst])
+TU.upgrade_definition(lost)
+check 'old switches that lost their formulas: relinked, dropdown set from how it is drawn', lost.h['_i04_topped_formula'] =~ /I04_TOP_OF_UNIT=3/ && lost_inst.h['i04_top_of_unit'] == '3'
 check 'scribe window sends ceiling height apart from the ceiling runout', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.ceiling_height = c')
 
 puts "\n== Component fixes"
