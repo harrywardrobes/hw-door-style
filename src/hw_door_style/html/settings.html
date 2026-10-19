@@ -765,7 +765,7 @@ function prodDraw(){
   order.sort(function(a, b){ return a.localeCompare(b); });
   $('prodList').innerHTML = order.length ? order.map(function(r){
     return '<div class="prange"><div class="rh">' + esc(r) + '<span>' + by[r].length + '</span></div><div class="pgrid">' + by[r].map(function(x){
-      var p = x[0], img = (p.hs_images || '').split(';')[0], rest = prodParts(p.name)[1];
+      var p = x[0], img = (PROD.images || {})[p.id] || '', rest = prodParts(p.name)[1];
       var cats = (p.product_category || '').split(';').filter(Boolean).map(function(c){ return '<span>' + esc(prodLabel('categories', c)) + '</span>'; }).join('');
       return '<div class="pcard' + (PDEL && PSEL[p.id] ? ' sel' : '') + '" onclick="prodClick(' + x[1] + ')" title="' + (PDEL ? 'Pick ' : 'Edit ') + esc(p.name) + '"><input type="checkbox" class="tick"' + (PSEL[p.id] ? ' checked' : '') + ' tabindex="-1">' + (img ? '<img loading="lazy" src="' + esc(img) + '">' : '<div class="noimg"></div>') +
         '<div class="f">' + esc(rest || p.name) + '</div><div class="s">' + [esc(p.hs_sku || ''), p.supplier ? esc(prodLabel('suppliers', p.supplier)) : ''].filter(Boolean).join(' - ') + '</div><div class="chips">' + cats + '</div></div>';
@@ -813,6 +813,8 @@ function prodDeleted(r){
   PROD = r.data; PSEL = {}; if (!PDEL) prodCancel(); prodDraw(); if (PDEL) prodDelCount();
   $('prodAt').textContent += ' Deleted ' + r.n + ' (restorable from HubSpot\'s recycle bin for 90 days).';
 }
+// A product picture saved on this computer (they are never loaded from the internet here).
+function imageReady(id, url){ PROD.images = PROD.images || {}; PROD.images[id] = url; if (PEDIT && PEDIT.id === id) $('pf_img').innerHTML = '<img src="' + esc(url) + '" style="max-width:100%;max-height:100%">'; clearTimeout(window._imgT); window._imgT = setTimeout(prodDraw, 300); }
 function prodLoad(){ $('prodAt').textContent = ''; sketchup.prodLoad(); }
 function prodList(r){
   if (r.error) { $('prodAt').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
@@ -830,8 +832,8 @@ function prodEdit(i){
   $('pf_hs_product_type').innerHTML = '<option value="">--</option>' + prodOpts('types').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === (p.hs_product_type || (i == null ? 'inventory' : '')) ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');
   var on = (p.product_category || '').split(';');
   $('pf_cats').innerHTML = prodOpts('categories').map(function(o){ return '<label style="display:flex;gap:4px;align-items:center;font-size:11.5px"><input type="checkbox" style="width:auto" value="' + esc(o[1]) + '"' + (on.indexOf(o[1]) >= 0 ? ' checked' : '') + '> ' + esc(o[0]) + '</label>'; }).join('');
-  var img = (p.hs_images || '').split(';')[0];
-  $('pf_img').innerHTML = img ? '<img src="' + esc(img) + '" style="max-width:100%;max-height:100%">' : 'No picture';
+  var img = (PROD.images || {})[p.id] || '';
+  $('pf_img').innerHTML = img ? '<img src="' + esc(img) + '" style="max-width:100%;max-height:100%">' : (p.hs_images ? 'Picture not on this computer yet' : 'No picture');
   $('prodMsg').textContent = '';
   $('pf_name').focus();
 }

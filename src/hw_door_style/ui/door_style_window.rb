@@ -70,7 +70,7 @@ module HarryWardrobes
         HubSpotProducts::HANDLE_CATEGORY.to_h do |key, cat|
           list = HubSpotProducts.in_category(cat).map do |p|
             { 'id' => p['id'], 'name' => p['name'], 'sku' => p['hs_sku'], 'supplier' => HubSpotProducts.supplier_label(p['supplier']),
-              'supplier_value' => p['supplier'], 'image' => p['hs_images'].to_s.split(';').first }
+              'supplier_value' => p['supplier'], 'image' => ProductImages.url(p) }
           end
           [key, { 'label' => HANDLE_NAMES.to_h[key], 'products' => list }]
         end
@@ -155,11 +155,19 @@ module HarryWardrobes
         work
       end
 
+      def self.handle_product_list
+        HubSpotProducts::HANDLE_CATEGORY.values.flat_map { |cat| HubSpotProducts.in_category(cat) }.uniq { |p| p['id'] }
+      end
+
       def self.show(model = Sketchup.active_model)
         dlg = Dialog.open('door_style', title: 'HW - Door style', key: 'hw_door_style_window', width: 620, height: 720, data: data(model))
+        dlg.add_action_callback('ready') { |_c| ProductImages.sync(dlg, handle_product_list) }
         dlg.add_action_callback('refreshProducts') do |_c|
           Steps.one(dlg, 'Reading products from HubSpot',
-                    done: ->(_r) { dlg.execute_script("productsRefreshed(#{JSON.generate('choices' => handle_choices, 'at' => HubSpotProducts.local['at'])})") },
+                    done: lambda { |_r|
+                      dlg.execute_script("productsRefreshed(#{JSON.generate('choices' => handle_choices, 'at' => HubSpotProducts.local['at'])})")
+                      ProductImages.sync(dlg, handle_product_list)
+                    },
                     fail: ->(e) { dlg.execute_script("productsRefreshed(#{JSON.generate('error' => e.message)})") }) { HubSpotProducts.refresh! }
         end
         dlg.add_action_callback('apply') do |_c, json|

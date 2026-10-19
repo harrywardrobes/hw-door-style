@@ -24,7 +24,7 @@ module HarryWardrobes
           '_job' => job_info(model),
           '_update' => update_info,
           '_hubspot' => { 'hint' => HubSpot.key_hint },
-          '_products' => HubSpotProducts.local,
+          '_products' => ProductImages.with_images(HubSpotProducts.local),
           '_style_drawings' => Styles::DRAWINGS.transform_values { |d| d[:sizes] },
           '_style_sizes' => Styles::ALL_SIZES.map { |k| [k, Styles::SIZE_LABELS[k]] }
         )
@@ -161,7 +161,10 @@ module HarryWardrobes
           made = []
           Steps.run(dlg, [['Checking the Supplier and Category fields', -> { made = HubSpotProducts.ensure_fields }],
                           ['Reading products from HubSpot', -> { HubSpotProducts.refresh! }]],
-                    done: ->(_r) { dlg.execute_script("prodList(#{JSON.generate('data' => HubSpotProducts.local, 'made' => made)})") },
+                    done: lambda { |_r|
+                      dlg.execute_script("prodList(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'made' => made)})")
+                      ProductImages.sync(dlg, HubSpotProducts.products)
+                    },
                     fail: ->(e) { dlg.execute_script("prodList(#{JSON.generate('error' => e.message)})") })
         end
         dlg.add_action_callback('prodImport') { |_c| SupplierImport.show }
@@ -177,14 +180,17 @@ module HarryWardrobes
           req = JSON.parse(json)
           saved = nil
           Steps.run(dlg, [['Saving the product to HubSpot' + (req['image'] ? ' (with its picture)' : ''), -> { saved = HubSpotProducts.save(req['form'], req['image']) }]],
-                    done: ->(_r) { dlg.execute_script("prodSaved(#{JSON.generate('data' => HubSpotProducts.local, 'name' => saved['name'])})") },
+                    done: lambda { |_r|
+                      dlg.execute_script("prodSaved(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'name' => saved['name'])})")
+                      ProductImages.sync(dlg, HubSpotProducts.products)
+                    },
                     fail: ->(e) { dlg.execute_script("prodSaved(#{JSON.generate('error' => e.message)})") }, count: false)
         end
         dlg.add_action_callback('prodDelete') do |_c, json|
           ids = Array(JSON.parse(json)['ids'])
           n = 0
           Steps.run(dlg, [["Deleting #{ids.size} product(s) from HubSpot", -> { n = HubSpotProducts.delete(ids) }]],
-                    done: ->(_r) { dlg.execute_script("prodDeleted(#{JSON.generate('data' => HubSpotProducts.local, 'n' => n)})") },
+                    done: ->(_r) { dlg.execute_script("prodDeleted(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'n' => n)})") },
                     fail: ->(e) { dlg.execute_script("prodDeleted(#{JSON.generate('error' => e.message)})") }, count: false)
         end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
@@ -200,6 +206,7 @@ module HarryWardrobes
           end
         end
         dlg.show
+        UI.start_timer(1.0, false) { ProductImages.sync(dlg, HubSpotProducts.products) if dlg.visible? }
       end
 
       # Only real settings (no "_" display keys).

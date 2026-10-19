@@ -28,6 +28,35 @@
   #status { font-size:11px; color:var(--muted); align-self:center; flex:1; }
   .bar { position:fixed; left:14px; right:14px; bottom:10px; background:#fff; }
   .err { color:var(--warn); }
+  .browse { flex:none; padding:3px 8px; font-size:11px; }
+  .hrow img { cursor:pointer; }
+  /* Handle gallery: one card per family (range); finishes and sizes once a family is picked. */
+  #gal { display:none; position:fixed; inset:0; background:#f6f7f8; z-index:40; flex-direction:column; }
+  #gal.on { display:flex; }
+  #gal .top { background:#fff; border-bottom:1px solid var(--line); padding:10px 14px; display:flex; gap:8px; align-items:center; }
+  #gal .top h3 { margin:0; font-size:14px; white-space:nowrap; }
+  #gal .top input { flex:1; font-size:13px; padding:6px 9px; }
+  #galBody { flex:1; overflow-y:auto; padding:12px 14px 20px; }
+  .fams { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px; }
+  .fam { background:#fff; border:1px solid var(--line); border-radius:6px; cursor:pointer; overflow:hidden; transition:box-shadow .1s, transform .1s; }
+  .fam:hover { box-shadow:0 3px 10px rgba(0,0,0,.12); transform:translateY(-1px); }
+  .fam.on { outline:2px solid var(--accent); }
+  .fam .pic { height:120px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; }
+  .fam .pic img { max-width:100%; max-height:100%; object-fit:contain; }
+  .fam .pic span { color:#c9ced3; font-size:28px; font-weight:700; }
+  .fam .nm { padding:6px 9px 8px; border-top:1px solid var(--rule); }
+  .fam .nm b { display:block; font-size:12px; }
+  .fam .nm small { color:var(--muted); font-size:10.5px; }
+  #pick { display:none; background:#fff; border:1px solid var(--line); border-radius:6px; padding:12px; margin-bottom:12px; gap:14px; }
+  #pick.on { display:flex; }
+  #pick .big { width:200px; height:200px; flex:none; display:flex; align-items:center; justify-content:center; border:1px solid var(--rule); border-radius:4px; }
+  #pick .big img { max-width:100%; max-height:100%; object-fit:contain; }
+  #pick h4 { margin:0 0 2px; font-size:14px; }
+  .opts { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+  .opt { border:1px solid var(--line); border-radius:14px; padding:3px 10px; cursor:pointer; background:#fff; font-size:11.5px; display:flex; gap:5px; align-items:center; }
+  .opt img { width:20px; height:20px; object-fit:contain; }
+  .opt.on { border-color:var(--accent); background:#eef3f0; font-weight:600; }
+  .lbl { font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
 </style>
 </head>
 <body>
@@ -48,6 +77,11 @@
 <div id="names"></div>
 <div class="note">Handles come from your products (Settings &gt; Products, synced with HubSpot) - <button class="link" onclick="refreshProducts()">refresh the list</button><span id="pat"></span>.
 Name, SKU and supplier go to the HubSpot Room with Send to HubSpot. Styles marked handleless count no handles.</div>
+
+<div id="gal">
+  <div class="top"><h3 id="galTitle"></h3><input type="search" id="galQ" placeholder="Search handles and knobs" autocomplete="off"><button onclick="galNA()">N/A</button><button onclick="galClose()">Close</button></div>
+  <div id="galBody"><div id="pick"></div><div class="fams" id="fams"></div></div>
+</div>
 
 <div class="bar">
   <span id="status"></span>
@@ -101,7 +135,7 @@ function opt(v, label, sel){ return '<option value="' + esc(v) + '"' + (sel ? ' 
 function drawHandles(){
   $('pat').textContent = D.products_at ? ' (last read ' + D.products_at + ')' : ' (not read from HubSpot yet)';
   $('names').innerHTML = Object.keys(D.handle_choices).map(function(k){
-    return '<div class="hrow"><span>' + esc(D.handle_choices[k].label) + '</span><div class="pickers"><select id="hr_' + k + '" onchange="pickRange(\'' + k + '\')"></select>' +
+    return '<div class="hrow"><span>' + esc(D.handle_choices[k].label) + '</span><div class="pickers"><button class="browse" onclick="galOpen(\'' + k + '\')" title="Pictures of every handle / knob">Browse</button><select id="hr_' + k + '" onchange="pickRange(\'' + k + '\')"></select>' +
       '<select id="hf_' + k + '" onchange="pickFinish(\'' + k + '\')"></select><select id="hz_' + k + '" onchange="pickHandle(\'' + k + '\')"></select></div>' +
       '<input type="text" readonly id="hs_' + k + '"><input type="text" readonly id="hsup_' + k + '"><span id="hi_' + k + '"></span></div>';
   }).join('');
@@ -144,8 +178,83 @@ function pickHandle(k){
   var na = v === '_na';
   $('hs_' + k).value = na ? 'n/a' : (p ? p.sku || '' : (v === '_keep' ? D.names[SKU[k]] || '' : ''));
   $('hsup_' + k).value = na ? 'N/A' : (p ? p.supplier || '' : (v === '_keep' ? D.names[SUP[k]] || '' : ''));
-  $('hi_' + k).innerHTML = p && p.image ? '<img src="' + esc(p.image) + '">' : '<span class="noimg" style="display:inline-block"></span>';
+  $('hi_' + k).innerHTML = p && p.image ? '<img src="' + esc(p.image) + '" onclick="galOpen(\'' + k + '\')">' : '<span class="noimg" style="display:inline-block"></span>';
 }
+
+// ---------- handle gallery (pictures saved on this computer) ----------
+var G = { k: null, range: null, finish: null, id: null };
+function famsOf(k){
+  var out = {}, order = [];
+  D.handle_choices[k].products.forEach(function(p){ var r = parts(p).range; if (!out[r]) { out[r] = []; order.push(r); } out[r].push(p); });
+  return order.sort(function(a, b){ return a.localeCompare(b); }).map(function(r){ return { range: r, list: out[r] }; });
+}
+function uniq(a){ var o = []; a.forEach(function(x){ if (o.indexOf(x) < 0) o.push(x); }); return o; }
+// The family's picture: the chosen finish if it has one, else the first with a picture.
+function famImage(list, finish){
+  var hit = list.filter(function(p){ return p.image && (!finish || parts(p).finish === finish); })[0] || list.filter(function(p){ return p.image; })[0];
+  return hit ? hit.image : '';
+}
+function galOpen(k){
+  G.k = k; G.range = null; G.finish = null; G.id = null;
+  var cur = chosen(k), p = D.handle_choices[k].products.filter(function(x){ return x.id === cur; })[0];
+  $('galTitle').textContent = 'Choose: ' + D.handle_choices[k].label;
+  $('galQ').value = '';
+  $('gal').classList.add('on');
+  if (p) galFamily(parts(p).range, parts(p).finish, p.id); else { $('pick').classList.remove('on'); galDraw(); }
+  $('galQ').focus();
+}
+function galClose(){ $('gal').classList.remove('on'); G.k = null; }
+function galNA(){ var k = G.k; $('hr_' + k).value = '_na'; pickRange(k); galClose(); }
+function galDraw(){
+  var q = $('galQ').value.trim().toLowerCase(), k = G.k;
+  var fams = famsOf(k).filter(function(f){ return !q || f.list.some(function(p){ return (p.name + ' ' + p.sku + ' ' + p.supplier).toLowerCase().indexOf(q) >= 0; }); });
+  $('fams').innerHTML = fams.map(function(f){
+    var fin = uniq(f.list.map(function(p){ return parts(p).finish; })).filter(Boolean).length, siz = uniq(f.list.map(function(p){ return parts(p).size; })).filter(Boolean).length;
+    var img = famImage(f.list, G.range === f.range ? G.finish : null);
+    var meta = [fin > 1 ? fin + ' finishes' : '', siz > 1 ? siz + ' sizes' : '', f.list[0].supplier].filter(Boolean).join(' · ');
+    return '<div class="fam' + (G.range === f.range ? ' on' : '') + '" onclick="galFamily(' + esc(JSON.stringify(f.range)).replace(/"/g, '&quot;') + ')"><div class="pic">' + (img ? '<img loading="lazy" src="' + esc(img) + '">' : '<span>' + esc(f.range.charAt(0)) + '</span>') + '</div><div class="nm"><b>' + esc(f.range) + '</b><small>' + esc(meta) + '</small></div></div>';
+  }).join('') || '<div class="hint">Nothing matches.</div>';
+}
+function galFamily(range, finish, id){
+  var list = inRange(G.k, range);
+  G.range = range;
+  var finishes = uniq(list.map(function(p){ return parts(p).finish; }));
+  G.finish = finish != null && finishes.indexOf(finish) >= 0 ? finish : finishes[0];
+  var inFin = list.filter(function(p){ return parts(p).finish === G.finish; });
+  G.id = id && inFin.some(function(p){ return p.id === id; }) ? id : inFin[0].id;
+  galPick(); galDraw(); $('galBody').scrollTop = 0;
+}
+function galPick(){
+  var list = inRange(G.k, G.range), finishes = uniq(list.map(function(p){ return parts(p).finish; }));
+  var inFin = list.filter(function(p){ return parts(p).finish === G.finish; });
+  var p = inFin.filter(function(x){ return x.id === G.id; })[0] || inFin[0];
+  var h = '<div class="big">' + (p.image ? '<img src="' + esc(p.image) + '">' : '<span class="hint">No picture</span>') + '</div><div style="flex:1;min-width:0">' +
+    '<h4>' + esc(G.range) + '</h4><div class="hint" style="margin:0 0 8px">' + esc(p.name) + (p.sku ? ' - ' + esc(p.sku) : '') + (p.supplier ? ' - ' + esc(p.supplier) : '') + '</div>';
+  if (finishes.length > 1 || finishes[0]) h += '<div class="lbl">Finish</div><div class="opts">' + finishes.map(function(f){
+    var im = famImage(list, f);
+    return '<span class="opt' + (f === G.finish ? ' on' : '') + '" onclick="galFinish(' + esc(JSON.stringify(f)).replace(/"/g, '&quot;') + ')">' + (im ? '<img src="' + esc(im) + '">' : '') + esc(f || 'Standard') + '</span>';
+  }).join('') + '</div>';
+  if (inFin.length > 1) h += '<div class="lbl">Size</div><div class="opts">' + inFin.map(function(x){ return '<span class="opt' + (x.id === p.id ? ' on' : '') + '" onclick="galSize(\'' + esc(x.id) + '\')">' + esc(parts(x).size || x.name) + '</span>'; }).join('') + '</div>';
+  h += '<button class="primary" onclick="galUse()">Use this ' + (G.k === 'main_robe_handle' ? 'robe handle' : G.k === 'drawer_handle' ? 'drawer handle' : 'interior handle') + '</button></div>';
+  $('pick').innerHTML = h; $('pick').classList.add('on');
+}
+function galFinish(f){ G.finish = f; var x = inRange(G.k, G.range).filter(function(p){ return parts(p).finish === f; })[0]; G.id = x && x.id; galPick(); galDraw(); }
+function galSize(id){ G.id = id; galPick(); }
+function galUse(){
+  var k = G.k, p = D.handle_choices[k].products.filter(function(x){ return x.id === G.id; })[0];
+  if (!p) return;
+  $('hr_' + k).value = G.range; pickRange(k, p);
+  galClose();
+  $('status').textContent = D.handle_choices[k].label + ': ' + p.name + ' - press Apply to model to keep it.';
+}
+// A product picture has been saved on this computer: show it.
+function imageReady(id, url){
+  Object.keys(D.handle_choices).forEach(function(k){ D.handle_choices[k].products.forEach(function(p){ if (p.id === id) p.image = url; }); });
+  clearTimeout(window._imgT);
+  window._imgT = setTimeout(function(){ Object.keys(D.handle_choices).forEach(function(k){ if ($('hr_' + k)) pickHandle(k); }); if (G.k) { galDraw(); if (G.range) galPick(); } }, 250);
+}
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && G.k) galClose(); });
+$('galQ') && $('galQ').addEventListener('input', function(){ if (G.k) galDraw(); });
 function refreshProducts(){ sketchup.refreshProducts(); }
 function productsRefreshed(r){
   if (r.error) { $('status').innerHTML = '<span class="err">' + esc(r.error) + '</span>'; return; }
@@ -171,6 +280,7 @@ function applied(r){
   $('status').textContent = (r.items ? r.items + ' item(s) redrawn. ' : 'Saved - nothing needed redrawing. ') + (r.notes && r.notes.length ? r.notes.length + ' note(s): ' + r.notes.slice(0, 3).join('; ') : '');
 }
 render();
+sketchup.ready();
 </script>
 </body>
 </html>
