@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.39.1 — 2026-10-19
+- Fixed: the Scribe / runout window cut off the Apply button once ceiling height and bottom facing were
+  shown (fixed 400px, no scrolling). It opens taller, can be resized, the fields scroll and Cancel / Apply
+  always stay at the bottom. Enter applies.
+
+## 0.39.1 — 2026-10-19
+- 
+
 ## 0.39.0 — 2026-10-19
 - **18mm boards come from cut and edged strips, not full sheets.** Each part uses the next width up
   (a 460mm shelf -> 500, a 60mm filler -> 90), packed end to end along the strip (2800). Widths, length and

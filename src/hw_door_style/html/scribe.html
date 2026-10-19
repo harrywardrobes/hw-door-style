@@ -10,15 +10,22 @@
   .row small { color:#b4541a; font-size:10.5px; margin-left:6px; }
   select { font:inherit; padding:3px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
   .hint { color:#6a737d; font-size:10.5px; margin-top:8px; }
+  /* The fields scroll; Cancel / Apply always stay at the bottom of the window. */
+  html, body { height:100%; }
+  body { display:flex; flex-direction:column; box-sizing:border-box; }
+  #main { flex:1; overflow:auto; min-height:0; }
+  .bar { flex:none; padding-top:8px; border-top:1px solid #eceef0; background:#fff; }
 </style>
 </head>
 <body>
+<div id="main">
 <h1 id="title"></h1>
 <div class="sub" id="sub"></div>
 <div id="ceilRow" class="row" style="display:none"><label>Ceiling height<small id="ceilReq">required</small></label><div><input type="number" id="ceiling" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px">What is the maximum ceiling height of the wardrobes? (mm)<span id="topDoor"></span></div></div></div>
 <div id="facRow" class="row" style="display:none"><label>Bottom facing</label><div><input type="number" id="facing" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="facHint">Plinth height under the units (mm)</div></div></div>
 <div id="rows"></div>
 <div class="hint" id="wallHint">Walls, back and "topped off" switches on each component decide what is used. Floor always applies.</div>
+</div>
 <div class="bar">
   <button onclick="sketchup.cancel()">Cancel</button>
   <button class="primary" onclick="apply()">Apply</button>
@@ -58,6 +65,7 @@ function apply(){ var o = {};
   }
   if (D.has_runouts !== false) D.sides.forEach(function(s){ o[s[0]] = parseFloat(document.getElementById('s_'+s[0]).value); });
   sketchup.apply(JSON.stringify(o)); }
+document.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && e.target.tagName !== 'BUTTON') { e.preventDefault(); apply(); } });
 </script>
 </body>
 </html>

@@ -83,8 +83,10 @@ module HarryWardrobes
           'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
           'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm
         }
-        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe', width: 380, height: 400,
-                                    data: data, resizable: false, scrollable: false)
+        # Taller, and resizable: ceiling + bottom facing + five runouts didn't fit in 400 (Apply was cut off).
+        # New key so SketchUp doesn't reuse the old remembered size.
+        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe_v2', width: 400, height: 600,
+                                    data: data, resizable: true, scrollable: false)
         dlg.add_action_callback('apply') do |_c, json|
           raw = JSON.parse(json)
           ceil = raw['ceiling'].to_f
