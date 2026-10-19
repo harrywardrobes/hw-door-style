@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.18.0 — 2026-10-19
+- **Updates without uninstalling or restarting**: Settings > General > Updates.
+  - New versions are saved to the updates folder on Google Drive
+    (Harry Wardrobes\_plugin_updates); SketchUp offers a newer one a few seconds after it
+    starts (once per version), or press Check for updates.
+  - Update now installs over the old version and loads the new code straight away.
+  - Install from a file... does the same for an .rbz you downloaded.
+  - New toolbar buttons or menu items from an update appear after the next restart.
+- Developer > Reload plugin code uses the same reload.
+
 ## 0.17.0 — 2026-10-19
 - **Set up OpenCutList** (Settings > Cut list): one button, one undo step, on the open model.
   - Board colours: sheet good, 18 / 25 mm (the 22mm Panels colour also 22 mm), stock 2800 x 2070
