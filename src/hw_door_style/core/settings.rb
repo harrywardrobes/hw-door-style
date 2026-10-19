@@ -79,8 +79,15 @@ module HarryWardrobes
         @settings = load
       end
 
-      def self.reset
+      # Back to the shipped defaults. keep: setting names to carry over
+      # (e.g. ['colour_library'] keeps your own colours).
+      def self.reset(keep: [])
+        kept = keep.to_h { |k| [k, get[k]] }.reject { |_, v| v.nil? }
         File.delete(USER_FILE) if File.exist?(USER_FILE)
+        unless kept.empty?
+          FileUtils.mkdir_p(USER_DIR)
+          File.write(USER_FILE, JSON.pretty_generate(kept.merge('settings_version' => SETTINGS_VERSION)))
+        end
         @settings = load
       end
 

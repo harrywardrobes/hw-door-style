@@ -381,5 +381,21 @@ check 'text value kept as text', br.attrs['b02_door_top_height'].is_a?(String) &
 none = FDcInst.new({ 'a01_frame_width' => 10.0 }, {})
 check 'units without a top door untouched', !Ceiling.set_top_door(none) && none.attrs.keys == ['a01_frame_width']
 
+# --- Settings window (0.15) ---
+require 'hw_door_style/ui/settings_window'
+Settings.save(Settings.get.merge('door_frame_mm' => 90, 'colour_library' => [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]))
+Settings.reset(keep: ['colour_library'])
+check 'reset keeps colour library when asked', Settings.get['door_frame_mm'] == 100 && Settings.get['colour_library'] == [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]
+Settings.reset
+check 'reset all: library back to built-in', Settings.get['colour_library'] == [] && !File.exist?(Settings::USER_FILE)
+check 'display keys never saved', SettingsWindow.saveable({ 'a' => 1, '_debug' => true, '_job' => {} }) == { 'a' => 1 }
+Dir.mktmpdir do |d|
+  f = File.join(d, 'CHANGELOG.md')
+  File.write(f, "# Changelog\n\n## 0.2.0 — x\n- **Bold** item\n  continues\n- `code` two\n\n## 0.1.0 — y\nIntro line\n- a\n\n## 0.0.1\n- old\n")
+  w = SettingsWindow.whats_new(2, f)
+  check "what's new: newest entries, tidy text", w.size == 2 && w[0]['title'] == '0.2.0 — x' && w[0]['items'] == ['Bold item continues', 'code two'] && w[1]['items'] == ['Intro line', 'a']
+end
+check "what's new reads the real changelog", SettingsWindow.whats_new(1, File.expand_path('../CHANGELOG.md', __dir__)).first['title'].start_with?('0.')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

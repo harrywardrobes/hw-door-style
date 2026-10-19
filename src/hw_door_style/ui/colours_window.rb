@@ -20,10 +20,6 @@ module HarryWardrobes
             Log.error('colours', e)
           end
         end
-        dlg.add_action_callback('setDefault') do |_c, json|
-          Settings.save(Settings.get.merge('default_colours' => JSON.parse(json)))
-          UI.messagebox('Saved as the default colours. They will be pre-selected on jobs with no colours chosen yet.')
-        end
         dlg.show
       end
 

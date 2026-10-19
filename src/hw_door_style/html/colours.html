@@ -21,7 +21,7 @@
 <div id="rows"></div>
 <div class="req" id="req">Choose a Door / Drawer colour before converting doors.</div>
 <div class="bar">
-  <button onclick="setDefault()" title="Pre-select these colours on jobs that have none chosen yet">Save as default</button>
+  <span style="flex:1;color:var(--muted);font-size:10.5px;align-self:center">Defaults for new jobs: Settings &gt; Colours</span>
   <button onclick="sketchup.cancel()">Close</button>
   <button class="primary" onclick="apply()">Apply to model</button>
 </div>
@@ -86,7 +86,6 @@ function render(){
 }
 function values(){ var o={}; D.groups.forEach(function(g){ o[g[0]] = document.getElementById('sel_'+g[0]).value; }); return o; }
 function apply(){ sketchup.apply(JSON.stringify(values())); }
-function setDefault(){ sketchup.setDefault(JSON.stringify(values())); }
 render();
 </script>
 </body>

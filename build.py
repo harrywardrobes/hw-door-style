@@ -11,6 +11,8 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for p in sorted(src.rglob("*")):
         if p.is_file() and p.name != "settings.json":
             z.write(p, p.relative_to(src).as_posix())
+    # Shown in Settings > General > What's new.
+    z.write(root / "CHANGELOG.md", "hw_door_style/CHANGELOG.md")
 print(out)
 
 # Colour materials pack: materials/ + the plugin's colours.json and textures.

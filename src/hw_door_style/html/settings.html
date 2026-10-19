@@ -1,136 +1,172 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>Settings</title>
+<title>HW Door Style - Settings</title>
 <!--HW-->
 <style>
-  body { font:12px/1.3 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:10px 12px; }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  fieldset { border:1px solid #dfe2e5; border-radius:4px; margin:0; padding:6px 8px 8px; min-width:0; }
-  fieldset.wide { grid-column:1 / -1; }
-  legend { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#2f4a3f; padding:0 4px; }
-  .f { display:grid; grid-template-columns:1fr 64px; align-items:center; gap:6px; margin:2px 0; }
-  .f.t { grid-template-columns:118px 1fr; }
-  .f.c { grid-template-columns:1fr 16px; }
-  .f.t2 { grid-template-columns:auto 1fr; }
-  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  html, body { height:100%; }
+  body { padding:0; display:flex; flex-direction:column; line-height:1.3; }
+  .main { flex:1; display:flex; min-height:0; }
+
+  /* sidebar */
+  nav { width:170px; flex:none; background:#f5f6f5; border-right:1px solid #dfe2e5; padding:8px 0; overflow:auto; }
+  nav h3 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#8a949c; margin:10px 14px 3px; }
+  nav h3:first-child { margin-top:2px; }
+  nav a { display:flex; align-items:center; justify-content:space-between; padding:5px 14px; color:var(--ink); text-decoration:none; cursor:pointer; border-left:3px solid transparent; }
+  nav a:hover { background:#eceeed; }
+  nav a.on { background:#fff; border-left-color:var(--accent); color:var(--accent); font-weight:600; }
+  nav a .dot { display:none; width:7px; height:7px; border-radius:50%; background:var(--warn); }
+  nav a.err .dot { display:inline-block; }
+
+  /* content */
+  .content { flex:1; overflow:auto; padding:12px 16px 16px; }
+  section { display:none; }
+  section.on { display:block; }
+  section > h2 { font-size:15px; margin:0 0 2px; }
+  section > .lead { color:var(--muted); font-size:11px; margin:0 0 10px; }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  fieldset { border:1px solid #dfe2e5; border-radius:4px; margin:0 0 10px; padding:6px 10px 9px; min-width:0; }
+  .grid fieldset { margin:0; }
+  legend { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--accent); padding:0 4px; }
+  .f { display:grid; grid-template-columns:1fr 70px; align-items:center; gap:6px; margin:3px 0; }
   .f.t { grid-template-columns:150px 1fr; }
-  input, textarea { font:inherit; padding:2px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
-  textarea { height:22px; resize:vertical; }
+  .f.s { grid-template-columns:190px 220px; }
+  .f.c { grid-template-columns:1fr 16px; }
+  .row5 { display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; }
+  .row5 .f { grid-template-columns:auto 1fr; }
+  input, textarea, select { font:inherit; padding:3px 5px; border:1px solid var(--line); border-radius:3px; width:100%; background:#fff; }
+  textarea { min-height:24px; resize:vertical; }
   input[type=checkbox] { width:auto; margin:0; }
-  .hint { color:#6a737d; font-size:10.5px; margin-top:2px; }
-  .tabs { display:flex; gap:2px; border-bottom:1px solid #d0d7de; margin:0 0 8px; }
-  .tabs button { border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0; background:none; padding:5px 8px; color:#57606a; margin-bottom:-1px; white-space:nowrap; }
-  .tabs button.on { background:#fff; border-color:#d0d7de; color:#2f4a3f; font-weight:600; }
-  fieldset.hide { display:none; }
+  input.bad, textarea.bad { border-color:var(--warn); background:#fff6f1; }
+  .msg { color:var(--warn); font-size:10.5px; margin:1px 0 3px; }
+  .hint { margin-top:3px; }
+  code { background:#f1f3f2; padding:0 3px; border-radius:2px; }
+  .info { background:#f4f6f5; border:1px solid #dfe5e2; border-radius:4px; padding:7px 10px; font-size:11.5px; color:#3b4a44; margin-bottom:10px; }
+  .btnrow { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .btnrow button { padding:4px 10px; }
+  .path { font-family:Consolas, monospace; font-size:11px; word-break:break-all; color:#3b4a44; }
+
+  /* colour library */
   .lib { display:grid; grid-template-columns:1fr 230px; gap:10px; }
   .swatches { display:grid; grid-template-columns:repeat(auto-fill, minmax(62px, 1fr)); gap:6px; align-content:start; max-height:250px; overflow:auto; padding:2px; }
   .sw { cursor:pointer; text-align:center; font-size:10px; color:#57606a; }
-  .sw .t { height:46px; border-radius:4px; border:1px solid #c9ced3; background-size:cover; background-position:center; }
-  .sw.on .t { outline:2px solid #2f4a3f; outline-offset:1px; }
+  .sw .t { height:46px; border-radius:4px; border:1px solid var(--line); background-size:cover; background-position:center; }
+  .sw.on .t { outline:2px solid var(--accent); outline-offset:1px; }
   .sw .n { margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ed { border-left:1px solid #eceef0; padding-left:10px; }
-  .ed .big { height:70px; border-radius:4px; border:1px solid #c9ced3; background-size:cover; background-position:center; margin-bottom:6px; }
+  .ed { border-left:1px solid var(--rule); padding-left:10px; }
+  .ed .big { height:70px; border-radius:4px; border:1px solid var(--line); background-size:cover; background-position:center; margin-bottom:6px; }
   .ed .f { grid-template-columns:62px 1fr; }
   .ed input[type=color] { padding:0; height:24px; }
   .ed .f.c { grid-template-columns:1fr 16px; }
   .ed .btns { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
   .ed .btns button, .libbar button { padding:3px 8px; font-size:11px; }
   .libbar { display:flex; gap:4px; margin-top:6px; }
+
   table.ocl { width:100%; border-collapse:collapse; font-size:11px; }
   table.ocl th { text-align:left; color:#57606a; border-bottom:1px solid #d0d7de; padding:3px 4px; }
-  table.ocl td { border-bottom:1px solid #eceef0; padding:3px 4px; }
-  .ok { color:#1a7f37; font-weight:600; } .no { color:#b4541a; font-weight:600; }
+  table.ocl td { border-bottom:1px solid var(--rule); padding:3px 4px; }
+  .ok { color:#1a7f37; font-weight:600; } .no { color:var(--warn); font-weight:600; }
   ul.tips { margin:4px 0 0; padding-left:18px; } ul.tips li { margin:3px 0; }
+  .news h4 { font-size:12px; margin:6px 0 2px; }
+  .news ul { margin:0 0 4px; padding-left:18px; font-size:11.5px; }
+  .news li { margin:2px 0; }
 
-  .bar { display:flex; gap:5px; justify-content:flex-end; margin-top:8px; }
-  .bar button { white-space:nowrap; padding:5px 9px; }
-  button { font:inherit; padding:4px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
+  /* footer */
+  footer { flex:none; display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid #dfe2e5; background:#fff; }
+  footer .state { flex:1; font-size:11.5px; color:var(--muted); }
+  footer .state.dirty { color:#7a4d00; }
+  footer .state.bad { color:var(--warn); cursor:pointer; }
+  footer button { padding:5px 14px; }
 </style>
 </head>
 <body>
-<div class="tabs" id="tabs">
-  <button data-t="doors">Doors &amp; hinges</button>
-  <button data-t="units">Components</button>
-  <button data-t="tags">Tags</button>
-  <button data-t="colours">Colours &amp; materials</button>
-  <button data-t="scribe">Scribe / runout</button>
-  <button data-t="export">Export</button>
-  <button data-t="cutlist">Cut list</button>
-</div>
-<div class="grid">
-  <fieldset class="wide" data-tab="doors"><legend>Component names</legend>
+<div class="main">
+<nav id="nav">
+  <h3>Doors &amp; parts</h3>
+  <a data-s="doors">Doors<i class="dot"></i></a>
+  <a data-s="hinges">Hinges &amp; handles<i class="dot"></i></a>
+  <a data-s="units">Components<i class="dot"></i></a>
+  <a data-s="colours">Colours<i class="dot"></i></a>
+  <h3>Model</h3>
+  <a data-s="tags">Tags<i class="dot"></i></a>
+  <a data-s="scribe">Scribe &amp; ceiling<i class="dot"></i></a>
+  <h3>Output</h3>
+  <a data-s="export">Export<i class="dot"></i></a>
+  <a data-s="cutlist">Cut list<i class="dot"></i></a>
+  <h3>Plugin</h3>
+  <a data-s="general">General<i class="dot"></i></a>
+</nav>
+
+<div class="content">
+
+<!-- ======================= DOORS ======================= -->
+<section id="s_doors">
+  <h2>Doors</h2>
+  <div class="lead">Which components are doors and drawer fronts, and how Shaker fronts are built.</div>
+  <fieldset><legend>Component names</legend>
     <div class="f t"><span>Doors</span><textarea id="door_names"></textarea></div>
-    <div class="f t"><span>External drawers</span><textarea id="ext_drawer_names"></textarea></div>
-    <div class="f t"><span>Internal drawers</span><textarea id="int_drawer_names"></textarea></div>
-    <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name. Internal drawer fronts stay flat.</div>
+    <div class="f t"><span>External drawer fronts</span><textarea id="ext_drawer_names"></textarea></div>
+    <div class="f t"><span>Internal drawer fronts</span><textarea id="int_drawer_names"></textarea></div>
+    <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name. Internal drawer fronts always stay flat.</div>
   </fieldset>
+  <div class="grid">
+    <fieldset><legend>Shaker (mm)</legend>
+      <div class="f"><span>Door frame width</span><input type="number" id="door_frame_mm"></div>
+      <div class="f"><span>Drawer front stiles (vertical)</span><input type="number" id="drawer_stile_mm" title="Same as the door frame so drawer panels line up with the door panels"></div>
+      <div class="f"><span>Drawer front rails (top / bottom)</span><input type="number" id="drawer_frame_mm"></div>
+      <div class="f"><span>Recess depth</span><input type="number" step="0.5" id="recess_mm"></div>
+      <div class="f"><span>Smallest panel</span><input type="number" id="min_panel_mm"></div>
+    </fieldset>
+    <fieldset><legend>Mid-rail on doors (mm)</legend>
+      <div class="f"><span>Add when door taller than</span><input type="number" id="midrail_min_door_height_mm"></div>
+      <div class="f"><span>Centre above door bottom</span><input type="number" id="midrail_centre_mm"></div>
+      <div class="f"><span>Mid-rail width</span><input type="number" id="midrail_width_mm"></div>
+    </fieldset>
+  </div>
+  <div class="hint">Changing sizes here: press Shaker again (or Rebuild) to redraw doors already in a model.</div>
+</section>
 
-  <fieldset data-tab="doors"><legend>Shaker (mm)</legend>
-    <div class="f"><span>Door frame width</span><input type="number" id="door_frame_mm"></div>
-    <div class="f"><span>Drawer front stiles (vertical)</span><input type="number" id="drawer_stile_mm" title="Same as the door frame so drawer panels line up with the door panels"></div>
-    <div class="f"><span>Drawer front rails (top / bottom)</span><input type="number" id="drawer_frame_mm"></div>
-    <div class="f"><span>Recess depth</span><input type="number" step="0.5" id="recess_mm"></div>
-    <div class="f"><span>Smallest panel</span><input type="number" id="min_panel_mm"></div>
-  </fieldset>
-
-  <fieldset data-tab="doors"><legend>Mid-rail on doors (mm)</legend>
-    <div class="f"><span>Add when door taller than</span><input type="number" id="midrail_min_door_height_mm"></div>
-    <div class="f"><span>Centre above door bottom</span><input type="number" id="midrail_centre_mm"></div>
-    <div class="f"><span>Mid-rail width</span><input type="number" id="midrail_width_mm"></div>
-  </fieldset>
-
-  <fieldset data-tab="doors"><legend>Hinges</legend>
+<!-- ======================= HINGES & HANDLES ======================= -->
+<section id="s_hinges">
+  <h2>Hinges &amp; handles</h2>
+  <div class="lead">Hinges drawn on doors, and the handle counts in the door summary.</div>
+  <fieldset><legend>Hinges</legend>
+    <div class="f s"><span>Default hinge type</span><select id="default_hinge_type"></select></div>
+    <div class="hint" style="margin-bottom:6px">For new jobs. Each job's own type is set from Extensions &gt; HW Door Style &gt; Hinge type.</div>
     <div class="f t"><span>Hinges per door</span><input type="text" id="hinge_rules"></div>
-    <div class="hint">max height:count - e.g. 900:2, 1600:3, 2000:4, 2400:5, 99999:6</div>
-    <div class="f"><span>Top / bottom inset (mm)</span><input type="number" id="hinge_end_inset_mm"></div>
+    <div class="hint">Door height up to : number of hinges, e.g. <code>900:2, 1600:3, 2000:4, 2400:5, 99999:6</code></div>
+    <div class="f" style="grid-template-columns:150px 70px"><span>Top / bottom inset (mm)</span><input type="number" id="hinge_end_inset_mm"></div>
   </fieldset>
-
-  <fieldset data-tab="doors"><legend>Handles / knobs</legend>
-    <div class="f"><span>2 on drawer fronts wider than (mm)</span><input type="number" id="handle_double_min_width_mm"></div>
-    <div class="f c"><span>Count on internal drawer fronts</span><input type="checkbox" id="handles_on_internal_drawers"></div>
-    <div class="f c"><span>Count on push-to-open doors</span><input type="checkbox" id="handles_on_pto_doors"></div>
+  <fieldset><legend>Handles / knobs</legend>
+    <div class="f" style="grid-template-columns:1fr 70px"><span>Two handles on drawer fronts wider than (mm)</span><input type="number" id="handle_double_min_width_mm"></div>
+    <div class="f c"><span>Count handles on internal drawer fronts</span><input type="checkbox" id="handles_on_internal_drawers"></div>
+    <div class="f c"><span>Count handles on push-to-open doors</span><input type="checkbox" id="handles_on_pto_doors"></div>
   </fieldset>
+</section>
 
-  <fieldset class="wide" data-tab="units"><legend>Top box &amp; bridge</legend>
-    <div class="f t"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm" style="max-width:90px"></div>
+<!-- ======================= COMPONENTS ======================= -->
+<section id="s_units">
+  <h2>Components</h2>
+  <div class="lead">Sizes the plugin sets on library components.</div>
+  <fieldset><legend>Top box &amp; bridge</legend>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm"></div>
     <div class="hint">The top doors on TOPBOX and the doors on BRIDGE_FRAME, so they line up along the run.
       BRIDGE_FRAME is built up from this door and BRIDGE_SKELETON sits under it, so the top of the bridge is at the ceiling.
       Applied with the ceiling height (pencil window or the ceiling button) to every unit set "Up to ceiling".</div>
   </fieldset>
+</section>
 
-  <fieldset class="wide" data-tab="tags"><legend>Tags</legend>
-    <div class="row3">
-      <div class="f t2"><span>Doors</span><input type="text" id="door_tag"></div>
-      <div class="f t2"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
-      <div class="f t2"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
-    </div>
-    <div class="hint">Applied to the faces and edges inside each component.</div>
-    <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4" title="One tag per line: tag: COMPONENT, COMPONENT"></textarea></div>
-    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET, BKS_SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag, so nothing stays on HARDWARE.</div>
+<!-- ======================= COLOURS ======================= -->
+<section id="s_colours">
+  <h2>Colours</h2>
+  <div class="lead">The colours offered in the Colours window, what a new job starts with, and which parts each colour paints.</div>
+  <fieldset><legend>Default colours (new jobs)</legend>
+    <div id="defaults"></div>
+    <div class="f s" style="margin-top:6px"><span>22mm Panels "Default" means</span><select id="panels_22_default"></select></div>
+    <div class="hint">Pre-selected in the Colours window on jobs that have no colours chosen yet.</div>
   </fieldset>
-
-  <fieldset class="wide" data-tab="scribe"><legend>Scribe / runout (pencil)</legend>
-    <div class="f t"><span>Dropdown values (mm)</span><input type="text" id="runout_values_mm" title="0 is always included"></div>
-    <div class="row3">
-      <div class="f t2"><span>Floor</span><input type="number" id="rd_floor"></div>
-      <div class="f t2"><span>Ceiling</span><input type="number" id="rd_ceiling"></div>
-      <div class="f t2"><span>Back</span><input type="number" id="rd_back"></div>
-      <div class="f t2"><span>Left</span><input type="number" id="rd_left"></div>
-      <div class="f t2"><span>Right</span><input type="number" id="rd_right"></div>
-    </div>
-    <div class="hint">Defaults used the first time the pencil is pressed on a job. Changing the list updates every component's dropdown next time the pencil is used.</div>
-  </fieldset>
-
-  <fieldset class="wide" data-tab="export"><legend>Export components (library file)</legend>
-    <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
-    <div class="f t"><span>Older file names</span><textarea id="export_aliases" rows="4" title="One per line: COMPONENT: OLD_NAME, OLD_NAME"></textarea></div>
-    <div class="f t"><span>Never export</span><input type="text" id="export_skip" title="Top-level components left out of the export list"></div>
-    <div class="hint">One line per component, e.g. <code>WARDROBE: WRD</code>. Files with an older name are moved to the old folder and counted for the next version number.</div>
-  </fieldset>
-
-  <fieldset class="wide" data-tab="colours"><legend>Colour library</legend>
+  <fieldset><legend>Colour library</legend>
     <div class="lib">
       <div>
         <div class="swatches" id="swatches"></div>
@@ -144,28 +180,81 @@
       </div>
       <div class="ed" id="ed"></div>
     </div>
-    <div class="hint">These are the colours offered in the Colours window. Saving updates any material of the same name in this model. Renaming makes a new colour (jobs keep the old name).</div>
+    <div class="hint">Saving updates any material of the same name in the open model. Renaming makes a new colour (jobs keep the old name).</div>
   </fieldset>
-
-  <fieldset class="wide" data-tab="colours"><legend>Materials</legend>
-    <div class="f t"><span>Hinge / TIP-ON material</span><input type="text" id="hardware_material"></div>
+  <fieldset><legend>What each colour paints</legend>
     <div class="f t"><span>Door / Drawer tags</span><input type="text" id="cg_door"></div>
     <div class="f t"><span>Exterior / Trim tags</span><input type="text" id="cg_exterior"></div>
     <div class="f t"><span>Interior tags</span><input type="text" id="cg_interior"></div>
     <div class="f t"><span>Worktop tags</span><input type="text" id="cg_worktop"></div>
     <div class="f t"><span>Drawer box parts</span><input type="text" id="drawer_box_parts"></div>
-    <div class="f"><span>22mm Panels colour row: panel thickness (mm)</span><input type="number" id="panel_22_mm"></div>
+    <div class="f t"><span>Hinge / TIP-ON material</span><input type="text" id="hardware_material"></div>
+    <div class="f" style="grid-template-columns:1fr 70px"><span>22mm Panels row: panel thickness (mm)</span><input type="number" id="panel_22_mm"></div>
     <div class="f c"><span>Drawer box thickness follows the finish (15mm woodgrain / 16mm plain)</span><input type="checkbox" id="box_thickness_follows_finish"></div>
-    <div class="hint">Which tags each colour in the Colours window paints. Hinges and TIP-ONs are never repainted.</div>
+    <div class="hint">Hinges and TIP-ONs are never repainted.</div>
   </fieldset>
-  <fieldset class="wide" data-tab="cutlist"><legend>OpenCutList</legend>
-    <div id="oclStatus"></div>
-    <div class="hint" style="margin-top:6px">Information only for now - nothing is written to OpenCutList yet.</div>
+</section>
+
+<!-- ======================= TAGS ======================= -->
+<section id="s_tags">
+  <h2>Tags</h2>
+  <div class="lead">Used by Extensions &gt; HW Door Style &gt; Apply tags.</div>
+  <fieldset><legend>Doors &amp; hinges</legend>
+    <div class="f t"><span>Doors</span><input type="text" id="door_tag"></div>
+    <div class="f t"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
+    <div class="f t"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
+    <div class="hint">Applied to the faces and edges inside each component.</div>
   </fieldset>
-  <fieldset class="wide" data-tab="cutlist"><legend>What the plugin could set for OpenCutList</legend>
+  <fieldset><legend>Hardware</legend>
+    <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4"></textarea></div>
+    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET, BKS_SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag, so nothing stays on HARDWARE.</div>
+  </fieldset>
+</section>
+
+<!-- ======================= SCRIBE & CEILING ======================= -->
+<section id="s_scribe">
+  <h2>Scribe &amp; ceiling</h2>
+  <div class="lead">The pencil (runouts) and ceiling buttons.</div>
+  <div class="info" id="jobInfo"></div>
+  <fieldset><legend>Runouts (pencil)</legend>
+    <div class="f t"><span>Dropdown values (mm)</span><input type="text" id="runout_values_mm"></div>
+    <div class="hint" style="margin-bottom:6px">0 is always included. Every component's dropdown is updated the next time the pencil is used.</div>
+    <div class="row5">
+      <div class="f"><span>Floor</span><input type="number" id="rd_floor"></div>
+      <div class="f"><span>Ceiling</span><input type="number" id="rd_ceiling"></div>
+      <div class="f"><span>Back</span><input type="number" id="rd_back"></div>
+      <div class="f"><span>Left</span><input type="number" id="rd_left"></div>
+      <div class="f"><span>Right</span><input type="number" id="rd_right"></div>
+    </div>
+    <div class="hint">Defaults used the first time the pencil is pressed on a job (mm).</div>
+  </fieldset>
+  <fieldset><legend>Ceiling height</legend>
+    <div class="hint" style="margin-top:0">Set per job, in the pencil window or with the ceiling button, and applied to every unit set "Up to ceiling". Top door height is under Components.</div>
+  </fieldset>
+</section>
+
+<!-- ======================= EXPORT ======================= -->
+<section id="s_export">
+  <h2>Export</h2>
+  <div class="lead">Export components (rocket) - library file only.</div>
+  <fieldset><legend>Export components</legend>
+    <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
+    <div class="f t"><span>Older file names</span><textarea id="export_aliases" rows="5"></textarea></div>
+    <div class="hint" style="margin-bottom:6px">One line per component, e.g. <code>WARDROBE: WRD</code>. Files with an older name are moved to the old folder and counted for the next version number.</div>
+    <div class="f t"><span>Never export</span><input type="text" id="export_skip"></div>
+    <div class="hint">Top-level components left out of the export list.</div>
+  </fieldset>
+</section>
+
+<!-- ======================= CUT LIST ======================= -->
+<section id="s_cutlist">
+  <h2>Cut list</h2>
+  <div class="lead">OpenCutList - information only for now; nothing is written to OpenCutList yet.</div>
+  <fieldset><legend>OpenCutList</legend><div id="oclStatus"></div></fieldset>
+  <fieldset><legend>What the plugin could set for OpenCutList</legend>
     <table class="ocl"><thead><tr><th>Material</th><th>OpenCutList type</th><th>Thickness</th><th>Grain</th></tr></thead><tbody id="oclPlan"></tbody></table>
   </fieldset>
-  <fieldset class="wide" data-tab="cutlist"><legend>Ideas to connect the two</legend>
+  <fieldset><legend>Ideas to connect the two</legend>
     <ul class="tips">
       <li><b>Material types</b> - board colours as <i>Sheet good</i> (18 / 22 / 25 mm, your HPP sheet sizes), woodgrains marked <i>grained</i>; hinges, TIP-ON and Interfit boxes as <i>Hardware</i> so they are counted, not cut.</li>
       <li><b>Bought-in doors &amp; drawer fronts</b> - tag them (e.g. <i>bought-in</i>) so OpenCutList can leave them off the cutting diagrams; the plugin's Door order stays the supplier list.</li>
@@ -175,17 +264,47 @@
       <li><b>Runouts</b> - the cut list uses the drawn sizes, so press the pencil (scribes on) before cutting.</li>
     </ul>
   </fieldset>
+</section>
+
+<!-- ======================= GENERAL ======================= -->
+<section id="s_general">
+  <h2>General</h2>
+  <div class="lead" id="verLine"></div>
+  <fieldset><legend>What's new</legend><div class="news" id="news"></div></fieldset>
+  <fieldset><legend>Settings file</legend>
+    <div class="path" id="setPath"></div>
+    <div class="hint">Your changes are kept here, outside the plugin, so updates don't remove them.</div>
+    <div class="btnrow"><button onclick="sketchup.openFolder()">Open settings folder</button></div>
+  </fieldset>
+  <fieldset><legend>Backups &amp; team settings</legend>
+    <div class="btnrow">
+      <button onclick="sketchup.exportSettings(JSON.stringify(collect()))" title="Save these settings to a .json file">Download backup</button>
+      <button onclick="sketchup.importSettings()" title="Load settings from a backup .json file">Upload backup</button>
+      <button onclick="sketchup.loadTeam()" title="Load the shared team settings (a backup kept on Google Drive)">Load team settings</button>
+    </div>
+    <div class="hint" id="teamLine"></div>
+    <div class="hint">A loaded backup fills this window; nothing is kept until you press Save. To share settings with the team, Download backup to Google Drive.</div>
+  </fieldset>
+  <fieldset><legend>Reset</legend>
+    <div class="btnrow"><button onclick="sketchup.reset()">Reset to plugin defaults...</button></div>
+    <div class="hint">Asks first, and asks whether your own colour library should be reset too.</div>
+  </fieldset>
+  <fieldset><legend>Developer</legend>
+    <div class="f c"><span>Detailed Ruby Console log (for troubleshooting)</span><input type="checkbox" id="_debug"></div>
+    <div class="btnrow"><button onclick="sketchup.diagnostics()">Copy diagnostics</button></div>
+    <div class="hint" id="diagMsg">Copies plugin, SketchUp and model details to the clipboard, to paste into a message when something goes wrong.</div>
+  </fieldset>
+</section>
+
+</div>
 </div>
 
-<div class="bar">
-  <button onclick="sketchup.exportSettings(JSON.stringify(collect()))" title="Save these settings to a .json file">Download backup</button>
-  <button onclick="sketchup.importSettings()" title="Load settings from a backup .json file">Upload backup</button>
-  <button onclick="sketchup.loadTeam()" title="Load the shared team settings (a backup kept on Google Drive). Remembers the file for next time.">Load team settings</button>
-  <span style="flex:1"></span>
-  <button onclick="sketchup.reset()">Reset to defaults</button>
-  <button onclick="sketchup.cancel()">Cancel</button>
+<footer>
+  <div class="state" id="state">No changes</div>
+  <button onclick="cancelClicked()">Cancel</button>
   <button class="primary" onclick="save()">Save</button>
-</div>
+</footer>
+
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
@@ -193,36 +312,61 @@ var NUMS = ['door_frame_mm','drawer_stile_mm','drawer_frame_mm','recess_mm','min
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
 var GROUPS = ['door','exterior','interior','worktop'];
+var SIDES = ['floor','ceiling','back','left','right'];
+var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
+var dirty = false;
+
 function split(v){ return v.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); }
+function opts(sel, list, cur){ sel.innerHTML = list.map(function(o){ var v = o[0], l = o[1]; return '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join(''); }
+
+// ---------- load / collect ----------
 function load(s){
   LISTS.forEach(function(k){ $(k).value = (s[k]||[]).join(', '); });
   NUMS.forEach(function(k){ $(k).value = s[k]; });
   BOOLS.forEach(function(k){ $(k).checked = !!s[k]; });
   Object.keys(TEXTS).forEach(function(k){ $(k).value = s[k] || TEXTS[k]; });
   $('hinge_rules').value = (s.hinge_rules||[]).map(function(r){return r[0]+':'+r[1];}).join(', ');
+  opts($('default_hinge_type'), Object.keys(S._hinge_types || {}).map(function(k){ return [k, S._hinge_types[k]]; }), s.default_hinge_type);
   var ht = s.hardware_tags || {};
   $('hardware_tags').value = Object.keys(ht).map(function(t){ return t + ': ' + (ht[t]||[]).join(', '); }).join('\n');
   $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
   var rd = s.runout_defaults_mm || {};
-  ['floor','ceiling','back','left','right'].forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
+  SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
   var ea = s.export_aliases || {};
   $('export_aliases').value = Object.keys(ea).map(function(t){ return t + ': ' + (ea[t]||[]).join(', '); }).join('\n');
   var cg = s.colour_groups || {};
   GROUPS.forEach(function(g){ $('cg_'+g).value = (cg[g]||[]).join(', '); });
+  // default colours
+  var dc = s.default_colours || {};
+  $('defaults').innerHTML = DEFAULT_ROWS.map(function(r){
+    return '<div class="f s"><span>' + esc(r[1]) + '</span><select id="dc_' + r[0] + '"></select></div>';
+  }).join('');
+  DEFAULT_ROWS.forEach(function(r){
+    var list = r[0] === 'drawer_box' ? [] : [['Default', r[0] === 'panels_22' ? 'Default (set below)' : 'Default (no material)']];
+    r[2].forEach(function(n){ list.push([n, n]); });
+    opts($('dc_' + r[0]), list, dc[r[0]] || (r[0] === 'drawer_box' ? r[2][0] : 'Default'));
+  });
+  var p22 = (DEFAULT_ROWS.filter(function(r){ return r[0] === 'panels_22'; })[0] || [0, 0, []])[2];
+  opts($('panels_22_default'), p22.map(function(n){ return [n, n]; }), s.panels_22_default);
+  $('_debug').checked = !!S._debug;
 }
-function save(){ sketchup.save(JSON.stringify(collect())); }
+
 function collect(){
   var o = {};
   LISTS.forEach(function(k){ o[k] = split($(k).value); });
   NUMS.forEach(function(k){ o[k] = parseFloat($(k).value); });
   BOOLS.forEach(function(k){ o[k] = $(k).checked; });
   Object.keys(TEXTS).forEach(function(k){ o[k] = $(k).value.trim() || TEXTS[k]; });
-  o.hinge_rules = $('hinge_rules').value.split(',').map(function(p){ var a=p.split(':'); return [parseFloat(a[0]), parseInt(a[1],10)]; }).filter(function(r){ return !isNaN(r[0]) && !isNaN(r[1]); });
+  o.default_hinge_type = $('default_hinge_type').value;
+  o.hinge_rules = parseRules($('hinge_rules').value).rules;
   o.colour_groups = {};
   GROUPS.forEach(function(g){ o.colour_groups[g] = split($('cg_'+g).value); });
+  o.default_colours = {};
+  DEFAULT_ROWS.forEach(function(r){ o.default_colours[r[0]] = $('dc_' + r[0]).value; });
+  o.panels_22_default = $('panels_22_default').value;
   o.runout_values_mm = $('runout_values_mm').value.split(',').map(function(x){ return parseFloat(x); }).filter(function(x){ return x > 0; });
   o.runout_defaults_mm = {};
-  ['floor','ceiling','back','left','right'].forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
+  SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
   o.export_aliases = {};
   $('export_aliases').value.split('\n').forEach(function(line){
@@ -234,10 +378,96 @@ function collect(){
     var i = line.indexOf(':'); if (i < 1) return;
     var t = line.slice(0, i).trim(); if (t) o.hardware_tags[t] = split(line.slice(i + 1));
   });
+  o._debug = $('_debug').checked;
   return o;
 }
-load(S);
-// ---- colour library editor ----
+
+function parseRules(txt){
+  var bad = false, rules = [];
+  txt.split(',').forEach(function(p){
+    if (!p.trim()) return;
+    var a = p.split(':'), h = parseFloat(a[0]), n = parseInt(a[1], 10);
+    if (a.length !== 2 || isNaN(h) || isNaN(n)) { bad = true; return; }
+    rules.push([h, n]);
+  });
+  return { rules: rules, bad: bad };
+}
+
+// ---------- validation ----------
+// [section, field id, message] for every problem.
+function problems(){
+  var out = [];
+  function num(id){ return parseFloat($(id).value); }
+  function need(sec, id, ok, msg){ if (!ok) out.push([sec, id, msg]); }
+  [['door_frame_mm','Door frame width'],['drawer_stile_mm','Drawer front stiles'],['drawer_frame_mm','Drawer front rails'],['min_panel_mm','Smallest panel'],
+   ['midrail_min_door_height_mm','Mid-rail: door height'],['midrail_centre_mm','Mid-rail centre'],['midrail_width_mm','Mid-rail width']].forEach(function(f){
+    need('doors', f[0], num(f[0]) > 0, f[1] + ' must be more than 0');
+  });
+  need('doors', 'recess_mm', num('recess_mm') > 0 && num('recess_mm') < 18, 'Recess depth must be between 0 and 18 mm');
+  need('doors', 'door_names', split($('door_names').value).length > 0, 'Enter at least one door name');
+  var r = parseRules($('hinge_rules').value);
+  var asc = r.rules.every(function(x, i){ return i === 0 || x[0] > r.rules[i - 1][0]; });
+  need('hinges', 'hinge_rules', !r.bad && r.rules.length > 0 && asc && r.rules.every(function(x){ return x[0] > 0 && x[1] >= 1 && x[1] <= 10; }),
+       'Hinges per door: height:count pairs, heights going up, 1-10 hinges');
+  need('hinges', 'hinge_end_inset_mm', num('hinge_end_inset_mm') >= 0, 'Inset can\'t be negative');
+  need('hinges', 'handle_double_min_width_mm', num('handle_double_min_width_mm') > 0, 'Enter a width');
+  need('units', 'top_door_height_mm', num('top_door_height_mm') >= 100 && num('top_door_height_mm') <= 1500, 'Top door height must be 100-1500 mm');
+  need('colours', 'panel_22_mm', num('panel_22_mm') > 0, 'Enter the panel thickness');
+  var vals = $('runout_values_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
+  need('scribe', 'runout_values_mm', vals.length > 0, 'Enter at least one runout value');
+  SIDES.forEach(function(k){
+    var v = num('rd_' + k);
+    need('scribe', 'rd_' + k, v === 0 || vals.indexOf(v) >= 0, k.charAt(0).toUpperCase() + k.slice(1) + ' default must be 0 or one of the dropdown values');
+  });
+  need('export', 'export_old_folder', /^[^\\/:*?"<>|]+$/.test($('export_old_folder').value.trim() || '_old'), 'Folder name can\'t contain \\ / : * ? " < > |');
+  return out;
+}
+
+function showProblems(list){
+  document.querySelectorAll('input.bad, textarea.bad, select.bad').forEach(function(e){ e.classList.remove('bad'); });
+  document.querySelectorAll('.msg').forEach(function(e){ e.remove(); });
+  document.querySelectorAll('#nav a').forEach(function(a){ a.classList.remove('err'); });
+  list.forEach(function(p){
+    var el = $(p[1]); if (!el) return;
+    el.classList.add('bad');
+    var m = document.createElement('div'); m.className = 'msg'; m.textContent = p[2];
+    var row = el.closest('.f') || el;
+    row.parentNode.insertBefore(m, row.nextSibling);
+    var a = document.querySelector('#nav a[data-s="' + p[0] + '"]'); if (a) a.classList.add('err');
+  });
+}
+
+// ---------- state / buttons ----------
+function setState(){
+  var st = $('state');
+  st.className = 'state' + (dirty ? ' dirty' : '');
+  st.textContent = dirty ? 'Unsaved changes' : 'No changes';
+  st.onclick = null;
+}
+function markDirty(){ if (!dirty) { dirty = true; setState(); sketchup.dirty(true); } }
+function save(){
+  var p = problems();
+  showProblems(p);
+  if (p.length) {
+    var st = $('state');
+    st.className = 'state bad';
+    st.textContent = p.length + (p.length === 1 ? ' thing needs' : ' things need') + ' fixing before saving - ' + p[0][2];
+    st.onclick = function(){ show(p[0][0]); $(p[0][1]).focus(); };
+    show(p[0][0]);
+    return;
+  }
+  sketchup.save(JSON.stringify(collect()));
+}
+function cancelClicked(){ sketchup.cancel(); }
+// Called from Ruby after Upload backup / Load team settings.
+function loaded(s){ load(s); markDirty(); }
+function copyText(t){
+  var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); $('diagMsg').textContent = 'Copied to the clipboard.'; } catch(e) { $('diagMsg').textContent = t; }
+  ta.remove();
+}
+
+// ---------- colour library editor ----------
 var LIB = (S._colour_library || []).map(function(c){ return JSON.parse(JSON.stringify(c)); });
 var SEL = 0;
 function hex(rgb){ return '#' + rgb.map(function(v){ var h = Math.max(0, Math.min(255, v|0)).toString(16); return h.length < 2 ? '0' + h : h; }).join(''); }
@@ -251,41 +481,57 @@ function libRender(){
   if (!c) { $('ed').innerHTML = '<div class="hint">No colours.</div>'; return; }
   $('ed').innerHTML =
     '<div class="big" style="' + swStyle(c) + '"></div>' +
-    '<div class="f"><span>Name</span><input type="text" value="' + esc(c.name) + '" oninput="LIB[SEL].name=this.value; libSoft()"></div>' +
-    '<div class="f"><span>Colour</span><input type="color" value="' + hex(c.rgb) + '" oninput="LIB[SEL].rgb=rgbOf(this.value); libSoft()"></div>' +
+    '<div class="f"><span>Name</span><input type="text" value="' + esc(c.name) + '" oninput="LIB[SEL].name=this.value; libSoft(); markDirty()"></div>' +
+    '<div class="f"><span>Colour</span><input type="color" value="' + hex(c.rgb) + '" oninput="LIB[SEL].rgb=rgbOf(this.value); libSoft(); markDirty()"></div>' +
     '<div class="f"><span>Texture</span><span style="font-size:11px">' + (c.texture ? esc(c.texture) : 'none') + '</span></div>' +
-    '<div class="f"><span>Size (mm)</span><input type="number" value="' + (c.size_mm || '') + '" oninput="LIB[SEL].size_mm=parseFloat(this.value)||null"' + (c.texture ? '' : ' disabled') + '></div>' +
-    '<div class="f c"><span>22mm Panels row only</span><input type="checkbox"' + (c.only ? ' checked' : '') + ' onchange="if(this.checked){LIB[SEL].only=[\'panels_22\'];}else{delete LIB[SEL].only;}"></div>' +
+    '<div class="f"><span>Size (mm)</span><input type="number" value="' + (c.size_mm || '') + '" oninput="LIB[SEL].size_mm=parseFloat(this.value)||null; markDirty()"' + (c.texture ? '' : ' disabled') + '></div>' +
+    '<div class="f c"><span>22mm Panels row only</span><input type="checkbox"' + (c.only ? ' checked' : '') + ' onchange="if(this.checked){LIB[SEL].only=[\'panels_22\'];}else{delete LIB[SEL].only;} markDirty()"></div>' +
     '<div class="btns"><button onclick="sketchup.pickTexture(SEL)">Choose image...</button>' + (c.texture ? '<button onclick="libNoTex()">Remove image</button>' : '') + '</div>';
 }
 function libSoft(){ var c = LIB[SEL]; var t = document.querySelectorAll('#swatches .sw')[SEL]; if (t) { t.querySelector('.t').setAttribute('style', swStyle(c)); t.querySelector('.n').textContent = c.name; } var b = document.querySelector('#ed .big'); if (b) b.setAttribute('style', swStyle(c)); }
 function libPick(i){ SEL = i; libRender(); }
-function libAdd(){ LIB.push({ name: 'New colour', rgb: [200, 200, 200] }); SEL = LIB.length - 1; libRender(); }
-function libDup(){ var c = LIB[SEL]; if (!c) return; var d = JSON.parse(JSON.stringify(c)); d.name = c.name + ' copy'; LIB.splice(SEL + 1, 0, d); SEL++; libRender(); }
-function libDel(){ if (!LIB[SEL]) return; LIB.splice(SEL, 1); SEL = Math.max(0, SEL - 1); libRender(); }
-function libNoTex(){ delete LIB[SEL].texture; delete LIB[SEL].img; delete LIB[SEL].size_mm; libRender(); }
-function libReset(){ LIB = []; $('swatches').innerHTML = '<div class="hint">Built-in colours will be restored when you press Save.</div>'; $('ed').innerHTML = ''; }
-function textureChosen(i, name, img){ var c = LIB[i]; if (!c) return; c.texture = name; c.img = img; if (!c.size_mm) c.size_mm = 600; if (i === SEL) libRender(); else libSoft(); }
-libRender();
+function libAdd(){ LIB.push({ name: 'New colour', rgb: [200, 200, 200] }); SEL = LIB.length - 1; libRender(); markDirty(); }
+function libDup(){ var c = LIB[SEL]; if (!c) return; var d = JSON.parse(JSON.stringify(c)); d.name = c.name + ' copy'; LIB.splice(SEL + 1, 0, d); SEL++; libRender(); markDirty(); }
+function libDel(){ if (!LIB[SEL]) return; LIB.splice(SEL, 1); SEL = Math.max(0, SEL - 1); libRender(); markDirty(); }
+function libNoTex(){ delete LIB[SEL].texture; delete LIB[SEL].img; delete LIB[SEL].size_mm; libRender(); markDirty(); }
+function libReset(){ LIB = []; $('swatches').innerHTML = '<div class="hint">Built-in colours will be restored when you press Save.</div>'; $('ed').innerHTML = ''; markDirty(); }
+function textureChosen(i, name, img){ var c = LIB[i]; if (!c) return; c.texture = name; c.img = img; if (!c.size_mm) c.size_mm = 600; if (i === SEL) libRender(); else libSoft(); markDirty(); }
 
-// ---- OpenCutList tab ----
-(function(){
+// ---------- read-only panels ----------
+function renderInfo(){
+  var j = S._job || {};
+  $('jobInfo').innerHTML = 'This job' + (j.title ? ' (' + esc(j.title) + ')' : '') + ': scribes <b>' + (j.scribes_on ? 'on' : 'off') + '</b>, ceiling <b>' +
+    (j.ceiling > 0 ? Math.round(j.ceiling) + ' mm' : 'not set') + '</b>, ' + (j.units || 0) + ' units with runouts.';
   var o = S._ocl || {};
   var st = o.installed ? '<span class="ok">OpenCutList installed</span>' + (o.version ? ' (v' + esc(o.version) + ')' : '') + (o.loaded ? '' : ' - not loaded')
                        : '<span class="no">OpenCutList not found</span> - install it from the Extension Warehouse to use these ideas.';
   st += '<div class="hint">' + (o.materials_with_ocl || 0) + ' of ' + (o.materials || 0) + ' materials in this model already have OpenCutList settings.</div>';
   $('oclStatus').innerHTML = st;
   $('oclPlan').innerHTML = (o.plan || []).map(function(r){ return '<tr><td>' + esc(r.material) + '</td><td>' + esc(r.type) + '</td><td>' + esc(r.thickness) + '</td><td>' + esc(r.grained) + '</td></tr>'; }).join('');
-})();
-
-function tab(t){
-  document.querySelectorAll('fieldset[data-tab]').forEach(function(f){ f.classList.toggle('hide', f.getAttribute('data-tab') !== t); });
-  document.querySelectorAll('#tabs button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); });
-  try { localStorage.setItem('hw_settings_tab', t); } catch(e) {}
+  $('verLine').textContent = 'HW Door Style ' + (S._version || '') + ' - Harry Wardrobes (Gautier Design Ltd)';
+  $('news').innerHTML = (S._whats_new || []).map(function(e){
+    return '<h4>' + esc(e.title) + '</h4><ul>' + e.items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
+  }).join('') || '<div class="hint">No notes.</div>';
+  $('setPath').textContent = S._settings_file || '';
+  $('teamLine').textContent = S._team_file ? 'Team file: ' + S._team_file : 'No team file chosen yet.';
 }
-document.querySelectorAll('#tabs button').forEach(function(b){ b.onclick = function(){ tab(b.getAttribute('data-t')); }; });
-var last = 'doors'; try { last = localStorage.getItem('hw_settings_tab') || 'doors'; } catch(e) {}
-tab(last);
+
+// ---------- sections ----------
+function show(s){
+  document.querySelectorAll('section').forEach(function(x){ x.classList.toggle('on', x.id === 's_' + s); });
+  document.querySelectorAll('#nav a').forEach(function(a){ a.classList.toggle('on', a.getAttribute('data-s') === s); });
+  try { localStorage.setItem('hw_settings_section', s); } catch(e) {}
+}
+document.querySelectorAll('#nav a').forEach(function(a){ a.onclick = function(){ show(a.getAttribute('data-s')); }; });
+
+load(S);
+libRender();
+renderInfo();
+document.querySelector('.content').addEventListener('input', markDirty);
+document.querySelector('.content').addEventListener('change', markDirty);
+setState();
+var last = 'doors'; try { last = localStorage.getItem('hw_settings_section') || 'doors'; } catch(e) {}
+show(document.getElementById('s_' + last) ? last : 'doors');
 </script>
 </body>
 </html>

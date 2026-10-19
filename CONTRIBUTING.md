@@ -42,8 +42,9 @@ One module per file, named after the file. A new file goes into `FILES` in `main
 
 ## How to...
 
-**Add a setting.** Add the key and default to `settings_default.json`, a field in
-`html/settings.html` (and its `collect()` / `load()`), and read it with
+**Add a setting.** Add the key and default to `settings_default.json`, a field in the right
+`<section>` of `html/settings.html` (and its `load()` / `collect()`, plus a rule in `problems()`
+if it can be wrong), and read it with
 `Settings.get['key']` (`Settings.mm('key')` for a length). `test/logic_test.rb` fails
 if the code reads a key that isn't in the defaults. If an old saved value must change,
 bump `SETTINGS_VERSION` and handle it in `Settings.migrate`.
@@ -66,6 +67,7 @@ dlg.show
 | Key | Used for |
 |---|---|
 | `door_names`, `ext_drawer_names`, `int_drawer_names` | Component names treated as doors / drawer fronts |
+| `top_door_height_mm` | TOPBOX top doors and the bridge (Components section) |
 | `door_frame_mm`, `drawer_stile_mm`, `drawer_frame_mm`, `recess_mm`, `min_panel_mm` | Shaker frame sizes |
 | `midrail_min_door_height_mm`, `midrail_centre_mm`, `midrail_width_mm` | Shaker mid-rail |
 | `default_hinge_type`, `hinge_rules`, `hinge_end_inset_mm` | Hinges (job type stored on the model) |
@@ -76,6 +78,9 @@ dlg.show
 | `runout_values_mm`, `runout_defaults_mm` | Pencil dropdowns and defaults |
 | `export_old_folder`, `export_aliases`, `export_skip` | Export components |
 | `settings_version` | Migration marker (see `Settings.migrate`) |
+
+Window-only data the Settings window receives starts with `_` (`_job`, `_version`, `_colour_rows`...)
+and is never saved; `_debug` is stored as a SketchUp preference (`Log.debug?`).
 
 Job values stored **on the model** (attribute dictionary `hw_door_style`): `hinge_type`,
 `scribe_on`, `scribe_values`, `ceiling_mm`, colour choices, export versions.

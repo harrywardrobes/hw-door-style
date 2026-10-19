@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.15.0 — 2026-10-19
+- **New Settings window**: sections listed down the left - Doors, Hinges & handles, Components,
+  Colours, Tags, Scribe & ceiling, Export, Cut list, General.
+- Checks before saving: wrong values are marked in red with a note, the section gets a dot, and
+  Save explains what needs fixing (e.g. a runout default that isn't in the dropdown list).
+- Shows "Unsaved changes"; Cancel or closing the window asks before throwing changes away.
+- **Default hinge type** for new jobs (Hinges & handles).
+- **Default colours** for new jobs, and what "Default" means on the 22mm Panels row, are now set in
+  Settings > Colours (the Colours window's "Save as default" button is gone).
+- Scribe & ceiling shows this job's state (scribes on / off, ceiling, units).
+- **General**: version, what's new, where settings are kept (Open settings folder), backups and team
+  settings, Reset (asks whether to reset your colour library too), and a Developer section:
+  detailed Ruby Console log switch and Copy diagnostics.
+
 ## 0.14.0 — 2026-10-19
 - **Top door height** (new Settings > **Components** tab, default 460 mm): the top doors on TOPBOX
   and the doors on BRIDGE_FRAME, so they line up along the run. Applied with the ceiling height
