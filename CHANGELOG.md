@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.14.0 — 2026-10-19
+- **Top door height** (new Settings > **Components** tab, default 460 mm): the top doors on TOPBOX
+  and the doors on BRIDGE_FRAME, so they line up along the run. Applied with the ceiling height
+  (pencil window or ceiling button) to every unit set "Up to ceiling"; both windows show it.
+- **Bridge built from its door** (component library, Components V21): BRIDGE_FRAME height = top door +
+  top facing + gaps, and it places itself so its top is at the ceiling; BRIDGE_SKELETON sits under
+  it. "Height below bridge" is gone. Both have "Ceiling height", "Top door height" and "Topped off?"
+  in Component Options, so they also work without the plugin. Keep "Topped off?" the same on a
+  skeleton and the frames on it.
+- Door summary flags a unit whose top door differs from the setting.
+- Settings window: tabs and bottom buttons no longer wrap onto two lines.
+- Older job files with the previous bridge ("Height below bridge") still work as before.
+
 ## 0.13.0 — 2026-10-19
 Behind-the-scenes tidy-up; nothing you use should look or work differently.
 - Code split into folders (core / doors / colours / job / export / ui), one module per file.

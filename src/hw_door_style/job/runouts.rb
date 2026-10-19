@@ -164,9 +164,8 @@ module HarryWardrobes
         return UI.messagebox('No units with runout settings found.') if units.empty?
         Batch.run(model, units, title, done: done_msg, before: before) do |inst|
           changed = values ? set(inst, values) : false
-          want = ceiling ? Ceiling.target_mm(inst, ceiling) : nil
-          # fit redraws itself; otherwise redraw once for the runouts.
-          changed = false if want && Ceiling.fit(inst, want)
+          # The ceiling step redraws itself; otherwise redraw once for the runouts.
+          changed = false if ceiling && Ceiling.apply_to(inst, ceiling)
           if changed
             Drawers.close(inst.definition.entities)
             DC.redraw(inst)

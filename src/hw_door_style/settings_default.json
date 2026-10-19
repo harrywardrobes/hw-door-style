@@ -21,6 +21,7 @@
   "midrail_min_door_height_mm": 1500,
   "midrail_centre_mm": 815,
   "midrail_width_mm": 100,
+  "top_door_height_mm": 460,
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [
     [

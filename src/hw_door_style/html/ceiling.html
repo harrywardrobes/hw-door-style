@@ -21,7 +21,8 @@
 </div>
 <script>
 var D = /*DATA*/null;
-document.getElementById('sub').textContent = 'Applies to every unit with "Up to ceiling" = TRUE (' + D.count + ' now). Runouts and scribes are not changed.';
+document.getElementById('sub').textContent = 'Applies to every unit with "Up to ceiling" = TRUE (' + D.count + ' now). Runouts and scribes are not changed.' +
+  (D.top_door > 0 ? ' Top doors (TOPBOX, bridge) set to ' + Math.round(D.top_door) + ' mm - Settings > Components.' : '');
 document.getElementById('c').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
 function go(){ var v = parseFloat(document.getElementById('c').value); if (!(v > 0)) { document.getElementById('err').style.display = 'block'; return; } sketchup.apply(String(v)); }
 </script>

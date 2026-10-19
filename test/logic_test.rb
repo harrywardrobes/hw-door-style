@@ -362,5 +362,24 @@ end.uniq
 missing = used - Settings.defaults.keys
 check "settings keys used in code exist (#{used.size})", missing.empty? || (puts("  missing: #{missing.join(', ')}") || false)
 
+# --- top door height (0.14) ---
+check 'top door setting 460', Ceiling.top_door_mm == 460.0
+class FDcInst
+  attr_reader :attrs, :definition
+  def initialize(inst, defn); @attrs = inst; @definition = Struct.new(:dd) { def attribute_dictionary(_n); dd; end }.new(defn); end
+  def attribute_dictionary(_n); @attrs; end
+  def get_attribute(_d, k); @attrs[k]; end
+  def set_attribute(_d, k, v); @attrs[k] = v; end
+end
+tb = FDcInst.new({ 'b04_door_top_height' => 500 / 25.4 }, { 'b04_door_top_height' => 0.0, 'i05_up_to_ceiling' => 'TRUE' })
+check 'top door read (prefixed key)', Ceiling.top_door_of(tb) == 500.0
+check 'top door set to 460', Ceiling.set_top_door(tb) && (tb.attrs['b04_door_top_height'] * 25.4 - 460).abs < 0.01
+check 'top door already right: no change', !Ceiling.set_top_door(tb)
+br = FDcInst.new({ 'b02_door_top_height' => '18.11' }, {})
+Ceiling.set_top_door(br)
+check 'text value kept as text', br.attrs['b02_door_top_height'].is_a?(String) && (br.attrs['b02_door_top_height'].to_f * 25.4 - 460).abs < 0.01
+none = FDcInst.new({ 'a01_frame_width' => 10.0 }, {})
+check 'units without a top door untouched', !Ceiling.set_top_door(none) && none.attrs.keys == ['a01_frame_width']
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

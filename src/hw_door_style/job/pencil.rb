@@ -74,7 +74,7 @@ module HarryWardrobes
           'selection' => sel ? true : false,
           'sides' => Runouts::SIDES.map { |s, _, l| [s, l.sub(/\ARunout - /, '').sub(' (mm)', '')] },
           'values' => [0.0] + Runouts.values_list, 'current' => cur, 'job' => job,
-          'ceiling' => sel ? nil : Ceiling.mm(model)
+          'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm
         }
         dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe', width: 380, height: 360,
                                     data: data, resizable: false, scrollable: false)
@@ -87,7 +87,7 @@ module HarryWardrobes
             Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts updated on #{targets.size} unit(s).")
           else
             Runouts.apply(model, Runouts.units(model.entities), v, 'Scribes on',
-                          "Scribes on: #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm. Ceiling #{ceil.round} mm.",
+                          "Scribes on: #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm. Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm.",
                           ceiling: ceil,
                           before: lambda {
                             model.set_attribute(DICT, 'scribe_on', true)

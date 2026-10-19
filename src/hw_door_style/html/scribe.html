@@ -15,7 +15,7 @@
 <body>
 <h1 id="title"></h1>
 <div class="sub" id="sub"></div>
-<div id="ceilRow" class="row" style="display:none"><label>Ceiling height<small id="ceilReq">required</small></label><div><input type="number" id="ceiling" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px">What is the maximum ceiling height of the wardrobes? (mm)</div></div></div>
+<div id="ceilRow" class="row" style="display:none"><label>Ceiling height<small id="ceilReq">required</small></label><div><input type="number" id="ceiling" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px">What is the maximum ceiling height of the wardrobes? (mm)<span id="topDoor"></span></div></div></div>
 <div id="rows"></div>
 <div class="hint">Walls, back and "topped off" switches on each component decide what is used. Floor always applies.</div>
 <div class="bar">
@@ -37,6 +37,7 @@ document.getElementById('rows').innerHTML = h;
 if (D.ceiling !== null && D.ceiling !== undefined) {
   document.getElementById('ceilRow').style.display = '';
   document.getElementById('ceiling').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
+  if (D.top_door > 0) document.getElementById('topDoor').textContent = ' Top doors ' + Math.round(D.top_door) + ' mm (Settings > Components).';
 }
 function apply(){ var o = {};
   if (D.ceiling !== null && D.ceiling !== undefined) {

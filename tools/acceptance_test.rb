@@ -114,8 +114,12 @@ module HWDoorAcceptance
     ensure
       model.abort_operation
     end
-    second = DS::Repair.run(model)
-    rows << { unit: 'model', case: 'Repair 2nd run changes nothing', ok: second[:fixed].empty? && second[:purged].to_i.zero? }
+    # Read-only: Repair would find nothing to fix and nothing to purge. (Calling
+    # Repair.run here would make a real undo step - it opens its own operation.)
+    broken = DS::Repair.candidates(model).reject { |i, k| DS::Repair.problems(i, k).empty? }
+    stale = model.definitions.count { |d| d.name =~ /\ASTYLE_/i && d.instances.empty? }
+    rows << { unit: 'model', case: 'Repair would change nothing', ok: broken.empty? && stale.zero?,
+              fails: broken.map { |i, _| DS::Finder.label(i) } + (stale.zero? ? [] : ["#{stale} unused STYLE_ definitions"]) }
     rows
   end
 
