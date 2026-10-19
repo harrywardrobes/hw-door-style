@@ -83,12 +83,17 @@ module HarryWardrobes
           doc.page.text(M, doc.y, 'Scribes are OFF (every runout 0) - panel sizes may be wrong.', font: 'F2', size: 9)
           doc.instance_variable_set(:@y, doc.y - ROW - 4)
         end
-        doc.heading('Boards', "estimate: part area + #{f(d['waste_pct'])}% waste, per full sheet")
-        doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Parts', 45, :right], ['Area m2', 60, :right], ['Sheet', 110, :right], ['Sheets', 50, :right]],
-                  d['groups'].map { |g| [g['material'], "#{f(g['thickness'])} mm", g['count'], format('%.2f', g['area_m2']), g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : 'no size set', g['sheets'] || '-'] })
+        doc.heading('Boards', "18mm in cut and edged strips (next width up); full sheets for the rest. Other thicknesses: area + #{f(d['waste_pct'])}% waste")
+        doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Parts', 45, :right], ['Strips', 150, :left], ['Full sheets for', 130, :left], ['Sheet', 90, :right], ['Full sheets', 60, :right]],
+                  d['groups'].map do |g|
+                    strips = Array(g['strips']).map { |st| "#{st['count']} x #{st['width']}" }.join(', ')
+                    why = g['strip_group'] ? Array(g['manual']).join(', ') : "#{format('%.2f', g['area_m2'])} m2"
+                    [g['material'], "#{f(g['thickness'])} mm", g['count'], strips.empty? ? '-' : strips, why.empty? ? '-' : why,
+                     g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : '-', g['sheets'].nil? ? 'ENTER' : g['sheets']]
+                  end)
         strips = d['groups'].flat_map { |g| Array(g['strips']).map { |st| [g, st] } }
         unless strips.empty?
-          doc.heading('Cut and edged strips', 'parts exactly that wide, packed end to end (not in the sheet count)')
+          doc.heading('Cut and edged strips', 'each part uses the next width up, packed end to end along the strip')
           doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Strip', 90, :right], ['Parts', 200, :left], ['Pieces', 45, :right], ['Strips', 45, :right]],
                     strips.map { |g, st| [g['material'], "#{f(g['thickness'])} mm", "#{st['width']} x #{f(st['length'])}", st['numbers'].join(', '), st['pieces'], st['count']] })
         end

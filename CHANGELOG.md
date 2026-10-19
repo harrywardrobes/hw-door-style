@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.39.0 — 2026-10-19
+- **18mm boards come from cut and edged strips, not full sheets.** Each part uses the next width up
+  (a 460mm shelf -> 500, a 60mm filler -> 90), packed end to end along the strip (2800). Widths, length and
+  which colours can also be ordered as **1000 x 2800 edged on the long sides** are in Settings > Cut list.
+- Parts wider than the widest strip for their colour (or longer than a strip) are listed on the Sheet goods
+  tab and you **enter the full sheets needed**; Save + send to HubSpot waits until you have. Counts for
+  other thicknesses (22mm panels, 25mm worktops) start from the area estimate and can be changed too.
+  Anything you enter is kept with the file.
+- New HubSpot field **1000mm Cut and Edged** (cut_and_edged_1000mm_quantity).
+- Fixed: the parts list waste % in Settings > Cut list wasn't saved.
+
+## 0.39.0 — 2026-10-19
+- 
+
 ## 0.38.0 — 2026-10-19
 - **Workshop window** replaces the Door summary and Parts list buttons (toolbar: Colours, Door style |
   Scribe / runout, Workshop, Send to HubSpot). Tabs: Door order, Sheet goods, Edging, Hardware, Labels,

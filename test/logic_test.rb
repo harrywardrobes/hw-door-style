@@ -612,11 +612,12 @@ check 'parts: longest first, mirrored after', [pb, pc, pa].sort { |x, y| PLX.par
 puts "\n== Workshop: strips and Room values"
 gx = { 'material' => 'Graphite', 'all_sizes' => [[2800.0, 2070.0], [2800.0, 610.0]] }
 px = [{ 'number' => 'A', 'length' => 2000.0, 'width' => 90.0, 'qty' => 3 }, { 'number' => 'B', 'length' => 700.0, 'width' => 90.0, 'qty' => 2 }, { 'number' => 'C', 'length' => 2400.0, 'width' => 610.0, 'qty' => 1 }, { 'number' => 'D', 'length' => 900.0, 'width' => 450.0, 'qty' => 4 }]
-sx = PLX.strips_for(gx, px)
+sx, mx = PLX.strips_for(gx, px + [{ 'number' => 'E', 'length' => 1200.0, 'width' => 460.0, 'qty' => 2 }, { 'number' => 'F', 'length' => 800.0, 'width' => 60.0, 'qty' => 1 }, { 'number' => 'G', 'length' => 900.0, 'width' => 700.0, 'qty' => 1 }])
 s90 = sx.find { |x| x['width'] == 90 }
-check 'strips: 3x2000 + 2x700 at 90mm pack into 3 strips of 2800', s90 && s90['count'] == 3 && s90['numbers'] == %w[A B] && s90['length'] == 2800.0
-check 'strips: 610 uses the 2800x610 stock, 450 wide parts stay on sheets', sx.find { |x| x['width'] == 610 }['count'] == 1 && sx.none? { |x| x['width'] == 450 }
-rv = PLX.room_values('groups' => [{ 'material' => 'Graphite', 'sheets' => 6, 'strips' => sx }, { 'material' => 'Graphite', 'sheets' => 1, 'strips' => [] }, { 'material' => 'Frost White', 'sheets' => 2, 'strips' => [] }])
+check 'strips: 60mm filler goes in 90, 3x2000 + 2x700 + 800 pack into 3 strips', s90 && s90['count'] == 3 && s90['numbers'] == %w[A B F]
+check 'strips: 460 and 450 wide use 500 (next size up)', sx.find { |x| x['width'] == 500 }['numbers'] == %w[D E]
+check 'strips: wider than 610 asks for sheets', mx.map { |p| p['number'] } == %w[G]
+rv = PLX.room_values('groups' => [{ 'material' => 'Graphite', 'sheets' => 6, 'strips' => sx.reject { |x| x['width'] == 500 } }, { 'material' => 'Graphite', 'sheets' => 1, 'strips' => [] }, { 'material' => 'Frost White', 'sheets' => 2, 'strips' => [] }])
 check 'Room: sheets per colour, total, strips per width', rv['mfc_sheets_graphite'] == 7 && rv['mfc_sheets_frost_white'] == 2 && rv['mfc_quantity'] == 9 && rv['cut_and_edged_90mm_quantity'] == 3 && rv['cut_and_edged_300mm_quantity'] == 0
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"

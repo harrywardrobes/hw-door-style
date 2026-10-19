@@ -289,7 +289,14 @@
     <div class="f t"><span>Stock sizes (mm)</span><textarea id="ocl_sheet_sizes" rows="3"></textarea></div>
     <div class="hint">Length x width, comma separated - full sheets and pre-cut strips, e.g. <code>2800x2070, 2800x610</code>.</div>
     <div class="f" style="grid-template-columns:1fr 70px;margin-top:6px"><span>Parts list: waste allowed when counting sheets (%)</span><input type="number" id="parts_sheet_waste_pct" min="0" max="80" step="1"></div>
-    <div class="hint">Parts list board count = part area + this much, divided by the largest stock size of the colour.</div>
+    <div class="hint">For boards that aren't ordered as strips (22mm panels, 25mm worktops): part area + this much, over the largest stock size.</div>
+  </fieldset>
+  <fieldset><legend>Cut and edged strips (18mm)</legend>
+    <div class="f t"><span>Strip widths (mm)</span><input type="text" id="strip_widths_mm"></div>
+    <div class="f" style="grid-template-columns:1fr 80px"><span>Strip length (mm)</span><input type="number" id="strip_length_mm"></div>
+    <div style="margin-top:6px;font-size:11.5px;font-weight:600">Also available as 1000 x 2800, edged on the long sides</div>
+    <div id="strip1000" style="display:flex;flex-wrap:wrap;gap:3px 14px;margin-top:3px;font-size:11.5px"></div>
+    <div class="hint">Each 18mm part goes into the next strip width up (a 460mm shelf uses 500, a 60mm filler 90), packed end to end along the strip length. Parts wider than the widest strip for their colour are listed in the Workshop window so you enter the full sheets needed.</div>
   </fieldset>
   <fieldset><legend>Doors &amp; drawer fronts</legend>
     <div class="f c"><span>Bought-in (from HPP): tag them so they can be left off the cutting diagrams</span><input type="checkbox" id="ocl_doors_bought_in"></div>
@@ -425,7 +432,7 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
-var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm'];
+var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
 var GROUPS = ['door','exterior','interior','worktop'];
@@ -472,6 +479,10 @@ function load(s){
   $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
+  $('strip_widths_mm').value = (s.strip_widths_mm || []).join(', ');
+  var s1000 = s.strip_1000_colours || [];
+  $('strip1000').innerHTML = (S._colour_library || []).map(function(c){ return '<label style="display:flex;gap:4px;align-items:center"><input type="checkbox" style="width:auto" value="' + esc(c.name) + '"' + (s1000.indexOf(c.name) >= 0 ? ' checked' : '') + '> ' + esc(c.name) + '</label>'; }).join('');
+  Array.prototype.forEach.call($('strip1000').querySelectorAll('input'), function(c){ c.onchange = markDirty; });
   PICS = JSON.parse(JSON.stringify(s.hubspot_pictures || [])); picsDraw();
   DRAW = S._style_drawings || {}; SIZES = S._style_sizes || [];
   PROD = S._products || PROD; prodDraw();
@@ -520,6 +531,8 @@ function collect(){
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
   o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';
+  o.strip_widths_mm = $('strip_widths_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).sort(function(a, b){ return a - b; });
+  o.strip_1000_colours = Array.prototype.filter.call($('strip1000').querySelectorAll('input'), function(c){ return c.checked; }).map(function(c){ return c.value; });
   o.door_styles = STY.map(function(x){ var d = { id: x.id, name: x.name.trim(), handleless: !!x.handleless }; SIZES.forEach(function(k){ if (+x[k[0]] > 0) d[k[0]] = +x[k[0]]; }); return d; });
   o.default_door_styles = { door: $('dds_door').value, ext_drawer: $('dds_ext_drawer').value, int_drawer: $('dds_int_drawer').value };
   o.hubspot_pictures = PICS.map(function(r, i){ return { field: r.field, label: r.label, scenes: $('pic_' + i).value.split(',').map(function(x){ return x.trim(); }).filter(Boolean) }; });

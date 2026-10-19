@@ -364,27 +364,69 @@ module HarryWardrobes
         r.to_i
       end
 
-      # HPP cut and edged strips (Room fields cut_and_edged_<w>mm_quantity).
-      STRIP_WIDTHS = [90, 160, 300, 500, 570, 610].freeze
-      STRIP_LENGTH = 2800.0
+      # Cut and edged strips (Settings > Cut list): HPP's 18mm strips, the next width up for
+      # each part, packed end to end; 1000 x 2800 for the colours that offer it. Parts wider than
+      # the widest strip (or longer than a strip) are "manual": you enter the full sheets.
+      STRIP_THICKNESS = 18.0
 
-      # Parts exactly a strip width wide, packed end to end (longest first, first fit) into
-      # strips of that colour. Strip length = the colour's stock size of that width, else 2800.
+      def self.strip_widths(material)
+        s = Settings.get
+        w = Array(s['strip_widths_mm']).map(&:to_f).select(&:positive?)
+        w = [90, 160, 300, 500, 570, 610].map(&:to_f) if w.empty?
+        w << 1000.0 if Array(s['strip_1000_colours']).any? { |c| c.to_s.casecmp?(material.to_s) }
+        w.uniq.sort
+      end
+
+      def self.strip_length
+        v = Settings.get['strip_length_mm'].to_f
+        v.positive? ? v : 2800.0
+      end
+
+      def self.strip_group?(g)
+        (g['thickness'] - STRIP_THICKNESS).abs < 0.5
+      end
+
+      # [strips, manual parts]: strips [{ width, length, count, numbers, pieces }].
       def self.strips_for(g, parts)
-        sizes = Array(g['all_sizes'])
-        STRIP_WIDTHS.filter_map do |w|
-          ps = parts.select { |p| (p['width'] - w).abs < 0.5 }
-          next if ps.empty?
-          len = sizes.select { |a, b| (b - w).abs < 0.5 || (a - w).abs < 0.5 }.map(&:max).max || STRIP_LENGTH
-          ps = ps.select { |p| p['length'] <= len }
-          next if ps.empty?
+        widths = strip_widths(g['material'])
+        len = strip_length
+        by_w = Hash.new { |h, k| h[k] = [] }
+        manual = []
+        parts.each do |p|
+          w = widths.find { |x| p['width'] <= x + 0.01 }
+          if w.nil? || p['length'] > len + 0.01
+            manual << p
+          else
+            by_w[w] << p
+          end
+        end
+        strips = by_w.keys.sort.map do |w|
+          ps = by_w[w]
           bins = []
           ps.flat_map { |p| [p['length']] * p['qty'] }.sort.reverse.each do |l|
-            b = bins.find { |x| x + l <= len }
-            b ? bins[bins.index(b)] += l : bins << l
+            i = bins.index { |x| x + l <= len + 0.01 }
+            i ? bins[i] += l : bins << l
           end
-          { 'width' => w, 'length' => len, 'count' => bins.size, 'numbers' => ps.map { |p| p['number'] }, 'pieces' => ps.sum { |p| p['qty'] } }
+          { 'width' => w.round, 'length' => len, 'count' => bins.size, 'numbers' => ps.map { |p| p['number'] }, 'pieces' => ps.sum { |p| p['qty'] } }
         end
+        [strips, manual]
+      end
+
+      def self.f1(v) = format('%g', v.to_f.round(1))
+
+      # Full sheets you entered in the Workshop window, kept in the model: { "Graphite|18" => 2 }.
+      def self.entered_sheets
+        @entered || {}
+      end
+
+      def self.load_entered(model)
+        @entered = JSON.parse(model.get_attribute(DICT, 'workshop_sheets', '{}').to_s) rescue {}
+      end
+
+      def self.save_entered(model, map)
+        clean = map.to_h { |k, v| [k.to_s, v] }.reject { |_k, v| v.nil? || v.to_s.strip.empty? }.transform_values { |v| [v.to_i, 0].max }
+        Ops.run(model, 'Workshop: sheets entered', transparent: true) { model.set_attribute(DICT, 'workshop_sheets', JSON.generate(clean)) }
+        @entered = clean
       end
 
       def self.slug(s)
@@ -399,7 +441,8 @@ module HarryWardrobes
         d['groups'].each { |g| per[g['material']] += g['sheets'].to_i }
         per.each { |m, n| out["mfc_sheets_#{slug(m)}"] = n }
         out['mfc_quantity'] = per.values.sum
-        STRIP_WIDTHS.each { |w| out["cut_and_edged_#{w}mm_quantity"] = d['groups'].sum { |g| Array(g['strips']).select { |st| st['width'] == w }.sum { |st| st['count'] } } }
+        widths = (strip_widths('') + [1000.0]).map(&:round).uniq
+        widths.each { |w| out["cut_and_edged_#{w}mm_quantity"] = d['groups'].sum { |g| Array(g['strips']).select { |st| st['width'] == w }.sum { |st| st['count'] } } }
         out
       end
 
@@ -410,6 +453,7 @@ module HarryWardrobes
       # OpenCutList phase 2: groups by material type > name > thickness; parts sorted by the
       # part order strategy and numbered A, B ... (again from A in each group, as set in OpenCutList).
       def self.finish(model, groups, hardware, skipped, opts = CUTLIST_DEFAULTS)
+        load_entered(model)
         number = first_number(opts)
         strategy = opts['part_order_strategy']
         edging = Hash.new { |h, k| h[k] = { 'material' => k[0], 'height' => k[1], 'metres' => 0.0, 'parts' => 0 } }
@@ -429,18 +473,25 @@ module HarryWardrobes
               e['parts'] += p['qty']
             end
           end
-          strips = strips_for(g, parts)
+          strips, manual = strip_group?(g) ? strips_for(g, parts) : [[], parts]
           in_strips = strips.flat_map { |st| st['numbers'] }
-          area = parts.reject { |p| in_strips.include?(p['number']) }.sum { |p| p['area_m2'] }
+          area = manual.sum { |p| p['area_m2'] }
           sheet = g['sheet']
-          sheets = nil
-          if sheet
+          estimate = nil
+          if sheet && area.positive?
             usable = sheet[0] * sheet[1] / 1_000_000.0 * (1 - waste_pct / 100.0)
-            sheets = usable > 0 ? (area / usable).ceil : nil
+            estimate = usable > 0 ? (area / usable).ceil : nil
           end
+          estimate = 0 if manual.empty?
+          gid = "#{g['material']}|#{f1(g['thickness'])}"
+          entered = entered_sheets[gid]
+          # 18mm: strips cover what they can; anything else you enter. Other thicknesses: the estimate, unless you changed it.
+          ask = strip_group?(g) && !manual.empty?
+          sheets = entered.nil? ? (ask ? nil : estimate) : entered.to_i
           too_big = sheet ? parts.select { |p| [p['length'], p['width']].max > sheet.max || [p['length'], p['width']].min > sheet.min }.map { |p| p['number'] } : []
           g.merge('parts' => parts, 'count' => parts.sum { |p| p['qty'] }, 'area_m2' => area.round(2), 'sheets' => sheets, 'too_big' => too_big,
-                  'strips' => strips, 'in_strips' => in_strips)
+                  'strips' => strips, 'in_strips' => in_strips, 'manual' => manual.map { |p| p['number'] }, 'ask' => ask,
+                  'estimate' => estimate, 'entered' => !entered.nil?, 'gid' => gid, 'strip_group' => strip_group?(g))
         end
         edge_list = edging.values.map { |e| e.merge('metres' => e['metres'].round(1)) }.sort_by { |e| [e['material'], e['height']] }
         hw = hardware.keys.sort_by(&:downcase).flat_map do |mname|
@@ -565,6 +616,16 @@ module HarryWardrobes
             dlg.execute_script("labelEntries(#{JSON.generate('entries' => entries, 'errors' => errors)})")
           rescue StandardError => e
             Log.error('labels', e)
+            fail_js.call(e)
+          end
+        end
+        dlg.add_action_callback('setSheets') do |_c, json|
+          begin
+            load_entered(model)
+            m = entered_sheets.merge(JSON.parse(json))
+            save_entered(model, m)
+            reload.call
+          rescue StandardError => e
             fail_js.call(e)
           end
         end
