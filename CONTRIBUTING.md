@@ -61,8 +61,10 @@ dlg.show
 **Add a toolbar button.** Add `icons/<name>.svg`, a command in `Menus.build`
 (`Menus.command(text, tip, 'name') { ... }`) and its key in `Menus::TOOLBAR`.
 
-**Add a door style.** Write a builder lambda in `doors/styles.rb` and register it in
-`STYLES`; menus pick it up.
+**Add a door style drawing.** The style list (names, sizes, handleless) is in Settings > Doors
+(`door_styles`). To make a listed style choosable, write a builder lambda in `doors/styles.rb`
+(`(ents, w, t, h, kind, profile) -> { midrail:, note: }`) and add it to `DRAWINGS` under the style's id
+with the sizes it needs; once those sizes are filled in, the Door style window offers it.
 
 ## Settings keys
 
@@ -70,10 +72,9 @@ dlg.show
 |---|---|
 | `door_names`, `ext_drawer_names`, `int_drawer_names` | Component names treated as doors / drawer fronts |
 | `top_door_height_mm` | TOPBOX top doors and the bridge (Components section) |
-| `door_frame_mm`, `drawer_stile_mm`, `drawer_frame_mm`, `recess_mm`, `min_panel_mm` | Shaker frame sizes |
-| `midrail_min_door_height_mm`, `midrail_centre_mm`, `midrail_width_mm` | Shaker mid-rail |
+| `door_styles`, `default_door_styles` | Style list with each style's sizes / handleless; styles for new jobs |
 | `default_hinge_type`, `hinge_rules`, `hinge_end_inset_mm` | Hinges (job type stored on the model) |
-| `handle_double_min_width_mm`, `handles_on_internal_drawers`, `handles_on_pto_doors` | Handle counts in the summary |
+| `handle_double_min_width_mm`, `handles_on_internal_drawers`, `handles_on_pto_doors` | Handle rules for new jobs (each job: Door style window) |
 | `door_tag`, `drawer_tag`, `hinge_tag`, `hardware_material`, `hardware_tags` | Tags |
 | `colour_groups`, `default_colours`, `colour_library`, `panel_22_mm`, `panels_22_default` | Colours |
 | `drawer_box_parts`, `box_thickness_follows_finish` | Drawer boxes |
@@ -88,7 +89,7 @@ Window-only data the Settings window receives starts with `_` (`_job`, `_version
 and is never saved; `_debug` is stored as a SketchUp preference (`Log.debug?`).
 
 Job values stored **on the model** (attribute dictionary `hw_door_style`): `hinge_type`,
-`scribe_on`, `scribe_values`, `ceiling_mm`, `facing_btm_mm`, colour choices, export versions,
+`scribe_on`, `scribe_values`, `ceiling_mm`, `facing_btm_mm`, `job_styles`, `job_handles`, `job_handle_names`, colour choices, export versions,
 the HubSpot link (`hs_room_id`, `hs_project_id`, `hs_contact_id`, `hs_room_name`, `hs_customer`, `hs_address`, `hs_info`, `hs_sent_at`).
 
 **HubSpot field mapping** lives in `export/hubspot_room.rb` (`fields`). Never add a HubSpot field without

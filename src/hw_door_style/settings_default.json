@@ -13,14 +13,6 @@
   "int_drawer_names": [
     "INT_DRW_FRONT"
   ],
-  "door_frame_mm": 100,
-  "drawer_stile_mm": 100,
-  "drawer_frame_mm": 50,
-  "recess_mm": 6,
-  "min_panel_mm": 40,
-  "midrail_min_door_height_mm": 1500,
-  "midrail_centre_mm": 815,
-  "midrail_width_mm": 100,
   "top_door_height_mm": 460,
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [
@@ -45,6 +37,78 @@
       6
     ]
   ],
+  "door_styles": [
+    {
+      "id": "flat",
+      "name": "Flat",
+      "handleless": false
+    },
+    {
+      "id": "shaker",
+      "name": "Shaker",
+      "handleless": false,
+      "door_frame_mm": 100,
+      "drawer_stile_mm": 100,
+      "drawer_frame_mm": 50,
+      "recess_mm": 6,
+      "min_panel_mm": 40,
+      "midrail_min_door_height_mm": 1500,
+      "midrail_centre_mm": 815,
+      "midrail_width_mm": 100
+    },
+    {
+      "id": "ascot",
+      "name": "Ascot",
+      "handleless": false,
+      "midrail_centre_mm": 820
+    },
+    {
+      "id": "esquire",
+      "name": "Esquire",
+      "handleless": false
+    },
+    {
+      "id": "halstead",
+      "name": "Halstead",
+      "handleless": false
+    },
+    {
+      "id": "juliette",
+      "name": "Juliette",
+      "handleless": false
+    },
+    {
+      "id": "keswick",
+      "name": "Keswick",
+      "handleless": false
+    },
+    {
+      "id": "sutton",
+      "name": "Sutton",
+      "handleless": false
+    },
+    {
+      "id": "vienna",
+      "name": "Vienna",
+      "handleless": false
+    },
+    {
+      "id": "cairo_traditional",
+      "name": "Cairo Traditional",
+      "handleless": false
+    },
+    {
+      "id": "caraway",
+      "name": "Caraway",
+      "handleless": false
+    },
+    {
+      "id": "avienda",
+      "name": "Avienda",
+      "handleless": true
+    }
+  ],
+  "default_door_styles": { "door": "shaker", "ext_drawer": "shaker", "int_drawer": "flat" },
   "hinge_end_inset_mm": 100,
   "handle_double_min_width_mm": 500,
   "handles_on_internal_drawers": true,
@@ -182,5 +246,5 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 3
+  "settings_version": 4
 }

@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Door style</title>
+<!--HW-->
+<style>
+  body { padding-bottom:70px; }
+  .row { display:grid; grid-template-columns:190px 1fr; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eceef0; }
+  .row label { font-weight:600; }
+  .row small { display:block; font-weight:400; color:#6a737d; font-size:10.5px; }
+  .pick { display:flex; align-items:center; gap:8px; }
+  .pick .count { font-size:10.5px; color:var(--muted); white-space:nowrap; }
+  .chip { width:22px; height:30px; flex:none; }
+  select, input[type=text], input[type=number] { font:inherit; padding:3px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; background:#fff; }
+  h2 { font-size:12.5px; margin:14px 0 2px; }
+  .chk { display:flex; gap:6px; align-items:center; padding:3px 0; font-size:12px; }
+  .chk input { width:auto; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; margin-top:4px; }
+  .grid2 span { font-size:11px; color:var(--muted); display:block; }
+  .ovr { margin-top:8px; font-size:11.5px; border:1px solid #f0d79a; background:#fff8e6; padding:6px 8px; border-radius:3px; display:none; }
+  .note { font-size:10.5px; color:var(--muted); margin-top:2px; }
+  #status { font-size:11px; color:var(--muted); align-self:center; flex:1; }
+  .bar { position:fixed; left:14px; right:14px; bottom:10px; background:#fff; }
+  .err { color:var(--warn); }
+</style>
+</head>
+<body>
+<h1>Door style for this job</h1>
+<div class="sub" id="job"></div>
+<div id="rows"></div>
+<div class="ovr" id="ovr"></div>
+
+<h2>Hinges</h2>
+<div class="row" style="border:0"><label>Hinge type<small>All doors in this job</small></label><select id="hinge"></select></div>
+
+<h2>Handles</h2>
+<div class="chk"><input type="checkbox" id="h_pto"><label for="h_pto">Handles on push-to-open doors</label></div>
+<div class="chk"><input type="checkbox" id="h_int"><label for="h_int">Handles on internal drawers</label></div>
+<div class="chk">Two handles on drawer fronts wider than <input type="number" id="h_width" style="width:80px"> mm</div>
+<div class="note" id="hdef"></div>
+<div class="grid2" id="names"></div>
+<div class="note">Handle names and SKUs go to the HubSpot Room with Send to HubSpot. Styles marked handleless count no handles.</div>
+
+<div class="bar">
+  <span id="status"></span>
+  <button onclick="sketchup.cancel()">Close</button>
+  <button class="primary" onclick="apply()">Apply to model</button>
+</div>
+<script>
+var D = /*DATA*/null;
+// Small picture of a style: flat slab, or a framed panel (with a mid-rail line for doors).
+function chip(id, kind){
+  var st = byId(id), shaker = st && st.drawing === 'shaker';
+  var r = '<svg class="chip" viewBox="0 0 22 30"><rect x="1" y="1" width="20" height="28" rx="1" fill="#f4f5f6" stroke="#8a929a"/>';
+  if (shaker) {
+    if (kind === 'door') r += '<rect x="4.5" y="4.5" width="13" height="10" fill="none" stroke="#8a929a"/><rect x="4.5" y="16.5" width="13" height="9" fill="none" stroke="#8a929a"/>';
+    else r += '<rect x="4.5" y="5" width="13" height="20" fill="none" stroke="#8a929a"/>';
+  }
+  return r + '</svg>';
+}
+function byId(id){ for (var i = 0; i < D.styles.length; i++) if (D.styles[i].id === id) return D.styles[i]; return null; }
+function render(){
+  $('job').textContent = (D.job ? 'Job: ' + D.job + '. ' : '') + 'Styles that can\'t be chosen yet are listed greyed out - Settings > Doors.';
+  $('rows').innerHTML = D.rows.map(function(r){
+    var k = r[0], c = D.counts[k] || {}, cur = D.current[k];
+    var opts = D.styles.map(function(s){
+      var why = s.ready ? (s.handleless ? ' (handleless)' : '') : ' - ' + (s.missing[0] === 'no drawing yet' ? 'not available yet' : 'sizes missing');
+      return '<option value="' + esc(s.id) + '"' + (s.id === cur ? ' selected' : '') + (s.ready ? '' : ' disabled') + '>' + esc(s.name + why) + '</option>';
+    }).join('');
+    var cnt = (c.total || 0) + ' in model' + (c.override ? ', ' + c.override + ' set by right-click' : '');
+    return '<div class="row"><label>' + esc(r[1]) + '<small>' + esc(r[2]) + '</small></label><div class="pick"><span id="chip_' + k + '">' + chip(cur, k) + '</span>' +
+      '<select id="sty_' + k + '" onchange="$(\'chip_' + k + '\').innerHTML = chip(this.value, \'' + k + '\')">' + opts + '</select><span class="count">' + esc(cnt) + '</span></div></div>';
+  }).join('');
+  var ov = 0; Object.keys(D.counts).forEach(function(k){ ov += D.counts[k].override || 0; });
+  $('ovr').style.display = ov ? 'block' : 'none';
+  $('ovr').innerHTML = ov ? '<label class="chk" style="padding:0"><input type="checkbox" id="reset"> ' + ov + ' item(s) were styled by right-click and keep their style when you Apply. Tick to put them back to the styles above.</label>' : '';
+  $('hinge').innerHTML = Object.keys(D.hinge_types).map(function(k){ return '<option value="' + k + '"' + (k === D.hinge ? ' selected' : '') + '>' + esc(D.hinge_types[k]) + '</option>'; }).join('');
+  $('h_pto').checked = !!D.handles.handles_on_pto_doors;
+  $('h_int').checked = !!D.handles.handles_on_internal_drawers;
+  $('h_width').value = D.handles.handle_double_min_width_mm;
+  var hd = D.handle_defaults;
+  $('hdef').textContent = 'Settings defaults: PTO doors ' + (hd.handles_on_pto_doors ? 'yes' : 'no') + ', internal drawers ' + (hd.handles_on_internal_drawers ? 'yes' : 'no') + ', two handles over ' + hd.handle_double_min_width_mm + ' mm.';
+  $('names').innerHTML = D.name_labels.map(function(n){ return '<div><span>' + esc(n[1]) + '</span><input type="text" id="n_' + n[0] + '" value="' + esc(D.names[n[0]] || '') + '"></div>'; }).join('');
+}
+function apply(){
+  var w = parseFloat($('h_width').value);
+  if (!(w > 0)) { $('status').innerHTML = '<span class="err">Enter the width for two handles.</span>'; return; }
+  var o = { styles: {}, hinge: $('hinge').value, reset: !!($('reset') && $('reset').checked),
+            handles: { handles_on_pto_doors: $('h_pto').checked, handles_on_internal_drawers: $('h_int').checked, handle_double_min_width_mm: w }, names: {} };
+  D.rows.forEach(function(r){ o.styles[r[0]] = $('sty_' + r[0]).value; });
+  D.name_labels.forEach(function(n){ o.names[n[0]] = $('n_' + n[0]).value; });
+  $('status').textContent = '';
+  sketchup.apply(JSON.stringify(o));
+}
+function applied(r){
+  D = r.data; render();
+  if (r.error) { $('status').innerHTML = '<span class="err">Stopped: ' + esc(r.error) + '</span>'; return; }
+  $('status').textContent = (r.items ? r.items + ' item(s) redrawn. ' : 'Saved - nothing needed redrawing. ') + (r.notes && r.notes.length ? r.notes.length + ' note(s): ' + r.notes.slice(0, 3).join('; ') : '');
+}
+render();
+</script>
+</body>
+</html>

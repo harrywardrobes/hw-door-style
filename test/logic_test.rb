@@ -77,7 +77,7 @@ Dir.mktmpdir do |plug|
   File.write(legacy, '{"door_frame_mm": 80}')
   Settings.migrate_location
   check 'AppData copy never overwritten', File.read(Settings::USER_FILE).include?('90')
-  check 'loaded from AppData', Settings.load['door_frame_mm'] == 90
+  check 'loaded from AppData, old frame size moved onto Shaker', Settings.load['door_styles'].find { |x| x['id'] == 'shaker' }['door_frame_mm'] == 90 && !Settings.load.key?('door_frame_mm')
   File.delete(Settings::USER_FILE)
 end
 check 'no team file yet', Settings.team_file.nil?
@@ -87,12 +87,12 @@ Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')
   File.write(f, '{"hw_door_style_settings":"0.12","door_frame_mm":95,"junk":1}')
   t = Settings.read_backup(f)
-  check 'team file read (known keys only)', t['door_frame_mm'] == 95 && !t.key?('junk')
+  check 'team file read (known keys only), old sizes onto Shaker', t['door_styles'].find { |x| x['id'] == 'shaker' }['door_frame_mm'] == 95 && !t.key?('junk') && !t.key?('door_frame_mm')
 end
 
 # --- settings
-check 'door frame 100mm', (mm(Settings.mm('door_frame_mm')) == 100.0)
-check 'drawer frame 50mm', (mm(Settings.mm('drawer_frame_mm')) == 50.0)
+check 'Shaker door frame 100mm', (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['door_frame_mm'] == 100
+check 'Shaker drawer rails 50mm, mid-rail 815', (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['drawer_frame_mm'] == 50 && (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['midrail_centre_mm'] == 815
 check 'INT_DRW_FRONT is internal', Settings.names('int_drawer_names') == ['INT_DRW_FRONT']
 check 'DRW_FRONT is external', Settings.names('ext_drawer_names') == ['DRW_FRONT']
 old = { 'ext_drawer_names' => ['XDRW_FRONT'], 'hinge_tag' => 'DOOR', 'colour_groups' => { 'exterior' => ['FACING', 'MY_TAG'] } }
@@ -133,12 +133,28 @@ check '2024 door has mid-rail', info[:midrail] && r.size == 2
 check 'lower panel 100..765', r[0] == [100.0, 100.0, 300.0, 765.0, 6.0]
 check 'upper panel 865..1924', r[1] == [100.0, 865.0, 300.0, 1924.0, 6.0]
 
+check 'choosable styles: Flat and Shaker only (no drawings for the rest yet)', Styles.ids == %w[flat shaker]
+check 'Ascot listed, waiting for its drawing', Styles.profile('ascot')['midrail_centre_mm'] == 820 && Styles.missing(Styles.profile('ascot')) == ['no drawing yet'] && !Styles.ready?('ascot')
+check 'Avienda handleless', Styles.handleless?('avienda') && !Styles.handleless?('shaker')
+check 'not-ready style drawn flat', Styles.build('vienna', nil, 400.mm, 18.mm, 2024.mm, :door)[:style] == 'flat'
+sh = Settings.get['door_styles'].find { |x| x['id'] == 'shaker' }
+saved = sh.dup
+sh['midrail_centre_mm'] = 820
+info2, r2 = layout(400, 2024, :door)
+check 'mid-rail comes from the style (820 -> lower panel to 770)', r2[0] == [100.0, 100.0, 300.0, 770.0, 6.0]
+sh.delete('recess_mm')
+check 'style with a size missing cannot be chosen', !Styles.ready?('shaker') && Styles.missing(sh) == ['Recess depth']
+sh.replace(saved)
+check 'handleless style: no handles', Settings.handle_count(:door, 400.mm, false, handleless: true) == 0
+jr = { 'handles_on_pto_doors' => true, 'handles_on_internal_drawers' => false, 'handle_double_min_width_mm' => 900 }
+check 'job handle rules', Settings.handle_count(:door, 400.mm, true, rules: jr) == 1 && Settings.handle_count(:int_drawer, 696.mm, false, rules: jr) == 0 && Settings.handle_count(:ext_drawer, 802.mm, false, rules: jr) == 1
+
 info, r = layout(400, 1327, :door)
 check '1327 door no mid-rail', !info[:midrail] && r == [[100.0, 100.0, 300.0, 1227.0, 6.0]]
 
 info, r = layout(396, 228, :ext_drawer)
 check 'drawer: 100mm stiles (line up with doors), 50mm rails', r == [[100.0, 50.0, 296.0, 178.0, 6.0]]
-check 'drawer stile setting 100mm', mm(Settings.mm('drawer_stile_mm')) == 100.0
+check 'drawer stile setting 100mm', (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['drawer_stile_mm'] == 100
 
 info, r = layout(400, 210, :door)
 check 'tiny door falls back to flat', info[:style] == 'flat' && r.empty? && !info[:note].empty?
@@ -386,9 +402,9 @@ check 'units without a top door untouched', !Ceiling.set_top_door(none) && none.
 
 # --- Settings window (0.15) ---
 require 'hw_door_style/ui/settings_window'
-Settings.save(Settings.get.merge('door_frame_mm' => 90, 'colour_library' => [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]))
+Settings.save(Settings.get.merge('top_door_height_mm' => 500, 'colour_library' => [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]))
 Settings.reset(keep: ['colour_library'])
-check 'reset keeps colour library when asked', Settings.get['door_frame_mm'] == 100 && Settings.get['colour_library'] == [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]
+check 'reset keeps colour library when asked', Settings.get['top_door_height_mm'] == 460 && Settings.get['colour_library'] == [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]
 Settings.reset
 check 'reset all: library back to built-in', Settings.get['colour_library'] == [] && !File.exist?(Settings::USER_FILE)
 check 'display keys never saved', SettingsWindow.saveable({ 'a' => 1, '_debug' => true, '_job' => {} }) == { 'a' => 1 }

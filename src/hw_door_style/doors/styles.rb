@@ -34,24 +34,32 @@ module HarryWardrobes
         true
       end
 
-      FLAT = lambda do |ents, w, t, h, _kind|
+      # Drawings. Each is (entities, w, t, h, kind, profile) -> { midrail:, note:, flat: }
+      # and lists the profile sizes it needs (SIZES). A style can be chosen once there is
+      # a drawing with its id here AND every size it needs is filled in (Settings > Door
+      # styles). New drawings: add a lambda and an entry in DRAWINGS.
+      FLAT = lambda do |ents, w, t, h, _kind, _p|
         box(ents, w, t, h)
-        { style: 'flat', midrail: false, note: '' }
+        { midrail: false, note: '' }
       end
 
-      SHAKER = lambda do |ents, w, t, h, kind|
+      SHAKER_SIZES = %w[door_frame_mm drawer_stile_mm drawer_frame_mm recess_mm min_panel_mm
+                        midrail_min_door_height_mm midrail_centre_mm midrail_width_mm].freeze
+
+      SHAKER = lambda do |ents, w, t, h, kind, pr|
+        mm = ->(k) { pr[k].to_f / 25.4 }
         # Doors: same frame all round. Drawer fronts: stiles (vertical sides) match the
         # doors so panels line up vertically; rails (top / bottom) are slimmer.
-        stile  = kind == :door ? Settings.mm('door_frame_mm') : Settings.mm('drawer_stile_mm')
-        rail   = kind == :door ? Settings.mm('door_frame_mm') : Settings.mm('drawer_frame_mm')
-        depth  = Settings.mm('recess_mm')
-        min_p  = Settings.mm('min_panel_mm')
+        stile  = kind == :door ? mm.call('door_frame_mm') : mm.call('drawer_stile_mm')
+        rail   = kind == :door ? mm.call('door_frame_mm') : mm.call('drawer_frame_mm')
+        depth  = mm.call('recess_mm')
+        min_p  = mm.call('min_panel_mm')
 
         panels = []
-        midrail = kind == :door && h > Settings.mm('midrail_min_door_height_mm')
+        midrail = kind == :door && h > mm.call('midrail_min_door_height_mm')
         if midrail
-          c  = Settings.mm('midrail_centre_mm')
-          mw = Settings.mm('midrail_width_mm')
+          c  = mm.call('midrail_centre_mm')
+          mw = mm.call('midrail_width_mm')
           panels << [stile, rail, w - stile, c - mw / 2.0]
           panels << [stile, c + mw / 2.0, w - stile, h - rail]
         else
@@ -61,30 +69,79 @@ module HarryWardrobes
         too_small = panels.any? { |x0, z0, x1, z1| (x1 - x0) < min_p || (z1 - z0) < min_p }
         if too_small || depth >= t
           box(ents, w, t, h)
-          next { style: 'flat', midrail: false, note: 'Too small for shaker - left flat' }
+          next { midrail: false, flat: true, note: "Too small for #{pr['name'] || 'shaker'} - left flat" }
         end
 
         box(ents, w, t, h)
         panels.each { |x0, z0, x1, z1| recess(ents, x0, z0, x1, z1, depth) }
-        { style: 'shaker', midrail: midrail, note: '' }
+        { midrail: midrail, note: '' }
       end
 
-      STYLES = {
-        'flat'   => { label: 'Flat',   builder: FLAT },
-        'shaker' => { label: 'Shaker', builder: SHAKER }
+      DRAWINGS = {
+        'flat'   => { builder: FLAT,   sizes: [] },
+        'shaker' => { builder: SHAKER, sizes: SHAKER_SIZES }
       }.freeze
 
+      # Every size a style can have (shown for every style in Settings, so they can be
+      # filled in before its drawing exists).
+      ALL_SIZES = SHAKER_SIZES
+
+      SIZE_LABELS = {
+        'door_frame_mm' => 'Door frame width', 'drawer_stile_mm' => 'Drawer front stiles (vertical)',
+        'drawer_frame_mm' => 'Drawer front rails (top / bottom)', 'recess_mm' => 'Recess depth',
+        'min_panel_mm' => 'Smallest panel', 'midrail_min_door_height_mm' => 'Mid-rail when door taller than',
+        'midrail_centre_mm' => 'Mid-rail centre above door bottom', 'midrail_width_mm' => 'Mid-rail width'
+      }.freeze
+
+      # --- the style list (Settings > Door styles) ---------------------------------------
+
+      def self.profiles
+        list = Array(Settings.get['door_styles']).select { |p| p.is_a?(Hash) && !p['id'].to_s.empty? }
+        list = [{ 'id' => 'flat', 'name' => 'Flat' }] + list unless list.any? { |p| p['id'] == 'flat' }
+        list
+      end
+
+      def self.profile(id)
+        profiles.find { |p| p['id'] == id.to_s } || (id.to_s == 'flat' ? { 'id' => 'flat', 'name' => 'Flat' } : nil)
+      end
+
+      # Why a style can't be chosen yet ([] = it can).
+      def self.missing(p)
+        return ['not in the style list'] unless p
+        d = DRAWINGS[p['id']]
+        return ['no drawing yet'] unless d
+        d[:sizes].reject { |k| p[k].to_f > 0 }.map { |k| SIZE_LABELS[k] || k }
+      end
+
+      def self.ready?(id)
+        missing(profile(id)).empty?
+      end
+
+      # Styles that can be chosen, in list order.
       def self.ids
-        STYLES.keys
+        profiles.map { |p| p['id'] }.select { |i| ready?(i) }
       end
 
       def self.label(id)
-        STYLES.dig(id, :label) || id.to_s.capitalize
+        (profile(id) || {})['name'] || id.to_s.capitalize
       end
 
+      def self.handleless?(id)
+        (profile(id) || {})['handleless'] ? true : false
+      end
+
+      # Changes whenever a style's sizes change (so slabs are redrawn).
+      def self.signature(id)
+        p = profile(id) || {}
+        ALL_SIZES.map { |k| p[k].to_f }.join(',')
+      end
+
+      # Builds the style's drawing. A style that can't be drawn (or is too small) is drawn
+      # flat; info[:style] says what was drawn.
       def self.build(id, ents, w, t, h, kind)
-        style = STYLES[id] || STYLES['flat']
-        style[:builder].call(ents, w, t, h, kind)
+        id = 'flat' unless ready?(id)
+        info = DRAWINGS[id][:builder].call(ents, w, t, h, kind, profile(id))
+        info.merge(style: info.delete(:flat) ? 'flat' : id)
       end
     end
   end

@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 3
+      SETTINGS_VERSION = 4
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -46,9 +46,22 @@ module HarryWardrobes
         if v < 3 && user['update_folder'].to_s =~ /_plugin_updates\z/i
           user['update_folder'] = d['update_folder']
         end
+        # 0.26: frame / recess / mid-rail sizes belong to each door style (Shaker had them).
+        if v < 4
+          old = OLD_SIZE_KEYS.to_h { |k| [k, user.delete(k)] }.compact
+          unless old.empty?
+            list = (user['door_styles'].is_a?(Array) ? user['door_styles'] : JSON.parse(JSON.generate(d['door_styles'])))
+            sh = list.find { |st| st['id'] == 'shaker' }
+            sh&.merge!(old)
+            user['door_styles'] = list
+          end
+        end
         user['settings_version'] = SETTINGS_VERSION
         user
       end
+
+      OLD_SIZE_KEYS = %w[door_frame_mm drawer_stile_mm drawer_frame_mm recess_mm min_panel_mm
+                         midrail_min_door_height_mm midrail_centre_mm midrail_width_mm].freeze
 
       # One-time copy of a pre-0.12 settings.json from the plugin folder.
       def self.migrate_location
@@ -131,7 +144,7 @@ module HarryWardrobes
         raw = JSON.parse(File.read(file))
         raise 'not an HW Door Style settings backup' unless raw.is_a?(Hash) && raw.key?(BACKUP_MARK)
         known = defaults.keys
-        data = migrate(raw.select { |k, _| known.include?(k) }, defaults)
+        data = migrate(raw.select { |k, _| known.include?(k) || OLD_SIZE_KEYS.include?(k) }, defaults)
         raise 'no settings found in the file' if data.empty?
         data
       end
@@ -202,21 +215,26 @@ module HarryWardrobes
 
       # Changes whenever a setting that affects style geometry changes, so
       # shared style components are never reused with out-of-date sizes.
-      def self.geometry_signature
-        %w[door_frame_mm drawer_stile_mm drawer_frame_mm recess_mm min_panel_mm
-           midrail_min_door_height_mm midrail_centre_mm midrail_width_mm]
-          .map { |k| get[k].to_f }.join(',')
+      # --- handles ----------------------------------------------------------------
+      HANDLE_KEYS = %w[handles_on_pto_doors handles_on_internal_drawers handle_double_min_width_mm].freeze
+
+      # The job's handle rules (Door style window), starting from the Settings defaults.
+      def self.job_handles(model = nil)
+        saved = model ? (JSON.parse(model.get_attribute(DICT, 'job_handles', '{}')) rescue {}) : {}
+        HANDLE_KEYS.to_h { |k| [k, saved.key?(k) ? saved[k] : get[k]] }
       end
 
-      # Handles / knobs: 1 per door and drawer front, 2 on drawer fronts wider
-      # than handle_double_min_width_mm. Push-to-open doors get none unless
-      # handles_on_pto_doors is set.
-      def self.handle_count(kind, width, pto)
-        two = width.to_f * 25.4 > get['handle_double_min_width_mm'].to_f ? 2 : 1
+      # Handles on one door / drawer front: drawer fronts get two when wider than
+      # handle_double_min_width_mm. Push-to-open doors get none unless handles_on_pto_doors;
+      # handleless styles get none.
+      def self.handle_count(kind, width, pto, rules: nil, handleless: false)
+        return 0 if handleless
+        r = rules || job_handles
+        two = width.to_f * 25.4 > r['handle_double_min_width_mm'].to_f ? 2 : 1
         case kind
-        when :door       then pto && !get['handles_on_pto_doors'] ? 0 : 1
+        when :door       then pto && !r['handles_on_pto_doors'] ? 0 : 1
         when :ext_drawer then two
-        when :int_drawer then get['handles_on_internal_drawers'] ? two : 0
+        when :int_drawer then r['handles_on_internal_drawers'] ? two : 0
         else 0
         end
       end

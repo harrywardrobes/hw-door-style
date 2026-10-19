@@ -251,6 +251,8 @@ module HarryWardrobes
         put.call('drawer_total_quantity', c['ext_drawers'] + c['int_drawers'])
         dt = drawer_type(c['ext_drawers'], c['int_drawers'])
         put.call('drawer_type', match_option(dt, m.dig('drawer_type', 'options') || []), shown: dt)
+        names = DoorStyleWindow.handle_names(model)
+        DoorStyleWindow::HANDLE_NAMES.each { |prop, _l| put.call(prop, names[prop].to_s.empty? ? nil : names[prop], take: true) }
         put.call('main_robe_handle_quantity', c['h_door'])
         put.call('drawer_handle_quantity', c['h_ext'])
         put.call('interior_handle_quantity', c['h_int'])
@@ -338,6 +340,12 @@ module HarryWardrobes
             end
           end
           model.set_attribute(DICT, 'scribe_values', JSON.generate(runouts)) if took.include?('runouts')
+          hn = DoorStyleWindow::HANDLE_NAMES.map(&:first) & take.keys
+          unless hn.empty?
+            names = DoorStyleWindow.handle_names(model).merge(take.slice(*hn).transform_values(&:to_s))
+            model.set_attribute(DICT, 'job_handle_names', JSON.generate(names))
+            took << 'handle names'
+          end
         end
         colours = COLOUR_FIELDS.select { |_gid, prop| take.key?(prop) }
         unless colours.empty?

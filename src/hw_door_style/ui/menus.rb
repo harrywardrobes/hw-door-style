@@ -29,24 +29,12 @@ module HarryWardrobes
         c = {}
 
         # Doors and drawer fronts
-        c[:shaker] = command('Shaker - all doors & drawer fronts',
-                             'Make every door and external drawer front Shaker. Press again after resizing to redraw them.',
-                             'doors') { Doors.convert_all('shaker') }
-        menu.add_item(c[:shaker])
-        style_menu = menu.add_submenu('All doors & drawer fronts')
-        Styles.ids.each { |s| style_menu.add_item(Styles.label(s)) { Doors.convert_all(s) } }
-        c[:reset] = command('Reset all to Flat', 'Set every door and external drawer front back to Flat (hinges kept).',
-                            'reset') { Doors.reset_all_flat }
-        menu.add_item(c[:reset])
+        c[:doors] = command('Door style', 'Styles for doors, drawer fronts and internal drawers, hinge type and handles for this job.',
+                            'doors') { DoorStyleWindow.show }
+        menu.add_item(c[:doors])
         menu.add_item('Rebuild styles (keep each item\'s style)') { Doors.rebuild_all }
         menu.add_item('Apply tags (doors, drawer fronts, hardware)') { Doors.apply_tags }
         menu.add_item('Repair doors in model') { Doors.repair }
-        hinge_menu = menu.add_submenu('Hinge type (this job)')
-        Settings::HINGE_TYPES.each do |id, label|
-          h = UI::Command.new(label) { Doors.set_hinge_type(id) }
-          h.set_validation_proc { Settings.job_hinge_type == id ? MF_CHECKED : MF_UNCHECKED }
-          hinge_menu.add_item(h)
-        end
 
         # Colours
         menu.add_separator
@@ -98,12 +86,18 @@ module HarryWardrobes
         context_menu
       end
 
-      TOOLBAR = [:colours, :shaker, :reset, nil, :summary, :settings, :hubspot, nil, :export, :pencil, :ceiling].freeze # nil = separator
+      # Two toolbars (nil = separator). Everyday survey work, then the admin / library tools.
+      TOOLBARS = {
+        'HW measure once' => [:colours, :doors, :pencil, :ceiling, nil, :summary, :hubspot],
+        'HW dev' => [:settings, :export]
+      }.freeze
 
       def self.toolbar(cmds)
-        tb = UI::Toolbar.new('HW Door Style')
-        TOOLBAR.each { |k| k ? tb.add_item(cmds[k]) : tb.add_separator }
-        tb.restore
+        TOOLBARS.each do |name, keys|
+          tb = UI::Toolbar.new(name)
+          keys.each { |k| k ? tb.add_item(cmds[k]) : tb.add_separator }
+          tb.get_last_state == TB_HIDDEN ? tb.hide : tb.show
+        end
       end
 
       def self.context_menu
@@ -119,14 +113,10 @@ module HarryWardrobes
             next if targets.empty?
             sub.add_separator
           end
-          if targets.all? { |_i, k| k == :int_drawer }
-            id = sub.add_item('Internal drawer fronts stay flat') {}
-            sub.set_validation_proc(id) { MF_GRAYED }
-          else
-            Styles.ids.each { |s| sub.add_item("Style: #{Styles.label(s)}") { Doors.convert_selection(s) } }
-            sub.add_separator
-            sub.add_item('Rebuild selected') { Doors.rebuild_selection }
-          end
+          Styles.ids.each { |s| sub.add_item("Style: #{Styles.label(s)}") { Doors.convert_selection(s) } }
+          sub.add_separator
+          sub.add_item('Follow the Door style window') { Doors.follow_job }
+          sub.add_item('Rebuild selected') { Doors.rebuild_selection }
         end
       end
     end

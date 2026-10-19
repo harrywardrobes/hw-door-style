@@ -23,7 +23,9 @@ module HarryWardrobes
           '_debug' => Log.debug?,
           '_job' => job_info(model),
           '_update' => update_info,
-          '_hubspot' => { 'hint' => HubSpot.key_hint }
+          '_hubspot' => { 'hint' => HubSpot.key_hint },
+          '_style_drawings' => Styles::DRAWINGS.transform_values { |d| d[:sizes] },
+          '_style_sizes' => Styles::ALL_SIZES.map { |k| [k, Styles::SIZE_LABELS[k]] }
         )
       end
 

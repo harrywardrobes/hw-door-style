@@ -23,7 +23,7 @@ module HarryWardrobes
       colours/colours
       job/runouts job/ceiling job/facing job/standardise job/pencil job/pdf job/report
       export/library_export export/opencutlist export/hubspot
-      ui/dialog core/batch core/steps core/updater ui/colours_window ui/settings_window
+      ui/dialog core/batch core/steps core/updater ui/colours_window ui/door_style_window ui/settings_window
       export/hubspot_room export/hubspot_pictures
       dev/acceptance dev/developer ui/menus
     ].freeze

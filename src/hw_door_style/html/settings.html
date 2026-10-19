@@ -104,28 +104,25 @@
 <!-- ======================= DOORS ======================= -->
 <section id="s_doors">
   <h2>Doors</h2>
-  <div class="lead">Which components are doors and drawer fronts, and how Shaker fronts are built.</div>
+  <div class="lead">Which components are doors and drawer fronts, and the door styles.</div>
   <fieldset><legend>Component names</legend>
     <div class="f t"><span>Doors</span><textarea id="door_names"></textarea></div>
     <div class="f t"><span>External drawer fronts</span><textarea id="ext_drawer_names"></textarea></div>
     <div class="f t"><span>Internal drawer fronts</span><textarea id="int_drawer_names"></textarea></div>
-    <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name. Internal drawer fronts always stay flat.</div>
+    <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name.</div>
   </fieldset>
-  <div class="grid">
-    <fieldset><legend>Shaker (mm)</legend>
-      <div class="f"><span>Door frame width</span><input type="number" id="door_frame_mm"></div>
-      <div class="f"><span>Drawer front stiles (vertical)</span><input type="number" id="drawer_stile_mm" title="Same as the door frame so drawer panels line up with the door panels"></div>
-      <div class="f"><span>Drawer front rails (top / bottom)</span><input type="number" id="drawer_frame_mm"></div>
-      <div class="f"><span>Recess depth</span><input type="number" step="0.5" id="recess_mm"></div>
-      <div class="f"><span>Smallest panel</span><input type="number" id="min_panel_mm"></div>
-    </fieldset>
-    <fieldset><legend>Mid-rail on doors (mm)</legend>
-      <div class="f"><span>Add when door taller than</span><input type="number" id="midrail_min_door_height_mm"></div>
-      <div class="f"><span>Centre above door bottom</span><input type="number" id="midrail_centre_mm"></div>
-      <div class="f"><span>Mid-rail width</span><input type="number" id="midrail_width_mm"></div>
-    </fieldset>
-  </div>
-  <div class="hint">Changing sizes here: press Shaker again (or Rebuild) to redraw doors already in a model.</div>
+  <fieldset><legend>Door styles</legend>
+    <div class="hint" style="margin-top:0">The styles in the Door style window (your HubSpot range). A style can be chosen once the plugin can draw it and every size its drawing needs is filled in.</div>
+    <table class="ocl" style="margin-top:6px"><thead><tr><th>Style</th><th style="width:70px">Handleless</th><th>Can be chosen?</th><th style="width:76px"></th></tr></thead><tbody id="styList"></tbody></table>
+    <div class="btnrow" style="align-items:center"><input type="text" id="styNew" placeholder="New style name" style="width:200px"><button onclick="styAdd()">Add style</button></div>
+  </fieldset>
+  <fieldset id="styEdit"><legend id="styEditTitle">Sizes</legend><div id="stySizes" class="grid"></div>
+    <div class="hint">Mid-rail centre is measured from the bottom of the door. After changing sizes, use Rebuild styles to redraw doors already in a model.</div></fieldset>
+  <fieldset><legend>New jobs start with</legend>
+    <div class="f s"><span>Doors</span><select id="dds_door"></select></div>
+    <div class="f s"><span>Drawer fronts</span><select id="dds_ext_drawer"></select></div>
+    <div class="f s"><span>Internal drawers</span><select id="dds_int_drawer"></select></div>
+  </fieldset>
 </section>
 
 <!-- ======================= HINGES & HANDLES ======================= -->
@@ -134,12 +131,13 @@
   <div class="lead">Hinges drawn on doors, and the handle counts in the door summary.</div>
   <fieldset><legend>Hinges</legend>
     <div class="f s"><span>Default hinge type</span><select id="default_hinge_type"></select></div>
-    <div class="hint" style="margin-bottom:6px">For new jobs. Each job's own type is set from Extensions &gt; HW Door Style &gt; Hinge type.</div>
+    <div class="hint" style="margin-bottom:6px">For new jobs. Each job's own type is set in the Door style window.</div>
     <div class="f t"><span>Hinges per door</span><input type="text" id="hinge_rules"></div>
     <div class="hint">Door height up to : number of hinges, e.g. <code>900:2, 1600:3, 2000:4, 2400:5, 99999:6</code></div>
     <div class="f" style="grid-template-columns:150px 70px"><span>Top / bottom inset (mm)</span><input type="number" id="hinge_end_inset_mm"></div>
   </fieldset>
-  <fieldset><legend>Handles / knobs</legend>
+  <fieldset><legend>Handles / knobs (defaults for new jobs)</legend>
+    <div class="hint" style="margin-top:0;margin-bottom:4px">Each job can change these in the Door style window. Handleless styles never count handles.</div>
     <div class="f" style="grid-template-columns:1fr 70px"><span>Two handles on drawer fronts wider than (mm)</span><input type="number" id="handle_double_min_width_mm"></div>
     <div class="f c"><span>Count handles on internal drawer fronts</span><input type="checkbox" id="handles_on_internal_drawers"></div>
     <div class="f c"><span>Count handles on push-to-open doors</span><input type="checkbox" id="handles_on_pto_doors"></div>
@@ -366,7 +364,7 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
-var NUMS = ['door_frame_mm','drawer_stile_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm'];
+var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
 var GROUPS = ['door','exterior','interior','worktop'];
@@ -414,6 +412,10 @@ function load(s){
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
   PICS = JSON.parse(JSON.stringify(s.hubspot_pictures || [])); picsDraw();
+  DRAW = S._style_drawings || {}; SIZES = S._style_sizes || [];
+  STY = JSON.parse(JSON.stringify(s.door_styles || [])); STY_SEL = Math.min(STY_SEL, Math.max(STY.length - 1, 0));
+  DDS = s.default_door_styles || {}; ['door', 'ext_drawer', 'int_drawer'].forEach(function(k){ $('dds_' + k).value = ''; });
+  styDraw();
   $('hubspot_picture_size').value = s.hubspot_picture_size || '1920x1080';
   $('hubspot_picture_format').value = s.hubspot_picture_format === 'png' ? 'png' : 'jpg';
   $('hubspot_picture_folder').value = s.hubspot_picture_folder == null ? 'SURVEY RENDERS' : s.hubspot_picture_folder;
@@ -456,6 +458,8 @@ function collect(){
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
   o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';
+  o.door_styles = STY.map(function(x){ var d = { id: x.id, name: x.name.trim(), handleless: !!x.handleless }; SIZES.forEach(function(k){ if (+x[k[0]] > 0) d[k[0]] = +x[k[0]]; }); return d; });
+  o.default_door_styles = { door: $('dds_door').value, ext_drawer: $('dds_ext_drawer').value, int_drawer: $('dds_int_drawer').value };
   o.hubspot_pictures = PICS.map(function(r, i){ return { field: r.field, label: r.label, scenes: $('pic_' + i).value.split(',').map(function(x){ return x.trim(); }).filter(Boolean) }; });
   o.hubspot_picture_size = $('hubspot_picture_size').value.replace(/\s/g, '').toLowerCase() || '1920x1080';
   o.hubspot_picture_format = $('hubspot_picture_format').value;
@@ -484,11 +488,12 @@ function problems(){
   var out = [];
   function num(id){ return parseFloat($(id).value); }
   function need(sec, id, ok, msg){ if (!ok) out.push([sec, id, msg]); }
-  [['door_frame_mm','Door frame width'],['drawer_stile_mm','Drawer front stiles'],['drawer_frame_mm','Drawer front rails'],['min_panel_mm','Smallest panel'],
-   ['midrail_min_door_height_mm','Mid-rail: door height'],['midrail_centre_mm','Mid-rail centre'],['midrail_width_mm','Mid-rail width']].forEach(function(f){
-    need('doors', f[0], num(f[0]) > 0, f[1] + ' must be more than 0');
+  STY.forEach(function(st){
+    var miss = styMissing(st);
+    if (DRAW[st.id] && miss.length) out.push(['doors', 'styList', st.name + ': fill in ' + miss.join(', ').toLowerCase()]);
+    if (+st.recess_mm >= 18) out.push(['doors', 'styList', st.name + ': recess must be less than 18 mm']);
   });
-  need('doors', 'recess_mm', num('recess_mm') > 0 && num('recess_mm') < 18, 'Recess depth must be between 0 and 18 mm');
+  if (STY.filter(function(x){ return x.name.trim() === ''; }).length) out.push(['doors', 'styList', 'Every style needs a name']);
   need('doors', 'door_names', split($('door_names').value).length > 0, 'Enter at least one door name');
   var r = parseRules($('hinge_rules').value);
   var asc = r.rules.every(function(x, i){ return i === 0 || x[0] > r.rules[i - 1][0]; });
@@ -642,6 +647,50 @@ function reqDraw(){
     };
   });
 }
+// ---------- door styles ----------
+var STY = [], STY_SEL = 0;
+var DRAW = {}, SIZES = [];
+function styMissing(st){ var d = DRAW[st.id]; if (!d) return ['no drawing yet']; return d.filter(function(k){ return !(+st[k] > 0); }).map(function(k){ return (SIZES.filter(function(x){ return x[0] === k; })[0] || [k, k])[1]; }); }
+function styReady(st){ return !!DRAW[st.id] && styMissing(st).length === 0; }
+function styList(){
+  $('styList').innerHTML = STY.map(function(st, i){
+    var miss = styMissing(st), ok = styReady(st);
+    var status = ok ? '<span class="ok">Yes</span>' : (DRAW[st.id] ? '<span class="no">Fill in: ' + esc(miss.join(', ')) + '</span>' : '<span style="color:var(--muted)">Not yet - no drawing</span>');
+    return '<tr' + (i === STY_SEL ? ' style="background:#eef3f0"' : '') + ' onclick="stySel(' + i + ')"><td><input type="text" value="' + esc(st.name) + '" oninput="STY[' + i + '].name=this.value;styDefaults()" style="width:100%"></td>' +
+      '<td><input type="checkbox" style="width:auto"' + (st.handleless ? ' checked' : '') + ' onchange="STY[' + i + '].handleless=this.checked"></td><td>' + status + '</td>' +
+      '<td style="white-space:nowrap"><button onclick="styMove(' + i + ',-1);event.stopPropagation()" title="Up">&#9650;</button><button onclick="styMove(' + i + ',1);event.stopPropagation()" title="Down">&#9660;</button>' +
+      (DRAW[st.id] ? '' : '<button onclick="styDel(' + i + ');event.stopPropagation()" title="Remove">&#10005;</button>') + '</td></tr>';
+  }).join('');
+  styDefaults();
+}
+function styDraw(){
+  styList();
+  var st = STY[STY_SEL];
+  $('styEdit').style.display = st && st.id !== 'flat' ? '' : 'none';
+  if (!st) return;
+  $('styEditTitle').textContent = st.name + ' - sizes (mm)' + (DRAW[st.id] ? '' : ' - kept ready for when its drawing is added');
+  $('stySizes').innerHTML = SIZES.map(function(x){
+    var need = DRAW[st.id] && DRAW[st.id].indexOf(x[0]) >= 0;
+    return '<div class="f"><span>' + esc(x[1]) + (need ? ' *' : '') + '</span><input type="number" step="0.5" value="' + (st[x[0]] == null ? '' : st[x[0]]) + '" oninput="styVal(\'' + x[0] + '\', this.value)"></div>';
+  }).join('');
+}
+function styVal(k, v){ var st = STY[STY_SEL]; if (v === '') delete st[k]; else st[k] = parseFloat(v); markDirty(); styList(); }
+function stySel(i){ STY_SEL = i; styDraw(); }
+function styMove(i, d){ var j = i + d; if (j < 0 || j >= STY.length) return; var t = STY[i]; STY[i] = STY[j]; STY[j] = t; STY_SEL = j; markDirty(); styDraw(); }
+function styDel(i){ STY.splice(i, 1); STY_SEL = 0; markDirty(); styDraw(); }
+function styAdd(){
+  var n = $('styNew').value.trim(); if (!n) return;
+  var id = n.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  if (!id || STY.some(function(x){ return x.id === id; })) { alert('There is already a style called ' + n + '.'); return; }
+  STY.push({ id: id, name: n, handleless: false }); STY_SEL = STY.length - 1; $('styNew').value = ''; markDirty(); styDraw();
+}
+function styDefaults(){
+  ['door', 'ext_drawer', 'int_drawer'].forEach(function(k){
+    var sel = $('dds_' + k), cur = sel.value || (DDS[k] || (k === 'int_drawer' ? 'flat' : 'shaker'));
+    sel.innerHTML = STY.filter(styReady).concat(STY.filter(function(x){ return x.id === 'flat'; }).length ? [] : [{ id: 'flat', name: 'Flat' }]).map(function(x){ return '<option value="' + esc(x.id) + '"' + (x.id === cur ? ' selected' : '') + '>' + esc(x.name) + '</option>'; }).join('');
+  });
+}
+var DDS = {};
 function hsHint(h){ $('hsKeyHint').textContent = h ? 'Saved key: ' + h + ' (paste a new one to replace it).' : 'No key saved yet.'; $('hsKey').value = ''; }
 function hsSaveKey(){ var k = $('hsKey').value.trim(); if (!k) { $('hsKeyHint').textContent = 'Paste the key first.'; return; } sketchup.hsSaveKey(k); }
 function hsTest(){ $('hsOut').textContent = 'Testing...'; sketchup.hsTest(); }

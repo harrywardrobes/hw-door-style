@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.26.0 — 2026-10-19
+- **Two toolbars.** "HW measure once": Colours, Door style, Scribe / runout, Ceiling height | Door summary,
+  Send to HubSpot. "HW dev": Settings, Export components. (The old "HW Door Style" toolbar is gone.)
+- **Door style window** (replaces the Shaker and Reset buttons), laid out like Colours:
+  - A style for Doors, Drawer fronts and Internal drawers (internal drawers can now be styled; Flat by default).
+  - Hinge type for the job (moved here from the menu).
+  - Handles for the job: on push-to-open doors, on internal drawers, two handles above a width, and the
+    robe / drawer / interior handle names and SKUs (sent to and taken from HubSpot).
+  - Apply redraws only what changed, with a progress bar, as one undo step. Items styled by right-click keep
+    their style (the window counts them; tick to put them back). Right-click > Follow the Door style window too.
+- **Door styles in Settings > Doors.** Flat, Shaker and the HubSpot range (Ascot, Esquire, Halstead, Juliette,
+  Keswick, Sutton, Vienna, Cairo Traditional, Caraway) plus Avienda. Each style has its own frame, recess
+  and mid-rail sizes (Shaker 815 mm, Ascot 820 mm) and a Handleless tick. A style can only be chosen once the
+  plugin can draw it and all its sizes are filled in - for now Flat and Shaker. Add, rename and reorder here.
+- Handleless styles count no handles. Handle rules in Settings are the defaults for new jobs.
+- Your Shaker sizes moved onto the Shaker style automatically (settings version 4).
+
 ## 0.25.1 — 2026-10-19
 - Fixed: "Can't reach HubSpot (ECONNRESET)". About 1 in 4 new connections from this computer were being
   cut off straight away (by the network or security software). The plugin now keeps one connection

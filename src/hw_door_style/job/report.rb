@@ -18,6 +18,7 @@ module HarryWardrobes
       def self.rows(model = Sketchup.active_model)
         rows = []
         pto = Settings.pto?(Settings.job_hinge_type(model))
+        rules = Settings.job_handles(model)
         Finder.each_occurrence(model.entities) do |inst, kind, path|
           d = inst.definition
           w, _t, h = Finder.real_size(inst)
@@ -39,7 +40,8 @@ module HarryWardrobes
             'midrail' => d.get_attribute(DICT, 'midrail') ? 'Yes' : '',
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
-            'handles' => Settings.handle_count(kind, w, pto),
+            'handles' => Settings.handle_count(kind, w, pto, rules: rules,
+                                                handleless: Styles.handleless?(d.get_attribute(DICT, 'requested_style') || style || 'flat')),
             'notes' => notes.reject(&:empty?).join('; ')
           }
         end

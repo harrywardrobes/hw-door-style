@@ -112,18 +112,39 @@ module HarryWardrobes
         Finder.targets(Sketchup.active_model.selection.to_a, [:door, :ext_drawer, :int_drawer])
       end
 
+      # Right-click: the selected items to one style. They keep it when Apply is pressed in
+      # the Door style window (override), until "Follow the Door style window".
       def self.convert_selection(style)
         return unless colour_ready?
-        all = selection_targets
-        pairs = all.reject { |_i, k| k == :int_drawer }
-        return UI.messagebox('Internal drawer fronts always stay flat.') if pairs.empty? && !all.empty?
+        pairs = selection_targets
+        return if pairs.empty?
         name = "Selected - #{Styles.label(style)}"
-        run(name) { Converter.apply(pairs, style, name) }
+        run(name) { Converter.apply(pairs, style, name, override: true) }
+      end
+
+      # Right-click: back to the job's style for each item's row.
+      def self.follow_job(pairs = selection_targets)
+        return unless colour_ready?
+        return if pairs.empty?
+        styles = DoorStyleWindow.job_styles
+        model = Sketchup.active_model
+        run('Follow the Door style window') do
+          Ops.run(model, 'Follow the Door style window') do
+            r = { items: 0, definitions: 0, notes: [] }
+            pairs.group_by { |_i, k| styles[k.to_s] }.each do |style, ps|
+              x = Converter.rebuild(model, ps, style, override: false, finish: false)
+              r[:items] += x[:items]
+              r[:notes].concat(x[:notes])
+            end
+            Converter.finish(model)
+            r
+          end
+        end
       end
 
       def self.rebuild_selection
         return unless colour_ready?
-        pairs = selection_targets.reject { |_i, k| k == :int_drawer }
+        pairs = selection_targets
         run('Rebuild selected') { Converter.apply(pairs, nil, 'Rebuild selected') }
       end
     end

@@ -21,17 +21,23 @@ module HarryWardrobes
       # style:      style id, or nil to keep each item's current style (Rebuild)
       # hinge_type: optional new job hinge type (set inside the same undo step)
       # Returns { items: n, definitions: n, notes: [..] }
-      def self.apply(pairs, style, op_name, hinge_type: nil)
+      # override:   true = set by right-click (Apply in the Door style window leaves it),
+      #             false = follows the window again, nil = unchanged
+      def self.apply(pairs, style, op_name, hinge_type: nil, override: nil)
         model = Sketchup.active_model
         return { items: 0, definitions: 0, notes: [] } if pairs.empty?
 
-        Ops.run(model, op_name) { rebuild(model, pairs, style, hinge_type: hinge_type) }
+        Ops.run(model, op_name) { rebuild(model, pairs, style, hinge_type: hinge_type, override: override) }
+      end
+
+      def self.override?(inst)
+        inst.definition.get_attribute(DICT, 'style_override') ? true : false
       end
 
       # Current style of an item (for Rebuild / Repair).
       def self.current_style(inst)
         s = inst.definition.get_attribute(DICT, 'requested_style')
-        return s if s
+        return s if s && Styles.profile(s)
         slab = slab_of(inst)
         return 'shaker' if slab && (DC.read(slab, 'door_style').to_s.upcase == 'SHAKER' || slab.definition.name =~ /\ASTYLE_SHAKER/i)
         'flat'
@@ -45,20 +51,20 @@ module HarryWardrobes
       end
 
       # Does all the work; call inside an operation.
-      def self.rebuild(model, pairs, style, hinge_type: nil)
+      # finish: false leaves tags / colours for the caller to do once at the end (Finish).
+      def self.rebuild(model, pairs, style, hinge_type: nil, override: nil, finish: true)
         Settings.set_job_hinge_type(hinge_type, model) if hinge_type
         job_hinge = Settings.job_hinge_type(model)
 
         # Measure everything BEFORE changing any definition.
         jobs = pairs.map do |inst, kind|
           s = style || current_style(inst)
-          s = 'flat' if kind == :int_drawer
           { inst: inst, kind: kind, style: s, defn: inst.definition, size: Finder.real_size(inst),
-            formulas: wrapper_formulas(inst) }
+            formulas: wrapper_formulas(inst), override: override.nil? ? override?(inst) : override }
         end
 
         groups = jobs.group_by do |j|
-          [j[:defn].entityID, j[:style], j[:kind], j[:size].map { |v| (v * 25.4 * 2).round }]
+          [j[:defn].entityID, j[:style], j[:kind], j[:override], j[:size].map { |v| (v * 25.4 * 2).round }]
         end
 
         style_cache = {}
@@ -81,9 +87,13 @@ module HarryWardrobes
           notes << "#{Finder.label(first[:inst])} #{Finder.mm_s(first[:size][0])}x#{Finder.mm_s(first[:size][2])}: #{info[:note]}" unless info[:note].to_s.empty?
         end
 
+        finish(model) if finish
+        { items: jobs.size, definitions: groups.size, notes: notes.uniq }
+      end
+
+      def self.finish(model)
         Tagger.tag_all(model)
         Colours.reapply(model)
-        { items: jobs.size, definitions: groups.size, notes: notes.uniq }
       end
 
       # Old Len formulas (instance first, then definition, then _inst__ template),
@@ -137,7 +147,8 @@ module HarryWardrobes
           'midrail' => info[:midrail], 'note' => info[:note],
           'width_mm' => (w * 25.4).round(1), 'height_mm' => (h * 25.4).round(1),
           'hinge_type' => (job[:kind] == :door ? hinge_type : ''),
-          'hinges' => hw[:hinges], 'tip_on' => hw[:tip_on], 'plugin_version' => VERSION
+          'hinges' => hw[:hinges], 'tip_on' => hw[:tip_on], 'plugin_version' => VERSION,
+          'style_override' => job[:override] ? true : false
         }.each { |k, v| defn.set_attribute(DICT, k, v) }
 
         info
@@ -157,7 +168,7 @@ module HarryWardrobes
 
       # One slab definition per (style, kind, size), shared between wrappers.
       def self.slab_definition(model, style, kind, w, t, h, cache)
-        key = [style, kind, [w, t, h].map { |v| (v * 25.4 * 10).round }, Settings.geometry_signature].flatten.join('|')
+        key = [style, kind, [w, t, h].map { |v| (v * 25.4 * 10).round }, Styles.signature(style)].flatten.join('|')
         return cache[key] if cache[key]
 
         existing = model.definitions.find do |d|

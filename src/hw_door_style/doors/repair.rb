@@ -69,7 +69,7 @@ module HarryWardrobes
           b = s.definition.bounds
           got = [b.width * ss[0], b.height * ss[1], b.depth * ss[2]]
           p << 'slab size' if got.zip(size).any? { |g, w| (g - w).abs > TOL }
-          p << 'shaker slab stretched' if DC.read(s, 'door_style').to_s.upcase == 'SHAKER' && !scale_ok?(s)
+          p << 'styled slab stretched' if !['', 'FLAT'].include?(DC.read(s, 'door_style').to_s.upcase) && !scale_ok?(s)
         end
         if kind == :door
           hinges = kids.select { |k| k.get_attribute(DICT, 'role') == 'hinge' }
