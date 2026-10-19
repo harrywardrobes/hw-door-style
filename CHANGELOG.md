@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.7 — 2026-10-19
+- Shaker drawer fronts: stiles (vertical) 100 mm, the same as the doors, so the panels line up with the
+  door panels; rails (top / bottom) stay 50 mm. Settings -> Doors & hinges has both values.
+  Press Shaker again to redraw existing drawer fronts.
+
 ## 0.11.6 — 2026-10-19
 - Settings -> Colours & materials: **Colour library** editor, laid out like SketchUp's Materials
   browser - swatch grid; edit name, colour, texture image and size; New / Duplicate / Delete /

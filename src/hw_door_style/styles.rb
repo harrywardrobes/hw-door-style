@@ -40,7 +40,10 @@ module HarryWardrobes
       end
 
       SHAKER = lambda do |ents, w, t, h, kind|
-        frame  = kind == :door ? Settings.mm('door_frame_mm') : Settings.mm('drawer_frame_mm')
+        # Doors: same frame all round. Drawer fronts: stiles (vertical sides) match the
+        # doors so panels line up vertically; rails (top / bottom) are slimmer.
+        stile  = kind == :door ? Settings.mm('door_frame_mm') : Settings.mm('drawer_stile_mm')
+        rail   = kind == :door ? Settings.mm('door_frame_mm') : Settings.mm('drawer_frame_mm')
         depth  = Settings.mm('recess_mm')
         min_p  = Settings.mm('min_panel_mm')
 
@@ -49,10 +52,10 @@ module HarryWardrobes
         if midrail
           c  = Settings.mm('midrail_centre_mm')
           mw = Settings.mm('midrail_width_mm')
-          panels << [frame, frame, w - frame, c - mw / 2.0]
-          panels << [frame, c + mw / 2.0, w - frame, h - frame]
+          panels << [stile, rail, w - stile, c - mw / 2.0]
+          panels << [stile, c + mw / 2.0, w - stile, h - rail]
         else
-          panels << [frame, frame, w - frame, h - frame]
+          panels << [stile, rail, w - stile, h - rail]
         end
 
         too_small = panels.any? { |x0, z0, x1, z1| (x1 - x0) < min_p || (z1 - z0) < min_p }

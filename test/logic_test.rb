@@ -100,7 +100,8 @@ info, r = layout(400, 1327, :door)
 check '1327 door no mid-rail', !info[:midrail] && r == [[100.0, 100.0, 300.0, 1227.0, 6.0]]
 
 info, r = layout(396, 228, :ext_drawer)
-check 'drawer 50mm frame', r == [[50.0, 50.0, 346.0, 178.0, 6.0]]
+check 'drawer: 100mm stiles (line up with doors), 50mm rails', r == [[100.0, 50.0, 296.0, 178.0, 6.0]]
+check 'drawer stile setting 100mm', mm(Settings.mm('drawer_stile_mm')) == 100.0
 
 info, r = layout(400, 210, :door)
 check 'tiny door falls back to flat', info[:style] == 'flat' && r.empty? && !info[:note].empty?

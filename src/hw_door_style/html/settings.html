@@ -68,7 +68,8 @@
 
   <fieldset data-tab="doors"><legend>Shaker (mm)</legend>
     <div class="f"><span>Door frame width</span><input type="number" id="door_frame_mm"></div>
-    <div class="f"><span>Drawer front frame width</span><input type="number" id="drawer_frame_mm"></div>
+    <div class="f"><span>Drawer front stiles (vertical)</span><input type="number" id="drawer_stile_mm" title="Same as the door frame so drawer panels line up with the door panels"></div>
+    <div class="f"><span>Drawer front rails (top / bottom)</span><input type="number" id="drawer_frame_mm"></div>
     <div class="f"><span>Recess depth</span><input type="number" step="0.5" id="recess_mm"></div>
     <div class="f"><span>Smallest panel</span><input type="number" id="min_panel_mm"></div>
   </fieldset>
@@ -179,7 +180,7 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
-var NUMS = ['door_frame_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm'];
+var NUMS = ['door_frame_mm','drawer_stile_mm','drawer_frame_mm','recess_mm','min_panel_mm','midrail_min_door_height_mm','midrail_centre_mm','midrail_width_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
 var GROUPS = ['door','exterior','interior','worktop'];

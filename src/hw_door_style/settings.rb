@@ -128,7 +128,7 @@ module HarryWardrobes
       # Changes whenever a setting that affects style geometry changes, so
       # shared style components are never reused with out-of-date sizes.
       def self.geometry_signature
-        %w[door_frame_mm drawer_frame_mm recess_mm min_panel_mm
+        %w[door_frame_mm drawer_stile_mm drawer_frame_mm recess_mm min_panel_mm
            midrail_min_door_height_mm midrail_centre_mm midrail_width_mm]
           .map { |k| get[k].to_f }.join(',')
       end

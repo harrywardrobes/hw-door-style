@@ -17,7 +17,7 @@ definition name (`DRAWER_FRONT` / `DRAWER_FRONT#2`) while their DC names differ.
 | Kind | Default names | Behaviour |
 |---|---|---|
 | Door | `WRD_DOOR`, `LIN_DOOR`, `BRGFR_DOOR`, `WLK_DOOR`, `TPBX_DOOR`, `TPBX_DOOR_TOP` | Styled; gets hinges |
-| External drawer front | `DRW_FRONT` | Styled with the slim drawer frame; no hinges |
+| External drawer front | `DRW_FRONT` | Shaker: 100 mm stiles, 50 mm rails; no hinges |
 | Internal drawer front | `INT_DRW_FRONT` | Always flat; listed in the summary only |
 
 All three lists are editable in Settings. `LINE_TOP_DOOR_LEFT/RIGHT` are
@@ -35,7 +35,7 @@ Plain 18 mm slab at the component's real size.
 ### Shaker (one-piece, bought-in door)
 - Thickness 18 mm (taken from the component).
 - Recess depth: 6 mm, square inner edge, no bevels (render-friendly, about 30 faces per door).
-- Frame width: doors 100 mm (stiles and rails), external drawer fronts 50 mm.
+- Frame width: doors 100 mm (stiles and rails). External drawer fronts: stiles (vertical) 100 mm so the panels line up with the doors, rails (top / bottom) 50 mm.
 - Mid-rail: doors only, when door height is over 1,500 mm. Centred 815 mm
   above the bottom edge of the door; 100 mm high. Both values are editable.
 - If a panel would be smaller than 40 mm in either direction, the item stays

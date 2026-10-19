@@ -14,6 +14,7 @@
     "INT_DRW_FRONT"
   ],
   "door_frame_mm": 100,
+  "drawer_stile_mm": 100,
   "drawer_frame_mm": 50,
   "recess_mm": 6,
   "min_panel_mm": 40,
