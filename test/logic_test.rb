@@ -464,5 +464,18 @@ Dir.mktmpdir do |d|
 end
 check 'export skips _HW Door Style', '_HW Door Style' =~ LibraryExport::SKIP_DIRS && 'WARDROBES' !~ LibraryExport::SKIP_DIRS
 
+# --- HubSpot (0.21) ---
+require 'net/http'
+require 'hw_door_style/export/hubspot'
+check 'no key: hint empty', HubSpot.key_hint.nil? && !HubSpot.key?
+HubSpot.key = '  pat-eu1-1234567890abcdefWXYZ  '
+check 'key trimmed, hint hides the middle', HubSpot.key == 'pat-eu1-1234567890abcdefWXYZ' && HubSpot.key_hint == 'pat-eu1-…WXYZ'
+check 'key never in settings', !File.exist?(Settings::USER_FILE) || !File.read(Settings::USER_FILE).include?('pat-eu1')
+check 'key not in a settings backup', !JSON.generate(Settings.get).include?('pat-eu1')
+check '401 message is plain English', HubSpot.message_for(401, {}).include?('did not accept the key')
+HubSpot.key = ''
+err = (HubSpot.get('/x') rescue $!)
+check 'no key: clear error, no request', err.is_a?(HubSpot::Error) && err.message.include?('No HubSpot key')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

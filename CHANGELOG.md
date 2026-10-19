@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.21.0 — 2026-10-19
+- **HubSpot connection** (Settings > HubSpot), read-only for now:
+  - Paste the private app key (the one Measure Once used); it is kept on this computer only,
+    never in settings backups or team settings, and only its first and last characters are shown.
+  - Test connection shows the HubSpot account and whether the key can read Contacts, Rooms
+    (Listings), Projects, Notes and Files - anything missing says so.
+  - Show Room fields lists your own Room fields, ready for matching to the survey data.
+- Retries when HubSpot is busy, with plain-English messages for a wrong key or a missing permission.
+
 ## 0.20.0 — 2026-10-19
 - The plugin's Google Drive folders are now together in Harry Wardrobes\_HW Door Style:
   - Updates (was _plugin_updates) - the updates folder setting moves there on its own.

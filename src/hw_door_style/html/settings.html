@@ -94,6 +94,7 @@
   <h3>Output</h3>
   <a data-s="export">Export<i class="dot"></i></a>
   <a data-s="cutlist">Cut list<i class="dot"></i></a>
+  <a data-s="hubspot">HubSpot<i class="dot"></i></a>
   <h3>Plugin</h3>
   <a data-s="general">General<i class="dot"></i></a>
 </nav>
@@ -278,6 +279,23 @@
     <div class="f t"><span>Tag</span><input type="text" id="ocl_bought_in_tag"></div>
     <div class="hint">In OpenCutList's cut list, filter out this tag to leave doors and drawer fronts off the cutting diagrams. The Door order (summary) stays the HPP list.</div>
   </fieldset>
+</section>
+
+<!-- ======================= HUBSPOT ======================= -->
+<section id="s_hubspot">
+  <h2>HubSpot</h2>
+  <div class="lead">Link job files to their Project and Room records. This version only reads from HubSpot - sending survey data comes next.</div>
+  <fieldset><legend>Connection</legend>
+    <div class="f t"><span>Private app key</span><input type="password" id="hsKey" autocomplete="off" placeholder=""></div>
+    <div class="hint" id="hsKeyHint"></div>
+    <div class="btnrow">
+      <button onclick="hsSaveKey()">Save key</button>
+      <button onclick="hsTest()">Test connection</button>
+      <button onclick="hsFields()">Show Room fields</button>
+    </div>
+    <div class="hint">HubSpot > Settings > Integrations > Private apps > your app (the one Measure Once used) > Auth > Show token, then paste it here. Kept on this computer only - never in settings backups or team settings.</div>
+  </fieldset>
+  <fieldset><legend>Result</legend><div id="hsOut" class="hint" style="margin-top:0">Not tested yet.</div></fieldset>
 </section>
 
 <!-- ======================= GENERAL ======================= -->
@@ -543,6 +561,7 @@ function renderInfo(){
   $('jobInfo').innerHTML = 'This job' + (j.title ? ' (' + esc(j.title) + ')' : '') + ': scribes <b>' + (j.scribes_on ? 'on' : 'off') + '</b>, ceiling <b>' +
     (j.ceiling > 0 ? Math.round(j.ceiling) + ' mm' : 'not set') + '</b>, bottom facing <b>' + Math.round(j.facing || 0) + ' mm</b>, ' + (j.units || 0) + ' units with runouts.';
   renderOcl(S._ocl || {});
+  hsHint((S._hubspot || {}).hint);
   $('verLine').textContent = 'HW Door Style ' + (S._version || '') + ' - Harry Wardrobes (Gautier Design Ltd)';
   $('news').innerHTML = (S._whats_new || []).map(function(e){
     return '<h4>' + esc(e.title) + '</h4><ul>' + e.items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
@@ -560,6 +579,25 @@ function updInfo(u){
   else if (u.newer) t += 'Version ' + u.latest + ' is in the updates folder.';
   else t += u.latest ? 'Up to date (newest in the folder: ' + u.latest + ').' : 'No versions in the updates folder yet.';
   $('updLine').textContent = t;
+}
+
+// ---------- HubSpot ----------
+function hsHint(h){ $('hsKeyHint').textContent = h ? 'Saved key: ' + h + ' (paste a new one to replace it).' : 'No key saved yet.'; $('hsKey').value = ''; }
+function hsSaveKey(){ var k = $('hsKey').value.trim(); if (!k) { $('hsKeyHint').textContent = 'Paste the key first.'; return; } sketchup.hsSaveKey(k); }
+function hsTest(){ $('hsOut').textContent = 'Testing...'; sketchup.hsTest(); }
+function hsFields(){ $('hsOut').textContent = 'Reading Room fields...'; sketchup.hsFields(); }
+// Called from Ruby.
+function hsResult(r){
+  if (r.error) { $('hsOut').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
+  $('hsOut').innerHTML = '<div class="ok">Connected to HubSpot account ' + esc(r.portal) + (r.region ? ' (' + esc(r.region) + ')' : '') + '</div>' +
+    '<table class="ocl" style="margin-top:6px"><tbody>' + r.checks.map(function(c){
+      return '<tr><td>' + esc(c.label) + '</td><td class="' + (c.ok ? 'ok' : 'no') + '">' + (c.ok ? 'OK' : esc(c.detail)) + '</td></tr>'; }).join('') + '</tbody></table>' +
+    (r.checks.some(function(c){ return !c.ok; }) ? '<div class="hint">Add the missing permissions to the private app in HubSpot (Scopes), then test again - the key stays the same.</div>' : '');
+}
+function hsFieldList(r){
+  if (r.error) { $('hsOut').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
+  $('hsOut').innerHTML = '<div>' + r.fields.length + ' Room fields of your own:</div><table class="ocl" style="margin-top:6px"><thead><tr><th>Field</th><th>Internal name</th><th>Type</th><th>Group</th></tr></thead><tbody>' +
+    r.fields.map(function(f){ return '<tr><td>' + esc(f.label) + '</td><td><code>' + esc(f.name) + '</code></td><td>' + esc(f.field || f.type) + (f.options.length ? ' (' + f.options.length + ' options)' : '') + '</td><td>' + esc(f.group) + '</td></tr>'; }).join('') + '</tbody></table>';
 }
 
 // ---------- cut list ----------
@@ -593,7 +631,7 @@ load(S);
 libRender();
 renderInfo();
 // Changes to settings fields mark the window unsaved (not the one-off "replace" tick).
-function changed(e){ if (e.target && e.target.id !== 'oclOverwrite') markDirty(); }
+function changed(e){ if (e.target && e.target.id !== 'oclOverwrite' && e.target.id !== 'hsKey') markDirty(); }
 document.querySelector('.content').addEventListener('input', changed);
 document.querySelector('.content').addEventListener('change', changed);
 setState();

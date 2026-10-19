@@ -22,7 +22,8 @@ module HarryWardrobes
           '_team_file' => Settings.team_file,
           '_debug' => Log.debug?,
           '_job' => job_info(model),
-          '_update' => update_info
+          '_update' => update_info,
+          '_hubspot' => { 'hint' => HubSpot.key_hint }
         )
       end
 
@@ -125,6 +126,28 @@ module HarryWardrobes
           next unless f && discard_ok.call
           close.call
           Updater.install(f)
+        end
+        dlg.add_action_callback('hsSaveKey') do |_c, k|
+          HubSpot.key = k
+          dlg.execute_script("hsHint(#{JSON.generate(HubSpot.key_hint)})")
+        end
+        dlg.add_action_callback('hsTest') do |_c|
+          r = begin
+            HubSpot.test
+          rescue StandardError => e
+            Log.error('hubspot test', e) unless e.is_a?(HubSpot::Error)
+            { 'error' => e.message }
+          end
+          dlg.execute_script("hsResult(#{JSON.generate(r)})")
+        end
+        dlg.add_action_callback('hsFields') do |_c|
+          r = begin
+            { 'fields' => HubSpot.room_fields }
+          rescue StandardError => e
+            Log.error('hubspot fields', e) unless e.is_a?(HubSpot::Error)
+            { 'error' => e.message }
+          end
+          dlg.execute_script("hsFieldList(#{JSON.generate(r)})")
         end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 
