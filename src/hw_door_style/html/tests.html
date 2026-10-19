@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tests</title>
+<!--HW-->
+<style>
+  body { padding:12px 16px 60px; }
+  .sum { display:flex; gap:12px; align-items:baseline; margin:4px 0 10px; }
+  .big { font-size:18px; font-weight:700; }
+  .big.ok { color:#1a7f37; } .big.no { color:var(--warn); }
+  .filters label { font-size:11.5px; margin-right:10px; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--accent); margin:14px 0 4px; }
+  table { width:100%; border-collapse:collapse; font-size:11.5px; }
+  td { border-bottom:1px solid var(--rule); padding:3px 6px; vertical-align:top; }
+  td.r { width:44px; font-weight:700; }
+  tr.ok td.r { color:#1a7f37; } tr.no td.r { color:var(--warn); } tr.no td { background:#fff6f1; }
+  td.d { color:var(--muted); }
+  body.fails tr.ok { display:none; }
+  .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #dfe2e5; padding:8px 16px; margin:0; }
+</style>
+</head>
+<body>
+<h1 id="title"></h1>
+<div class="sum"><span class="big" id="big"></span><span class="sub" id="meta" style="margin:0"></span></div>
+<div class="filters"><label><input type="checkbox" id="onlyFails"> Show failures only</label></div>
+<div id="out"></div>
+<div class="bar">
+  <button onclick="copyAll()">Copy results</button>
+  <button onclick="sketchup.rerun()">Run again</button>
+  <button class="primary" onclick="sketchup.cancel()">Close</button>
+</div>
+<script>
+var D = /*DATA*/null;
+var fails = D.rows.filter(function(r){ return !r.ok; }).length;
+$('title').textContent = 'Tests - ' + D.model;
+$('big').textContent = fails ? fails + ' failed' : 'All ' + D.rows.length + ' passed';
+$('big').className = 'big ' + (fails ? 'no' : 'ok');
+$('meta').textContent = (D.rows.length - fails) + ' of ' + D.rows.length + ' passed in ' + D.seconds + ' s - HW Door Style ' + D.version + '. The model was not changed.';
+var by = {};
+D.rows.forEach(function(r){ (by[r.suite] = by[r.suite] || []).push(r); });
+$('out').innerHTML = Object.keys(by).map(function(s){
+  var rs = by[s], f = rs.filter(function(r){ return !r.ok; }).length;
+  return '<h2>' + esc(s) + ' - ' + (f ? f + ' failed' : 'all passed') + '</h2><table>' + rs.map(function(r){
+    return '<tr class="' + (r.ok ? 'ok' : 'no') + '"><td class="r">' + (r.ok ? 'PASS' : 'FAIL') + '</td><td>' + esc(r.item) + '</td><td>' + esc(r.case) + '</td><td class="d">' + esc(r.detail) + '</td></tr>';
+  }).join('') + '</table>';
+}).join('');
+$('onlyFails').onchange = function(){ document.body.classList.toggle('fails', this.checked); };
+if (fails) { $('onlyFails').checked = true; document.body.classList.add('fails'); }
+function copyAll(){ var ta = document.createElement('textarea'); ta.value = D.text; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(e) {} ta.remove(); }
+</script>
+</body>
+</html>

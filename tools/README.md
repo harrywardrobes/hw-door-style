@@ -6,7 +6,7 @@ Ruby Console helpers. None of these are part of the plugin `.rbz`.
 
 | File | What it does |
 |---|---|
-| `acceptance_test.rb` | Door contract tests on WARDROBE, WALK-IN, LINEN_PRESS, TOPBOX, BRIDGE_FRAME at several sizes. Runs inside one step that is undone; changes nothing. `load '.../tools/acceptance_test.rb'; puts HWDoorAcceptance.run_report` |
+| `acceptance_test.rb` | Old Ruby Console command for the acceptance tests; they now live in the plugin (`dev/acceptance.rb`) and run from **Developer > Run tests** (doors, runouts, ceiling + bridge, colours, export). Each suite runs inside a step that is undone. |
 | `hw_inspect.rb` | Read-only inspector: prints a component's DC options, formulas and children. |
 
 ## One-off library migrations (already applied)

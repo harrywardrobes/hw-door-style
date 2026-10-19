@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.0 — 2026-10-19
+- **Developer menu** (Settings > General > Developer mode, then restart SketchUp): Run tests,
+  Inspect selected component, Reload plugin code, Ruby Console.
+- **Tests inside SketchUp**, with a results window: doors, runouts (every unit takes 25 mm and goes
+  back exactly), ceiling (heights, top doors, bridge lined up with TOPBOX), colours and export.
+  121 checks on Components V22; the model is never changed.
+- Safety net: a step that would open inside a test or an export copy is refused instead of
+  quietly committing.
+- Build: runs the tests first, warns if the changelog has no entry, `--bump` sets the next version.
+  Tests and build also run on GitHub for every push.
+
 ## 0.15.0 — 2026-10-19
 - **New Settings window**: sections listed down the left - Doors, Hinges & handles, Components,
   Colours, Tags, Scribe & ceiling, Export, Cut list, General.

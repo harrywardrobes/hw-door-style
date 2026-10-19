@@ -1,0 +1,26 @@
+# Runs the offline tests and builds the .rbz on every push and pull request.
+# The built plugin is attached to the run (Actions > the run > Artifacts).
+name: Test and build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'   # SketchUp 2024-2026 ship Ruby 3.2
+      - name: Syntax check
+        run: find src tools -name '*.rb' -print0 | xargs -0 -n1 ruby -c > /dev/null
+      - name: Offline tests
+        run: ruby test/logic_test.rb
+      - name: Build
+        run: python3 build.py --no-test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hw_door_style
+          path: dist/*.rbz

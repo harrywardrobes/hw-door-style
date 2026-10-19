@@ -10,6 +10,7 @@ require 'json'
 #   job/      runouts (pencil), ceiling height, door summary and order
 #   export/   component library export, OpenCutList
 #   ui/       windows, menus and toolbar  (html/ and icons/ hold the pages / icons)
+#   dev/      acceptance tests and the Developer menu (developer switch on)
 #
 # CONTRIBUTING.md (repo root) explains how to add a setting, a window or a button.
 module HarryWardrobes
@@ -22,7 +23,8 @@ module HarryWardrobes
       colours/colours
       job/runouts job/ceiling job/standardise job/pencil job/pdf job/report
       export/library_export export/opencutlist
-      ui/dialog core/batch ui/colours_window ui/settings_window ui/menus
+      ui/dialog core/batch ui/colours_window ui/settings_window
+      dev/acceptance dev/developer ui/menus
     ].freeze
     FILES.each { |f| Sketchup.require(File.join(PATH, f)) }
 

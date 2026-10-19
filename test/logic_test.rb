@@ -348,6 +348,9 @@ check 'Ops.run transparent step', fm.log.first == [:start, 'C', true]
 fm = FakeModel.new
 Ops.throwaway(fm, 'D') { 1 }
 check 'Ops.throwaway always undone', fm.log == [[:start, 'D', true], [:abort]]
+fm = FakeModel.new
+nested = (Ops.throwaway(fm, 'test') { Ops.run(fm, 'inner') { 1 } } rescue $!)
+check 'step inside a throwaway refused, outer still undone', nested.is_a?(Ops::NestedStep) && fm.log == [[:start, 'test', true], [:abort]] && !Ops.in_throwaway?
 require 'hw_door_style/ui/dialog'
 pages = Dir[File.join(PATH, 'html', '*.html')].map { |f| File.basename(f, '.html') }.reject { |n| n == 'hw' }
 check 'every window uses the shared look', pages.all? { |n| File.read(File.join(PATH, 'html', "#{n}.html")).include?('<!--HW-->') }

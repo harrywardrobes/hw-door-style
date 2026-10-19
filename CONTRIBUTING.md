@@ -87,14 +87,22 @@ Job values stored **on the model** (attribute dictionary `hw_door_style`): `hing
 
 ## Testing
 
-- `ruby test/logic_test.rb`: offline, no SketchUp needed. Run before every commit.
-- In SketchUp: `load 'tools/acceptance_test.rb'; puts HWDoorAcceptance.run_report`
-  (runs inside one undone step).
+- `ruby test/logic_test.rb`: offline, no SketchUp needed. Also runs on GitHub for every push
+  (`.github/workflows/test.yml`, which attaches the built `.rbz` to the run).
+- In SketchUp, on the component library: turn on **Settings > General > Developer mode**,
+  restart SketchUp, then **Extensions > HW Door Style > Developer > Run tests**. Suites:
+  doors (size / slab / hinge contract), runouts (25 mm on, back exactly), ceiling (heights, top
+  doors, bridge alignment), colours, export (read-only). Each runs in an `Ops.throwaway` step,
+  so the model is never changed; `Ops.run` inside one raises `Ops::NestedStep` instead of committing.
+  Add a check by writing a `suite_<name>` method in `dev/acceptance.rb` and listing it in `SUITES`.
+- Developer menu also has **Inspect selected component** (DC options and formulas to the Ruby
+  Console) and **Reload plugin code** (after editing files in the installed plugin folder).
 - Try changes on a copy of a job or inside a step that is undone. `model.save_copy` first
   before editing the component library.
 
 ## Releasing
 
-1. Bump `VERSION` in `src/hw_door_style.rb` and add a `CHANGELOG.md` entry.
-2. `ruby test/logic_test.rb`, then `python3 build.py` (writes `dist/` and `releases/`).
+1. `python3 build.py --bump minor` (or `patch` / `major`): sets `VERSION` and adds a
+   `CHANGELOG.md` heading. Write the notes under it (they show in Settings > General).
+2. `python3 build.py`: runs the tests, then writes `dist/` and `releases/`.
 3. Commit, push, install the `.rbz` from `releases/`.

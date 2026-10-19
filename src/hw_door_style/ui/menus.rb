@@ -76,6 +76,10 @@ module HarryWardrobes
         menu.add_item(c[:ceiling])
         menu.add_item('Runouts - re-apply job values to every unit') { Pencil.show(Sketchup.active_model, nil) }
 
+        # Developer (only with the developer switch on)
+        menu.add_separator if Developer.enabled?
+        Developer.add_menu(menu)
+
         toolbar(c)
         context_menu
       end
