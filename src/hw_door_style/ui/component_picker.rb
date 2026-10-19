@@ -15,6 +15,7 @@ module HarryWardrobes
       ID = 'component_picker'.freeze
       PREF = 'picker_setup'.freeze
       KINDS = [:door, :ext_drawer, :int_drawer].freeze
+      AUTO_SYNC_S = 600 # opening the window checks the library at most every 10 minutes
 
       def self.setup_on?
         Sketchup.read_default(Settings::PREFS, PREF, true) ? true : false
@@ -45,7 +46,7 @@ module HarryWardrobes
         model = Sketchup.active_model
         dlg = Dialog.open(ID, title: 'Add component', key: 'hw_component_picker_v1', width: 780, height: 640,
                               data: data(model), utility: true)
-        dlg.add_action_callback('ready') { |_c| sync(dlg) }
+        dlg.add_action_callback('ready') { |_c| sync(dlg) if @synced_at.nil? || Time.now - @synced_at > AUTO_SYNC_S }
         dlg.add_action_callback('sync') { |_c| sync(dlg) }
         dlg.add_action_callback('place') { |_c, key| place(dlg, key.to_s) }
         dlg.add_action_callback('setSetup') { |_c, on| Sketchup.write_default(Settings::PREFS, PREF, on ? true : false) }
@@ -53,6 +54,15 @@ module HarryWardrobes
         dlg.add_action_callback('job') { |_c| push(dlg, 'setJob', job_summary(Sketchup.active_model)) }
         dlg.show
         dlg
+      end
+
+      # A message: in the window if it's still open, else SketchUp's status bar.
+      def self.tell(dlg, text)
+        if dlg && dlg.visible?
+          push(dlg, 'status', 'text' => text)
+        else
+          Sketchup.status_text = text
+        end
       end
 
       def self.push(dlg, fn, o)
@@ -69,6 +79,7 @@ module HarryWardrobes
         idx = LibraryCache.index
         Steps.one(dlg, 'Checking the library for new versions...',
                   done: lambda { |scanned|
+                    @synced_at = Time.now
                     get, gone = LibraryCache.plan(scanned, idx)
                     LibraryCache.forget(gone, idx)
                     LibraryCache.save_index(idx) unless gone.empty?
@@ -112,7 +123,7 @@ module HarryWardrobes
         model = Sketchup.active_model
         e = LibraryCache.index[key]
         unless e && File.exist?(e['file'].to_s)
-          return push(dlg, 'status', 'text' => 'That component is not on this computer yet - press Check library.', 'warn' => true)
+          return tell(dlg, 'That component is not on this computer yet - press Check library.')
         end
         defn = model.definitions.load(e['file'])
         # Scribes on / off as the model is NOW (the new unit's own runouts mustn't decide it).
@@ -120,11 +131,13 @@ module HarryWardrobes
         @watch&.stop
         @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']))
         model.add_observer(@watch)
+        # Out of the way so the model can be clicked; the result goes to SketchUp's status bar.
+        dlg.close if dlg && dlg.visible?
         model.place_component(defn, false)
-        push(dlg, 'status', 'text' => "Click in the model to place #{LibraryCache.pretty(e['name'])} (Esc to cancel).")
+        Sketchup.status_text = "Click to place #{LibraryCache.pretty(e['name'])} (Esc to cancel)."
       rescue StandardError => err
         Log.error('place component', err)
-        push(dlg, 'status', 'text' => "Couldn't load it: #{err.message}", 'warn' => true)
+        UI.messagebox("Couldn't load that component: #{err.message}")
       end
 
       # Told when the component is put down; sets it up once, then stops listening.
@@ -150,15 +163,15 @@ module HarryWardrobes
       def self.after_place(model, inst, job, dlg, label)
         return unless inst.valid?
         unless job
-          return push(dlg, 'status', 'text' => "#{label} placed (not set up to the job - the tick is off).")
+          return tell(dlg, "#{label} placed (not set up to the job - the tick is off).")
         end
         t = Time.now
         notes = []
         Ops.run(model, "Add #{label}", transparent: true) { notes = setup(model, inst, job) }
-        push(dlg, 'status', 'text' => "#{label} placed and set up in #{(Time.now - t).round(1)} s: #{notes.join(', ')}.")
+        tell(dlg, "#{label} placed and set up in #{(Time.now - t).round(1)} s: #{notes.join(', ')}.")
       rescue StandardError => e
         Log.error('set up placed component', e)
-        push(dlg, 'status', 'text' => "#{label} placed, but setting it up failed: #{e.message}", 'warn' => true)
+        UI.messagebox("#{label} was placed, but setting it up to the job failed:\n\n#{e.message}")
       end
 
       # The job's settings on one newly placed component (inside the caller's step).

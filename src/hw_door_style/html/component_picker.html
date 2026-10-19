@@ -11,7 +11,7 @@ body { padding:0; display:flex; flex-direction:column; background:#f6f7f8; }
 #cats { display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
 .chip { border:1px solid var(--line); background:#fff; border-radius:12px; padding:2px 10px 2px 7px; font-size:11px; cursor:pointer; display:flex; align-items:center; gap:5px; user-select:none; }
 .chip i { width:9px; height:9px; border-radius:50%; display:inline-block; }
-.chip.off { opacity:.4; }
+.chip.on { border-color:var(--accent); background:#eef3f0; font-weight:600; }
 .chip b { font-weight:600; color:var(--muted); }
 #job { margin-top:7px; font-size:10.5px; color:var(--muted); display:flex; flex-wrap:wrap; gap:3px 12px; }
 #job span b { color:var(--ink); font-weight:600; }
@@ -43,11 +43,11 @@ h2 small { color:var(--muted); font-weight:normal; text-transform:none; letter-s
   <div id="job"></div>
 </div>
 <div id="main"><div id="list"></div><div id="empty" style="display:none"></div></div>
-<div id="status"><span id="st">Click a picture, then click in the model to place it.</span><span><a onclick="sketchup.sync()">Check library</a> &nbsp; <a onclick="sketchup.openFolder()">Open library folder</a></span></div>
+<div id="status"><span id="st">Click a picture - this window closes so you can click in the model to place it.</span><span><a onclick="sketchup.sync()">Check library</a> &nbsp; <a onclick="sketchup.openFolder()">Open library folder</a></span></div>
 <script>
 var D = /*DATA*/null;
-var hidden = {}, picked = null;
-try { hidden = JSON.parse(localStorage.getItem('hw_picker_hidden') || '{}'); } catch (e) { hidden = {}; }
+var only = '', picked = null;   // only: the one category shown ('' = all)
+try { only = localStorage.getItem('hw_picker_only') || ''; } catch (e) { only = ''; }
 function catInfo(c){ var r = D.cats.filter(function(x){ return x[0] === c; })[0]; return r || [c, c, '#6a737d']; }
 function initials(l){ return l.split(/[\s-]+/).map(function(w){ return w.charAt(0); }).join('').slice(0, 3); }
 
@@ -56,18 +56,21 @@ function drawCats(){
   D.cards.forEach(function(c){ present[c.cat] = (present[c.cat] || 0) + 1; });
   var order = D.cats.map(function(x){ return x[0]; });
   Object.keys(present).forEach(function(c){ if (order.indexOf(c) < 0) order.push(c); });
-  $('cats').innerHTML = order.filter(function(c){ return present[c]; }).map(function(c){
-    var ci = D.cards.filter(function(x){ return x.cat === c; })[0];
-    return '<span class="chip' + (hidden[c] ? ' off' : '') + '" onclick="toggleCat(\'' + esc(c) + '\')" title="Show / hide"><i style="background:' + ci.colour + '"></i>' + esc(ci.cat_label) + ' <b>' + present[c] + '</b></span>';
-  }).join('');
+  if (only && !present[only]) only = '';
+  $('cats').innerHTML = '<span class="chip' + (only ? '' : ' on') + '" onclick="showCat(\'\')"><i style="background:#c9ced3"></i>All <b>' + D.cards.length + '</b></span>' +
+    order.filter(function(c){ return present[c]; }).map(function(c){
+      var ci = D.cards.filter(function(x){ return x.cat === c; })[0];
+      return '<span class="chip' + (only === c ? ' on' : '') + '" onclick="showCat(\'' + esc(c) + '\')" title="Show only ' + esc(ci.cat_label) + '"><i style="background:' + ci.colour + '"></i>' + esc(ci.cat_label) + ' <b>' + present[c] + '</b></span>';
+    }).join('');
 }
-function toggleCat(c){ hidden[c] = !hidden[c]; try { localStorage.setItem('hw_picker_hidden', JSON.stringify(hidden)); } catch (e) {} drawCats(); draw(); }
+// Click a category: only that one. Click it again (or All): everything.
+function showCat(c){ only = (only === c) ? '' : c; try { localStorage.setItem('hw_picker_only', only); } catch (e) {} drawCats(); draw(); $('main').scrollTop = 0; }
 
 function matches(){
   var q = $('q').value.trim().toLowerCase();
   return D.cards.filter(function(c){
-    if (q) return (c.label + ' ' + c.name + ' ' + c.cat_label).toLowerCase().indexOf(q) >= 0;
-    return !hidden[c.cat];
+    if (q) return (c.label + ' ' + c.name + ' ' + c.cat_label).toLowerCase().indexOf(q) >= 0;   // search looks everywhere
+    return !only || c.cat === only;
   });
 }
 function draw(){
@@ -87,7 +90,7 @@ function draw(){
   $('list').innerHTML = html;
   var e = $('empty');
   if (!D.cards.length) { e.style.display = ''; e.textContent = 'No components on this computer yet - copying them from the library...'; }
-  else if (!list.length) { e.style.display = ''; e.textContent = $('q').value ? 'Nothing matches "' + $('q').value + '".' : 'Every category is hidden - click one above to show it.'; }
+  else if (!list.length) { e.style.display = ''; e.textContent = 'Nothing matches "' + $('q').value + '".'; }
   else e.style.display = 'none';
 }
 function pick(key){ picked = key; draw(); sketchup.place(key); }
