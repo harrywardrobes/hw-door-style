@@ -123,9 +123,10 @@ module HarryWardrobes
                                 bed_requirement_notes cutting_location cutting_location_notes internal_sides
                                 internal_sides_description notes]],
         ['Colours + Style', %w[door_drawer_colour door_style exterior_panel_trim_colour interior_colour worktop_colour]],
-        ['Internal + External Hardware', %w[main_robe_handle main_robe_handle_id main_robe_handle_quantity drawer_handle
-                                            drawer_handle_sku drawer_handle_quantity interior_handle interior_handle_sku
-                                            interior_handle_quantity cable_outlet_quantity internal_mirror_quantity_1150x300]],
+        ['Internal + External Hardware', %w[main_robe_handle main_robe_handle_id robe_handle_supplier main_robe_handle_quantity
+                                            drawer_handle drawer_handle_sku drawer_handle_supplier drawer_handle_quantity
+                                            interior_handle interior_handle_sku interior_handle_supplier interior_handle_quantity
+                                            cable_outlet_quantity internal_mirror_quantity_1150x300]],
         ['Blum Hinges', %w[hinge_quantity_blum_110 hinge_quantity_blum_110_pto hinge_quantity_blum_155
                            hinge_quantity_blum_155_pto hinge_restrictors_required blum_push_tipon_set]],
         ['Drawer Boxes', %w[drawer_type drawer_total_quantity]],
@@ -253,6 +254,10 @@ module HarryWardrobes
         put.call('drawer_type', match_option(dt, m.dig('drawer_type', 'options') || []), shown: dt)
         names = DoorStyleWindow.handle_names(model)
         DoorStyleWindow::HANDLE_NAMES.each { |prop, _l| put.call(prop, names[prop].to_s.empty? ? nil : names[prop], take: true) }
+        HubSpotProducts::ROOM_SUPPLIER.each_value do |prop, _l|
+          v = names[prop].to_s
+          put.call(prop, v.empty? ? nil : v, take: true, shown: v.empty? ? nil : HubSpotProducts.supplier_label(v))
+        end
         put.call('main_robe_handle_quantity', c['h_door'])
         put.call('drawer_handle_quantity', c['h_ext'])
         put.call('interior_handle_quantity', c['h_int'])
@@ -340,7 +345,7 @@ module HarryWardrobes
             end
           end
           model.set_attribute(DICT, 'scribe_values', JSON.generate(runouts)) if took.include?('runouts')
-          hn = DoorStyleWindow::HANDLE_NAMES.map(&:first) & take.keys
+          hn = (DoorStyleWindow::HANDLE_NAMES.map(&:first) + HubSpotProducts::ROOM_SUPPLIER.values.map(&:first)) & take.keys
           unless hn.empty?
             names = DoorStyleWindow.handle_names(model).merge(take.slice(*hn).transform_values(&:to_s))
             model.set_attribute(DICT, 'job_handle_names', JSON.generate(names))

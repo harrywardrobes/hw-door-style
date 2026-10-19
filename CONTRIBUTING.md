@@ -13,7 +13,7 @@ Everything lives in the module `HarryWardrobes::DoorStyle`.
 | `doors/` | `Styles` (Flat / Shaker builders), `Converter`, `Hardware` (hinges / TIP-ON), `Tagger`, `Repair`, `DrawerBox`, `Doors` (what the door menu items do). |
 | `colours/` | `Colours`: the library, painting by tag group, 22mm panels. |
 | `job/` | `Runouts`, `Ceiling`, `Pencil` (button state + window + observers), `Standardise` (one-off component update), `Report` (summary, door order), `Pdf`. |
-| `export/` | `LibraryExport` (Export components), `OpenCutList`, `HubSpot` (API calls, key in SketchUp prefs only), `HubSpotRoom` (file <-> Room link, field mapping, send window), `HubSpotPictures` (scenes -> images -> Room file fields). |
+| `export/` | `LibraryExport` (Export components), `OpenCutList`, `HubSpot` (API calls, key in SketchUp prefs only), `HubSpotRoom` (file <-> Room link, field mapping, send window), `HubSpotPictures` (scenes -> images -> Room file fields), `HubSpotProducts` (Settings > Products <-> HubSpot Products; local copy products.json). |
 | `ui/` | `Dialog` (opens every window), `ColoursWindow`, `SettingsWindow`, `Menus` (menu, toolbar, right-click). |
 | `html/` | One page per window, plus `hw.css` / `hw.js` shared by all of them. |
 
@@ -89,7 +89,7 @@ Window-only data the Settings window receives starts with `_` (`_job`, `_version
 and is never saved; `_debug` is stored as a SketchUp preference (`Log.debug?`).
 
 Job values stored **on the model** (attribute dictionary `hw_door_style`): `hinge_type`,
-`scribe_on`, `scribe_values`, `ceiling_mm`, `facing_btm_mm`, `job_styles`, `job_handles`, `job_handle_names`, colour choices, export versions,
+`scribe_on`, `scribe_values`, `ceiling_mm`, `facing_btm_mm`, `job_styles`, `job_handles`, `job_handle_names`, `job_handle_products`, colour choices, export versions,
 the HubSpot link (`hs_room_id`, `hs_project_id`, `hs_contact_id`, `hs_room_name`, `hs_customer`, `hs_address`, `hs_info`, `hs_sent_at`).
 
 **HubSpot field mapping** lives in `export/hubspot_room.rb` (`fields`). Never add a HubSpot field without

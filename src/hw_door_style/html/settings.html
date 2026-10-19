@@ -95,6 +95,7 @@
   <a data-s="export">Export<i class="dot"></i></a>
   <a data-s="cutlist">Cut list<i class="dot"></i></a>
   <a data-s="hubspot">HubSpot<i class="dot"></i></a>
+  <a data-s="products">Products<i class="dot"></i></a>
   <h3>Plugin</h3>
   <a data-s="general">General<i class="dot"></i></a>
 </nav>
@@ -279,6 +280,37 @@
   </fieldset>
 </section>
 
+<!-- ======================= PRODUCTS ======================= -->
+<section id="s_products" data-nodirty>
+  <h2>Products</h2>
+  <div class="lead">Handles and other hardware, kept in HubSpot's Products. Saving a product here saves it straight to HubSpot (not with the Save button below).</div>
+  <div class="btnrow" style="margin-top:0"><button onclick="prodLoad()">Read from HubSpot</button><button onclick="prodEdit(null)">New product</button><span class="hint" id="prodAt" style="align-self:center;margin:0"></span></div>
+  <div id="prodForm" style="display:none">
+    <fieldset><legend id="prodTitle">New product</legend>
+      <div style="display:grid;grid-template-columns:1fr 130px;gap:12px">
+        <div>
+          <div class="f t"><span>Name</span><input type="text" id="pf_name"></div>
+          <div class="f t"><span>SKU</span><input type="text" id="pf_hs_sku"></div>
+          <div class="f t"><span>Supplier</span><select id="pf_supplier"></select></div>
+          <div class="f t"><span>Product type</span><select id="pf_hs_product_type"></select></div>
+          <div class="f t"><span>Price (you charge, &pound;)</span><input type="number" step="0.01" id="pf_price"></div>
+          <div class="f t"><span>Cost (you pay, &pound;)</span><input type="number" step="0.01" id="pf_hs_cost_of_goods_sold"></div>
+          <div class="f t"><span>Supplier link</span><input type="text" id="pf_hs_url" placeholder="https://..."></div>
+        </div>
+        <div style="text-align:center">
+          <div id="pf_img" style="width:130px;height:130px;border:1px solid var(--line);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;background:#fafbfb;overflow:hidden">No picture</div>
+          <button onclick="sketchup.prodPickImage()" style="margin-top:6px">Choose picture...</button>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:11.5px;font-weight:600">Category <span class="hint" style="font-weight:normal">- where it can be chosen (e.g. Robe handle and Drawer handle)</span></div>
+      <div id="pf_cats" style="display:flex;flex-wrap:wrap;gap:3px 16px;margin-top:3px"></div>
+      <div class="btnrow"><button onclick="prodCancel()">Cancel</button><button class="primary" onclick="prodSave()">Save to HubSpot</button><span class="hint" id="prodMsg" style="align-self:center;margin:0"></span></div>
+    </fieldset>
+  </div>
+  <table class="ocl" style="margin-top:6px"><thead><tr><th style="width:40px"></th><th>Name</th><th>SKU</th><th>Category</th><th>Supplier</th><th style="width:60px"></th></tr></thead><tbody id="prodList"></tbody></table>
+  <div class="hint">New supplier names: add them to the product Supplier field in HubSpot, then Read from HubSpot.</div>
+</section>
+
 <!-- ======================= HUBSPOT ======================= -->
 <section id="s_hubspot">
   <h2>HubSpot</h2>
@@ -413,6 +445,7 @@ function load(s){
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
   PICS = JSON.parse(JSON.stringify(s.hubspot_pictures || [])); picsDraw();
   DRAW = S._style_drawings || {}; SIZES = S._style_sizes || [];
+  PROD = S._products || PROD; prodDraw();
   STY = JSON.parse(JSON.stringify(s.door_styles || [])); STY_SEL = Math.min(STY_SEL, Math.max(STY.length - 1, 0));
   DDS = s.default_door_styles || {}; ['door', 'ext_drawer', 'int_drawer'].forEach(function(k){ $('dds_' + k).value = ''; });
   styDraw();
@@ -647,6 +680,56 @@ function reqDraw(){
     };
   });
 }
+// ---------- products (saved straight to HubSpot) ----------
+var PROD = { products: [], options: {} }, PEDIT = null, PIMG = null;
+function prodOpts(k){ return (PROD.options && PROD.options[k]) || []; }
+function prodLabel(k, v){ var o = prodOpts(k).filter(function(x){ return x[1] === v; })[0]; return o ? o[0] : (v || ''); }
+function prodDraw(){
+  $('prodAt').textContent = PROD.at ? PROD.products.length + ' product(s), read ' + PROD.at : 'Not read from HubSpot yet - press Read from HubSpot.';
+  $('prodList').innerHTML = PROD.products.length ? PROD.products.map(function(p, i){
+    var img = (p.hs_images || '').split(';')[0];
+    var cats = (p.product_category || '').split(';').filter(Boolean).map(function(c){ return prodLabel('categories', c); }).join(', ');
+    return '<tr><td>' + (img ? '<img src="' + esc(img) + '" style="width:32px;height:32px;object-fit:contain">' : '') + '</td><td>' + esc(p.name) + '</td><td>' + esc(p.hs_sku || '') + '</td><td>' + esc(cats) + '</td><td>' + esc(prodLabel('suppliers', p.supplier)) + '</td>' +
+      '<td><button onclick="prodEdit(' + i + ')">Edit</button></td></tr>';
+  }).join('') : '<tr><td colspan="6" class="hint">No products yet.</td></tr>';
+}
+function prodLoad(){ $('prodAt').textContent = ''; sketchup.prodLoad(); }
+function prodList(r){
+  if (r.error) { $('prodAt').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
+  PROD = r.data; prodDraw();
+  if (r.made && r.made.length) $('prodAt').textContent += ' Made in HubSpot: ' + r.made.join(', ') + '.';
+}
+function prodEdit(i){
+  if (!prodOpts('suppliers').length) { $('prodAt').innerHTML = '<span class="no">Press Read from HubSpot first.</span>'; return; }
+  var p = i == null ? { product_category: '' } : PROD.products[i]; PEDIT = p; PIMG = null;
+  $('prodForm').style.display = '';
+  $('prodTitle').textContent = i == null ? 'New product' : 'Edit ' + p.name;
+  ['name', 'hs_sku', 'price', 'hs_cost_of_goods_sold', 'hs_url'].forEach(function(k){ $('pf_' + k).value = p[k] || ''; });
+  $('pf_supplier').innerHTML = '<option value="">--</option>' + prodOpts('suppliers').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === p.supplier ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');
+  $('pf_hs_product_type').innerHTML = '<option value="">--</option>' + prodOpts('types').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === (p.hs_product_type || (i == null ? 'inventory' : '')) ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');
+  var on = (p.product_category || '').split(';');
+  $('pf_cats').innerHTML = prodOpts('categories').map(function(o){ return '<label style="display:flex;gap:4px;align-items:center;font-size:11.5px"><input type="checkbox" style="width:auto" value="' + esc(o[1]) + '"' + (on.indexOf(o[1]) >= 0 ? ' checked' : '') + '> ' + esc(o[0]) + '</label>'; }).join('');
+  var img = (p.hs_images || '').split(';')[0];
+  $('pf_img').innerHTML = img ? '<img src="' + esc(img) + '" style="max-width:100%;max-height:100%">' : 'No picture';
+  $('prodMsg').textContent = '';
+  $('pf_name').focus();
+}
+function prodCancel(){ $('prodForm').style.display = 'none'; PEDIT = null; PIMG = null; }
+function prodImage(r){ if (!r) return; PIMG = r.path; $('pf_img').innerHTML = '<img src="' + r.preview + '" style="max-width:100%;max-height:100%">'; }
+function prodSave(){
+  var f = { id: PEDIT && PEDIT.id || '' };
+  ['name', 'hs_sku', 'price', 'hs_cost_of_goods_sold', 'hs_url', 'supplier', 'hs_product_type'].forEach(function(k){ f[k] = $('pf_' + k).value.trim(); });
+  f.product_category = Array.prototype.filter.call($('pf_cats').querySelectorAll('input'), function(c){ return c.checked; }).map(function(c){ return c.value; });
+  var miss = [];
+  if (!f.name) miss.push('name'); if (!f.hs_sku) miss.push('SKU'); if (!f.supplier) miss.push('supplier'); if (!f.product_category.length) miss.push('a category');
+  if (miss.length) { $('prodMsg').innerHTML = '<span class="no">Fill in ' + esc(miss.join(', ')) + '.</span>'; return; }
+  sketchup.prodSave(JSON.stringify({ form: f, image: PIMG }));
+}
+function prodSaved(r){
+  if (r.error) { $('prodMsg').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
+  PROD = r.data; prodDraw(); prodCancel(); $('prodAt').textContent += ' Saved ' + r.name + ' to HubSpot.';
+}
+
 // ---------- door styles ----------
 var STY = [], STY_SEL = 0;
 var DRAW = {}, SIZES = [];
@@ -740,7 +823,7 @@ load(S);
 libRender();
 renderInfo();
 // Changes to settings fields mark the window unsaved (not the one-off "replace" tick).
-function changed(e){ if (e.target && e.target.id !== 'oclOverwrite' && e.target.id !== 'hsKey') markDirty(); }
+function changed(e){ if (e.target && e.target.id !== 'oclOverwrite' && e.target.id !== 'hsKey' && !(e.target.closest && e.target.closest('[data-nodirty]'))) markDirty(); }
 document.querySelector('.content').addEventListener('input', changed);
 document.querySelector('.content').addEventListener('change', changed);
 setState();

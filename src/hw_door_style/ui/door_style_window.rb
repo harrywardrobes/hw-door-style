@@ -48,7 +48,44 @@ module HarryWardrobes
 
       def self.handle_names(model = Sketchup.active_model)
         saved = json_attr(model, 'job_handle_names')
-        HANDLE_NAMES.to_h { |k, _| [k, saved[k].to_s] }
+        keys = HANDLE_NAMES.map(&:first) + HubSpotProducts::ROOM_SUPPLIER.values.map(&:first)
+        keys.to_h { |k| [k, saved[k].to_s] }
+      end
+
+      # Handle -> product id chosen in the window.
+      def self.handle_products(model = Sketchup.active_model)
+        json_attr(model, 'job_handle_products')
+      end
+
+      # The handle dropdowns: { key => { 'label', 'products' => [...] } } from the local product list.
+      def self.handle_choices
+        HubSpotProducts::HANDLE_CATEGORY.to_h do |key, cat|
+          list = HubSpotProducts.in_category(cat).map do |p|
+            { 'id' => p['id'], 'name' => p['name'], 'sku' => p['hs_sku'], 'supplier' => HubSpotProducts.supplier_label(p['supplier']),
+              'supplier_value' => p['supplier'], 'image' => p['hs_images'].to_s.split(';').first }
+          end
+          [key, { 'label' => HANDLE_NAMES.to_h[key], 'products' => list }]
+        end
+      end
+
+      # Names, SKUs and suppliers for the chosen products (blank = no handle chosen).
+      def self.names_for(picks, old = {})
+        out = {}
+        HubSpotProducts::HANDLE_CATEGORY.each_key do |key|
+          sku_key = HANDLE_NAMES.map(&:first)[HANDLE_NAMES.map(&:first).index(key) + 1]
+          sup_key = HubSpotProducts::ROOM_SUPPLIER[key][0]
+          id = picks[key].to_s
+          if id == '_keep'
+            [key, sku_key, sup_key].each { |k| out[k] = old[k].to_s }
+          elsif (p = HubSpotProducts.find(id))
+            out[key] = p['name'].to_s
+            out[sku_key] = p['hs_sku'].to_s
+            out[sup_key] = p['supplier'].to_s
+          else
+            [key, sku_key, sup_key].each { |k| out[k] = '' }
+          end
+        end
+        out
       end
 
       # Items of each row: { kind => { 'total', 'override', 'styled' } }.
@@ -71,7 +108,9 @@ module HarryWardrobes
           end,
           'hinge_types' => Settings::HINGE_TYPES, 'hinge' => Settings.job_hinge_type(model),
           'handles' => Settings.job_handles(model), 'handle_defaults' => Settings.job_handles,
-          'names' => handle_names(model), 'name_labels' => HANDLE_NAMES
+          'names' => handle_names(model), 'name_labels' => HANDLE_NAMES,
+          'handle_choices' => handle_choices, 'handle_products' => handle_products(model),
+          'products_at' => HubSpotProducts.local['at']
         }
       end
 
@@ -106,13 +145,19 @@ module HarryWardrobes
 
       def self.show(model = Sketchup.active_model)
         dlg = Dialog.open('door_style', title: 'HW - Door style', key: 'hw_door_style_window', width: 620, height: 720, data: data(model))
+        dlg.add_action_callback('refreshProducts') do |_c|
+          Steps.one(dlg, 'Reading products from HubSpot',
+                    done: ->(_r) { dlg.execute_script("productsRefreshed(#{JSON.generate('choices' => handle_choices, 'at' => HubSpotProducts.local['at'])})") },
+                    fail: ->(e) { dlg.execute_script("productsRefreshed(#{JSON.generate('error' => e.message)})") }) { HubSpotProducts.refresh! }
+        end
         dlg.add_action_callback('apply') do |_c, json|
           req = JSON.parse(json)
           styles = ROWS.to_h { |k, _l, _h| [k, Styles.ready?(req.dig('styles', k)) ? req.dig('styles', k) : 'flat'] }
           hinge = Settings::HINGE_TYPES.key?(req['hinge']) ? req['hinge'] : Settings.job_hinge_type(model)
           handles = Settings::HANDLE_KEYS.to_h { |k| [k, req.dig('handles', k)] }
           handles['handle_double_min_width_mm'] = handles['handle_double_min_width_mm'].to_f
-          names = HANDLE_NAMES.to_h { |k, _| [k, req.dig('names', k).to_s.strip] }
+          picks = (req['handle_products'] || {}).to_h { |k, v| [k.to_s, v.to_s] }
+          names = names_for(picks, handle_names(model))
           work = plan(model, styles, hinge, req['reset'] ? true : false)
           next if !work.empty? && !Doors.colour_ready?
 
@@ -129,6 +174,7 @@ module HarryWardrobes
               model.set_attribute(DICT, 'job_styles', JSON.generate(styles))
               model.set_attribute(DICT, 'job_handles', JSON.generate(handles))
               model.set_attribute(DICT, 'job_handle_names', JSON.generate(names))
+              model.set_attribute(DICT, 'job_handle_products', JSON.generate(picks.reject { |_k, v| v == '_keep' }))
               Settings.set_job_hinge_type(hinge, model)
             end
           }]]

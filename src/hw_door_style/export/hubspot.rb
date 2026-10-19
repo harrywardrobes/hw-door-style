@@ -134,7 +134,8 @@ module HarryWardrobes
         ['projects', 'Projects',                                   '/crm/v3/objects/projects?limit=1'],
         ['notes',    'Notes (to attach files)',                    '/crm/v3/objects/notes?limit=1'],
         ['files',    'Files (door order PDF, pictures)',           '/files/v3/files/search?limit=1'],
-        ['owners',   'Users (Installer / Surveyor fields)',        '/crm/v3/owners?limit=1']
+        ['owners',   'Users (Installer / Surveyor fields)',        '/crm/v3/owners?limit=1'],
+        ['products', 'Products (handles and hardware)',            '/crm/v3/objects/products?limit=1']
       ].freeze
 
       # { 'portal' =>, 'region' =>, 'checks' => [{ id, label, ok, detail }] }
@@ -240,11 +241,17 @@ module HarryWardrobes
       # Uploads one picture to HubSpot's file manager; returns its file id.
       # Same folder as a file added on the Room card in HubSpot; private (signed-in users only).
       def self.upload(path, folder)
+        upload_file(path, folder)['id'].to_s
+      end
+
+      # One file to HubSpot's file manager; returns HubSpot's file record (id, url...).
+      # PRIVATE: only signed-in HubSpot users can open it (HIDDEN_PRIVATE, which HubSpot
+      # itself uses for record files, is refused through the API as "Invalid JSON").
+      # PUBLIC_NOT_INDEXABLE: anyone with the link (product pictures).
+      def self.upload_file(path, folder, access: 'PRIVATE')
         raise Error, 'No HubSpot key saved (Settings > HubSpot).' unless key?
         uri = URI("#{BASE}/files/v3/files")
-        # PRIVATE: only signed-in HubSpot users can open it. (HIDDEN_PRIVATE, which HubSpot
-        # itself uses for record files, is refused through the API as "Invalid JSON".)
-        opts = JSON.generate(access: 'PRIVATE')
+        opts = JSON.generate(access: access)
         data = nil
         File.open(path, 'rb') do |io|
           data = perform(5, read_timeout: 120) do
@@ -254,7 +261,7 @@ module HarryWardrobes
             req
           end
         end
-        data['id'].to_s
+        data
       end
 
       def self.update_room(id, props)

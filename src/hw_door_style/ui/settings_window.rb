@@ -24,6 +24,7 @@ module HarryWardrobes
           '_job' => job_info(model),
           '_update' => update_info,
           '_hubspot' => { 'hint' => HubSpot.key_hint },
+          '_products' => HubSpotProducts.local,
           '_style_drawings' => Styles::DRAWINGS.transform_values { |d| d[:sizes] },
           '_style_sizes' => Styles::ALL_SIZES.map { |k| [k, Styles::SIZE_LABELS[k]] }
         )
@@ -154,6 +155,28 @@ module HarryWardrobes
                       dlg.execute_script("hsStageList(#{JSON.generate('stages' => st, 'sections' => secs)})")
                     },
                     fail: ->(e) { dlg.execute_script("hsStageList(#{JSON.generate('error' => e.message)})") })
+        end
+        dlg.add_action_callback('prodLoad') do |_c|
+          made = []
+          Steps.run(dlg, [['Checking the Supplier and Category fields', -> { made = HubSpotProducts.ensure_fields }],
+                          ['Reading products from HubSpot', -> { HubSpotProducts.refresh! }]],
+                    done: ->(_r) { dlg.execute_script("prodList(#{JSON.generate('data' => HubSpotProducts.local, 'made' => made)})") },
+                    fail: ->(e) { dlg.execute_script("prodList(#{JSON.generate('error' => e.message)})") })
+        end
+        dlg.add_action_callback('prodPickImage') do |_c|
+          f = UI.openpanel('Picture of the product', nil, 'Images|*.jpg;*.jpeg;*.png;*.webp||')
+          next unless f
+          ext = File.extname(f).downcase.delete('.')
+          mime = { 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'png' => 'png', 'webp' => 'webp' }[ext] || 'jpeg'
+          prev = File.size(f) < 8_000_000 ? "data:image/#{mime};base64,#{[File.binread(f)].pack('m0')}" : ''
+          dlg.execute_script("prodImage(#{JSON.generate('path' => f, 'preview' => prev)})")
+        end
+        dlg.add_action_callback('prodSave') do |_c, json|
+          req = JSON.parse(json)
+          saved = nil
+          Steps.run(dlg, [['Saving the product to HubSpot' + (req['image'] ? ' (with its picture)' : ''), -> { saved = HubSpotProducts.save(req['form'], req['image']) }]],
+                    done: ->(_r) { dlg.execute_script("prodSaved(#{JSON.generate('data' => HubSpotProducts.local, 'name' => saved['name'])})") },
+                    fail: ->(e) { dlg.execute_script("prodSaved(#{JSON.generate('error' => e.message)})") }, count: false)
         end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.28.0 — 2026-10-19
+- **Settings > Products**, kept in HubSpot's Products: name, SKU, category (Robe / Drawer / Interior handle,
+  Hinge, TIP-ON, Drawer box, Drawer runner, Mirror, Cable outlet, Other hardware - tick as many as fit),
+  supplier, product type, price, cost, supplier link and a picture. Save to HubSpot creates or updates the
+  product straight away. Read from HubSpot brings in products (and suppliers) added or changed there.
+- New HubSpot fields (made the first time you press Read from HubSpot): product Supplier (Integral, HPP,
+  Interfit - add more in HubSpot), product Category, and Robe / Drawer / Interior Handle Supplier on the Room.
+- **Door style window: handles are dropdowns** of the products in each category; the SKU and supplier fill in
+  and can't be edited. Handle names entered before stay until you pick a product.
+- Send to HubSpot sends each handle's supplier to the Room, next to its SKU, so whoever orders knows where from.
+- Needs the HubSpot key's e-commerce (Products) permission - Settings > HubSpot > Test connection shows it.
+
 ## 0.27.0 — 2026-10-19
 - **Hinges on the correct side.** Double doors: the left door is hinged on its left edge, the right door on its
   right. Single door: new unit option "Hinge side (single door)" (Left / Right), added next to Double / Single
