@@ -13,8 +13,7 @@ module HarryWardrobes
       end
 
       def self.dc_name(inst)
-        n = inst.get_attribute('dynamic_attributes', '_name')
-        n = inst.definition.get_attribute('dynamic_attributes', '_name') if n.nil? || n.to_s.empty?
+        n = DC.read(inst, '_name')
         n.to_s.strip.upcase
       end
 
@@ -114,7 +113,7 @@ module HarryWardrobes
         scale, = decompose(inst.transformation)
         b = body_bounds(inst.definition)
         geo = [b.width * scale[0], b.height * scale[1], b.depth * scale[2]].map(&:to_f)
-        dc = %w[lenx leny lenz].map { |k| inst.get_attribute('dynamic_attributes', k) }
+        dc = %w[lenx leny lenz].map { |k| DC.get(inst, k) } # instance only: the drawn size
         geo.each_index.map do |i|
           v = dc[i]
           ok = v.is_a?(Numeric) && v > 0 && (i == 1 || (v - geo[i]).abs < 1.mm)

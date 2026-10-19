@@ -39,11 +39,35 @@ module HarryWardrobes
         key_in(dict(inst), base) || (inst.respond_to?(:definition) ? key_in(dict(inst.definition), base) : nil)
       end
 
-      # Reads a key from the instance, falling back to the definition.
+      # Reading values - the one way to do it:
+      #   DC.read(inst, 'j01_runout_floor')  exact key
+      #   DC.value(inst, 'runout_floor')     base name, finds any section prefix
+      # Both look on the instance first, then its definition (an empty
+      # instance value counts as not set). nil = the component hasn't got it.
       def self.read(inst, key)
         v = get(inst, key)
-        v = get(inst.definition, key) if v.nil? || v.to_s.empty?
+        v = get(inst.definition, key) if (v.nil? || v.to_s.empty?) && inst.respond_to?(:definition)
         v
+      end
+
+      def self.value(inst, base)
+        k = key(inst, base) or return nil
+        read(inst, k)
+      end
+
+      # Sets an option on the instance by base name, under its real (prefixed)
+      # key. Returns the key used, or nil if the component hasn't got it.
+      def self.set_value(inst, base, v)
+        k = key(inst, base) or return nil
+        inst.set_attribute(DICT_NAME, k, plain(v))
+        k
+      end
+
+      # The formula behind a key (instance first, then definition), or ''.
+      def self.formula_of(inst, key)
+        f = get(inst, "_#{key}_formula")
+        f = get(inst.definition, "_#{key}_formula") if f.to_s.strip.empty? && inst.respond_to?(:definition)
+        f.to_s
       end
 
       def self.set(objs, key, value)

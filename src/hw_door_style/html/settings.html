@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Settings</title>
+<!--HW-->
 <style>
-  * { box-sizing:border-box; }
   body { font:12px/1.3 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:10px 12px; }
   .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   fieldset { border:1px solid #dfe2e5; border-radius:4px; margin:0; padding:6px 8px 8px; min-width:0; }
@@ -46,7 +46,6 @@
 
   .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
   button { font:inherit; padding:4px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
-  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
 </style>
 </head>
 <body>
@@ -185,7 +184,6 @@ var NUMS = ['door_frame_mm','drawer_stile_mm','drawer_frame_mm','recess_mm','min
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
 var GROUPS = ['door','exterior','interior','worktop'];
-function $(id){ return document.getElementById(id); }
 function split(v){ return v.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); }
 function load(s){
   LISTS.forEach(function(k){ $(k).value = (s[k]||[]).join(', '); });
@@ -238,20 +236,19 @@ function rgbOf(h){ return [1,3,5].map(function(i){ return parseInt(h.substr(i, 2
 function swStyle(c){ return c.img ? 'background-image:url(' + c.img + ')' : 'background:rgb(' + c.rgb.join(',') + ')'; }
 function libRender(){
   var h = '';
-  LIB.forEach(function(c, i){ h += '<div class="sw' + (i === SEL ? ' on' : '') + '" onclick="libPick(' + i + ')" title="' + escH(c.name) + '"><div class="t" style="' + swStyle(c) + '"></div><div class="n">' + escH(c.name) + '</div></div>'; });
+  LIB.forEach(function(c, i){ h += '<div class="sw' + (i === SEL ? ' on' : '') + '" onclick="libPick(' + i + ')" title="' + esc(c.name) + '"><div class="t" style="' + swStyle(c) + '"></div><div class="n">' + esc(c.name) + '</div></div>'; });
   $('swatches').innerHTML = h;
   var c = LIB[SEL];
   if (!c) { $('ed').innerHTML = '<div class="hint">No colours.</div>'; return; }
   $('ed').innerHTML =
     '<div class="big" style="' + swStyle(c) + '"></div>' +
-    '<div class="f"><span>Name</span><input type="text" value="' + escH(c.name) + '" oninput="LIB[SEL].name=this.value; libSoft()"></div>' +
+    '<div class="f"><span>Name</span><input type="text" value="' + esc(c.name) + '" oninput="LIB[SEL].name=this.value; libSoft()"></div>' +
     '<div class="f"><span>Colour</span><input type="color" value="' + hex(c.rgb) + '" oninput="LIB[SEL].rgb=rgbOf(this.value); libSoft()"></div>' +
-    '<div class="f"><span>Texture</span><span style="font-size:11px">' + (c.texture ? escH(c.texture) : 'none') + '</span></div>' +
+    '<div class="f"><span>Texture</span><span style="font-size:11px">' + (c.texture ? esc(c.texture) : 'none') + '</span></div>' +
     '<div class="f"><span>Size (mm)</span><input type="number" value="' + (c.size_mm || '') + '" oninput="LIB[SEL].size_mm=parseFloat(this.value)||null"' + (c.texture ? '' : ' disabled') + '></div>' +
     '<div class="f c"><span>22mm Panels row only</span><input type="checkbox"' + (c.only ? ' checked' : '') + ' onchange="if(this.checked){LIB[SEL].only=[\'panels_22\'];}else{delete LIB[SEL].only;}"></div>' +
     '<div class="btns"><button onclick="sketchup.pickTexture(SEL)">Choose image...</button>' + (c.texture ? '<button onclick="libNoTex()">Remove image</button>' : '') + '</div>';
 }
-function escH(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]; }); }
 function libSoft(){ var c = LIB[SEL]; var t = document.querySelectorAll('#swatches .sw')[SEL]; if (t) { t.querySelector('.t').setAttribute('style', swStyle(c)); t.querySelector('.n').textContent = c.name; } var b = document.querySelector('#ed .big'); if (b) b.setAttribute('style', swStyle(c)); }
 function libPick(i){ SEL = i; libRender(); }
 function libAdd(){ LIB.push({ name: 'New colour', rgb: [200, 200, 200] }); SEL = LIB.length - 1; libRender(); }
@@ -265,11 +262,11 @@ libRender();
 // ---- OpenCutList tab ----
 (function(){
   var o = S._ocl || {};
-  var st = o.installed ? '<span class="ok">OpenCutList installed</span>' + (o.version ? ' (v' + escH(o.version) + ')' : '') + (o.loaded ? '' : ' - not loaded')
+  var st = o.installed ? '<span class="ok">OpenCutList installed</span>' + (o.version ? ' (v' + esc(o.version) + ')' : '') + (o.loaded ? '' : ' - not loaded')
                        : '<span class="no">OpenCutList not found</span> - install it from the Extension Warehouse to use these ideas.';
   st += '<div class="hint">' + (o.materials_with_ocl || 0) + ' of ' + (o.materials || 0) + ' materials in this model already have OpenCutList settings.</div>';
   $('oclStatus').innerHTML = st;
-  $('oclPlan').innerHTML = (o.plan || []).map(function(r){ return '<tr><td>' + escH(r.material) + '</td><td>' + escH(r.type) + '</td><td>' + escH(r.thickness) + '</td><td>' + escH(r.grained) + '</td></tr>'; }).join('');
+  $('oclPlan').innerHTML = (o.plan || []).map(function(r){ return '<tr><td>' + esc(r.material) + '</td><td>' + esc(r.type) + '</td><td>' + esc(r.thickness) + '</td><td>' + esc(r.grained) + '</td></tr>'; }).join('');
 })();
 
 function tab(t){

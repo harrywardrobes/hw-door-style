@@ -25,15 +25,7 @@ module HarryWardrobes
         model = Sketchup.active_model
         return { items: 0, definitions: 0, notes: [] } if pairs.empty?
 
-        model.start_operation(op_name, true)
-        begin
-          res = rebuild(model, pairs, style, hinge_type: hinge_type)
-          model.commit_operation
-          res
-        rescue StandardError => e
-          model.abort_operation
-          raise e
-        end
+        Ops.run(model, op_name) { rebuild(model, pairs, style, hinge_type: hinge_type) }
       end
 
       # Current style of an item (for Rebuild / Repair).

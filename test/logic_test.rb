@@ -49,10 +49,13 @@ module HarryWardrobes
     DICT = 'hw_door_style'
   end
 end
-require 'hw_door_style/settings'
-require 'hw_door_style/finder'
-require 'hw_door_style/styles'
-require 'hw_door_style/report'
+require 'hw_door_style/core/log'
+require 'hw_door_style/core/settings'
+require 'hw_door_style/core/dc'
+require 'hw_door_style/core/finder'
+require 'hw_door_style/core/ops'
+require 'hw_door_style/doors/styles'
+require 'hw_door_style/job/report'
 
 include HarryWardrobes::DoorStyle
 $fail = 0
@@ -158,7 +161,7 @@ check 'internal drawer 696 = 2', Settings.handle_count(:int_drawer, 696.mm, fals
 rows[0]['handles'] = 1
 
 # --- colours
-require 'hw_door_style/colours'
+require 'hw_door_style/colours/colours'
 check '13 colours', Colours.names.size == 13 && Colours.names.include?('Stone Grey')
 check 'woodgrain textures bundled', Colours.library.select { |c| c['texture'] }.all? { |c| File.exist?(File.join(Colours::TEXTURES, c['texture'])) }
 check 'defaults start as Default (box, 22mm panels aside)', Colours.defaults.reject { |k, _| %w[drawer_box panels_22].include?(k) }.values.uniq == ['Default']
@@ -176,7 +179,7 @@ check 'others Default with no door = no material', Colours.resolve('exterior', '
 check 'hinges on hinges tag', Settings.get['hinge_tag'] == 'hinges'
 
 # --- drawer box
-require 'hw_door_style/drawer_box'
+require 'hw_door_style/doors/drawer_box'
 check 'Windsor Oak, Light Grey, Graphite Grey', DrawerBox.names == ['Windsor Oak', 'Light Grey', 'Graphite Grey']
 check 'Windsor 15mm, Light Grey 16mm', DrawerBox.thickness_mm('Windsor Oak') == 15 && DrawerBox.thickness_mm('Light Grey') == 16 && DrawerBox.thickness_mm('Graphite Grey') == 16
 check 'Interfit-Box- material names', DrawerBox.library.map { |b| b['material'] } == ['Interfit-Box-Windsor-Oak', 'Interfit-Box-Light-Grey', 'Interfit-Box-Graphite-Grey']
@@ -188,7 +191,7 @@ check 'hooks/runners not box parts', !Settings.names('drawer_box_parts').any? { 
 
 # --- export naming + versioning
 require 'tmpdir'
-require 'hw_door_style/pdf'
+require 'hw_door_style/job/pdf'
 Dir.mktmpdir do |dir|
   check 'first export is v1', Report.next_version(dir, 'Smith Wardrobes') == 1
   check 'stem format', Report.order_stem(1, 'Smith Wardrobes') == 'DOOR_ORDER_v1_Smith Wardrobes'
@@ -212,7 +215,7 @@ end
 
 # --- library export (file names, versions, _old)
 require 'tmpdir'
-require 'hw_door_style/library_export'
+require 'hw_door_style/export/library_export'
 LE = LibraryExport
 Dir.mktmpdir do |root|
   %w[_old WARDROBES DRAWERS BRIDGE BOOKCASE SHELVING HW\ Colours].each { |d| FileUtils.mkdir_p(File.join(root, d)) }
@@ -248,22 +251,27 @@ Dir.mktmpdir do |root|
 end
 
 # --- scribe / runout
-require 'hw_door_style/dc'
-require 'hw_door_style/scribe'
-SC = Scribe
-check 'runout dropdown 0/25/50/75/100/150', SC.options_string == '&0mm=0.0' + [25, 50, 75, 100, 150].map { |v| "&#{v}mm=#{v / 25.4}" }.join + '&'
-check 'runout defaults 25 all sides', SC.defaults.values.uniq == [25.0] && SC.defaults.keys == %w[floor ceiling left right back]
-check 'rename SCRIBE_L key', SC.rename_key('scribe_l') == 'runout_l' && SC.rename_key('_scribe_r_label') == '_runout_r_label' && SC.rename_key('_inst__scribe_l_formula') == '_inst__runout_l_formula'
-check 'rename leaves others', SC.rename_key('zz_scribe_l') == 'zz_scribe_l' && SC.rename_key('scribe_1_label') == 'scribe_1_label' && SC.rename_key('_scribe_l_options') == '_runout_l_options'
-check 'rename formulas', SC.rename_formula('IF(WALL_LEFT="TRUE", SCRIBE_L, 0)') == 'IF(WALL_LEFT="TRUE", RUNOUT_L, 0)' &&
-                         SC.rename_formula('(THICKNESS / 2) + parent!SCRIBE_R') == '(THICKNESS / 2) + parent!RUNOUT_R' &&
-                         SC.rename_formula('parent!ZZ_SCRIBE_L') == 'parent!ZZ_SCRIBE_L'
+require 'hw_door_style/core/drawers'
+require 'hw_door_style/job/runouts'
+require 'hw_door_style/job/ceiling'
+require 'hw_door_style/job/standardise'
+require 'hw_door_style/job/pencil'
+RO = Runouts
+ST = Standardise
+PN = Pencil
+check 'runout dropdown 0/25/50/75/100/150', ST.options_string == '&0mm=0.0' + [25, 50, 75, 100, 150].map { |v| "&#{v}mm=#{v / 25.4}" }.join + '&'
+check 'runout defaults 25 all sides', RO.defaults.values.uniq == [25.0] && RO.defaults.keys == %w[floor ceiling left right back]
+check 'rename SCRIBE_L key', ST.rename_key('scribe_l') == 'runout_l' && ST.rename_key('_scribe_r_label') == '_runout_r_label' && ST.rename_key('_inst__scribe_l_formula') == '_inst__runout_l_formula'
+check 'rename leaves others', ST.rename_key('zz_scribe_l') == 'zz_scribe_l' && ST.rename_key('scribe_1_label') == 'scribe_1_label' && ST.rename_key('_scribe_l_options') == '_runout_l_options'
+check 'rename formulas', ST.rename_formula('IF(WALL_LEFT="TRUE", SCRIBE_L, 0)') == 'IF(WALL_LEFT="TRUE", RUNOUT_L, 0)' &&
+                         ST.rename_formula('(THICKNESS / 2) + parent!SCRIBE_R') == '(THICKNESS / 2) + parent!RUNOUT_R' &&
+                         ST.rename_formula('parent!ZZ_SCRIBE_L') == 'parent!ZZ_SCRIBE_L'
 h = { 'j01_runout_floor' => '1', 'runout_ceiling' => '2', 'a01_frame_width' => 3, 'zz_runout_back' => 4 }
 check 'prefixed key found', DC.key_in(h, 'runout_floor') == 'j01_runout_floor' && DC.key_in(h, 'frame_width') == 'a01_frame_width'
 check 'plain key still found', DC.key_in(h, 'runout_ceiling') == 'runout_ceiling'
 check 'no false match (zz_ / partial)', DC.key_in(h, 'runout_back') .nil? && DC.key_in(h, 'width').nil?
-check 'unit key match (plain + prefixed)', %w[runout_floor j01_runout_floor j05_runout_back_wall runout_l].all? { |k| SC::UNIT_KEY.match?(k) } &&
-                                          %w[zz_runout_l runout_lx _runout_l_label runout_back].none? { |k| SC::UNIT_KEY.match?(k) }
+check 'unit key match (plain + prefixed)', %w[runout_floor j01_runout_floor j05_runout_back_wall runout_l].all? { |k| RO::UNIT_KEY.match?(k) } &&
+                                          %w[zz_runout_l runout_lx _runout_l_label runout_back].none? { |k| RO::UNIT_KEY.match?(k) }
 FDict = Struct.new(:h) do
   def each_pair(&b); h.each_pair(&b); end
 end
@@ -272,10 +280,10 @@ FE = Struct.new(:dd) do
 end
 fu = FE.new({ 'j01_runout_floor' => '0.0', 'j03_runout_l' => '0' })
 def fu.definition; FE.new({ 'j01_runout_floor' => (25 / 25.4).to_s, 'a01_frame_width' => '20' }); end
-check 'instance runout 0 wins over definition 25', SC.any_runout?(fu) == false
+check 'instance runout 0 wins over definition 25', RO.any?(fu) == false
 fu2 = FE.new(nil)
 def fu2.definition; FE.new({ 'j05_runout_back_wall' => (25 / 25.4).to_s }); end
-check 'definition runout used when instance has none', SC.any_runout?(fu2) == true
+check 'definition runout used when instance has none', RO.any?(fu2) == true
 # Fake tree: model > group > [unit A, unit B, 3 hinges sharing one definition]
 FDef = Struct.new(:entities, :name)
 class FInst < Sketchup::ComponentInstance
@@ -300,26 +308,59 @@ hinges = Array.new(3) { FInst.new(hinge_def, false) }
 grp = FGroup.new(FDef.new(FEnts.new([ua] + hinges + [ub]), 'G'))
 fake_m = Struct.new(:entities).new(FEnts.new([grp]))
 def fake_m.get_attribute(*_a); true; end
-SC.define_singleton_method(:unit?) { |i| i.unit }
-SC.define_singleton_method(:any_runout?) { |u| u.runout > SC::TOL }
-check 'units found inside groups', SC.units(fake_m.entities) == [ua, ub]
+RO.define_singleton_method(:unit?) { |i| i.unit }
+RO.define_singleton_method(:any?) { |u| u.runout > RO::TOL }
+check 'units found inside groups', RO.units(fake_m.entities) == [ua, ub]
 check 'repeated parts looked into once', $visits[hinge_def.entities.object_id] == 1 && $visits[screw.object_id] == 1
-check 'pencil off when every runout is 0', SC.detect(fake_m) == false
+check 'pencil off when every runout is 0', PN.detect(fake_m) == false
 ua.runout = 25.0
 $visits.clear
-check 'pencil on when any runout > 0', SC.detect(fake_m) == true
+check 'pencil on when any runout > 0', PN.detect(fake_m) == true
 check 'pencil check stops at first unit with a runout', $visits[hinge_def.entities.object_id].zero?
 empty_m = Struct.new(:entities).new(FEnts.new)
 def empty_m.get_attribute(*_a); false; end
-check 'no units: stored pencil state used', SC.detect(empty_m) == false
-SC.invalidate
-SC.hold
-SC.invalidate
-check 'pencil check held during a long job', SC.busy?
+check 'no units: stored pencil state used', PN.detect(empty_m) == false
+PN.invalidate
+PN.hold
+PN.invalidate
+check 'pencil check held during a long job', PN.busy?
 module UI; def self.refresh_toolbars; end; end unless defined?(UI)
-SC.release
-check 'released after the job', !SC.busy?
-check '25mm stored as inches string', SC.inch_s(25) == (25 / 25.4).to_s
+PN.release
+check 'released after the job', !PN.busy?
+check '25mm stored as inches string', RO.inch_s(25) == (25 / 25.4).to_s
+
+# --- undo steps (core/ops) and windows (ui/dialog) ---
+class FakeModel
+  attr_reader :log
+  def initialize; @log = []; end
+  def start_operation(n, *a); @log << [:start, n, a.last]; end
+  def commit_operation; @log << [:commit]; end
+  def abort_operation; @log << [:abort]; end
+end
+fm = FakeModel.new
+check 'Ops.run commits and returns the result', Ops.run(fm, 'A') { 42 } == 42 && fm.log == [[:start, 'A', false], [:commit]]
+fm = FakeModel.new
+err = (Ops.run(fm, 'B') { raise 'boom' } rescue $!)
+check 'Ops.run undoes and re-raises on error', err.message == 'boom' && fm.log == [[:start, 'B', false], [:abort]]
+fm = FakeModel.new
+Ops.run(fm, 'C', transparent: true) { nil }
+check 'Ops.run transparent step', fm.log.first == [:start, 'C', true]
+fm = FakeModel.new
+Ops.throwaway(fm, 'D') { 1 }
+check 'Ops.throwaway always undone', fm.log == [[:start, 'D', true], [:abort]]
+require 'hw_door_style/ui/dialog'
+pages = Dir[File.join(PATH, 'html', '*.html')].map { |f| File.basename(f, '.html') }.reject { |n| n == 'hw' }
+check 'every window uses the shared look', pages.all? { |n| File.read(File.join(PATH, 'html', "#{n}.html")).include?('<!--HW-->') }
+h = Dialog.html('ceiling', { 'ceiling' => 2400, 'note' => 'a\\b $1' })
+check 'window gets shared css/js + data', h.include?('--accent') && h.include?('function esc(') && h.include?('"ceiling":2400') && h.include?('$1') && !h.include?('/*DATA*/null')
+check 'no window defines its own esc()', pages.none? { |n| File.read(File.join(PATH, 'html', "#{n}.html")) =~ /function esc\(/ }
+
+# --- every setting the code reads is in settings_default.json ---
+used = Dir[File.join(PATH, '**', '*.rb')].flat_map do |f|
+  File.read(f, encoding: 'UTF-8').scan(/Settings\.(?:get\[|mm\(|names\()'([a-z0-9_]+)'/).flatten
+end.uniq
+missing = used - Settings.defaults.keys
+check "settings keys used in code exist (#{used.size})", missing.empty? || (puts("  missing: #{missing.join(', ')}") || false)
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

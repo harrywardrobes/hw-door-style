@@ -12,7 +12,8 @@ See [SPEC.md](SPEC.md) for the full behaviour and design decisions.
 2. SketchUp → **Extensions → Extension Manager → Install Extension** → pick the `.rbz`.
 3. If the toolbar doesn't appear: **View → Toolbars → HW Door Style**.
 
-To update, install the newer `.rbz` over the old one. Your settings (`settings.json`) are kept.
+To update, install the newer `.rbz` over the old one. Your settings are kept (they live in
+`%APPDATA%\HW Door Style\settings.json`, outside the plugin folder).
 
 ## Downloads
 
@@ -56,36 +57,28 @@ Drawer fronts are named `DRW_FRONT` (external) and `INT_DRW_FRONT` (internal). I
 
 ## Develop
 
+See **CONTRIBUTING.md** for how the code is laid out, the rules every change follows
+(undo steps, Dynamic Component values, windows) and how to add a setting, a window,
+a toolbar button or a door style.
+
 ```
-src/hw_door_style.rb            extension loader
-src/hw_door_style/main.rb       menus, toolbar, right-click, actions
-src/hw_door_style/settings.rb   settings + job hinge type
-src/hw_door_style/finder.rb     finding and measuring doors/drawer fronts
-src/hw_door_style/styles.rb     style registry (add new styles here)
-src/hw_door_style/hardware.rb   hinge / TIP-ON cutlist parts
-src/hw_door_style/converter.rb  rebuilds wrappers to the DOOR_W/T/H contract
-src/hw_door_style/dc.rb         Dynamic Component attribute helpers
-src/hw_door_style/repair.rb     Repair doors in model + contract checks
-src/hw_door_style/library_export.rb  Export components (versioned files, _old)
-src/hw_door_style/scribe.rb     Scribe / runout (pencil) + ceiling height
-src/hw_door_style/opencutlist.rb  OpenCutList status / plan (Settings -> Cut list)
-src/hw_door_style/report.rb     summary, CSV, export naming/versioning
-src/hw_door_style/pdf.rb        built-in PDF writer
-src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging
-src/hw_door_style/colours.rb    colour library + painting by tag group
-src/hw_door_style/drawer_box.rb drawer box finish + thickness
-src/hw_door_style/colours.json  the 13 colours
-src/hw_door_style/textures/     woodgrain textures
-tools/hw_inspect.rb             read-only model inspector for the Ruby Console
-materials/                      colour pack: make_skm.rb, swatches, RGB values
-materials/interfit_box/         Interfit drawer box texture + .skm maker
-test/logic_test.rb              offline logic tests (ruby test/logic_test.rb)
+src/hw_door_style.rb        extension loader (version, SketchUp 2021+ check)
+src/hw_door_style/main.rb   loads every file below, builds the menus once
+  core/      settings, DC attributes, finding parts, undo steps (Ops), batches, logging, drawers
+  doors/     styles, converter, hinges / TIP-ON, tags, repair, drawer boxes, menu actions
+  colours/   colour library + painting by tag group
+  job/       runouts (pencil), ceiling height, one-off standardise, door summary, PDF
+  export/    component library export, OpenCutList
+  ui/        windows (Dialog helper, Colours, Settings), menus and toolbar
+  html/      window pages + shared hw.css / hw.js
+  icons/     toolbar icons (SVG)
+  settings_default.json  shipped defaults (your changes: %APPDATA%\HW Door Style\settings.json)
+  colours.json, textures/  the built-in colour library
+tools/      Ruby Console helpers and one-off library migrations (tools/README.md)
+materials/  colour pack: make_skm.rb, swatches, RGB values
+test/logic_test.rb  offline tests (ruby test/logic_test.rb)
 ```
 
 Acceptance tests (in SketchUp): `load 'tools/acceptance_test.rb'; puts HWDoorAcceptance.run_report`.
 
 Build: `python3 build.py` → `dist/hw_door_style_v<version>.rbz` and `dist/HW_Colours.zip`.
-
-Fast iteration without reinstalling: in the Ruby Console run
-`load 'C:/path/to/hw-door-style/src/hw_door_style.rb'` once, then reload individual
-files with `load` after editing.

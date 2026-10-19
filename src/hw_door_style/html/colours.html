@@ -3,11 +3,8 @@
 <head>
 <meta charset="utf-8">
 <title>Colours</title>
+<!--HW-->
 <style>
-  * { box-sizing:border-box; }
-  body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:12px 14px; }
-  h1 { font-size:14px; margin:0 0 2px; }
-  .sub { color:#6a737d; font-size:11px; margin-bottom:10px; }
   .row { display:grid; grid-template-columns:190px 1fr; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #eceef0; }
   .row label { font-weight:600; }
   .row small { display:block; font-weight:400; color:#6a737d; font-size:10.5px; }
@@ -16,9 +13,6 @@
   .chip.none { background:repeating-linear-gradient(45deg,#fff 0 4px,#e5e7ea 4px 8px); }
   select { font:inherit; padding:3px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
   .req { color:#b4541a; font-size:11px; margin-top:8px; display:none; }
-  .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:12px; }
-  button { font:inherit; padding:5px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
-  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
 </style>
 </head>
 <body>
@@ -35,7 +29,6 @@
 var D = /*DATA*/null;
 var HINT = { door:'DOOR, DRAWER_FRONT', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs', worktop:'WORKTOP', panels_22:'Any 22mm panel, e.g. bookcase shelves', drawer_box:'Drawer box sides, ends and base' };
 // Door "Default" = no material; the others' "Default" = same as the door.
-function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function boxEntry(name){ for (var i=0;i<D.box.length;i++) if (D.box[i].name===name) return D.box[i]; return null; }
 function chipStyle(name, id){
   if (id === 'drawer_box') {

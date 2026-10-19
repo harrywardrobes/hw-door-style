@@ -193,26 +193,6 @@ module HarryWardrobes
 
       # --- cleaning -------------------------------------------------------
 
-      # Drawers moved by onClick ANIMATE: put back to Y = 0. Returns names closed.
-      def self.close_drawers(entities)
-        closed = []
-        Finder.each_instance(entities) do |i|
-          d = i.attribute_dictionary('dynamic_attributes') or next
-          oc = d['onclick'] || i.definition.get_attribute('dynamic_attributes', 'onclick')
-          next unless oc.to_s =~ /ANIMATE/i
-          y = d['y'].to_f
-          next unless y.abs > 0.0001 || d['_onclick_state1'].to_s.to_i != 0
-          if y.abs > 0.0001
-            t = i.transformation
-            i.transformation = Geom::Transformation.translation([0, -y, 0]) * t
-          end
-          i.set_attribute('dynamic_attributes', 'y', 0.0)
-          i.set_attribute('dynamic_attributes', '_onclick_state1', 0) if d['_onclick_state1']
-          closed << Finder.label(i)
-        end
-        closed
-      end
-
       # What "Purge unused" would remove.
       def self.unused(model)
         used = {}
@@ -234,28 +214,19 @@ module HarryWardrobes
       # optionally purge unused components (materials are never purged).
       def self.clean_model(model, purge)
         report = { painted: 0, closed: [], purged_components: 0 }
-        model.start_operation('Clean model for export', true)
-        begin
+        Ops.run(model, 'Clean model for export') do
           report[:painted] = Colours.apply(model, Colours.all_default, plain: true).values.sum
-          report[:closed] = close_drawers(model.entities)
+          report[:closed] = Drawers.close(model.entities)
           if purge
             u = unused(model)
             report[:purged_components] = u[:components].size
             model.definitions.purge_unused # components only - materials are always kept
           end
-          model.commit_operation
-        rescue StandardError => e
-          model.abort_operation
-          raise e
         end
         report
       end
 
       # --- exporting ------------------------------------------------------
-
-      def self.save_version
-        Sketchup::Model.const_defined?(:VERSION_2026) ? Sketchup::Model::VERSION_2026 : nil
-      end
 
       def self.move_to_old(model, path)
         FileUtils.mkdir_p(old_dir(model))
@@ -282,23 +253,19 @@ module HarryWardrobes
         path = File.join(dir, "#{row['name']}_V#{v}.skp")
         before = fingerprint(inst)
 
-        model.start_operation("Export #{row['name']}", true)
-        begin
+        Ops.throwaway(model, "Export #{row['name']}") do
           Colours.apply(model, Colours.all_default, root: inst, record: false, plain: true)
           inst.material = nil
-          close_drawers(inst.definition.entities)
+          Drawers.close(inst.definition.entities)
           # Library files always carry runouts at 0 (the job sets them with the pencil).
-          if Scribe.set_values(inst, Scribe::SIDES.to_h { |sd, _, _| [sd, 0.0] })
-            DC.redraw(inst)
-          end
+          DC.redraw(inst) if Runouts.set(inst, Runouts::ZERO)
           # Carry the instance's Dynamic Component values ("as drawn") into the file.
           if (dc = inst.attribute_dictionary('dynamic_attributes'))
             dc.each_pair { |k, val| inst.definition.set_attribute('dynamic_attributes', k, val) }
           end
-          ok = save_version ? inst.definition.save_as(path, save_version) : inst.definition.save_as(path)
+          # Saved in the running SketchUp's own file version.
+          ok = inst.definition.save_as(path)
           raise "SketchUp could not save #{path}" unless ok && File.exist?(path)
-        ensure
-          model.abort_operation
         end
 
         moved = s[:current].reject { |p| File.expand_path(p) == File.expand_path(path) }.map { |p| move_to_old(model, p) }
@@ -306,9 +273,7 @@ module HarryWardrobes
         m = meta(model)
         m[row['name']] = { 'folder' => row['folder'], 'version' => v, 'file' => path,
                            'fingerprint' => before, 'exported' => Time.now.strftime('%d/%m/%Y %H:%M') }
-        model.start_operation('Record component export', true, false, true)
-        save_meta(model, m)
-        model.commit_operation
+        Ops.run(model, 'Record component export', transparent: true) { save_meta(model, m) }
         { name: row['name'], file: path.sub(root(model) + File::SEPARATOR, ''), moved: moved.map { |p| File.basename(p) } }
       end
 
@@ -344,12 +309,8 @@ module HarryWardrobes
           UI.messagebox("Export components only works in a saved library file with \"Components\" in its name\n(e.g. Components V17.skp).\n\nThis file: #{model.path.to_s.empty? ? '(not saved)' : File.basename(model.path)}")
           return
         end
-        @dlg&.close
-        @dlg = dlg = UI::HtmlDialog.new(dialog_title: 'HW - Export components', preferences_key: 'hw_library_export',
-                                        width: 900, height: 680, resizable: true, scrollable: true,
-                                        style: UI::HtmlDialog::STYLE_DIALOG)
-        html = File.read(File.join(PATH, 'html', 'export.html'))
-        dlg.set_html(html.sub('/*DATA*/null', JSON.generate(payload(model))))
+        dlg = Dialog.open('export', title: 'HW - Export components', key: 'hw_library_export',
+                                    width: 900, height: 680, data: payload(model))
         dlg.add_action_callback('close') { |_c| dlg.close }
         dlg.add_action_callback('refresh') { |_c| dlg.execute_script("load(#{JSON.generate(payload(model))})") }
         dlg.add_action_callback('clean') do |_c, purge|
@@ -378,9 +339,9 @@ module HarryWardrobes
         queue = rows.dup
         js = ->(s) { dlg.execute_script(s) }
         js.call("progress(0, #{total}, 'Starting...')")
-        Scribe.hold
+        Pencil.hold
         finish = lambda do
-          Scribe.release
+          Pencil.release
           master = nil
           if save_master
             js.call("progress(#{total - 1}, #{total}, #{JSON.generate("Saving #{File.basename(next_master(model))}...")})")
@@ -406,8 +367,8 @@ module HarryWardrobes
             end
             step.call
           rescue StandardError => e
-            Scribe.release
-            puts "HW Door Style export stopped: #{e.class}: #{e.message}"
+            Pencil.release
+            Log.error("export stopped", e)
           end
         end
         step.call

@@ -4,7 +4,7 @@
 #   HWStandardise.apply!(Sketchup.active_model)   # call inside YOUR operation
 #
 # Does NOT start or commit an operation itself, so it can be tested inside an
-# aborted operation. Requires the HW Door Style plugin (Scribe, DC) loaded.
+# aborted operation. Requires the HW Door Style plugin (Standardise, DC) loaded.
 module HWStandardise
   DS = HarryWardrobes::DoorStyle
   DCD = 'dynamic_attributes'.freeze
@@ -219,7 +219,7 @@ module HWStandardise
     log = Hash.new { |h, k| h[k] = [] }
     log[:topped_formulas] = 0
     log[:wired] = 0
-    log[:scribe] = DS::Scribe.standardise(model)
+    log[:scribe] = DS::Standardise.run(model)
     topped!(model, log)
     wall_back!(model, log)
     facings!(model, log)

@@ -1,0 +1,12 @@
+/* Shared look for every HW Door Style window. Inlined by Dialog.html (ui/dialog.rb)
+   ahead of each page's own <style>, so a page can override any rule. */
+:root { --ink:#1f2328; --muted:#6a737d; --line:#c9ced3; --rule:#eceef0; --accent:#2f4a3f; --warn:#b4541a; }
+* { box-sizing:border-box; }
+body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:var(--ink); margin:0; padding:12px 14px; }
+h1 { font-size:14px; margin:0 0 2px; }
+.sub { color:var(--muted); font-size:11px; margin-bottom:10px; }
+.hint { color:var(--muted); font-size:10.5px; margin-top:4px; }
+.bar { display:flex; gap:6px; justify-content:flex-end; margin-top:12px; }
+button { font:inherit; padding:5px 12px; border:1px solid var(--line); border-radius:3px; background:#fff; cursor:pointer; }
+button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+button:disabled { opacity:.5; cursor:default; }

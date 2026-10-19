@@ -86,7 +86,7 @@ module HarryWardrobes
       end
 
       def self.export_order(model = Sketchup.active_model)
-        unless Scribe.on?(model) || Scribe.units(model.entities).empty?
+        unless Pencil.on?(model) || Runouts.units(model.entities).empty?
           return nil unless UI.messagebox("Scribes are OFF - every runout is 0, so sizes may be wrong.\n\nExport the door order anyway?", MB_YESNO) == IDYES
         end
         if model.path.to_s.empty?
@@ -102,9 +102,7 @@ module HarryWardrobes
         File.write("#{stem}.csv", "﻿" + csv(data['rows']), mode: 'w:UTF-8')
         Pdf.write("#{stem}.pdf", data)
 
-        model.start_operation('Record door order export', true)
-        model.set_attribute(DICT, 'export_version', v)
-        model.commit_operation
+        Ops.run(model, 'Record door order export') { model.set_attribute(DICT, 'export_version', v) }
 
         UI.messagebox("Door order v#{v} saved in:\n#{dir}\n\n#{File.basename(stem)}.csv\n#{File.basename(stem)}.pdf")
         v
@@ -122,23 +120,19 @@ module HarryWardrobes
           'version' => VERSION,
           'last_export' => model.get_attribute(DICT, 'export_version', 0).to_i,
           'rows' => r, 'totals' => totals(r),
-          'runouts' => { 'on' => Scribe.on?(model), 'changed' => Scribe.report(model) }
+          'runouts' => { 'on' => Pencil.on?(model), 'changed' => Runouts.report(model) }
         }
       end
 
       def self.show
-        @dlg&.close
-        @dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style - Summary', preferences_key: 'hw_door_style_summary',
-                                  width: 1000, height: 650, resizable: true, scrollable: true,
-                                  style: UI::HtmlDialog::STYLE_DIALOG)
-        html = File.read(File.join(PATH, 'html', 'summary.html'))
-        @dlg.set_html(html.sub('/*DATA*/null', JSON.generate(payload)))
-        @dlg.add_action_callback('exportOrder') do |_ctx|
+        dlg = Dialog.open('summary', title: 'HW Door Style - Summary', key: 'hw_door_style_summary',
+                                     width: 1000, height: 650, data: payload)
+        dlg.add_action_callback('exportOrder') do |_ctx|
           export_order
-          @dlg.execute_script("render(#{JSON.generate(payload)})")
+          dlg.execute_script("render(#{JSON.generate(payload)})")
         end
-        @dlg.add_action_callback('refresh') { |_ctx| @dlg.execute_script("render(#{JSON.generate(payload)})") }
-        @dlg.show
+        dlg.add_action_callback('refresh') { |_ctx| dlg.execute_script("render(#{JSON.generate(payload)})") }
+        dlg.show
       end
     end
   end

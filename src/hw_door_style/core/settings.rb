@@ -51,9 +51,9 @@ module HarryWardrobes
         return if File.exist?(USER_FILE) || !File.exist?(LEGACY_FILE)
         FileUtils.mkdir_p(USER_DIR)
         FileUtils.cp(LEGACY_FILE, USER_FILE)
-        puts "HW Door Style: settings moved to #{USER_FILE}"
+        Log.info("settings moved to #{USER_FILE}")
       rescue StandardError => e
-        puts "HW Door Style: could not move old settings (#{e.message})."
+        Log.info("could not move old settings (#{e.message}).")
       end
 
       def self.load
@@ -63,7 +63,7 @@ module HarryWardrobes
           begin
             s.merge!(migrate(JSON.parse(File.read(USER_FILE)), s))
           rescue StandardError => e
-            puts "HW Door Style: could not read settings.json (#{e.message}); using defaults."
+            Log.info("could not read settings.json (#{e.message}); using defaults.")
           end
         end
         s

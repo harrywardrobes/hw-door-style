@@ -1,0 +1,47 @@
+require 'json'
+
+module HarryWardrobes
+  module DoorStyle
+    # Every window is html/<name>.html. A page marks where the shared look goes
+    # with <!--HW--> (html/hw.css + html/hw.js are put there) and receives its
+    # data through the literal /*DATA*/null in its script:
+    #
+    #   var D = /*DATA*/null;
+    #
+    # Dialog.open keeps one window per id: opening it again closes the old one.
+    module Dialog
+      DIR = File.join(PATH, 'html')
+
+      def self.shared
+        @shared ||= "<style>\n#{File.read(File.join(DIR, 'hw.css'))}</style>\n" \
+                    "<script>\n#{File.read(File.join(DIR, 'hw.js'))}</script>"
+      end
+
+      # The page's HTML with the shared look and data filled in.
+      def self.html(name, data = nil)
+        page = File.read(File.join(DIR, "#{name}.html"))
+        page = page.sub('<!--HW-->') { shared }
+        page.sub('/*DATA*/null') { JSON.generate(data) }
+      end
+
+      # Opens html/<name>.html. id: one window per id (defaults to name).
+      # key: SketchUp remembers size and position under it.
+      # Returns the UI::HtmlDialog so the caller can add callbacks; call #show.
+      def self.open(name, title:, key:, width:, height:, data: nil, id: name,
+                    resizable: true, scrollable: true, utility: false)
+        @open ||= {}
+        @open[id]&.close
+        dlg = UI::HtmlDialog.new(dialog_title: title, preferences_key: key, width: width, height: height,
+                                 resizable: resizable, scrollable: scrollable,
+                                 style: utility ? UI::HtmlDialog::STYLE_UTILITY : UI::HtmlDialog::STYLE_DIALOG)
+        dlg.set_html(html(name, data))
+        dlg.add_action_callback('cancel') { |_c| dlg.close }
+        @open[id] = dlg
+      end
+
+      def self.[](id)
+        (@open ||= {})[id]
+      end
+    end
+  end
+end

@@ -104,14 +104,11 @@ module HarryWardrobes
         if broken.empty?
           stale = model.definitions.count { |d| d.name =~ /\ASTYLE_/i && d.instances.empty? }
           return report if stale.zero?
-          model.start_operation('Repair doors in model', true)
-          report[:purged] = purge_old_slabs(model)
-          model.commit_operation
+          report[:purged] = Ops.run(model, 'Repair doors in model') { purge_old_slabs(model) }
           return report
         end
 
-        model.start_operation('Repair doors in model', true)
-        begin
+        Ops.run(model, 'Repair doors in model') do
           pairs = broken.map { |i, k, _| [i, k] }
           res = Converter.rebuild(model, pairs, nil)
           report[:notes] = res[:notes]
@@ -124,10 +121,6 @@ module HarryWardrobes
             DC.redraw(t)
             report[:components] << t.definition.name
           end
-          model.commit_operation
-        rescue StandardError => e
-          model.abort_operation
-          raise e
         end
 
         # Re-check after redraw.

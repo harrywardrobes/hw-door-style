@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0 — 2026-10-19
+Behind-the-scenes tidy-up; nothing you use should look or work differently.
+- Code split into folders (core / doors / colours / job / export / ui), one module per file.
+  The old 550-line scribe.rb is now Runouts, Ceiling, Pencil and Standardise; main.rb is now
+  Doors (actions), ColoursWindow, SettingsWindow and Menus.
+- Every change to the model goes through one undo-step helper: a failure is always undone in
+  full, and a later error can no longer undo work that had already finished (fixed in Apply
+  colours, Apply tags, Export colour library, Settings save and Standardise runouts).
+- One way to read component values (DC.read / DC.value), one way to open windows (Dialog),
+  shared window styling (html/hw.css, hw.js), one progress runner (Batch).
+- Export components saves in SketchUp's own version (removed a 2026-only lookup).
+- Developer notes: CONTRIBUTING.md (rules, how to add a setting / window / button, settings
+  keys) and tools/README.md (what each one-off library script did).
+
 ## 0.12.0 — 2026-10-19
 - **Settings now kept in `%APPDATA%\HW Door Style\settings.json`**, so installing an update no longer
   wipes them. A settings.json left in the plugin folder by an older version is copied across once.

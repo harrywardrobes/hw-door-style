@@ -3,19 +3,13 @@
 <head>
 <meta charset="utf-8">
 <title>Scribe</title>
+<!--HW-->
 <style>
-  * { box-sizing:border-box; }
-  body { font:12px/1.35 "Segoe UI", Arial, sans-serif; color:#1f2328; margin:0; padding:12px 14px; }
-  h1 { font-size:14px; margin:0 0 2px; }
-  .sub { color:#6a737d; font-size:11px; margin-bottom:10px; }
   .row { display:grid; grid-template-columns:110px 1fr; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #eceef0; }
   .row label { font-weight:600; }
   .row small { color:#b4541a; font-size:10.5px; margin-left:6px; }
   select { font:inherit; padding:3px 4px; border:1px solid #c9ced3; border-radius:3px; width:100%; }
   .hint { color:#6a737d; font-size:10.5px; margin-top:8px; }
-  .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:12px; }
-  button { font:inherit; padding:5px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
-  button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
 </style>
 </head>
 <body>
@@ -30,7 +24,6 @@
 </div>
 <script>
 var D = /*DATA*/null;
-function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 document.getElementById('title').textContent = D.title;
 document.getElementById('sub').textContent = D.selection ? 'Only the selected unit(s). Differences from the job values are flagged in the Summary.' : 'Applies to every unit in the model. Press the pencil again to set all runouts to 0.';
 var h = '';

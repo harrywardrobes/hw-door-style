@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>Door summary</title>
+<!--HW-->
 <style>
   :root { --ink:#1f2328; --muted:#6a737d; --line:#d8dce0; --head:#f3f4f6; --accent:#2f4a3f; }
-  * { box-sizing:border-box; }
   body { font:13px/1.4 "Segoe UI", Arial, sans-serif; color:var(--ink); margin:0; padding:16px 20px; background:#fff; }
   header { display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid var(--accent); padding-bottom:8px; margin-bottom:12px; }
   h1 { font-size:18px; margin:0; }
@@ -46,7 +46,6 @@
 <div class="totals" id="totals"></div>
 <div id="table"></div>
 <script>
-function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 function card(title, obj){
   var keys = Object.keys(obj); if(!keys.length) return '';
   return '<div class="card"><h2>'+esc(title)+'</h2>'+keys.map(function(k){return '<div><span>'+esc(k)+'</span><b>'+esc(obj[k])+'</b></div>';}).join('')+'</div>';
