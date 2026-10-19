@@ -201,6 +201,10 @@
   "export_skip": [
     "FLOOR"
   ],
+  "template_keep": [
+    "FLOOR",
+    "CEILING"
+  ],
   "runout_values_mm": [
     25,
     50,

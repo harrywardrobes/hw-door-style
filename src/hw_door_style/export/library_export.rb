@@ -315,7 +315,8 @@ module HarryWardrobes
         u = unused(model)
         { 'master' => File.basename(model.path), 'root' => root(model), 'old' => File.basename(old_dir(model)),
           'folders' => folders(model), 'rows' => rows(model), 'next_master' => File.basename(next_master(model)),
-          'unused' => { 'components' => u[:components] }, 'clean' => check(model) }
+          'unused' => { 'components' => u[:components] }, 'clean' => check(model),
+          'template' => (TemplateExport.status(model) rescue { 'status' => 'error', 'error' => $!.message }) }
       end
 
       def self.show
@@ -343,7 +344,7 @@ module HarryWardrobes
           req = JSON.parse(json)
           c = check(model)
           if c['ok']
-            run(model, dlg, req['rows'], req['save_master'])
+            run(model, dlg, req['rows'], req['save_master'], template: req['template'])
           else
             dlg.execute_script("load(#{JSON.generate(payload(model))}); stopped(#{JSON.generate(not_clean_message(c))})")
           end
@@ -352,8 +353,8 @@ module HarryWardrobes
       end
 
       # Exports one component per timer tick so the progress bar can update.
-      def self.run(model, dlg, rows, save_master)
-        total = rows.size + (save_master ? 1 : 0)
+      def self.run(model, dlg, rows, save_master, template: false)
+        total = rows.size + (save_master ? 1 : 0) + (template ? 1 : 0)
         done = []
         errors = []
         queue = rows.dup
@@ -363,6 +364,16 @@ module HarryWardrobes
         finish = lambda do
           Pencil.release
           master = nil
+          tpl = nil
+          if template
+            js.call("progress(#{total - (save_master ? 2 : 1)}, #{total}, 'Saving the template...')")
+            begin
+              tpl = TemplateExport.export(model) || { unchanged: true }
+            rescue StandardError => e
+              errors << "Template: #{e.message}"
+              Log.error('template export', e)
+            end
+          end
           if save_master
             js.call("progress(#{total - 1}, #{total}, #{JSON.generate("Saving #{File.basename(next_master(model))}...")})")
             begin
@@ -372,7 +383,7 @@ module HarryWardrobes
             end
           end
           js.call("progress(#{total}, #{total}, 'Done')")
-          js.call("finished(#{JSON.generate('done' => done, 'errors' => errors, 'master' => master)}); load(#{JSON.generate(payload(model))})")
+          js.call("finished(#{JSON.generate('done' => done, 'errors' => errors, 'master' => master, 'template' => tpl)}); load(#{JSON.generate(payload(model))})")
           UI.openURL("file:///#{root(model).tr('\\', '/')}")
         end
         step = lambda do

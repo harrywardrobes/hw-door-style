@@ -58,6 +58,7 @@
   <button onclick="setAll(true)">Select all</button>
   <button onclick="setAll(false)">Deselect all</button>
   <label title="Saves this library file as the next version and moves the older ones to the old folder"><input type="checkbox" id="saveMaster" checked> <span id="masterTxt"></span></label>
+  <label id="tplLbl" title="A new job template for Welcome to SketchUp: no components, only the floor (and ceiling). Saved to _TEMPLATES, versioned, older ones to the old folder."><input type="checkbox" id="saveTpl"> <span id="tplTxt"></span></label>
   <span style="flex:1"></span>
   <button onclick="sketchup.close()">Close</button>
   <button id="goAll" onclick="go(true)">Export all</button>
@@ -68,12 +69,19 @@
 
 <script>
 var D = /*DATA*/null;
-var picked = {}, folder = {};
+var picked = {}, folder = {}, tplPicked = null;
 function load(d){
   D = d;
   $('sub').textContent = 'From ' + d.master + '  ->  ' + d.root;
   $('oldName').textContent = d.old;
   $('masterTxt').textContent = 'Also save this file as ' + d.next_master;
+  var t = d.template || {};
+  if (tplPicked === null) tplPicked = t.status !== 'unchanged' && t.status !== 'error';
+  $('saveTpl').checked = tplPicked;
+  $('saveTpl').onchange = function(){ tplPicked = this.checked; };
+  $('tplTxt').textContent = t.status === 'error' ? 'Template: ' + t.error
+    : t.status === 'unchanged' ? 'Template (' + (t.current || '') + ') - unchanged'
+    : 'Template ' + t.file + ' (' + t.status + ': ' + ((t.keeps || []).join(', ') || 'no floor found') + ')';
   var u = d.unused || {components:[]};
   var n = u.components.length;
   $('purgeTxt').textContent = 'Also purge unused components (' + n + ') - materials are kept';
@@ -114,7 +122,7 @@ function go(all){
   if (!rows.length) { note('Nothing selected.', true); return; }
   $('result').style.display = 'none';
   $('prog').style.display = 'flex';
-  sketchup.export(JSON.stringify({ rows: rows, save_master: $('saveMaster').checked }));
+  sketchup.export(JSON.stringify({ rows: rows, save_master: $('saveMaster').checked, template: $('saveTpl').checked }));
 }
 function progress(i, n, msg){
   $('prog').style.display = 'flex';
@@ -126,11 +134,13 @@ function finished(r){
   setTimeout(function(){ $('prog').style.display = 'none'; }, 400);
   var h = '<h2>Exported ' + r.done.length + (r.errors.length ? (', ' + r.errors.length + ' failed') : '') + '</h2><ul>';
   r.done.forEach(function(d){ h += '<li><b>' + esc(d.file) + '</b>' + (d.moved.length ? ' &nbsp;(moved to old: ' + d.moved.map(esc).join(', ') + ')' : '') + '</li>'; });
+  if (r.template) h += r.template.unchanged ? '<li>Template unchanged - not saved again</li>'
+    : '<li>Template saved as <b>' + esc(r.template.file) + '</b>' + (r.template.moved.length ? ' (moved to old: ' + r.template.moved.map(esc).join(', ') + ')' : '') + (r.template.installed ? ' - in Welcome to SketchUp' : '') + '</li>';
   if (r.master) h += '<li>Library saved as <b>' + esc(r.master.file) + '</b>' + (r.master.moved.length ? ' (moved to old: ' + r.master.moved.map(esc).join(', ') + ')' : '') + '</li>';
   r.errors.forEach(function(e){ h += '<li style="color:#a33">' + esc(e) + '</li>'; });
   $('result').innerHTML = h + '</ul>';
   $('result').style.display = 'block';
-  picked = {};
+  picked = {}; tplPicked = null;
 }
 load(D);
 </script>

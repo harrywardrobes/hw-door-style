@@ -713,5 +713,20 @@ check 'cards: by category order, colour coded', cs.map { |c| c['key'] } == ['WAR
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 
+puts "\n== Job template"
+module Sketchup; def self.version; '26.1.189'; end; end
+require 'hw_door_style/export/template_export'
+TX = HarryWardrobes::DoorStyle::TemplateExport
+td = Dir.mktmpdir('hw_tpl')
+%w[Harry\ Wardrobes\ Template\ V2.skp Harry\ Wardrobes\ Template\ V10.skp other.skp].each { |f| File.write(File.join(td, f), f) }
+check 'template versions read (highest first, others ignored)', TX.versions(td).map(&:first) == [10, 2] && TX.file_name(11) == 'Harry Wardrobes Template V11.skp'
+check 'template goes in SketchUp 2026 user Templates folder', TX.user_dir.end_with?(File.join('SketchUp', 'SketchUp 2026', 'SketchUp', 'Templates'))
+FileUtils.mkdir_p(TX.user_dir)
+File.write(File.join(TX.user_dir, 'Harry Wardrobes Template V2.skp'), 'old')
+File.write(File.join(TX.user_dir, 'My own template.skp'), 'mine')
+TX.install_local(File.join(td, 'Harry Wardrobes Template V10.skp'))
+check 'Welcome copy replaced by the new version, own templates untouched', TX.versions(TX.user_dir).map(&:first) == [10] && File.exist?(File.join(TX.user_dir, 'My own template.skp'))
+check 'template keeps floor and ceiling by default', HarryWardrobes::DoorStyle::Settings.names('template_keep') == %w[FLOOR CEILING]
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
