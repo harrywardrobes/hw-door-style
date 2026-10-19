@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.22.0 — 2026-10-19
+- **One SketchUp file = one HubSpot Room.** New menu Extensions > HW Door Style > HubSpot (and a toolbar button):
+  - New room from HubSpot: search by customer, address or room name, pick the Room - the survey file
+    is saved in the customer's folder in 1_CUSTOMERS (found by the contact number) as
+    "SURVEY - room - customer.skp" and linked to the Room.
+  - Link this file to a HubSpot room: the same for a survey file that already exists.
+  - Send to HubSpot: this file's values next to HubSpot's, nothing written until you press Send.
+    Each line can be sent, taken from HubSpot (ceiling, bottom facing, runouts, colours) or left.
+  - Sent: room width and depth (FLOOR), ceiling, bottom facing, runouts and units set differently,
+    door / exterior / interior / worktop colours, hinges by type, TIP-ON, drawers, handle counts.
+  - Shown from HubSpot: door style, handles and their SKUs.
+  - Open this room in HubSpot.
+- New Room fields in HubSpot (group "Survey (SketchUp)"): Room Width, Room Depth, Bottom Facing,
+  five runouts and Runout Exceptions.
+
 ## 0.21.0 — 2026-10-19
 - **HubSpot connection** (Settings > HubSpot), read-only for now:
   - Paste the private app key (the one Measure Once used); it is kept on this computer only,

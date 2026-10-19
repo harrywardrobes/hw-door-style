@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Send to HubSpot</title>
+<!--HW-->
+<style>
+  body { display:flex; flex-direction:column; height:100vh; }
+  .wrap { flex:1; overflow:auto; border:1px solid var(--line); border-radius:3px; }
+  table { border-collapse:collapse; width:100%; }
+  th, td { text-align:left; padding:4px 7px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  th { background:#f5f6f7; font-weight:600; position:sticky; top:0; }
+  tr.grp td { background:#fafbfb; font-weight:600; color:var(--muted); font-size:11px; }
+  tr.same td { color:var(--muted); }
+  tr.send td.mine { background:#e7f1ec; font-weight:600; }
+  tr.take td.theirs { background:#e8eef8; font-weight:600; }
+  td.v { white-space:pre-wrap; max-width:220px; }
+  select { font:inherit; padding:2px; }
+  .info { font-size:11px; margin:0 0 8px; color:var(--ink); }
+  .info span { margin-right:14px; } .info b { font-weight:600; }
+  .warnbox { border:1px solid #efcdb9; background:#fbefe8; padding:6px 8px; border-radius:3px; margin-bottom:8px; font-size:11.5px; }
+  label.toggle { font-size:11px; color:var(--muted); align-self:center; margin-right:auto; }
+  #count { font-size:11px; color:var(--muted); align-self:center; }
+</style>
+</head>
+<body>
+<h1 id="h"></h1>
+<div class="sub" id="sub"></div>
+<div class="info" id="info"></div>
+<div id="warn"></div>
+<div class="wrap"><table><thead><tr><th>Field</th><th>In this file</th><th>In HubSpot</th><th>Do</th></tr></thead><tbody id="t"></tbody></table></div>
+<div class="bar">
+  <label class="toggle"><input type="checkbox" id="showsame" onchange="draw()"> Show fields that already match</label>
+  <span id="count"></span>
+  <button onclick="sketchup.open()">Open in HubSpot</button>
+  <button onclick="sketchup.cancel()">Cancel</button>
+  <button class="primary" id="go" onclick="go()">Send</button>
+</div>
+<script>
+var D = /*DATA*/null;
+var picks = {};
+D.rows.forEach(function(r){ picks[r.prop] = r.action; });
+$('h').textContent = 'Send to HubSpot - ' + (D.room || '');
+$('sub').textContent = 'Nothing changes until you press Send. Green = this file\'s value goes to HubSpot; blue = HubSpot\'s value comes into this file.' + (D.sent_at ? ' Last sent ' + D.sent_at + '.' : '');
+var keys = Object.keys(D.info || {});
+$('info').innerHTML = keys.length ? 'From HubSpot: ' + keys.map(function(k){ return '<span>'+esc(k)+' <b>'+esc(D.info[k])+'</b></span>'; }).join('') : '';
+if (D.scribes_on === false) $('warn').innerHTML = '<div class="warnbox"><b>Scribes are OFF</b> - runouts shown are the job values that apply when the pencil is pressed.</div>';
+
+function opts(r){
+  var o = [['none', r.same ? 'Matches' : 'Leave']];
+  if (!r.same && !r.blocked && !(r.number ? r.mine === null : !r.mine)) o.push(['send', 'Send →']);
+  if (!r.same && r.can_take && r.hubspot !== null && String(r.hubspot) !== '') o.push(['take', '← Take']);
+  return o;
+}
+function draw(){
+  var all = $('showsame').checked, g = null, h = '', n = 0, s = 0, tk = 0;
+  D.rows.forEach(function(r, i){
+    if (r.same && !all) return;
+    if (r.group !== g) { g = r.group; h += '<tr class="grp"><td colspan="4">'+esc(g)+'</td></tr>'; }
+    var p = picks[r.prop], o = opts(r);
+    h += '<tr class="'+(r.same ? 'same' : p)+'"><td>'+esc(r.label)+'</td><td class="v mine">'+esc(r.shown)+'</td><td class="v theirs">'+esc(r.hubspot_shown)+'</td><td>' +
+      (o.length > 1 ? '<select data-p="'+esc(r.prop)+'">' + o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===p?' selected':'')+'>'+x[1]+'</option>'; }).join('') + '</select>' : esc(o[0][1])) + '</td></tr>';
+  });
+  D.rows.forEach(function(r){ if (picks[r.prop] === 'send') s++; if (picks[r.prop] === 'take') tk++; if (!r.same) n++; });
+  $('t').innerHTML = h || '<tr><td colspan="4" class="v">Everything already matches HubSpot.</td></tr>';
+  Array.prototype.forEach.call(document.querySelectorAll('select[data-p]'), function(el){ el.onchange = function(){ picks[el.getAttribute('data-p')] = el.value; draw(); }; });
+  $('count').textContent = s + ' to send, ' + tk + ' to take';
+  $('go').disabled = s + tk === 0;
+}
+function go(){ sketchup.send(JSON.stringify(picks)); }
+draw();
+</script>
+</body>
+</html>

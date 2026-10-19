@@ -59,6 +59,15 @@ module HarryWardrobes
         menu.add_item('Export door order (CSV + PDF)') { Report.export_order }
         menu.add_item(c[:settings])
 
+        # HubSpot (one file = one Room)
+        hs = menu.add_submenu('HubSpot')
+        hs.add_item('New room from HubSpot...') { HubSpotRoom.show_pick(:new) }
+        hs.add_item('Link this file to a HubSpot room...') { HubSpotRoom.show_pick(:link) }
+        c[:hubspot] = command('Send to HubSpot', 'Room sizes, ceiling, runouts, colours and hardware next to HubSpot\'s values; nothing is sent until you press Send.',
+                              'hubspot') { HubSpotRoom.show_send }
+        hs.add_item(c[:hubspot])
+        hs.add_item('Open this room in HubSpot') { HubSpotRoom.open_in_hubspot }
+
         # Library export, scribes, ceiling
         menu.add_separator
         c[:export] = command('Export components',
@@ -84,7 +93,7 @@ module HarryWardrobes
         context_menu
       end
 
-      TOOLBAR = [:colours, :shaker, :reset, nil, :summary, :settings, nil, :export, :pencil, :ceiling].freeze # nil = separator
+      TOOLBAR = [:colours, :shaker, :reset, nil, :summary, :settings, :hubspot, nil, :export, :pencil, :ceiling].freeze # nil = separator
 
       def self.toolbar(cmds)
         tb = UI::Toolbar.new('HW Door Style')

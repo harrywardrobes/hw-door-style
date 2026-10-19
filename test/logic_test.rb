@@ -353,10 +353,10 @@ nested = (Ops.throwaway(fm, 'test') { Ops.run(fm, 'inner') { 1 } } rescue $!)
 check 'step inside a throwaway refused, outer still undone', nested.is_a?(Ops::NestedStep) && fm.log == [[:start, 'test', true], [:abort]] && !Ops.in_throwaway?
 require 'hw_door_style/ui/dialog'
 pages = Dir[File.join(PATH, 'html', '*.html')].map { |f| File.basename(f, '.html') }.reject { |n| n == 'hw' }
-check 'every window uses the shared look', pages.all? { |n| File.read(File.join(PATH, 'html', "#{n}.html")).include?('<!--HW-->') }
+check 'every window uses the shared look', pages.all? { |n| File.read(File.join(PATH, 'html', "#{n}.html"), encoding: 'UTF-8').include?('<!--HW-->') }
 h = Dialog.html('ceiling', { 'ceiling' => 2400, 'note' => 'a\\b $1' })
 check 'window gets shared css/js + data', h.include?('--accent') && h.include?('function esc(') && h.include?('"ceiling":2400') && h.include?('$1') && !h.include?('/*DATA*/null')
-check 'no window defines its own esc()', pages.none? { |n| File.read(File.join(PATH, 'html', "#{n}.html")) =~ /function esc\(/ }
+check 'no window defines its own esc()', pages.none? { |n| File.read(File.join(PATH, 'html', "#{n}.html"), encoding: 'UTF-8') =~ /function esc\(/ }
 
 # --- every setting the code reads is in settings_default.json ---
 used = Dir[File.join(PATH, '**', '*.rb')].flat_map do |f|
@@ -476,6 +476,25 @@ check '401 message is plain English', HubSpot.message_for(401, {}).include?('did
 HubSpot.key = ''
 err = (HubSpot.get('/x') rescue $!)
 check 'no key: clear error, no request', err.is_a?(HubSpot::Error) && err.message.include?('No HubSpot key')
+
+# --- HubSpot rooms (0.22) ---
+require 'hw_door_style/export/hubspot_room'
+R = HubSpotRoom
+check 'room part of a Room name', R.room_part("Kenny Hasprey - Connah's Quay - Master Bedroom") == 'Master Bedroom' && R.room_part('Front Room') == 'Front Room'
+check 'survey file name like the existing ones', R.file_name('Rebecca Williams - Rossett - Felix', 'Rebecca Williams') == 'SURVEY - felix - rebecca williams.skp'
+Dir.mktmpdir do |root|
+  %w[WILLIAMS\ Rebecca\ (Rossett\ -\ 830735284436) WOOD\ Lindsey\ (507750999271) OTHER\ (1830735284436)].each { |n| Dir.mkdir(File.join(root, n.delete('\\'))) }
+  check 'customer folder: (Town - id)', File.basename(R.customer_folder('830735284436', root).to_s) == 'WILLIAMS Rebecca (Rossett - 830735284436)'
+  check 'customer folder: (id)', File.basename(R.customer_folder('507750999271', root).to_s) == 'WOOD Lindsey (507750999271)'
+  check 'customer folder: no partial id match', R.customer_folder('35284436', root).nil? && R.customer_folder('', root).nil?
+end
+opts = [['Alby Blue', 'alby_blue'], ['Ingigo Blue', 'indigo_blue_x'], ['Dark / Onyx Grey', 'dark_onyx_grey'], ['Frost White', 'frost_white']]
+check 'colour match: exact, any case', R.match_option('frost white', opts) == 'frost_white' && R.match_option('Alby Blue', opts) == 'alby_blue'
+check 'colour match: HubSpot typo still matches', R.match_option('Indigo Blue', opts) == 'indigo_blue_x'
+check 'colour match: punctuation ignored', R.match_option('Dark Onyx Grey', opts) == 'dark_onyx_grey'
+check 'colour match: unknown -> nil', R.match_option('Sage Green', opts).nil? && R.match_option(nil, opts).nil?
+check 'numbers: blank = 0, 2400 = 2400.0', R.same?(0, nil, true) && R.same?(2400, '2400.0', true) && !R.same?(25, '50', true)
+check 'drawer type', R.drawer_type(2, 0) == 'External' && R.drawer_type(0, 3) == 'Internal' && R.drawer_type(1, 1).start_with?('Both') && R.drawer_type(0, 0).start_with?('None')
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

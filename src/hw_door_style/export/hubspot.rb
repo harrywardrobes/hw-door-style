@@ -120,6 +120,86 @@ module HarryWardrobes
         { 'portal' => info['portalId'], 'region' => info['dataHostingLocation'], 'checks' => checks }
       end
 
+      def self.post(path, body)
+        request(:post, path, body)
+      end
+
+      def self.patch(path, body)
+        request(:patch, path, body)
+      end
+
+      # Portal number and region, read once per SketchUp session (for record links).
+      def self.account
+        @account ||= get('/account-info/v3/details')
+      end
+
+      # Link to a Room record in the HubSpot app.
+      def self.room_url(room_id)
+        a = account
+        host = a['uiDomain'] || (a['dataHostingLocation'].to_s.start_with?('eu') ? 'app-eu1.hubspot.com' : 'app.hubspot.com')
+        "https://#{host}/contacts/#{a['portalId']}/record/0-420/#{room_id}"
+      end
+
+      # --- records -----------------------------------------------------------------
+
+      # Projects matching the text - by project name, or through one of its Room names
+      # (some projects are named by address): [{ 'id', 'name' }], newest first.
+      def self.search_projects(text, limit: 25)
+        q = text.to_s.strip
+        found = search('projects', q, limit)
+        unless q.empty?
+          room_ids = search('listings', q, limit).map { |r| r['id'] }
+          extra = linked_many('listings', room_ids, 'projects').values.flatten.uniq - found.map { |r| r['id'] }
+          found += read_many('projects', extra, %w[hs_name hs_lastmodifieddate])
+        end
+        found.uniq { |r| r['id'] }
+             .sort_by { |r| r.dig('properties', 'hs_lastmodifieddate').to_s }.reverse
+             .map { |r| { 'id' => r['id'], 'name' => r.dig('properties', 'hs_name').to_s } }
+      end
+
+      def self.search(type, q, limit)
+        body = { limit: limit, properties: %w[hs_name hs_lastmodifieddate],
+                 sorts: [{ propertyName: 'hs_lastmodifieddate', direction: 'DESCENDING' }] }
+        body[:query] = q unless q.empty?
+        Array(post("/crm/v3/objects/#{type}/search", body)['results'])
+      end
+
+      # { from id => [linked ids] } for several records in one call.
+      def self.linked_many(from_type, ids, to_type)
+        return {} if ids.empty?
+        res = post("/crm/v4/associations/#{from_type}/#{to_type}/batch/read", { inputs: ids.map { |i| { id: i } } })
+        Array(res['results']).to_h { |r| [r.dig('from', 'id').to_s, Array(r['to']).map { |t| t['toObjectId'].to_s }] }
+      end
+
+      # Ids of records of another type linked to this one.
+      def self.linked_ids(from_type, id, to_type)
+        Array(get("/crm/v4/objects/#{from_type}/#{id}/associations/#{to_type}?limit=100")['results']).map { |r| r['toObjectId'].to_s }
+      end
+
+      # Several records at once: [{ 'id', 'properties' }].
+      def self.read_many(type, ids, props)
+        return [] if ids.empty?
+        Array(post("/crm/v3/objects/#{type}/batch/read", { inputs: ids.map { |i| { id: i } }, properties: props })['results'])
+      end
+
+      def self.read_one(type, id, props)
+        get("/crm/v3/objects/#{type}/#{id}?properties=#{props.join(',')}")
+      end
+
+      def self.update_room(id, props)
+        patch("/crm/v3/objects/listings/#{id}", { properties: props })
+      end
+
+      # Options of a dropdown Room field: [[label, value]] (cached for the session).
+      def self.options(field)
+        (@options ||= {})[field] ||= Array(get("/crm/v3/properties/listings/#{field}")['options']).map { |o| [o['label'], o['value']] }
+      end
+
+      def self.forget_cache!
+        @options = nil
+        @account = nil
+      end
+
       # The Room (Listings) fields: [{ name, label, type, group }], HubSpot's own
       # system fields left out.
       def self.room_fields

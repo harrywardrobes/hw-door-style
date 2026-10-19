@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>HubSpot room</title>
+<!--HW-->
+<style>
+  body { display:flex; flex-direction:column; height:100vh; }
+  .row { display:flex; gap:6px; }
+  input { font:inherit; padding:5px 7px; border:1px solid var(--line); border-radius:3px; flex:1; }
+  .list { border:1px solid var(--line); border-radius:3px; overflow:auto; margin-top:8px; }
+  .list div.it { padding:6px 8px; border-bottom:1px solid var(--rule); cursor:pointer; }
+  .list div.it:hover { background:#f3f5f4; }
+  .list div.it.on { background:#e3ece8; font-weight:600; }
+  .list .empty, .msg { padding:8px; color:var(--muted); }
+  .err { color:var(--warn); }
+  #projects { flex:1 1 40%; min-height:90px; }
+  #roombox { flex:1 1 60%; display:flex; flex-direction:column; min-height:120px; }
+  #rooms { flex:1; }
+  .cust { margin-top:10px; font-size:11.5px; }
+  .cust b { font-weight:600; }
+  .tag { font-size:10px; color:var(--muted); margin-left:6px; font-weight:normal; }
+  .warnline { color:var(--warn); font-size:11px; margin-top:3px; }
+</style>
+</head>
+<body>
+<h1 id="h"></h1>
+<div class="sub" id="sub"></div>
+<div class="row">
+  <input id="q" placeholder="Customer or project name" onkeydown="if(event.key==='Enter')go()">
+  <button onclick="go()">Search</button>
+</div>
+<div class="list" id="projects"><div class="msg">Searching recent projects...</div></div>
+<div id="roombox">
+  <div class="cust" id="cust"></div>
+  <div class="list" id="rooms"><div class="empty">Pick a project above.</div></div>
+</div>
+<div class="bar">
+  <button onclick="sketchup.cancel()">Cancel</button>
+  <button class="primary" id="ok" disabled onclick="choose()"></button>
+</div>
+<script>
+var D = /*DATA*/null;
+var P = null, room = null;
+var isNew = D.mode === 'new';
+$('h').textContent = isNew ? 'New room from HubSpot' : 'Link this file to a HubSpot room';
+$('sub').textContent = isNew
+  ? 'Makes the survey file in the customer\'s folder (1_CUSTOMERS), named after the room, and links it.'
+  : (D.file + (D.linked ? ' - now linked to ' + D.linked : ' - not linked yet'));
+$('ok').textContent = isNew ? 'Create survey file' : 'Link this file';
+
+function go(){ $('projects').innerHTML = '<div class="msg">Searching...</div>'; sketchup.search($('q').value); }
+function projects(r){
+  if (r.error) { $('projects').innerHTML = '<div class="msg err">'+esc(r.error)+'</div>'; return; }
+  if (!r.projects.length) { $('projects').innerHTML = '<div class="empty">No projects found.</div>'; return; }
+  $('projects').innerHTML = r.projects.map(function(p){ return '<div class="it" data-id="'+esc(p.id)+'">'+esc(p.name || '(no name)')+'</div>'; }).join('');
+  Array.prototype.forEach.call($('projects').querySelectorAll('.it'), function(el){
+    el.onclick = function(){
+      Array.prototype.forEach.call($('projects').querySelectorAll('.it'), function(x){ x.classList.remove('on'); });
+      el.classList.add('on'); room = null; $('ok').disabled = true;
+      $('cust').innerHTML = ''; $('rooms').innerHTML = '<div class="msg">Loading rooms...</div>';
+      sketchup.project(el.getAttribute('data-id'));
+    };
+  });
+}
+function rooms(r){
+  if (r.error) { $('rooms').innerHTML = '<div class="msg err">'+esc(r.error)+'</div>'; return; }
+  P = r;
+  var c = '<b>'+esc(r.customer || 'No contact linked to this project')+'</b>' + (r.address ? ' - '+esc(r.address) : '');
+  if (isNew) c += r.folder ? '<div class="hint">Folder: '+esc(r.folder_name)+'</div>'
+                           : '<div class="warnline">Customer folder not found in 1_CUSTOMERS (contact '+esc(r.contact_id || '-')+') - you\'ll be asked to choose it.</div>';
+  $('cust').innerHTML = c;
+  if (!r.rooms.length) { $('rooms').innerHTML = '<div class="empty">This project has no Rooms yet - add one in HubSpot first.</div>'; return; }
+  $('rooms').innerHTML = r.rooms.map(function(x, i){
+    return '<div class="it" data-i="'+i+'">'+esc(x.name)+(isNew ? '<span class="tag">'+esc(x.file)+(x.exists ? ' - already exists, opens it' : '')+'</span>' : '')+'</div>';
+  }).join('');
+  Array.prototype.forEach.call($('rooms').querySelectorAll('.it'), function(el){
+    el.onclick = function(){
+      Array.prototype.forEach.call($('rooms').querySelectorAll('.it'), function(x){ x.classList.remove('on'); });
+      el.classList.add('on'); room = P.rooms[+el.getAttribute('data-i')]; $('ok').disabled = false;
+    };
+  });
+}
+function choose(){
+  if (!room || !P) return;
+  sketchup.choose(JSON.stringify({ room_id: room.id, room_name: room.name, project_id: P.project_id, contact_id: P.contact_id,
+    customer: P.customer, address: P.address, folder: P.folder }));
+}
+go();
+</script>
+</body>
+</html>

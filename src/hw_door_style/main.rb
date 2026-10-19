@@ -24,6 +24,7 @@ module HarryWardrobes
       job/runouts job/ceiling job/facing job/standardise job/pencil job/pdf job/report
       export/library_export export/opencutlist export/hubspot
       ui/dialog core/batch core/updater ui/colours_window ui/settings_window
+      export/hubspot_room
       dev/acceptance dev/developer ui/menus
     ].freeze
     FILES.each { |f| Sketchup.require(File.join(PATH, f)) }
