@@ -179,6 +179,13 @@ module HarryWardrobes
                     done: ->(_r) { dlg.execute_script("prodSaved(#{JSON.generate('data' => HubSpotProducts.local, 'name' => saved['name'])})") },
                     fail: ->(e) { dlg.execute_script("prodSaved(#{JSON.generate('error' => e.message)})") }, count: false)
         end
+        dlg.add_action_callback('prodDelete') do |_c, json|
+          ids = Array(JSON.parse(json)['ids'])
+          n = 0
+          Steps.run(dlg, [["Deleting #{ids.size} product(s) from HubSpot", -> { n = HubSpotProducts.delete(ids) }]],
+                    done: ->(_r) { dlg.execute_script("prodDeleted(#{JSON.generate('data' => HubSpotProducts.local, 'n' => n)})") },
+                    fail: ->(e) { dlg.execute_script("prodDeleted(#{JSON.generate('error' => e.message)})") }, count: false)
+        end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 
         dlg.add_action_callback('save') do |_c, json|

@@ -563,5 +563,20 @@ k = SI::HANDLES4U['items'].call(h4, 'https://www.handles4u.co.uk/products/Cabine
 check 'Handles4u: name, SKU, picture, link, price from the page data', k && k['sku'] == 'AW821-30-AB' && k['image'] == 'https://handles4u.co.uk/img/AW821.jpg' && k['url'] == 'https://handles4u.co.uk/products/A/123' && k['price'] == '£4.37' && k['group'] == 'Brass Knobs'
 check 'one address per page', SI.same_site('https://a.co/x/', '/x/?page=1') == 'https://a.co/x' && SI.same_site('https://a.co/x/', '/x/?page=2') == 'https://a.co/x?page=2' && SI.same_site('https://a.co/', 'https://b.co/y').nil?
 
+puts "\n== Products: delete"
+require 'hw_door_style/export/hubspot_products' unless defined?(HarryWardrobes::DoorStyle::HubSpotProducts)
+HPD = HarryWardrobes::DoorStyle::HubSpotProducts
+HSD = HarryWardrobes::DoorStyle::HubSpot
+calls = []
+orig_post = HSD.method(:post)
+HSD.define_singleton_method(:post) { |path, body| calls << [path, body]; {} }
+keep_file = File.exist?(HPD::FILE) ? File.read(HPD::FILE) : nil
+HPD.save_local('products' => (1..103).map { |i| { 'id' => i.to_s, 'name' => "P#{i}" } }, 'options' => {})
+n = HPD.delete((1..102).map(&:to_s) + ['5'])
+check 'deletes in batches of 100 from HubSpot', calls.size == 2 && calls[0][0] == '/crm/v3/objects/products/batch/archive' && calls[0][1][:inputs].size == 100 && calls[1][1][:inputs].size == 2
+check 'and from the local list', n == 102 && HPD.products.map { |p| p['id'] } == ['103']
+HSD.define_singleton_method(:post, orig_post)
+keep_file ? File.write(HPD::FILE, keep_file) : File.delete(HPD::FILE)
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

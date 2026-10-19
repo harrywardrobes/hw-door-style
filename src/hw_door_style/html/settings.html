@@ -72,8 +72,14 @@
   .pgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:8px; }
   .pcard { border:1px solid var(--line); border-radius:4px; padding:5px; font-size:11px; cursor:pointer; background:#fff; }
   .pcard:hover { border-color:var(--accent); }
+  .pcard { position:relative; }
+  .pcard.sel { outline:2px solid #b3261e; outline-offset:-1px; background:#fdf1f0; }
+  .pcard .tick { position:absolute; top:4px; left:4px; width:auto; display:none; }
+  .delmode .pcard .tick { display:block; }
+  button.danger { color:#b3261e; border-color:#e3b4b0; }
+  button.danger.sure { background:#b3261e; color:#fff; border-color:#b3261e; }
   .pcard img, .pcard .noimg { width:100%; height:90px; object-fit:contain; background:#fafbfb; display:block; }
-  .pcard .f { font-weight:600; margin-top:4px; }
+  .pcard .f { font-weight:600; margin-top:4px; display:block; grid-template-columns:none; }
   .pcard .s { color:var(--muted); }
   .pcard .chips span { display:inline-block; background:#eef3f0; color:var(--accent); border-radius:2px; padding:0 4px; margin:2px 2px 0 0; font-size:9.5px; }
   .ok { color:#1a7f37; font-weight:600; } .no { color:var(--warn); font-weight:600; }
@@ -294,7 +300,7 @@
 <section id="s_products" data-nodirty>
   <h2>Products</h2>
   <div class="lead">Handles and other hardware, kept in HubSpot's Products. Saving a product here saves it straight to HubSpot (not with the Save button below).</div>
-  <div class="btnrow" style="margin-top:0"><button onclick="prodLoad()">Read from HubSpot</button><button onclick="prodEdit(null)">New product</button><button onclick="sketchup.prodImport()">Import from supplier...</button><span class="hint" id="prodAt" style="align-self:center;margin:0"></span></div>
+  <div class="btnrow" style="margin-top:0"><button onclick="prodLoad()">Read from HubSpot</button><button onclick="prodEdit(null)">New product</button><button onclick="sketchup.prodImport()">Import from supplier...</button><button id="prodSelBtn" onclick="prodSelMode()">Select to delete</button><span class="hint" id="prodAt" style="align-self:center;margin:0"></span></div>
   <div id="prodForm" style="display:none">
     <fieldset><legend id="prodTitle">New product</legend>
       <div style="display:grid;grid-template-columns:1fr 130px;gap:12px">
@@ -314,12 +320,18 @@
       </div>
       <div style="margin-top:8px;font-size:11.5px;font-weight:600">Category <span class="hint" style="font-weight:normal">- where it can be chosen (e.g. Robe handle and Drawer handle)</span></div>
       <div id="pf_cats" style="display:flex;flex-wrap:wrap;gap:3px 16px;margin-top:3px"></div>
-      <div class="btnrow"><button onclick="prodCancel()">Cancel</button><button class="primary" onclick="prodSave()">Save to HubSpot</button><span class="hint" id="prodMsg" style="align-self:center;margin:0"></span></div>
+      <div class="btnrow"><button class="danger" id="prodDelOne" onclick="prodDelOne()">Delete</button><button onclick="prodCancel()">Cancel</button><button class="primary" onclick="prodSave()">Save to HubSpot</button><span class="hint" id="prodMsg" style="align-self:center;margin:0"></span></div>
     </fieldset>
   </div>
   <div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px">
     <input type="text" id="prodQ" placeholder="Filter by range, finish, size, SKU or supplier" oninput="prodDraw()" style="width:300px">
     <select id="prodCat" onchange="prodDraw()" style="width:auto"><option value="">All categories</option></select>
+  </div>
+  <div id="prodDelBar" style="display:none;gap:8px;align-items:center;margin:4px 0 6px;font-size:11.5px">
+    <span id="prodDelN">Click products to pick them.</span>
+    <button onclick="prodSelShown(true)">Pick all shown</button><button onclick="prodSelShown(false)">Clear</button>
+    <button class="danger" id="prodDelMany" onclick="prodDelMany()" disabled>Delete</button>
+    <button onclick="prodSelMode()">Done</button>
   </div>
   <div id="prodList"></div>
   <div class="hint">New supplier names: add them to the product Supplier field in HubSpot, then Read from HubSpot.</div>
@@ -705,7 +717,7 @@ function reqDraw(){
   });
 }
 // ---------- products (saved straight to HubSpot) ----------
-var PROD = { products: [], options: {} }, PEDIT = null, PIMG = null;
+var PROD = { products: [], options: {} }, PEDIT = null, PIMG = null, PDEL = null, PSEL = {}, PSHOWN = [];
 function prodOpts(k){ return (PROD.options && PROD.options[k]) || []; }
 function prodLabel(k, v){ var o = prodOpts(k).filter(function(x){ return x[1] === v; })[0]; return o ? o[0] : (v || ''); }
 // "Venice Handle - Aged Brass - 128mm" -> range "Venice Handle", rest "Aged Brass - 128mm".
@@ -720,6 +732,7 @@ function prodDraw(){
     if (cur && (p.product_category || '').split(';').indexOf(cur) < 0) return false;
     return !q || [p.name, p.hs_sku, prodLabel('suppliers', p.supplier)].join(' ').toLowerCase().indexOf(q) >= 0;
   });
+  PSHOWN = list.map(function(x){ return x[0].id; });
   var order = [], by = {};
   list.forEach(function(x){ var r = prodParts(x[0].name)[0]; if (!by[r]) { by[r] = []; order.push(r); } by[r].push(x); });
   order.sort(function(a, b){ return a.localeCompare(b); });
@@ -727,10 +740,51 @@ function prodDraw(){
     return '<div class="prange"><div class="rh">' + esc(r) + '<span>' + by[r].length + '</span></div><div class="pgrid">' + by[r].map(function(x){
       var p = x[0], img = (p.hs_images || '').split(';')[0], rest = prodParts(p.name)[1];
       var cats = (p.product_category || '').split(';').filter(Boolean).map(function(c){ return '<span>' + esc(prodLabel('categories', c)) + '</span>'; }).join('');
-      return '<div class="pcard" onclick="prodEdit(' + x[1] + ')" title="Edit ' + esc(p.name) + '">' + (img ? '<img loading="lazy" src="' + esc(img) + '">' : '<div class="noimg"></div>') +
+      return '<div class="pcard' + (PDEL && PSEL[p.id] ? ' sel' : '') + '" onclick="prodClick(' + x[1] + ')" title="' + (PDEL ? 'Pick ' : 'Edit ') + esc(p.name) + '"><input type="checkbox" class="tick"' + (PSEL[p.id] ? ' checked' : '') + ' tabindex="-1">' + (img ? '<img loading="lazy" src="' + esc(img) + '">' : '<div class="noimg"></div>') +
         '<div class="f">' + esc(rest || p.name) + '</div><div class="s">' + [esc(p.hs_sku || ''), p.supplier ? esc(prodLabel('suppliers', p.supplier)) : ''].filter(Boolean).join(' - ') + '</div><div class="chips">' + cats + '</div></div>';
     }).join('') + '</div></div>';
   }).join('') : '<div class="hint">' + (PROD.products.length ? 'Nothing matches.' : 'No products yet - New product, or Import from supplier.') + '</div>';
+}
+// Delete: from the edit form (one), or Select to delete (several). Both ask twice.
+function prodClick(i){
+  if (!PDEL) return prodEdit(i);
+  var id = PROD.products[i].id; PSEL[id] = !PSEL[id]; prodDraw(); prodDelCount();
+}
+function prodSelMode(){
+  PDEL = !PDEL; PSEL = {}; prodCancel();
+  $('prodList').classList.toggle('delmode', !!PDEL);
+  $('prodDelBar').style.display = PDEL ? 'flex' : 'none';
+  $('prodSelBtn').disabled = !!PDEL; prodDraw(); prodDelCount();
+}
+function prodSelShown(v){ PSEL = {}; if (v) PSHOWN.forEach(function(id){ PSEL[id] = true; }); prodDraw(); prodDelCount(); }
+function prodPicked(){ return Object.keys(PSEL).filter(function(k){ return PSEL[k]; }); }
+function prodDelCount(){
+  var n = prodPicked().length, b = $('prodDelMany');
+  b.classList.remove('sure'); b.disabled = !n; b.textContent = n ? 'Delete ' + n : 'Delete';
+  $('prodDelN').textContent = n ? n + ' picked.' : 'Click products to pick them.';
+}
+function prodSure(b, label){
+  if (b.classList.contains('sure')) return true;
+  b.classList.add('sure'); b.textContent = label;
+  setTimeout(function(){ if (b.classList.contains('sure')) { b.classList.remove('sure'); if (b.id === 'prodDelMany') prodDelCount(); else b.textContent = 'Delete'; } }, 4000);
+  return false;
+}
+function prodDelOne(){
+  if (!PEDIT || !PEDIT.id) return;
+  if (!prodSure($('prodDelOne'), 'Click again to delete')) return;
+  $('prodMsg').textContent = 'Deleting...';
+  sketchup.prodDelete(JSON.stringify({ ids: [PEDIT.id] }));
+}
+function prodDelMany(){
+  var ids = prodPicked(); if (!ids.length) return;
+  if (!prodSure($('prodDelMany'), 'Click again to delete ' + ids.length + ' from HubSpot')) return;
+  $('prodDelN').textContent = 'Deleting...';
+  sketchup.prodDelete(JSON.stringify({ ids: ids }));
+}
+function prodDeleted(r){
+  if (r.error) { var m = '<span class="no">' + esc(r.error) + '</span>'; if (PDEL) $('prodDelN').innerHTML = m; else $('prodMsg').innerHTML = m; return; }
+  PROD = r.data; PSEL = {}; if (!PDEL) prodCancel(); prodDraw(); if (PDEL) prodDelCount();
+  $('prodAt').textContent += ' Deleted ' + r.n + ' (restorable from HubSpot\'s recycle bin for 90 days).';
 }
 function prodLoad(){ $('prodAt').textContent = ''; sketchup.prodLoad(); }
 function prodList(r){
@@ -743,6 +797,7 @@ function prodEdit(i){
   var p = i == null ? { product_category: '' } : PROD.products[i]; PEDIT = p; PIMG = null;
   $('prodForm').style.display = '';
   $('prodTitle').textContent = i == null ? 'New product' : 'Edit ' + p.name;
+  $('prodDelOne').style.display = p.id ? '' : 'none'; $('prodDelOne').classList.remove('sure'); $('prodDelOne').textContent = 'Delete';
   ['name', 'hs_sku', 'price', 'hs_cost_of_goods_sold', 'hs_url'].forEach(function(k){ $('pf_' + k).value = p[k] || ''; });
   $('pf_supplier').innerHTML = '<option value="">--</option>' + prodOpts('suppliers').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === p.supplier ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');
   $('pf_hs_product_type').innerHTML = '<option value="">--</option>' + prodOpts('types').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === (p.hs_product_type || (i == null ? 'inventory' : '')) ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');

@@ -142,6 +142,19 @@ module HarryWardrobes
         hit ? hit[0] : value.to_s
       end
 
+      # Deletes products from HubSpot (they go to HubSpot's recycle bin, where they can be
+      # restored for 90 days) and from the local copy. Returns the number deleted.
+      def self.delete(ids)
+        ids = Array(ids).map(&:to_s).reject(&:empty?).uniq
+        ids.each_slice(100) do |part|
+          HubSpot.post('/crm/v3/objects/products/batch/archive', { inputs: part.map { |i| { id: i } } })
+        end
+        data = local
+        data['products'] = Array(data['products']).reject { |p| ids.include?(p['id'].to_s) }
+        save_local(data)
+        ids.size
+      end
+
       # Creates or updates one product. form: the window's fields; image: a local picture
       # file to upload first (link-viewable, not indexed). Returns the saved product.
       def self.save(form, image = nil)

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.33.0 — 2026-10-19
+- **Delete products** in Settings > Products:
+  - One at a time: open a product and press Delete (then click again to confirm).
+  - Several at once: Select to delete, click the cards (or Pick all shown after filtering), Delete N, click
+    again to confirm.
+  - They go to HubSpot's recycle bin, where they can be restored for 90 days. Jobs that already use a deleted
+    handle keep its name, SKU and supplier.
+- Product cards show the finish on one line again.
+
+## 0.33.0 — 2026-10-19
+- 
+
 ## 0.32.0 — 2026-10-19
 - **Handles can be N/A** on the Door style window (Robe, Drawer and Interior handle). N/A sends "n/a" as the
   handle name and SKU, N/A as the supplier, and 0 as the quantity to the HubSpot Room; the door summary
