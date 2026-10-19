@@ -1,4 +1,6 @@
 require 'json'
+require 'fileutils'
+require 'tmpdir'
 
 module HarryWardrobes
   module DoorStyle
@@ -28,8 +30,63 @@ module HarryWardrobes
         ['drawer_box', 'Drawer Box']
       ].freeze
 
+      # Built-in colours (colours.json), unless the user has edited the library in
+      # Settings -> Colours & materials (saved as "colour_library").
+      def self.builtin
+        JSON.parse(File.read(FILE))['colours']
+      end
+
       def self.library
-        @library ||= JSON.parse(File.read(FILE))['colours']
+        user = Settings.get['colour_library']
+        user.is_a?(Array) && !user.empty? ? user : builtin
+      end
+
+      # User textures live outside the plugin folder so an update never removes them.
+      def self.user_textures
+        base = ENV['APPDATA'] || ENV['HOME'] || Dir.tmpdir
+        File.join(base, 'HW Door Style', 'textures')
+      end
+
+      def self.texture_path(file)
+        return nil if file.to_s.empty?
+        [File.join(user_textures, file), File.join(TEXTURES, file)].find { |f| File.exist?(f) }
+      end
+
+      # Copies a picked image into the user texture folder; returns its file name.
+      def self.import_texture(src)
+        FileUtils.mkdir_p(user_textures)
+        name = File.basename(src).gsub(/[^A-Za-z0-9._ -]/, '_')
+        FileUtils.cp(src, File.join(user_textures, name)) unless File.expand_path(src) == File.expand_path(File.join(user_textures, name))
+        name
+      end
+
+      def self.data_url(file)
+        f = texture_path(file) or return nil
+        mime = File.extname(f).downcase == '.png' ? 'image/png' : 'image/jpeg'
+        "data:#{mime};base64,#{[File.binread(f)].pack('m0')}"
+      end
+
+      # Library for the Settings editor (with texture previews).
+      def self.editor_library
+        library.map { |c| c.merge('img' => data_url(c['texture'])) }
+      end
+
+      # After the library is saved: update the model's materials of the same name.
+      def self.refresh_materials(model)
+        n = 0
+        library.each do |c|
+          m = model.materials[c['name']] or next
+          m.color = Sketchup::Color.new(*c['rgb'])
+          if (tp = texture_path(c['texture']))
+            m.texture = tp
+            size = c['size_mm'].to_f.mm
+            m.texture.size = [size, size] if m.texture && size > 0
+          elsif m.texture
+            m.texture = nil
+          end
+          n += 1
+        end
+        n
       end
 
       # Colours offered on every row (door colours).
@@ -81,8 +138,8 @@ module HarryWardrobes
         s = spec(name) or return nil
         m = model.materials.add(name)
         m.color = Sketchup::Color.new(*s['rgb'])
-        if s['texture']
-          m.texture = File.join(TEXTURES, s['texture'])
+        if (tp = texture_path(s['texture']))
+          m.texture = tp
           size = s['size_mm'].to_f.mm
           m.texture.size = [size, size] if m.texture
         end
@@ -213,10 +270,7 @@ module HarryWardrobes
         end
         swatches = library.to_h do |c|
           sw = { 'rgb' => c['rgb'] }
-          if c['texture']
-            f = File.join(TEXTURES, c['texture'])
-            sw['img'] = "data:image/jpeg;base64,#{[File.binread(f)].pack('m0')}" if File.exist?(f)
-          end
+          sw['img'] = data_url(c['texture']) if c['texture']
           [c['name'], sw]
         end
         {

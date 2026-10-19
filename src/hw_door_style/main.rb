@@ -19,6 +19,7 @@ module HarryWardrobes
     Sketchup.require(File.join(PATH, 'repair'))
     Sketchup.require(File.join(PATH, 'library_export'))
     Sketchup.require(File.join(PATH, 'scribe'))
+    Sketchup.require(File.join(PATH, 'opencutlist'))
 
     STYLED_KINDS = [:door, :ext_drawer].freeze
 
@@ -228,7 +229,14 @@ module HarryWardrobes
                                width: 660, height: 520, resizable: true, scrollable: true,
                                style: UI::HtmlDialog::STYLE_DIALOG)
       html = File.read(File.join(PATH, 'html', 'settings.html'))
-      dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Settings.get)))
+      dlg.set_html(html.sub('/*DATA*/null', JSON.generate(Settings.get.merge('_colour_library' => Colours.editor_library,
+                                                                             '_ocl' => OpenCutList.status))))
+      dlg.add_action_callback('pickTexture') do |_c, idx|
+        f = UI.openpanel('Choose a texture image', nil, 'Images|*.jpg;*.jpeg;*.png||')
+        next unless f
+        name = Colours.import_texture(f)
+        dlg.execute_script("textureChosen(#{idx.to_i}, #{JSON.generate(name)}, #{JSON.generate(Colours.data_url(name))})")
+      end
       dlg.add_action_callback('cancel') { |_c| dlg.close }
       dlg.add_action_callback('reset') do |_c|
         next unless UI.messagebox('Reset all settings to the plugin defaults?', MB_YESNO) == IDYES
@@ -250,7 +258,13 @@ module HarryWardrobes
       dlg.add_action_callback('save') do |_c, json|
         begin
           data = JSON.parse(json)
+          lib = Array(data['colour_library']).map { |c| c.reject { |k, _| k == 'img' } }
+          data['colour_library'] = lib == Colours.builtin ? [] : lib
           Settings.save(Settings.get.merge(pending).merge(data))
+          m = Sketchup.active_model
+          m.start_operation('Update colour materials', true)
+          Colours.refresh_materials(m)
+          m.commit_operation
           dlg.close
           offer_rebuild
         rescue StandardError => e

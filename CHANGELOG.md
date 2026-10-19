@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.6 — 2026-10-19
+- Settings -> Colours & materials: **Colour library** editor, laid out like SketchUp's Materials
+  browser - swatch grid; edit name, colour, texture image and size; New / Duplicate / Delete /
+  Reset to built-in. Saved in your settings (and backups); textures kept in %APPDATA%\HW Door Style\textures
+  so updates don't remove them. Saving updates materials of the same name in the open model.
+- New **Cut list** tab (information only): OpenCutList installed / version, what the plugin could set
+  for OpenCutList (material types, thickness, grain) and ideas for connecting the two.
+
 ## 0.11.5 — 2026-10-19
 - 22mm Panels row: default is now "Default (Frost White)" (Settings: panels_22_default). The separate
   plain White colour is gone; saved defaults of White become Default. Export / Clean model still strip it.

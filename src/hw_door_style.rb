@@ -7,7 +7,7 @@ require 'extensions.rb'
 module HarryWardrobes
   module DoorStyle
     PLUGIN_ID = 'hw_door_style'.freeze
-    VERSION   = '0.11.5'.freeze
+    VERSION   = '0.11.6'.freeze
     PATH      = File.join(File.dirname(__FILE__), PLUGIN_ID).freeze
 
     unless file_loaded?(__FILE__)

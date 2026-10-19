@@ -67,7 +67,8 @@ src/hw_door_style/converter.rb  rebuilds wrappers to the DOOR_W/T/H contract
 src/hw_door_style/dc.rb         Dynamic Component attribute helpers
 src/hw_door_style/repair.rb     Repair doors in model + contract checks
 src/hw_door_style/library_export.rb  Export components (versioned files, _old)
-src/hw_door_style/scribe.rb     Scribe / runout (pencil)
+src/hw_door_style/scribe.rb     Scribe / runout (pencil) + ceiling height
+src/hw_door_style/opencutlist.rb  OpenCutList status / plan (Settings -> Cut list)
 src/hw_door_style/report.rb     summary, CSV, export naming/versioning
 src/hw_door_style/pdf.rb        built-in PDF writer
 src/hw_door_style/tagger.rb     DOOR / DRAWER_FRONT tagging

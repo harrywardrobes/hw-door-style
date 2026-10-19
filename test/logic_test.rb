@@ -130,6 +130,8 @@ check 'defaults start as Default (box, 22mm panels aside)', Colours.defaults.rej
 check '22mm panels default = Default (Frost White)', Colours.defaults['panels_22'] == 'Default' && Colours.resolve('panels_22', 'Default', 'Cashmere') == 'Frost White'
 check 'no separate White colour; Frost White offered on 22mm row', !Colours.names_for('panels_22').include?('White') && Colours.names_for('panels_22').include?('Frost White')
 check 'plain (export) strips 22mm colour too', Colours.resolved(nil, { 'panels_22' => 'Default' }, plain: true)['panels_22'] == 'Default'
+check 'empty saved library = built-in colours', Colours.library == Colours.builtin && Colours.names.size == 13
+check 'texture found in plugin folder', Colours.texture_path('lissa_oak.jpg').to_s.end_with?('lissa_oak.jpg') && Colours.texture_path('nope.jpg').nil?
 check '22mm Panels row in the Colours window', Colours::GROUPS.map(&:first).include?('panels_22')
 check 'interior group has STL, not HARDWARE', Colours.group_tags['interior'].include?('STL') && !Colours.group_tags.values.flatten.include?('HARDWARE')
 check 'Default follows door colour', Colours.resolve('interior', 'Default', 'Cashmere') == 'Cashmere'

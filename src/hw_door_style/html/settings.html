@@ -24,6 +24,26 @@
   .tabs button { border:1px solid transparent; border-bottom:none; border-radius:4px 4px 0 0; background:none; padding:5px 12px; color:#57606a; margin-bottom:-1px; }
   .tabs button.on { background:#fff; border-color:#d0d7de; color:#2f4a3f; font-weight:600; }
   fieldset.hide { display:none; }
+  .lib { display:grid; grid-template-columns:1fr 230px; gap:10px; }
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill, minmax(62px, 1fr)); gap:6px; align-content:start; max-height:250px; overflow:auto; padding:2px; }
+  .sw { cursor:pointer; text-align:center; font-size:10px; color:#57606a; }
+  .sw .t { height:46px; border-radius:4px; border:1px solid #c9ced3; background-size:cover; background-position:center; }
+  .sw.on .t { outline:2px solid #2f4a3f; outline-offset:1px; }
+  .sw .n { margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ed { border-left:1px solid #eceef0; padding-left:10px; }
+  .ed .big { height:70px; border-radius:4px; border:1px solid #c9ced3; background-size:cover; background-position:center; margin-bottom:6px; }
+  .ed .f { grid-template-columns:62px 1fr; }
+  .ed input[type=color] { padding:0; height:24px; }
+  .ed .f.c { grid-template-columns:1fr 16px; }
+  .ed .btns { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .ed .btns button, .libbar button { padding:3px 8px; font-size:11px; }
+  .libbar { display:flex; gap:4px; margin-top:6px; }
+  table.ocl { width:100%; border-collapse:collapse; font-size:11px; }
+  table.ocl th { text-align:left; color:#57606a; border-bottom:1px solid #d0d7de; padding:3px 4px; }
+  table.ocl td { border-bottom:1px solid #eceef0; padding:3px 4px; }
+  .ok { color:#1a7f37; font-weight:600; } .no { color:#b4541a; font-weight:600; }
+  ul.tips { margin:4px 0 0; padding-left:18px; } ul.tips li { margin:3px 0; }
+
   .bar { display:flex; gap:6px; justify-content:flex-end; margin-top:8px; }
   button { font:inherit; padding:4px 12px; border:1px solid #c9ced3; border-radius:3px; background:#fff; cursor:pointer; }
   button.primary { background:#2f4a3f; color:#fff; border-color:#2f4a3f; }
@@ -36,6 +56,7 @@
   <button data-t="colours">Colours &amp; materials</button>
   <button data-t="scribe">Scribe / runout</button>
   <button data-t="export">Export</button>
+  <button data-t="cutlist">Cut list</button>
 </div>
 <div class="grid">
   <fieldset class="wide" data-tab="doors"><legend>Component names</legend>
@@ -100,6 +121,23 @@
     <div class="hint">One line per component, e.g. <code>WARDROBE: WRD</code>. Files with an older name are moved to the old folder and counted for the next version number.</div>
   </fieldset>
 
+  <fieldset class="wide" data-tab="colours"><legend>Colour library</legend>
+    <div class="lib">
+      <div>
+        <div class="swatches" id="swatches"></div>
+        <div class="libbar">
+          <button onclick="libAdd()">+ New colour</button>
+          <button onclick="libDup()">Duplicate</button>
+          <button onclick="libDel()">Delete</button>
+          <span style="flex:1"></span>
+          <button onclick="libReset()" title="Go back to the built-in colours">Reset to built-in</button>
+        </div>
+      </div>
+      <div class="ed" id="ed"></div>
+    </div>
+    <div class="hint">These are the colours offered in the Colours window. Saving updates any material of the same name in this model. Renaming makes a new colour (jobs keep the old name).</div>
+  </fieldset>
+
   <fieldset class="wide" data-tab="colours"><legend>Materials</legend>
     <div class="f t"><span>Hinge / TIP-ON material</span><input type="text" id="hardware_material"></div>
     <div class="f t"><span>Door / Drawer tags</span><input type="text" id="cg_door"></div>
@@ -110,6 +148,23 @@
     <div class="f"><span>22mm Panels colour row: panel thickness (mm)</span><input type="number" id="panel_22_mm"></div>
     <div class="f c"><span>Drawer box thickness follows the finish (15mm woodgrain / 16mm plain)</span><input type="checkbox" id="box_thickness_follows_finish"></div>
     <div class="hint">Which tags each colour in the Colours window paints. Hinges and TIP-ONs are never repainted.</div>
+  </fieldset>
+  <fieldset class="wide" data-tab="cutlist"><legend>OpenCutList</legend>
+    <div id="oclStatus"></div>
+    <div class="hint" style="margin-top:6px">Information only for now - nothing is written to OpenCutList yet.</div>
+  </fieldset>
+  <fieldset class="wide" data-tab="cutlist"><legend>What the plugin could set for OpenCutList</legend>
+    <table class="ocl"><thead><tr><th>Material</th><th>OpenCutList type</th><th>Thickness</th><th>Grain</th></tr></thead><tbody id="oclPlan"></tbody></table>
+  </fieldset>
+  <fieldset class="wide" data-tab="cutlist"><legend>Ideas to connect the two</legend>
+    <ul class="tips">
+      <li><b>Material types</b> - board colours as <i>Sheet good</i> (18 / 22 / 25 mm, your HPP sheet sizes), woodgrains marked <i>grained</i>; hinges, TIP-ON and Interfit boxes as <i>Hardware</i> so they are counted, not cut.</li>
+      <li><b>Bought-in doors &amp; drawer fronts</b> - tag them (e.g. <i>bought-in</i>) so OpenCutList can leave them off the cutting diagrams; the plugin's Door order stays the supplier list.</li>
+      <li><b>Part tags</b> - DOOR, DRAWER_FRONT, SHELF, DIV, FACING ... on each component so the cut list can be filtered and labelled.</li>
+      <li><b>Grain direction</b> - lock it on doors and drawer fronts (vertical / horizontal) when you start using woodgrains.</li>
+      <li><b>Colours first</b> - parts with "Default (no material)" are grouped as no material, so apply colours before running the cut list (the plugin could warn).</li>
+      <li><b>Runouts</b> - the cut list uses the drawn sizes, so press the pencil (scribes on) before cutting.</li>
+    </ul>
   </fieldset>
 </div>
 
@@ -159,6 +214,7 @@ function collect(){
   o.runout_values_mm = $('runout_values_mm').value.split(',').map(function(x){ return parseFloat(x); }).filter(function(x){ return x > 0; });
   o.runout_defaults_mm = {};
   ['floor','ceiling','back','left','right'].forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
+  o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
   o.export_aliases = {};
   $('export_aliases').value.split('\n').forEach(function(line){
     var i = line.indexOf(':'); if (i < 1) return;
@@ -172,6 +228,48 @@ function collect(){
   return o;
 }
 load(S);
+// ---- colour library editor ----
+var LIB = (S._colour_library || []).map(function(c){ return JSON.parse(JSON.stringify(c)); });
+var SEL = 0;
+function hex(rgb){ return '#' + rgb.map(function(v){ var h = Math.max(0, Math.min(255, v|0)).toString(16); return h.length < 2 ? '0' + h : h; }).join(''); }
+function rgbOf(h){ return [1,3,5].map(function(i){ return parseInt(h.substr(i, 2), 16); }); }
+function swStyle(c){ return c.img ? 'background-image:url(' + c.img + ')' : 'background:rgb(' + c.rgb.join(',') + ')'; }
+function libRender(){
+  var h = '';
+  LIB.forEach(function(c, i){ h += '<div class="sw' + (i === SEL ? ' on' : '') + '" onclick="libPick(' + i + ')" title="' + escH(c.name) + '"><div class="t" style="' + swStyle(c) + '"></div><div class="n">' + escH(c.name) + '</div></div>'; });
+  $('swatches').innerHTML = h;
+  var c = LIB[SEL];
+  if (!c) { $('ed').innerHTML = '<div class="hint">No colours.</div>'; return; }
+  $('ed').innerHTML =
+    '<div class="big" style="' + swStyle(c) + '"></div>' +
+    '<div class="f"><span>Name</span><input type="text" value="' + escH(c.name) + '" oninput="LIB[SEL].name=this.value; libSoft()"></div>' +
+    '<div class="f"><span>Colour</span><input type="color" value="' + hex(c.rgb) + '" oninput="LIB[SEL].rgb=rgbOf(this.value); libSoft()"></div>' +
+    '<div class="f"><span>Texture</span><span style="font-size:11px">' + (c.texture ? escH(c.texture) : 'none') + '</span></div>' +
+    '<div class="f"><span>Size (mm)</span><input type="number" value="' + (c.size_mm || '') + '" oninput="LIB[SEL].size_mm=parseFloat(this.value)||null"' + (c.texture ? '' : ' disabled') + '></div>' +
+    '<div class="f c"><span>22mm Panels row only</span><input type="checkbox"' + (c.only ? ' checked' : '') + ' onchange="if(this.checked){LIB[SEL].only=[\'panels_22\'];}else{delete LIB[SEL].only;}"></div>' +
+    '<div class="btns"><button onclick="sketchup.pickTexture(SEL)">Choose image...</button>' + (c.texture ? '<button onclick="libNoTex()">Remove image</button>' : '') + '</div>';
+}
+function escH(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(ch){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]; }); }
+function libSoft(){ var c = LIB[SEL]; var t = document.querySelectorAll('#swatches .sw')[SEL]; if (t) { t.querySelector('.t').setAttribute('style', swStyle(c)); t.querySelector('.n').textContent = c.name; } var b = document.querySelector('#ed .big'); if (b) b.setAttribute('style', swStyle(c)); }
+function libPick(i){ SEL = i; libRender(); }
+function libAdd(){ LIB.push({ name: 'New colour', rgb: [200, 200, 200] }); SEL = LIB.length - 1; libRender(); }
+function libDup(){ var c = LIB[SEL]; if (!c) return; var d = JSON.parse(JSON.stringify(c)); d.name = c.name + ' copy'; LIB.splice(SEL + 1, 0, d); SEL++; libRender(); }
+function libDel(){ if (!LIB[SEL]) return; LIB.splice(SEL, 1); SEL = Math.max(0, SEL - 1); libRender(); }
+function libNoTex(){ delete LIB[SEL].texture; delete LIB[SEL].img; delete LIB[SEL].size_mm; libRender(); }
+function libReset(){ LIB = []; $('swatches').innerHTML = '<div class="hint">Built-in colours will be restored when you press Save.</div>'; $('ed').innerHTML = ''; }
+function textureChosen(i, name, img){ var c = LIB[i]; if (!c) return; c.texture = name; c.img = img; if (!c.size_mm) c.size_mm = 600; if (i === SEL) libRender(); else libSoft(); }
+libRender();
+
+// ---- OpenCutList tab ----
+(function(){
+  var o = S._ocl || {};
+  var st = o.installed ? '<span class="ok">OpenCutList installed</span>' + (o.version ? ' (v' + escH(o.version) + ')' : '') + (o.loaded ? '' : ' - not loaded')
+                       : '<span class="no">OpenCutList not found</span> - install it from the Extension Warehouse to use these ideas.';
+  st += '<div class="hint">' + (o.materials_with_ocl || 0) + ' of ' + (o.materials || 0) + ' materials in this model already have OpenCutList settings.</div>';
+  $('oclStatus').innerHTML = st;
+  $('oclPlan').innerHTML = (o.plan || []).map(function(r){ return '<tr><td>' + escH(r.material) + '</td><td>' + escH(r.type) + '</td><td>' + escH(r.thickness) + '</td><td>' + escH(r.grained) + '</td></tr>'; }).join('');
+})();
+
 function tab(t){
   document.querySelectorAll('fieldset[data-tab]').forEach(function(f){ f.classList.toggle('hide', f.getAttribute('data-tab') !== t); });
   document.querySelectorAll('#tabs button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-t') === t); });
