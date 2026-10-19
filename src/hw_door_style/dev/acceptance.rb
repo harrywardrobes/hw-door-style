@@ -14,7 +14,7 @@ module HarryWardrobes
       MM = 25.4
       TOL = 0.11 # mm
 
-      SUITES = %w[doors runouts ceiling colours export].freeze
+      SUITES = %w[doors runouts ceiling colours cutlist export].freeze
 
       def self.mm(v) = v.to_f * MM
 
@@ -254,6 +254,23 @@ module HarryWardrobes
         end
         rows << row('colours', 'library', 'every colour has a name and RGB',
                     Colours.library.all? { |c| !c['name'].to_s.strip.empty? && Array(c['rgb']).size == 3 })
+      end
+
+      # --- cut list: OpenCutList set-up ------------------------------------------------
+
+      def self.suite_cutlist(model)
+        rows = []
+        Ops.throwaway(model, 'HW tests: OpenCutList (discarded)') do
+          rep = OpenCutList.setup!(model, overwrite: true)
+          plan = OpenCutList.plan(model)
+          rows << row('cutlist', 'materials', 'all set after set-up', plan.all? { |r| r['state'] == 'same' }, "#{plan.size} materials, #{rep[:set].size} written")
+          parts = OpenCutList.door_parts(model)
+          ok = !Settings.get['ocl_doors_bought_in'] || parts.all? { |d| OpenCutList.bought_in?(d) }
+          rows << row('cutlist', 'doors / drawer fronts', "tagged #{OpenCutList.tag}", ok, "#{parts.size} parts")
+          again = OpenCutList.setup!(model)
+          rows << row('cutlist', 'set-up', 'second run changes nothing', again[:set].empty? && again[:tagged].zero?)
+        end
+        rows
       end
 
       # --- export (read-only: nothing is saved) -----------------------------------------

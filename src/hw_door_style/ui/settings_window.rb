@@ -83,6 +83,22 @@ module HarryWardrobes
           FileUtils.mkdir_p(Settings::USER_DIR)
           UI.openURL("file:///#{Settings::USER_DIR.tr('\\', '/')}")
         end
+        dlg.add_action_callback('oclSetup') do |_c, overwrite|
+          if dirty
+            UI.messagebox('Save your Settings first - the set-up uses the saved board sizes and tag.')
+            next
+          end
+          model = Sketchup.active_model
+          begin
+            rep = Ops.run(model, 'Set up OpenCutList') { OpenCutList.setup!(model, overwrite: overwrite ? true : false) }
+            msg = "Set: #{rep[:set].size} material(s), #{rep[:tagged]} door part(s) tagged." +
+                  (rep[:kept].empty? ? '' : " Kept your own settings on: #{rep[:kept].join(', ')}.")
+            dlg.execute_script("oclDone(#{JSON.generate(OpenCutList.status(model))}, #{JSON.generate(msg)})")
+          rescue StandardError => e
+            UI.messagebox("OpenCutList set-up failed and was undone.\n\n#{e.message}")
+            Log.error('opencutlist', e)
+          end
+        end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 
         dlg.add_action_callback('save') do |_c, json|

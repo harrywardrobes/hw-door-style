@@ -152,5 +152,21 @@
   },
   "panels_22_default": "Frost White",
   "colour_library": [],
+  "ocl_thicknesses_mm": [
+    18,
+    25
+  ],
+  "ocl_sheet_sizes": [
+    "2800x90",
+    "2800x160",
+    "2800x300",
+    "2800x500",
+    "2800x570",
+    "2800x610",
+    "2800x1000",
+    "2800x2070"
+  ],
+  "ocl_doors_bought_in": true,
+  "ocl_bought_in_tag": "bought-in",
   "settings_version": 2
 }

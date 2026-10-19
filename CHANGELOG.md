@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.17.0 — 2026-10-19
+- **Set up OpenCutList** (Settings > Cut list): one button, one undo step, on the open model.
+  - Board colours: sheet good, 18 / 25 mm (the 22mm Panels colour also 22 mm), stock 2800 x 2070
+    sheets plus your pre-cut strips (90 / 160 / 300 / 500 / 570 / 610 / 1000), woodgrains marked
+    grained - the same as you had set up by hand in Components V22.
+  - Interfit drawer box finishes and HARDWARE (hinges, TIP-ON): hardware - counted, not cut.
+  - Door and drawer front parts tagged "bought-in" so they can be filtered off the cutting
+    diagrams (new Shaker parts are tagged as they are made).
+  - Only fills in what's missing; tick "Also replace" to overwrite settings that differ.
+- Cut list section shows each material's state (already set / not set / set differently) and
+  warnings: scribes off, no colours chosen, untagged doors, materials not set up.
+- Board thicknesses, stock sizes and the bought-in tag are settings.
+- Grain: OpenCutList runs it along each part's longest side and never rotates a grained part,
+  so tall doors and panels come out vertical and wide drawer fronts horizontal.
+- New test suite: cut list (set-up, tags, second run changes nothing).
+
 ## 0.16.0 — 2026-10-19
 - **Developer menu** (Settings > General > Developer mode, then restart SketchUp): Run tests,
   Inspect selected component, Reload plugin code, Ruby Console.

@@ -249,20 +249,30 @@
 <!-- ======================= CUT LIST ======================= -->
 <section id="s_cutlist">
   <h2>Cut list</h2>
-  <div class="lead">OpenCutList - information only for now; nothing is written to OpenCutList yet.</div>
-  <fieldset><legend>OpenCutList</legend><div id="oclStatus"></div></fieldset>
-  <fieldset><legend>What the plugin could set for OpenCutList</legend>
-    <table class="ocl"><thead><tr><th>Material</th><th>OpenCutList type</th><th>Thickness</th><th>Grain</th></tr></thead><tbody id="oclPlan"></tbody></table>
+  <div class="lead">OpenCutList settings for this model's materials and doors.</div>
+  <fieldset><legend>OpenCutList</legend>
+    <div id="oclStatus"></div>
+    <div id="oclWarn"></div>
   </fieldset>
-  <fieldset><legend>Ideas to connect the two</legend>
-    <ul class="tips">
-      <li><b>Material types</b> - board colours as <i>Sheet good</i> (18 / 22 / 25 mm, your HPP sheet sizes), woodgrains marked <i>grained</i>; hinges, TIP-ON and Interfit boxes as <i>Hardware</i> so they are counted, not cut.</li>
-      <li><b>Bought-in doors &amp; drawer fronts</b> - tag them (e.g. <i>bought-in</i>) so OpenCutList can leave them off the cutting diagrams; the plugin's Door order stays the supplier list.</li>
-      <li><b>Part tags</b> - DOOR, DRAWER_FRONT, SHELF, DIV, FACING ... on each component so the cut list can be filtered and labelled.</li>
-      <li><b>Grain direction</b> - lock it on doors and drawer fronts (vertical / horizontal) when you start using woodgrains.</li>
-      <li><b>Colours first</b> - parts with "Default (no material)" are grouped as no material, so apply colours before running the cut list (the plugin could warn).</li>
-      <li><b>Runouts</b> - the cut list uses the drawn sizes, so press the pencil (scribes on) before cutting.</li>
-    </ul>
+  <fieldset><legend>Set up OpenCutList for this model</legend>
+    <table class="ocl"><thead><tr><th>Material</th><th>Used for</th><th>Set as</th><th>Thicknesses</th><th>Grain</th><th>Now</th></tr></thead><tbody id="oclPlan"></tbody></table>
+    <div class="btnrow" style="align-items:center">
+      <button class="primary" onclick="oclSetup()">Set up OpenCutList</button>
+      <label style="font-size:11.5px;display:flex;gap:5px;align-items:center"><input type="checkbox" id="oclOverwrite"> Also replace OpenCutList settings that differ</label>
+    </div>
+    <div class="hint" id="oclDoors"></div>
+    <div class="hint">Works on the open model straight away (one undo step). Only materials already in the model are set; without the tick, anything you set yourself in OpenCutList is kept.</div>
+  </fieldset>
+  <fieldset><legend>Boards</legend>
+    <div class="f t"><span>Board thicknesses (mm)</span><input type="text" id="ocl_thicknesses_mm"></div>
+    <div class="hint" style="margin-bottom:6px">The 22mm Panels colour also gets the 22mm panel thickness.</div>
+    <div class="f t"><span>Stock sizes (mm)</span><textarea id="ocl_sheet_sizes" rows="3"></textarea></div>
+    <div class="hint">Length x width, comma separated - full sheets and pre-cut strips, e.g. <code>2800x2070, 2800x610</code>.</div>
+  </fieldset>
+  <fieldset><legend>Doors &amp; drawer fronts</legend>
+    <div class="f c"><span>Bought-in (from HPP): tag them so they can be left off the cutting diagrams</span><input type="checkbox" id="ocl_doors_bought_in"></div>
+    <div class="f t"><span>Tag</span><input type="text" id="ocl_bought_in_tag"></div>
+    <div class="hint">In OpenCutList's cut list, filter out this tag to leave doors and drawer fronts off the cutting diagrams. The Door order (summary) stays the HPP list.</div>
   </fieldset>
 </section>
 
@@ -349,6 +359,10 @@ function load(s){
   var p22 = (DEFAULT_ROWS.filter(function(r){ return r[0] === 'panels_22'; })[0] || [0, 0, []])[2];
   opts($('panels_22_default'), p22.map(function(n){ return [n, n]; }), s.panels_22_default);
   $('_debug').checked = !!S._debug;
+  $('ocl_thicknesses_mm').value = (s.ocl_thicknesses_mm || []).join(', ');
+  $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
+  $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
+  $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
 }
 
 function collect(){
@@ -378,6 +392,10 @@ function collect(){
     var i = line.indexOf(':'); if (i < 1) return;
     var t = line.slice(0, i).trim(); if (t) o.hardware_tags[t] = split(line.slice(i + 1));
   });
+  o.ocl_thicknesses_mm = $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
+  o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
+  o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
+  o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';
   o._debug = $('_debug').checked;
   return o;
 }
@@ -419,6 +437,9 @@ function problems(){
     var v = num('rd_' + k);
     need('scribe', 'rd_' + k, v === 0 || vals.indexOf(v) >= 0, k.charAt(0).toUpperCase() + k.slice(1) + ' default must be 0 or one of the dropdown values');
   });
+  var sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
+  need('cutlist', 'ocl_sheet_sizes', sizes.length > 0 && sizes.every(function(x){ return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(x); }), 'Stock sizes: length x width, e.g. 2800x2070');
+  need('cutlist', 'ocl_thicknesses_mm', $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).length > 0, 'Enter at least one board thickness');
   need('export', 'export_old_folder', /^[^\\/:*?"<>|]+$/.test($('export_old_folder').value.trim() || '_old'), 'Folder name can\'t contain \\ / : * ? " < > |');
   return out;
 }
@@ -502,12 +523,7 @@ function renderInfo(){
   var j = S._job || {};
   $('jobInfo').innerHTML = 'This job' + (j.title ? ' (' + esc(j.title) + ')' : '') + ': scribes <b>' + (j.scribes_on ? 'on' : 'off') + '</b>, ceiling <b>' +
     (j.ceiling > 0 ? Math.round(j.ceiling) + ' mm' : 'not set') + '</b>, ' + (j.units || 0) + ' units with runouts.';
-  var o = S._ocl || {};
-  var st = o.installed ? '<span class="ok">OpenCutList installed</span>' + (o.version ? ' (v' + esc(o.version) + ')' : '') + (o.loaded ? '' : ' - not loaded')
-                       : '<span class="no">OpenCutList not found</span> - install it from the Extension Warehouse to use these ideas.';
-  st += '<div class="hint">' + (o.materials_with_ocl || 0) + ' of ' + (o.materials || 0) + ' materials in this model already have OpenCutList settings.</div>';
-  $('oclStatus').innerHTML = st;
-  $('oclPlan').innerHTML = (o.plan || []).map(function(r){ return '<tr><td>' + esc(r.material) + '</td><td>' + esc(r.type) + '</td><td>' + esc(r.thickness) + '</td><td>' + esc(r.grained) + '</td></tr>'; }).join('');
+  renderOcl(S._ocl || {});
   $('verLine').textContent = 'HW Door Style ' + (S._version || '') + ' - Harry Wardrobes (Gautier Design Ltd)';
   $('news').innerHTML = (S._whats_new || []).map(function(e){
     return '<h4>' + esc(e.title) + '</h4><ul>' + e.items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
@@ -515,6 +531,25 @@ function renderInfo(){
   $('setPath').textContent = S._settings_file || '';
   $('teamLine').textContent = S._team_file ? 'Team file: ' + S._team_file : 'No team file chosen yet.';
 }
+
+// ---------- cut list ----------
+var STATE = { missing: 'not set', same: 'already set', different: 'set differently' };
+function renderOcl(o){
+  var st = o.installed ? '<span class="ok">OpenCutList installed</span>' + (o.version ? ' (v' + esc(o.version) + ')' : '') + (o.loaded ? '' : ' - not loaded')
+                       : '<span class="no">OpenCutList not found</span> - install it from the Extension Warehouse; the settings are still written, ready for it.';
+  st += '<div class="hint">' + (o.materials_with_ocl || 0) + ' of ' + (o.materials || 0) + ' materials in this model have OpenCutList settings.</div>';
+  $('oclStatus').innerHTML = st;
+  $('oclWarn').innerHTML = (o.warnings || []).map(function(w){ return '<div class="msg" style="margin-top:4px">' + esc(w) + '</div>'; }).join('');
+  $('oclPlan').innerHTML = (o.plan || []).map(function(r){
+    var cls = r.state === 'same' ? 'ok' : (r.state === 'missing' ? 'no' : '');
+    return '<tr><td>' + esc(r.material) + '</td><td>' + esc(r.why) + '</td><td>' + esc(r.type) + '</td><td>' + esc(r.thickness) + '</td><td>' + esc(r.grained) +
+           '</td><td class="' + cls + '">' + esc(STATE[r.state] || r.state) + (r.state === 'different' ? ' (' + esc(r.current_type) + ')' : '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="6" class="hint">None of the plugin\'s colours are in this model yet.</td></tr>';
+  $('oclDoors').textContent = o.doors ? (o.doors_tagged + ' of ' + o.doors + ' door / drawer front parts tagged "' + o.tag + '".') : 'No doors or drawer fronts in this model.';
+}
+function oclSetup(){ sketchup.oclSetup($('oclOverwrite').checked); }
+// Called from Ruby after Set up OpenCutList.
+function oclDone(o, msg){ renderOcl(o); $('oclDoors').textContent = msg + ' ' + $('oclDoors').textContent; }
 
 // ---------- sections ----------
 function show(s){
@@ -527,8 +562,10 @@ document.querySelectorAll('#nav a').forEach(function(a){ a.onclick = function(){
 load(S);
 libRender();
 renderInfo();
-document.querySelector('.content').addEventListener('input', markDirty);
-document.querySelector('.content').addEventListener('change', markDirty);
+// Changes to settings fields mark the window unsaved (not the one-off "replace" tick).
+function changed(e){ if (e.target && e.target.id !== 'oclOverwrite') markDirty(); }
+document.querySelector('.content').addEventListener('input', changed);
+document.querySelector('.content').addEventListener('change', changed);
 setState();
 var last = 'doors'; try { last = localStorage.getItem('hw_settings_section') || 'doors'; } catch(e) {}
 show(document.getElementById('s_' + last) ? last : 'doors');

@@ -180,6 +180,7 @@ module HarryWardrobes
         d.description = "#{Styles.label(info[:style])} #{Finder.mm_s(w)} x #{Finder.mm_s(h)} mm"
         slab_attrs([d], kind, info[:style], w, t, h)
         Tagger.tag_geometry(d.entities, Tagger.tag_for(model, kind))
+        OpenCutList.mark_new_part(d) # bought-in: off the cutting diagrams
         cache[key] = [d, info]
       end
     end

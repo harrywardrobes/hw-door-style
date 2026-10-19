@@ -77,6 +77,7 @@ dlg.show
 | `drawer_box_parts`, `box_thickness_follows_finish` | Drawer boxes |
 | `runout_values_mm`, `runout_defaults_mm` | Pencil dropdowns and defaults |
 | `export_old_folder`, `export_aliases`, `export_skip` | Export components |
+| `ocl_thicknesses_mm`, `ocl_sheet_sizes`, `ocl_doors_bought_in`, `ocl_bought_in_tag` | Set up OpenCutList (Cut list) |
 | `settings_version` | Migration marker (see `Settings.migrate`) |
 
 Window-only data the Settings window receives starts with `_` (`_job`, `_version`, `_colour_rows`...)
@@ -92,7 +93,7 @@ Job values stored **on the model** (attribute dictionary `hw_door_style`): `hing
 - In SketchUp, on the component library: turn on **Settings > General > Developer mode**,
   restart SketchUp, then **Extensions > HW Door Style > Developer > Run tests**. Suites:
   doors (size / slab / hinge contract), runouts (25 mm on, back exactly), ceiling (heights, top
-  doors, bridge alignment), colours, export (read-only). Each runs in an `Ops.throwaway` step,
+  doors, bridge alignment), colours, cut list (OpenCutList set-up), export (read-only). Each runs in an `Ops.throwaway` step,
   so the model is never changed; `Ops.run` inside one raises `Ops::NestedStep` instead of committing.
   Add a check by writing a `suite_<name>` method in `dev/acceptance.rb` and listing it in `SUITES`.
 - Developer menu also has **Inspect selected component** (DC options and formulas to the Ruby

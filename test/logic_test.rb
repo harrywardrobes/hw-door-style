@@ -400,5 +400,32 @@ Dir.mktmpdir do |d|
 end
 check "what's new reads the real changelog", SettingsWindow.whats_new(1, File.expand_path('../CHANGELOG.md', __dir__)).first['title'].start_with?('0.')
 
+# --- OpenCutList (0.17) ---
+require 'hw_door_style/export/opencutlist'
+OC = OpenCutList
+v22_sizes = '2800 mm x 90 mm;2800 mm x 160 mm;2800 mm x 300 mm;2800 mm x 500 mm;2800 mm x 570 mm;2800 mm x 610 mm;2800 mm x 1000 mm;2800 mm x 2070 mm'
+check 'OCL sizes match V22 format', OC.sizes_s(OC.sheet_sizes) == v22_sizes
+check 'OCL thicknesses: boards 18/25, Frost White adds 22', OC.thicknesses_s(OC.thicknesses_for('Graphite')) == '18 mm;25 mm' && OC.thicknesses_s(OC.thicknesses_for('Frost White')) == '18 mm;22 mm;25 mm'
+check 'OCL list compare ignores order / spaces', OC.same_list?('25mm;18 mm', '18 mm;25 mm') && !OC.same_list?('18 mm', '18 mm;25 mm')
+class FMat
+  attr_reader :h
+  def initialize(h = nil); @h = h; end
+  def attribute_dictionary(_n); @h; end
+  def set_attribute(_d, k, v); (@h ||= {})[k] = v; end
+  def get_attribute(_d, k, dflt = nil); @h&.key?(k) ? @h[k] : dflt; end
+end
+want = OC.desired
+lissa = want['Lissa Oak']
+check 'woodgrain colour is grained sheet good', lissa['type'] == 2 && lissa['grained'] == true
+check 'drawer boxes and hinges are hardware', want.values_at(*DrawerBox.library.map { |b| b['material'] || b['name'] }, 'HARDWARE').all? { |w| w && w['type'] == 5 }
+v22 = FMat.new({ 'type' => 2, 'std_thicknesses' => '18 mm;25 mm', 'std_sizes' => v22_sizes, 'grained' => true })
+check 'V22 Lissa Oak already matches', OC.state(v22, lissa) == :same
+check 'no OCL settings = missing', OC.state(FMat.new, lissa) == :missing && OC.state(FMat.new({ 'type' => 0 }), lissa) == :missing
+check 'own settings = different', OC.state(FMat.new({ 'type' => 2, 'std_thicknesses' => '19 mm', 'std_sizes' => v22_sizes, 'grained' => true }), lissa) == :different
+door = FMat.new({ 'tags' => ['mine'] })
+check 'bought-in tag added, own tags kept', OC.mark_bought_in(door) && door.h['tags'] == %w[bought-in mine] && !OC.mark_bought_in(door)
+old = FMat.new({ 'labels' => 'a;b' })
+check 'old OCL "labels" read as tags', OC.tags_of(old) == %w[a b]
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
