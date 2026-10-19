@@ -30,6 +30,9 @@ end
 
 module Sketchup
   class ComponentInstance; end
+  class Group; end
+  class ModelObserver; end
+  class AppObserver; end
 end
 
 $LOAD_PATH.unshift File.expand_path('../src', __dir__)
@@ -228,6 +231,15 @@ h = { 'j01_runout_floor' => '1', 'runout_ceiling' => '2', 'a01_frame_width' => 3
 check 'prefixed key found', DC.key_in(h, 'runout_floor') == 'j01_runout_floor' && DC.key_in(h, 'frame_width') == 'a01_frame_width'
 check 'plain key still found', DC.key_in(h, 'runout_ceiling') == 'runout_ceiling'
 check 'no false match (zz_ / partial)', DC.key_in(h, 'runout_back') .nil? && DC.key_in(h, 'width').nil?
+fake_u = Object.new
+def fake_u.is_a?(c); c == Sketchup::ComponentInstance; end
+vals = { 'j01_runout_floor' => '0.0', 'j02_runout_ceiling' => '0.0', 'j03_runout_l' => '0.0' }
+SC.define_singleton_method(:units) { |_e| [fake_u] }
+SC.define_singleton_method(:mm_of) { |_u, sd| { 'floor' => vals['j01_runout_floor'].to_f * 25.4, 'ceiling' => 0.0, 'left' => 0.0 }[sd] }
+fake_m = Struct.new(:entities).new([])
+check 'pencil off when every runout is 0', SC.detect(fake_m) == false
+vals['j01_runout_floor'] = (25 / 25.4).to_s
+check 'pencil on when any runout > 0', SC.detect(fake_m) == true
 check '25mm stored as inches string', SC.inch_s(25) == (25 / 25.4).to_s
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"

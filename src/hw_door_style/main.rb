@@ -340,6 +340,7 @@ module HarryWardrobes
                            'Pressed: every unit has the job runouts. Click to set all to 0 (easier to move); click again to choose floor, ceiling, left, right and back.',
                            'pencil') { Scribe.toggle }
       cmd_scribe.set_validation_proc { Scribe.on? ? MF_CHECKED : MF_UNCHECKED }
+      Scribe.start_watching
       menu.add_item(cmd_scribe)
       cmd_ceiling = command('Ceiling height',
                             'Set the ceiling height for every unit with "Up to ceiling" = TRUE (any time; scribes not changed).',

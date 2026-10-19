@@ -269,6 +269,7 @@ dropdown 0 / 25 / 50 / 75 / 100 / 150 mm from Settings). The plugin only sets va
 switches decide what is used: `WALL_LEFT` / `WALL_RIGHT` / `WALL_BACK`, topped off (no ceiling runout);
 floor always applies.
 
+- **Pencil state** is read from the model (any runout > 0 = pressed), refreshed on open / switch / change / undo, like SketchUp's own toggles.
 - **Pencil pressed (scribes on)** - every unit has the job values (Settings defaults 25 mm, then the last
   values used on the job, stored in the model).
 - **Click** -> scribes off: every runout 0 so units line up and move easily (one undo step, progress bar).

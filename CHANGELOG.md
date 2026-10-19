@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.8 — 2026-10-19
+- The pencil now shows the state of the open model, like SketchUp's own toggles (X-ray, Hidden
+  Geometry): pressed when any unit has a runout above 0, released when every runout is 0. Worked out
+  from the model itself (not a stored flag), refreshed when a file is opened or switched and after
+  every change / undo / redo. Opening a file never marks it as modified.
+
 ## 0.11.7 — 2026-10-19
 - Shaker drawer fronts: stiles (vertical) 100 mm, the same as the doors, so the panels line up with the
   door panels; rails (top / bottom) stay 50 mm. Settings -> Doors & hinges has both values.

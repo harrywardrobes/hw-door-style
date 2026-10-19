@@ -38,8 +38,27 @@ module HarryWardrobes
         SIDES.to_h { |s, _, _| [s, (d[s] || 25).to_f] }
       end
 
+      # Pencil state comes from the model itself, like SketchUp's own toggles
+      # (X-ray, Hidden Geometry): pressed when any unit has a runout above 0,
+      # released when every runout is 0. Cached per model; cleared on open,
+      # switch, change, undo and redo (see ScribeObserver below).
       def self.on?(model = Sketchup.active_model)
-        model.get_attribute(DICT, 'scribe_on', true) ? true : false
+        return true unless model
+        @state ||= {}
+        k = model.object_id
+        @state[k] = detect(model) unless @state.key?(k)
+        @state[k]
+      end
+
+      def self.detect(model)
+        us = units(model.entities)
+        return model.get_attribute(DICT, 'scribe_on', true) ? true : false if us.empty?
+        us.any? { |u| SIDES.any? { |sd, _, _| (mm_of(u, sd) || 0) > TOL } }
+      end
+
+      def self.invalidate(model = nil)
+        @state ||= {}
+        model ? @state.delete(model.object_id) : @state.clear
       end
 
       # Last values used on this job (mm), else the Settings defaults.
@@ -421,6 +440,37 @@ module HarryWardrobes
           d = differences(u, model)
           [Finder.label(u), d] unless d.empty?
         end
+      end
+      # Keeps the pencil button in step with whichever model is open.
+      class ModelWatch < Sketchup::ModelObserver
+        def onTransactionCommit(model); Scribe.invalidate(model); end
+        def onTransactionUndo(model); Scribe.invalidate(model); end
+        def onTransactionRedo(model); Scribe.invalidate(model); end
+        def onTransactionAbort(model); Scribe.invalidate(model); end
+      end
+
+      class AppWatch < Sketchup::AppObserver
+        def onNewModel(model); Scribe.watch(model); end
+        def onOpenModel(model); Scribe.watch(model); end
+        def onActivateModel(model); Scribe.watch(model); end
+      end
+
+      def self.watch(model)
+        return unless model
+        @watched ||= {}
+        unless @watched[model.object_id]
+          model.add_observer(@model_watch ||= ModelWatch.new)
+          @watched[model.object_id] = true
+        end
+        invalidate(model)
+        UI.refresh_toolbars if UI.respond_to?(:refresh_toolbars)
+      end
+
+      def self.start_watching
+        return if @app_watch
+        @app_watch = AppWatch.new
+        Sketchup.add_observer(@app_watch)
+        watch(Sketchup.active_model)
       end
     end
   end
