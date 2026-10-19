@@ -234,7 +234,7 @@ module HarryWardrobes
         pg = plan_page(model)
         out = { 'scene' => pg&.name, 'notes' => notes(model), 'messages' => messages, 'ceiling' => Ceiling.mm(model).round,
                 'fascia' => top_fascia(model), 'dims' => model.entities.grep(Sketchup::Dimension).count { |d| d.get_attribute(DICT, DIM) },
-                'last' => model.get_attribute(DICT, 'plan_version', 0).to_i }
+                'last' => model.get_attribute(DICT, 'room_plan_version', 0).to_i }
         if pg && with_picture
           jpg = File.join(Dir.tmpdir, "hw_plan_view_#{Process.pid}.jpg")
           picture(model, jpg, 1400)

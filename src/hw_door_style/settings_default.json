@@ -245,6 +245,7 @@
     "LIGHT TO BE MOVED"
   ],
   "product_prefix": "T",
+  "product_refs": { "BRIDGE": "W", "EXT_DRAWER": "B", "WORKTOP": "B", "BXEND": "B", "CAB": "B", "BOX_SHELF": "M", "END_PAN": "M" },
   "product_depth_keys": ["wall_depth", "depth", "size_depth", "cab_depth", "depth_fl_div"],
   "depth_default_mm": 580,
   "depth_short_mm": 500,

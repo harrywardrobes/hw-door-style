@@ -73,7 +73,13 @@ module HarryWardrobes
       def self.save(model, parts)
         door = Report.write_order(model)
         part = PartsList.export(model, parts)
-        plan = Plan.plan_page(model) ? (Plan.write(model) rescue nil) : nil
+        # One Room Plan PDF (cover, product list, installation plan, pod sheet, panel list).
+        plan = begin
+          RoomPlan.write(model, parts)
+        rescue StandardError => e
+          Log.error('room plan', e)
+          nil
+        end
         { 'files' => [door[1], door[0], part[1], part[0]].compact, 'plan' => plan&.first, 'door_v' => door[2], 'parts_v' => part[2], 'plan_v' => plan&.last }
       end
 

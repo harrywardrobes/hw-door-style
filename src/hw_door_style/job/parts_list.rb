@@ -347,7 +347,7 @@ module HarryWardrobes
       # What a label needs about one placed piece (OpenCutList InstanceInfo).
       def self.instance_info(path)
         e = path.last
-        { 'layer' => e.layer.name, 'entity_name' => e.name.to_s,
+        { 'layer' => e.layer.name, 'entity_name' => e.name.to_s, 'top' => path.first&.entityID,
           'named_path' => path[0...-1].map { |x| x.name.to_s }.reject(&:empty?).join('.') } # OpenCutList PathUtils.get_named_path
       end
 
@@ -732,7 +732,7 @@ module HarryWardrobes
           Steps.one(dlg, 'Updating the plan picture', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.data(model) }
         end
         dlg.add_action_callback('planPdf') do |_c|
-          Steps.one(dlg, 'Saving the installation plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { Plan.write(model) }
+          Steps.one(dlg, 'Saving the room plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { RoomPlan.write(model, data) }
         end
         dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
         dlg.add_action_callback('labelPlan') do |_c|

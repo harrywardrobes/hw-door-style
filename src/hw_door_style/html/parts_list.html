@@ -217,7 +217,7 @@ function planData(p){
     '<span class="hint" style="margin:0;flex:1">' + (p.scene ? 'Plan scene: <b>' + esc(p.scene) + '</b>' : '<span class="bad">No plan scene - add a scene named e.g. "S top"</span>') +
     (p.ceiling ? ' &middot; CEILING ' + p.ceiling + 'mm' : '') + (p.fascia ? ' &middot; TOP FASCIA ' + p.fascia + 'mm' : '') + (p.last ? ' &middot; last saved v' + p.last : '') + '</span>' +
     '<button onclick="planBusy(\'planTs\')">T numbers on the plan</button><button onclick="planBusy(\'planDims\')" title="Room and each product\'s width, made again each time">' + (p.dims ? 'Re-dimension' : 'Dimension the plan') + '</button>' +
-    '<button onclick="planBusy(\'planLoad\')">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save installation plan (PDF)</button></div>';
+    '<button onclick="planBusy(\'planLoad\')">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
   if (p.error) h += '<div class="warnbox">' + esc(p.error) + '</div>';
   h += '<div style="display:flex;gap:12px;align-items:flex-start">';
   h += '<div style="flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;background:#fff;text-align:center">' + (p.img ? '<img src="' + p.img + '" style="max-width:100%;max-height:560px">' : '<div class="hint" style="padding:30px">No picture yet.</div>') + '</div>';
@@ -240,7 +240,7 @@ function renderLabels(d){
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 function failed(msg){ $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
-function saved(r){ $('status').textContent = 'Saved door order v' + r.door_v + ', parts list v' + r.parts_v + (r.plan_v ? ', installation plan v' + r.plan_v : '') + ' next to the file: ' + r.names.join(', ') + '.'; }
+function saved(r){ $('status').textContent = 'Saved door order v' + r.door_v + ', parts list v' + r.parts_v + (r.plan_v ? ', room plan v' + r.plan_v : '') + ' next to the file: ' + r.names.join(', ') + '.'; }
 function sent(r){ $('status').textContent = 'Sent: ' + r.n + ' file(s) in Order / Parts List, ' + r.fields + ' field(s) updated' + (r.stage ? ', moved to ' + r.stage : '') + '.'; HS = 'loading'; sketchup.hubspot(); }
 
 // ---------- HubSpot tab ----------

@@ -753,5 +753,37 @@ require 'hw_door_style/job/depth'
 DPT = HarryWardrobes::DoorStyle::Depth
 check 'Depth option names: wardrobe c01_depth and the others a03_wall_depth', %w[c01_depth a03_wall_depth].all? { |k| k =~ DPT::KEY_RE } && !('c01_depth_fl_div' =~ DPT::KEY_RE) && !('a04_depth_finished' =~ DPT::KEY_RE)
 
+puts "\n== Room Plan"
+pc2 = pc.merge('refs' => { 'BRIDGE' => 'W', 'EXT_DRAWER' => 'B', 'BOX_SHELF' => 'M' })
+check 'reference letters: W bridge, B drawers, M box shelves, T otherwise', PR.ref_of('BRIDGE_SKELETON', pc2) == 'W' && PR.ref_of('EXT_DRAWER_3', pc2) == 'B' && PR.ref_of('BOX_SHELF', pc2) == 'M' && PR.ref_of('WARDROBE', pc2) == 'T'
+require 'hw_door_style/job/pdf'
+require 'hw_door_style/job/parts_pdf'
+require 'hw_door_style/job/room_plan'
+RP = HarryWardrobes::DoorStyle::RoomPlan
+module HarryWardrobes; module DoorStyle; module PartsList; def self.fmt(v) = (v.to_f == v.to_f.round ? v.to_f.round.to_s : v.to_s); end; VERSION = 'test' unless const_defined?(:VERSION); end; end
+doors = [{ 'kind_id' => 'door', 'style' => 'Shaker', 'height' => '2300', 'hinge_type' => 'Soft Close 155', 'hand' => 'LH', 'top_id' => 1, 'kind' => 'Door', 'item' => 'D1', 'width' => '500' },
+         { 'kind_id' => 'door', 'style' => 'Shaker', 'height' => '2300', 'hinge_type' => 'Soft Close 155', 'hand' => 'RH', 'top_id' => 1, 'kind' => 'Door', 'item' => 'D2', 'width' => '500' },
+         { 'kind_id' => 'int_drawer', 'top_id' => 1, 'kind' => 'Internal drawer', 'item' => 'ID', 'style' => 'Flat', 'width' => '400', 'height' => '150' }]
+parts = { 'groups' => [{ 'material' => 'Frost White MFC', 'thickness' => 18, 'section' => 'sheets', 'parts' => [
+            { 'number' => 'A', 'name' => 'SHELF', 'length' => 960, 'width' => 560, 'thickness' => 18, 'qty' => 3, 'instances' => [{ 'top' => 1 }] * 3 },
+            { 'number' => 'B', 'name' => 'FACING_72', 'length' => 2300, 'width' => 72, 'thickness' => 18, 'qty' => 1, 'instances' => [{ 'top' => 2 }] }] },
+          { 'material' => 'MDF 25', 'thickness' => 25, 'section' => 'sheets', 'parts' => [{ 'number' => 'C', 'name' => 'MDF_25_L', 'length' => 2300, 'width' => 25, 'thickness' => 25, 'qty' => 1, 'instances' => [{ 'top' => 1 }] }] },
+          { 'material' => 'Oak worktop', 'thickness' => 25, 'section' => 'worktops', 'parts' => [{ 'number' => 'D', 'name' => 'WRKTP', 'length' => 1200, 'width' => 500, 'thickness' => 25, 'qty' => 1, 'instances' => [{ 'top' => 2 }] }] }],
+          'hardware' => [{ 'number' => 'H1', 'name' => 'HANGING_RAIL', 'material' => 'HARDWARE', 'instances' => [{ 'top' => 1 }] }] }
+tops = { 1 => 'T1', 2 => 'B1' }
+info = RP.by_ref(parts, doors, tops)
+check 'room plan: doors per ref with hands and 155 flagged', RP.door_text(info['T1']['doors']) == '2 x Shaker 2300 high (LH + RH) - 155 HINGES'
+check 'room plan: interior summary', RP.interior_text(info['T1']) == '3 shelves, 1 hanging rail, 1 internal drawer'
+check 'room plan: panel types', %w[Cut Facing MDF Worktop] == parts['groups'].flat_map { |g| g['parts'].map { |p| RP.panel_type(g, p) } }.sort
+rows = [{ 't' => 'T1', 'ref' => 'T', 'num' => 1, 'type' => 'Wardrobe', 'size' => [1000, 598, 2400], 'depth' => 580, 'finished' => 598 },
+        { 't' => 'B1', 'ref' => 'B', 'num' => 1, 'type' => 'Worktop', 'size' => [1200, 518, 771], 'depth' => 500, 'finished' => 518 }]
+check 'room plan: unit description', RP.describe(rows[0]) == '1000 Wardrobe (580 deep / 598 overall)'
+hd = { 'customer' => 'Mr Test', 'room' => 'Bedroom 1', 'drawing' => 'X123', 'account' => 'HW456', 'fit_week' => 'Week 44', 'date' => '20/10/2026' }
+doc = RP::Doc.new(hd); doc.start
+RP.product_page(doc, rows, info); RP.pod_page(doc, rows, info); RP.panel_page(doc, parts, tops)
+pdf = HarryWardrobes::DoorStyle::Pdf.document(doc.pages.map(&:to_s))
+File.binwrite(File.join(Dir.tmpdir, 'room_plan_test.pdf'), pdf)
+check 'room plan: pages render (product list, pod sheet, panel list)', doc.pages.size == 3 && pdf.start_with?('%PDF')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

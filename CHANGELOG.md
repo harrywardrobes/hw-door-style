@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.48.0 — 2026-10-20
+- **Room Plan**: one PDF, ROOM_PLAN_v<N>_<file>.pdf, in place of the separate installation plan - Cover / Specification (customer, address, colours, door style, hinges, handles, ceiling, top fascia, depths, scribes, cornice), Product List (loose items first, then each ref as "1000 Wardrobe (580 deep / 598 overall)", its doors with LH / RH and 155 hinges flagged, and an interior summary), Installation Plan (plan scene with the footer: client, account, drawing, main ceiling, scribe set L / R / F / C / back, cornice), Pod Sheet (the parts, hardware and doors in each ref) and Panel list (MDF / Timber / Cut / Worktop / Facing, with the refs each panel goes in).
+- Every page has the header: customer, room, drawing X<Room ID>, account HW<customer ID>, fit week (the Room's new "Fit week" field in HubSpot) and date, and "Page n of N".
+- Saved with the workshop pack and sent to the Room's Floor Plan (replacing the last one). The Floor Plan tab button is now "Save room plan (PDF)".
+- References by letter: T tall, W wall / bridge, B base (drawer units, worktops, box ends), M misc - each numbered on its own (T1, T2, W1, B1...). Settings > Product list > Reference letters.
+
+## 0.48.0 — 2026-10-20
+- 
+
 ## 0.47.0 — 2026-10-20
 - **Floor Plan** tab in the Workshop (next to the Product List): the plan scene (e.g. "S top") with its notes, dimensions and T numbers; buttons for T numbers on the plan, Dimension the plan (the room and each product's width along the wall - made again each time) and Save installation plan (PDF). Notes are listed to edit or delete.
 - Plan notes: right-click a part > HW Door Style > Plan note > a standard message ("81mm FILLER", "CABLE PORT", "BOOKCASE SHELVING 300mm DEEP"...) or Other text. A SketchUp text with an arrow to the part, on the "Plan notes" tag, shown only in the plan scene(s). {size} {width} {depth} {height} fill in from the part. Messages are edited in Settings > Floor plan (new section, with the plan scenes, tags and distances).

@@ -53,6 +53,7 @@ module HarryWardrobes
             'kind' => kind_label(kind, d), 'kind_id' => kind.to_s, 'width' => Finder.mm_s(w), 'height' => Finder.mm_s(h),
             'style' => Styles.label(style || 'flat'),
             'midrail' => midrail_text(d, style),
+            'hand' => kind == :door && hinges.any? ? (Hardware.right?(inst) ? 'RH' : 'LH') : '',
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
             'handles' => none[kind] ? 0 : Settings.handle_count(kind, w, pto, rules: rules,

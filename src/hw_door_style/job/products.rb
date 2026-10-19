@@ -19,7 +19,8 @@ module HarryWardrobes
     # them out left to right again.
     module Products
       KEY_T = 'product_t'.freeze
-      KEY_HOST = 'product_host'.freeze # on a joiner: 'own' or the host's persistent id
+      KEY_HOST = 'product_host'.freeze
+      KEY_REF = 'product_ref'.freeze # on a joiner: 'own' or the host's persistent id
       TOUCH = 2.0 / 25.4 # 2 mm
 
       def self.cfg
@@ -28,7 +29,8 @@ module HarryWardrobes
           'types' => (s['product_types'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] },
           'skip' => Settings.names('product_skip'),
           'joiners' => Settings.names('product_joiners'),
-          'prefix' => s['product_prefix'].to_s.strip.empty? ? 'T' : s['product_prefix'].to_s.strip
+          'prefix' => s['product_prefix'].to_s.strip.empty? ? 'T' : s['product_prefix'].to_s.strip,
+          'refs' => (s['product_refs'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s.strip.upcase] }
         }
       end
 
@@ -41,6 +43,13 @@ module HarryWardrobes
       def self.type_of(name, c = cfg)
         k = c['types'].keys.sort_by { |x| -x.size }.find { |x| name == x || name.start_with?("#{x}_") }
         k && c['types'][k]
+      end
+
+      # Reference letter: T tall, W wall / bridge, B base, M misc (Settings "product_refs"),
+      # else the number prefix (T).
+      def self.ref_of(name, c = cfg)
+        k = c['refs'].keys.sort_by { |x| -x.size }.find { |x| name == x || name.start_with?(x) }
+        k && !c['refs'][k].empty? ? c['refs'][k] : c['prefix']
       end
 
       def self.joiner?(name, c = cfg)
@@ -151,19 +160,21 @@ module HarryWardrobes
           end
         end
         prods = groups.values + sections
+        prods.each { |p| p['ref'] = ref_of(p['name'], c) }
         number(model, prods)
         tops = {}
-        rows = prods.sort_by { |p| p['num'] }.map do |p|
+        order = %w[T W B M]
+        rows = prods.sort_by { |p| [order.index(p['ref']) || 9, p['ref'], p['num']] }.map do |p|
           h = p['host']
           bb = Geom::BoundingBox.new
           bb.add(h.bounds)
           p['members'].each { |m| bb.add(m['e'].bounds) }
           d, f = depths(h)
-          t = "#{c['prefix']}#{p['num']}"
+          t = "#{p['ref']}#{p['num']}"
           ([h] + p['members'].map { |m| m['e'] }).each { |e| tops[e.entityID] = t }
           type = type_of(p['name'], c) || (p['name'] =~ /SHELF/ ? 'Box shelves' : p['name'] =~ /BXEND/ ? 'Box end' : p['name'].tr('_', ' ').capitalize)
           {
-            't' => t, 'num' => p['num'], 'type' => type, 'name' => "#{type} #{mm(h.bounds.width)}",
+            't' => t, 'ref' => p['ref'], 'num' => p['num'], 'type' => type, 'name' => "#{type} #{mm(h.bounds.width)}",
             'size' => [mm(bb.width), mm(bb.height), mm(bb.depth)], 'depth' => d, 'finished' => f,
             'pid' => h.persistent_id.to_s, 'component' => h.respond_to?(:definition) ? h.definition.name : h.name,
             'x' => mm(bb.min.x),
@@ -177,29 +188,32 @@ module HarryWardrobes
       end
 
       # T numbers: kept on each product; new ones get the next numbers, left to right.
+      # Numbers per letter (T1, T2... W1...): kept on each product (with its letter, so a
+      # product that changes letter gets a new number); new ones get the next, left to right.
       def self.number(model, prods, renumber: false)
-        used = renumber ? [] : prods.filter_map { |p| p['host'].get_attribute(DICT, KEY_T)&.to_i }.select(&:positive?)
-        dup = used.tally.select { |_n, k| k > 1 }.keys
-        todo = []
-        prods.each do |p|
-          n = renumber ? nil : p['host'].get_attribute(DICT, KEY_T)&.to_i
-          if n&.positive? && !dup.include?(n)
-            p['num'] = n
-          else
-            todo << p
+        prods.group_by { |p| p['ref'] }.each do |ref, list|
+          saved = ->(p) { p['host'].get_attribute(DICT, KEY_REF) == ref ? p['host'].get_attribute(DICT, KEY_T).to_i : 0 }
+          used = renumber ? [] : list.map { |p| saved.call(p) }.select(&:positive?)
+          dup = used.tally.select { |_n, k| k > 1 }.keys
+          todo = []
+          list.each do |p|
+            n = renumber ? 0 : saved.call(p)
+            n.positive? && !dup.include?(n) ? p['num'] = n : todo << p
           end
+          nxt = list.map { |p| p['num'].to_i }.max || 0
+          todo.sort_by { |p| [p['host'].bounds.min.x.round(1), p['host'].bounds.min.y.round(1)] }.each { |p| p['num'] = (nxt += 1) }
         end
-        nxt = (prods.map { |p| p['num'].to_i }.max || 0)
-        todo.sort_by { |p| [p['host'].bounds.min.x.round(1), p['host'].bounds.min.y.round(1)] }.each { |p| p['num'] = (nxt += 1) }
-        changed = prods.select { |p| p['host'].get_attribute(DICT, KEY_T).to_i != p['num'] }
+        changed = prods.select { |p| p['host'].get_attribute(DICT, KEY_T).to_i != p['num'] || p['host'].get_attribute(DICT, KEY_REF) != p['ref'] }
         # The library file is never numbered (its numbers would go into every job).
         return if changed.empty? || (defined?(LibraryExport) && LibraryExport.master?(model))
-        Ops.run(model, 'Product numbers', transparent: true) { changed.each { |p| p['host'].set_attribute(DICT, KEY_T, p['num']) } }
+        Ops.run(model, 'Product numbers', transparent: true) do
+          changed.each { |p| p['host'].set_attribute(DICT, KEY_T, p['num']); p['host'].set_attribute(DICT, KEY_REF, p['ref']) }
+        end
       end
 
       def self.renumber(model)
         Ops.run(model, 'Renumber products') do
-          candidates(model.entities).each { |e, _| e.delete_attribute(DICT, KEY_T) if e.get_attribute(DICT, KEY_T) }
+          candidates(model.entities).each { |e, _| [KEY_T, KEY_REF].each { |k| e.delete_attribute(DICT, k) if e.get_attribute(DICT, k) } }
         end
         list(model)
       end
