@@ -70,8 +70,8 @@ for line in changelog.read_text(encoding="utf-8").splitlines():
         if on:
             break
         on = line[3:].split()[0] == version
-    elif on and line.startswith("- "):
-        notes.append(re.sub(r"\*\*|`", "", line[2:].strip()))
+    elif on and line.lstrip().startswith("- "):
+        notes.append(re.sub(r"\*\*|`", "", line.lstrip()[2:].strip()))
     elif on and line.startswith("  ") and notes:
         notes[-1] += " " + re.sub(r"\*\*|`", "", line.strip())
 (root / "dist" / "hw_door_style_latest.json").write_text(

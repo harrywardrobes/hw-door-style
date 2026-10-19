@@ -169,8 +169,8 @@ module HarryWardrobes
             break if entries.size == count
             entries << { 'title' => line[3..].strip, 'items' => [] }
           elsif (cur = entries.last)
-            if line.start_with?('- ')
-              cur['items'] << line[2..].strip
+            if line.lstrip.start_with?('- ')
+              cur['items'] << line.lstrip[2..].strip
             elsif line.start_with?('  ') && !cur['items'].empty?
               cur['items'][-1] += " #{line.strip}"
             elsif !line.strip.empty? && cur['items'].empty?

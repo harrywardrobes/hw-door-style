@@ -394,9 +394,9 @@ check 'reset all: library back to built-in', Settings.get['colour_library'] == [
 check 'display keys never saved', SettingsWindow.saveable({ 'a' => 1, '_debug' => true, '_job' => {} }) == { 'a' => 1 }
 Dir.mktmpdir do |d|
   f = File.join(d, 'CHANGELOG.md')
-  File.write(f, "# Changelog\n\n## 0.2.0 — x\n- **Bold** item\n  continues\n- `code` two\n\n## 0.1.0 — y\nIntro line\n- a\n\n## 0.0.1\n- old\n")
+  File.write(f, "# Changelog\n\n## 0.2.0 — x\n- **Bold** item\n  continues\n  - sub point\n- `code` two\n\n## 0.1.0 — y\nIntro line\n- a\n\n## 0.0.1\n- old\n")
   w = SettingsWindow.whats_new(2, f)
-  check "what's new: newest entries, tidy text", w.size == 2 && w[0]['title'] == '0.2.0 — x' && w[0]['items'] == ['Bold item continues', 'code two'] && w[1]['items'] == ['Intro line', 'a']
+  check "what's new: newest entries, tidy text", w.size == 2 && w[0]['title'] == '0.2.0 — x' && w[0]['items'] == ['Bold item continues', 'sub point', 'code two'] && w[1]['items'] == ['Intro line', 'a']
 end
 check "what's new reads the real changelog", SettingsWindow.whats_new(1, File.expand_path('../CHANGELOG.md', __dir__)).first['title'].start_with?('0.')
 
