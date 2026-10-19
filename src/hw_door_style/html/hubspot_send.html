@@ -2,72 +2,164 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Send to HubSpot</title>
+<title>HubSpot room</title>
 <!--HW-->
 <style>
   body { display:flex; flex-direction:column; height:100vh; }
   .wrap { flex:1; overflow:auto; border:1px solid var(--line); border-radius:3px; }
-  table { border-collapse:collapse; width:100%; }
-  th, td { text-align:left; padding:4px 7px; border-bottom:1px solid var(--rule); vertical-align:top; }
-  th { background:#f5f6f7; font-weight:600; position:sticky; top:0; }
-  tr.grp td { background:#fafbfb; font-weight:600; color:var(--muted); font-size:11px; }
-  tr.same td { color:var(--muted); }
-  tr.send td.mine { background:#e7f1ec; font-weight:600; }
-  tr.take td.theirs { background:#e8eef8; font-weight:600; }
-  td.v { white-space:pre-wrap; max-width:220px; }
-  select { font:inherit; padding:2px; }
-  .info { font-size:11px; margin:0 0 8px; color:var(--ink); }
-  .info span { margin-right:14px; } .info b { font-weight:600; }
+  table { border-collapse:collapse; width:100%; table-layout:fixed; }
+  col.l { width:33%; } col.v { width:40%; } col.h { width:27%; }
+  td { padding:4px 7px; border-bottom:1px solid var(--rule); vertical-align:top; }
+  tr.sec td { background:#f5f6f7; font-weight:600; font-size:12.5px; padding-top:7px; position:sticky; top:0; z-index:1; }
+  tr.chg td.val { background:#e7f1ec; }
+  tr.take td.val { background:#e8eef8; }
+  td.lab { color:var(--ink); }
+  td.hs { color:var(--muted); font-size:11px; white-space:pre-wrap; word-break:break-word; }
+  .badge { display:inline-block; font-size:9.5px; padding:0 4px; border-radius:2px; background:#e3ece8; color:var(--accent); margin-left:4px; vertical-align:1px; }
+  .note { font-size:10.5px; color:var(--warn); margin-top:2px; }
+  input[type=text], input[type=number], input[type=date], select, textarea { font:inherit; width:100%; padding:2px 4px; border:1px solid var(--line); border-radius:3px; background:#fff; }
+  textarea { min-height:44px; resize:vertical; }
+  .multi label { display:block; font-size:11.5px; }
+  .ro { color:var(--muted); white-space:pre-wrap; }
+  .use { font-size:10.5px; padding:1px 6px; margin-top:3px; }
   .warnbox { border:1px solid #efcdb9; background:#fbefe8; padding:6px 8px; border-radius:3px; margin-bottom:8px; font-size:11.5px; }
-  label.toggle { font-size:11px; color:var(--muted); align-self:center; margin-right:auto; }
-  #count { font-size:11px; color:var(--muted); align-self:center; }
+  #count { font-size:11px; color:var(--muted); align-self:center; margin-right:auto; }
+  #review { display:none; position:fixed; inset:0; z-index:10; background:#fff; padding:14px; flex-direction:column; }
+  #review .list { flex:1; overflow:auto; border:1px solid var(--line); border-radius:3px; padding:6px 10px; }
+  #review h2 { font-size:12.5px; margin:8px 0 4px; }
+  #review .ch { padding:3px 0; border-bottom:1px solid var(--rule); }
+  #review .old { color:var(--muted); text-decoration:line-through; }
+  #review .arrow { color:var(--muted); margin:0 6px; }
 </style>
 </head>
 <body>
 <h1 id="h"></h1>
 <div class="sub" id="sub"></div>
-<div class="info" id="info"></div>
 <div id="warn"></div>
-<div class="wrap"><table><thead><tr><th>Field</th><th>In this file</th><th>In HubSpot</th><th>Do</th></tr></thead><tbody id="t"></tbody></table></div>
+<div class="wrap"><table><colgroup><col class="l"><col class="v"><col class="h"></colgroup><tbody id="t"></tbody></table></div>
 <div class="bar">
-  <label class="toggle"><input type="checkbox" id="showsame" onchange="draw()"> Show fields that already match</label>
   <span id="count"></span>
-  <button onclick="sketchup.open()">Open in HubSpot</button>
+  <button onclick="sketchup.openRoom()">Open Room</button>
+  <button id="openProject" onclick="sketchup.openProject()">Open Project</button>
   <button onclick="sketchup.cancel()">Cancel</button>
-  <button class="primary" id="go" onclick="go()">Send</button>
+  <button class="primary" id="go" onclick="review()">Review changes...</button>
+</div>
+<div id="review">
+  <h1>Check before sending</h1>
+  <div class="sub">Nothing has been written yet.</div>
+  <div class="list" id="rlist"></div>
+  <div class="bar">
+    <button onclick="$('review').style.display='none'">Back</button>
+    <button class="primary" onclick="send()">Send</button>
+  </div>
 </div>
 <script>
 var D = /*DATA*/null;
-var picks = {};
-D.rows.forEach(function(r){ picks[r.prop] = r.action; });
-$('h').textContent = 'Send to HubSpot - ' + (D.room || '');
-$('sub').textContent = 'Nothing changes until you press Send. Green = this file\'s value goes to HubSpot; blue = HubSpot\'s value comes into this file.' + (D.sent_at ? ' Last sent ' + D.sent_at + '.' : '');
-var keys = Object.keys(D.info || {});
-$('info').innerHTML = keys.length ? 'From HubSpot: ' + keys.map(function(k){ return '<span>'+esc(k)+' <b>'+esc(D.info[k])+'</b></span>'; }).join('') : '';
-if (D.scribes_on === false) $('warn').innerHTML = '<div class="warnbox"><b>Scribes are OFF</b> - runouts shown are the job values that apply when the pencil is pressed.</div>';
+var R = {}, V = {};   // rows by prop; current value by prop
+$('h').textContent = (D.room || 'HubSpot room');
+$('sub').textContent = 'The Room card from HubSpot, with this file\'s sizes, runouts, colours and hardware filled in (marked SketchUp). Green = will change in HubSpot; blue = will change in this file.' + (D.sent_at ? ' Last sent ' + D.sent_at + '.' : '');
+if (!D.project) $('openProject').disabled = true;
+if (D.scribes_on === false) $('warn').innerHTML = '<div class="warnbox"><b>Scribes are OFF</b> - the runouts shown are the job values used when the pencil is pressed.</div>';
 
-function opts(r){
-  var o = [['none', r.same ? 'Matches' : 'Leave']];
-  if (!r.same && !r.blocked && !(r.number ? r.mine === null : !r.mine)) o.push(['send', 'Send →']);
-  if (!r.same && r.can_take && r.hubspot !== null && String(r.hubspot) !== '') o.push(['take', '← Take']);
-  return o;
+function blank(v){ return v === null || v === undefined || String(v) === ''; }
+function norm(r, v){
+  if (blank(v)) return '';
+  if (r.type === 'number') { var n = parseFloat(v); return isNaN(n) ? String(v) : String(Math.round(n * 10) / 10); }
+  if (r.field === 'checkbox') return String(v).split(';').filter(Boolean).sort().join(';');
+  return String(v).trim();
 }
+function label(r, v){
+  if (blank(v)) return '--';
+  if (r.options && r.options.length) {
+    return String(v).split(';').map(function(x){ var o = r.options.filter(function(p){ return String(p[1]) === x; })[0]; return o ? o[0] : x; }).join(', ');
+  }
+  return String(v);
+}
+function changedHS(r){ return !r.readonly && !r.file && norm(r, V[r.prop]) !== norm(r, r.hubspot); }
+function changedFile(r){ return r.calc && r.take && norm(r, V[r.prop]) !== norm(r, r.sketchup); }
+
+function input(r){
+  var p = esc(r.prop), v = V[r.prop];
+  if (r.file) return '<span class="ro">' + (blank(r.hubspot) ? 'Pictures come in the next update' : String(r.hubspot).split(';').length + ' file(s) in HubSpot') + '</span>';
+  if (r.readonly) return '<span class="ro">' + esc(label(r, r.hubspot)) + '</span>';
+  var f = r.field;
+  if (f === 'booleancheckbox') f = 'select';
+  if (f === 'checkbox' && r.options.length) {
+    var on = norm(r, v).split(';');
+    return '<div class="multi">' + r.options.map(function(o){ return '<label><input type="checkbox" data-p="'+p+'" value="'+esc(o[1])+'"'+(on.indexOf(String(o[1])) >= 0 ? ' checked' : '')+'> '+esc(o[0])+'</label>'; }).join('') + '</div>';
+  }
+  if ((f === 'select' || f === 'radio') && r.options.length) {
+    var known = blank(v) || r.options.some(function(o){ return String(o[1]) === String(v); });
+    return '<select data-p="'+p+'"><option value="">--</option>' + (known ? '' : '<option value="'+esc(v)+'" selected>'+esc(v)+'</option>') +
+      r.options.map(function(o){ return '<option value="'+esc(o[1])+'"'+(String(o[1]) === String(v) ? ' selected' : '')+'>'+esc(o[0])+'</option>'; }).join('') + '</select>';
+  }
+  if (f === 'textarea') return '<textarea data-p="'+p+'">'+esc(v)+'</textarea>';
+  var t = r.type === 'number' ? 'number' : (r.type === 'date' ? 'date' : 'text');
+  return '<input type="'+t+'" data-p="'+p+'" value="'+esc(blank(v) ? '' : v)+'">';
+}
+
+function row(r){
+  var cls = changedFile(r) ? 'take' : (changedHS(r) ? 'chg' : '');
+  var hs = 'HubSpot: ' + label(r, r.hubspot);
+  if (r.calc) hs += '\nSketchUp: ' + (blank(r.sketchup) ? (r.shown || '--') : (r.shown || label(r, r.sketchup)));
+  var use = r.calc && r.take && !blank(r.hubspot) && norm(r, r.hubspot) !== norm(r, V[r.prop]) ? '<br><button class="use" data-use="'+esc(r.prop)+'">Use HubSpot\'s</button>' : '';
+  var back = r.calc && norm(r, V[r.prop]) !== norm(r, r.sketchup) && !blank(r.sketchup) ? ' <button class="use" data-back="'+esc(r.prop)+'">Use SketchUp\'s</button>' : '';
+  return '<tr id="r_'+esc(r.prop)+'" class="'+cls+'"><td class="lab">'+esc(r.label)+(r.calc ? '<span class="badge">SketchUp</span>' : '')+
+    (r.note ? '<div class="note">'+esc(r.note)+'</div>' : '')+'</td><td class="val">'+input(r)+'</td><td class="hs">'+esc(hs)+use+back+'</td></tr>';
+}
+
 function draw(){
-  var all = $('showsame').checked, g = null, h = '', n = 0, s = 0, tk = 0;
-  D.rows.forEach(function(r, i){
-    if (r.same && !all) return;
-    if (r.group !== g) { g = r.group; h += '<tr class="grp"><td colspan="4">'+esc(g)+'</td></tr>'; }
-    var p = picks[r.prop], o = opts(r);
-    h += '<tr class="'+(r.same ? 'same' : p)+'"><td>'+esc(r.label)+'</td><td class="v mine">'+esc(r.shown)+'</td><td class="v theirs">'+esc(r.hubspot_shown)+'</td><td>' +
-      (o.length > 1 ? '<select data-p="'+esc(r.prop)+'">' + o.map(function(x){ return '<option value="'+x[0]+'"'+(x[0]===p?' selected':'')+'>'+x[1]+'</option>'; }).join('') + '</select>' : esc(o[0][1])) + '</td></tr>';
+  var h = '';
+  D.sections.forEach(function(s){
+    h += '<tr class="sec"><td colspan="3">'+esc(s.title)+'</td></tr>';
+    s.rows.forEach(function(r){ h += row(r); });
   });
-  D.rows.forEach(function(r){ if (picks[r.prop] === 'send') s++; if (picks[r.prop] === 'take') tk++; if (!r.same) n++; });
-  $('t').innerHTML = h || '<tr><td colspan="4" class="v">Everything already matches HubSpot.</td></tr>';
-  Array.prototype.forEach.call(document.querySelectorAll('select[data-p]'), function(el){ el.onchange = function(){ picks[el.getAttribute('data-p')] = el.value; draw(); }; });
-  $('count').textContent = s + ' to send, ' + tk + ' to take';
-  $('go').disabled = s + tk === 0;
+  $('t').innerHTML = h;
+  wire(); count();
 }
-function go(){ sketchup.send(JSON.stringify(picks)); }
+function redrawRow(prop){
+  var el = $('r_' + prop); var tmp = document.createElement('tbody'); tmp.innerHTML = row(R[prop]);
+  el.parentNode.replaceChild(tmp.firstChild, el); wire(); count();
+}
+function wire(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-p]'), function(el){
+    if (el._w) return; el._w = true;
+    var p = el.getAttribute('data-p');
+    var ev = (el.tagName === 'SELECT' || el.type === 'checkbox' || el.type === 'date') ? 'change' : 'input';
+    el.addEventListener(ev, function(){
+      if (el.type === 'checkbox') {
+        V[p] = Array.prototype.filter.call(document.querySelectorAll('input[type=checkbox][data-p="'+p+'"]'), function(c){ return c.checked; }).map(function(c){ return c.value; }).join(';');
+      } else V[p] = el.value;
+      var tr = $('r_' + p); tr.className = changedFile(R[p]) ? 'take' : (changedHS(R[p]) ? 'chg' : ''); count();
+    });
+    if (ev === 'input') el.addEventListener('change', function(){ redrawRow(p); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-use]'), function(b){ b.onclick = function(){ var p = b.getAttribute('data-use'); V[p] = R[p].hubspot; redrawRow(p); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-back]'), function(b){ b.onclick = function(){ var p = b.getAttribute('data-back'); V[p] = R[p].sketchup; redrawRow(p); }; });
+}
+function changes(){
+  var send = {}, take = {}, ls = [], lt = [];
+  D.sections.forEach(function(s){ s.rows.forEach(function(r){
+    if (changedHS(r)) { send[r.prop] = norm(r, V[r.prop]); ls.push([r, r.hubspot, V[r.prop]]); }
+    if (changedFile(r)) { take[r.prop] = norm(r, V[r.prop]); lt.push([r, r.sketchup, V[r.prop]]); }
+  }); });
+  return { send: send, take: take, ls: ls, lt: lt };
+}
+function count(){
+  var c = changes();
+  $('count').textContent = c.ls.length + ' change(s) for HubSpot, ' + c.lt.length + ' for this file';
+  $('go').disabled = c.ls.length + c.lt.length === 0;
+}
+function line(x){ return '<div class="ch"><b>'+esc(x[0].label)+'</b>: <span class="old">'+esc(label(x[0], x[1]))+'</span><span class="arrow">→</span>'+esc(label(x[0], x[2]))+'</div>'; }
+function review(){
+  var c = changes();
+  $('rlist').innerHTML = (c.ls.length ? '<h2>HubSpot Room - ' + c.ls.length + ' field(s)</h2>' + c.ls.map(line).join('') : '') +
+                         (c.lt.length ? '<h2>This SketchUp file - ' + c.lt.length + ' value(s)</h2>' + c.lt.map(line).join('') : '');
+  $('review').style.display = 'flex';
+}
+function send(){ var c = changes(); sketchup.send(JSON.stringify({ send: c.send, take: c.take })); }
+
+D.sections.forEach(function(s){ s.rows.forEach(function(r){ R[r.prop] = r; V[r.prop] = r.calc ? (blank(r.sketchup) ? r.hubspot : r.sketchup) : r.hubspot; }); });
 draw();
 </script>
 </body>

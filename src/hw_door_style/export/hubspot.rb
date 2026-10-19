@@ -103,7 +103,8 @@ module HarryWardrobes
         ['rooms',    'Rooms (Listings)',                           '/crm/v3/objects/listings?limit=1'],
         ['projects', 'Projects',                                   '/crm/v3/objects/projects?limit=1'],
         ['notes',    'Notes (to attach files)',                    '/crm/v3/objects/notes?limit=1'],
-        ['files',    'Files (door order PDF, pictures)',           '/files/v3/files/search?limit=1']
+        ['files',    'Files (door order PDF, pictures)',           '/files/v3/files/search?limit=1'],
+        ['owners',   'Users (Installer / Surveyor fields)',        '/crm/v3/owners?limit=1']
       ].freeze
 
       # { 'portal' =>, 'region' =>, 'checks' => [{ id, label, ok, detail }] }
@@ -133,11 +134,25 @@ module HarryWardrobes
         @account ||= get('/account-info/v3/details')
       end
 
-      # Link to a Room record in the HubSpot app.
-      def self.room_url(room_id)
+      TYPE_IDS = { 'listings' => '0-420', 'projects' => '0-970', 'contacts' => '0-1' }.freeze
+
+      # Link to a record in the HubSpot app ('listings' = Rooms, 'projects').
+      def self.record_url(type, id)
         a = account
         host = a['uiDomain'] || (a['dataHostingLocation'].to_s.start_with?('eu') ? 'app-eu1.hubspot.com' : 'app.hubspot.com')
-        "https://#{host}/contacts/#{a['portalId']}/record/0-420/#{room_id}"
+        "https://#{host}/contacts/#{a['portalId']}/record/#{TYPE_IDS.fetch(type)}/#{id}"
+      end
+
+      def self.room_url(room_id)
+        record_url('listings', room_id)
+      end
+
+      # HubSpot users, for the Installer / Surveyor fields: [[name, id]].
+      # Needs the key's crm.objects.owners.read permission.
+      def self.owners
+        Array(get('/crm/v3/owners?limit=100')['results']).map do |o|
+          [[o['firstName'], o['lastName']].compact.join(' ').strip.then { |n| n.empty? ? o['email'].to_s : n }, o['id'].to_s]
+        end
       end
 
       # --- records -----------------------------------------------------------------

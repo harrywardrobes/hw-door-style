@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.23.0 — 2026-10-19
+- **Send to HubSpot is now the whole Room card**, in the same sections as HubSpot (Survey Questions,
+  Colours + Style, Hardware, Blum Hinges, Drawer Boxes, Order List, Installation, Delivery, Object
+  Dimensions, plus Survey (SketchUp)). Every field is shown, including 0 and empty ones, and can be edited.
+  - Values worked out from the model are marked SketchUp; Use HubSpot's / Use SketchUp's swaps them.
+  - Green = changes HubSpot, blue = changes this file. Review changes lists old -> new before Send.
+  - Fields HubSpot fills from the Project are shown but not edited here.
+- Room width / depth now measure the FLOOR as drawn, including any scaling.
+- Exterior, interior and worktop colours are sent too (a Default row sends the door colour, as painted).
+- Open Room and Open Project buttons (and menu items).
+- Your own toolbar icon: put hubspot.svg or hubspot.png in %APPDATA%\HW Door Style\icons.
+- Settings > HubSpot > Test connection also checks Users (for Installer / Surveyor names).
+
 ## 0.22.0 — 2026-10-19
 - **One SketchUp file = one HubSpot Room.** New menu Extensions > HW Door Style > HubSpot (and a toolbar button):
   - New room from HubSpot: search by customer, address or room name, pick the Room - the survey file

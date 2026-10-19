@@ -112,24 +112,85 @@ module HarryWardrobes
         a.to_s.strip == b.to_s.strip
       end
 
+      # --- the Room card, as laid out in HubSpot ---------------------------------------------
+
+      FILE_FIELDS = %w[render_1 floor_plan survey_door_dimensions_1 installation_reference_images].freeze
+
+      LAYOUT = [
+        ['Survey (SketchUp)', %w[room_width_mm room_depth_mm bottom_facing_mm runout_floor_mm runout_ceiling_mm
+                                 runout_left_mm runout_right_mm runout_back_wall_mm runout_exceptions]],
+        ['Survey Questions', %w[type_of_flooring flooring_requirements flooring_requirement_notes bed_requirements
+                                bed_requirement_notes cutting_location cutting_location_notes internal_sides
+                                internal_sides_description notes]],
+        ['Colours + Style', %w[door_drawer_colour door_style exterior_panel_trim_colour interior_colour worktop_colour]],
+        ['Internal + External Hardware', %w[main_robe_handle main_robe_handle_id main_robe_handle_quantity drawer_handle
+                                            drawer_handle_sku drawer_handle_quantity interior_handle interior_handle_sku
+                                            interior_handle_quantity cable_outlet_quantity internal_mirror_quantity_1150x300]],
+        ['Blum Hinges', %w[hinge_quantity_blum_110 hinge_quantity_blum_110_pto hinge_quantity_blum_155
+                           hinge_quantity_blum_155_pto hinge_restrictors_required blum_push_tipon_set]],
+        ['Drawer Boxes', %w[drawer_type drawer_total_quantity]],
+        ['Order List', %w[door_vinyl_order_status door_vinyl_order_ref door_vinyl_delivery_date drawer_order_status
+                          drawer_order_ref drawer_delivery_date sheets_order_status sheets_order_ref sheets_delivery_date
+                          hardware_order_status hardware_order_ref hardware_delivery_date worktop_order_status
+                          worktop_order_ref worktop_delivery_date stock_screw_caps stock_wax_stick]],
+        ['Renders + Floor Plan', %w[render_1 floor_plan survey_door_dimensions_1]],
+        ['Installation Info', %w[ceiling_height_mm hs_listing_type room_subtype project_surveyor_assigned installer_assigned
+                                 installation_notes project_site_requirements installation_reference_images carpet_line_present]],
+        ['Delivery Info', %w[project_material_delivery_date delivery_notes material_delivery_date]],
+        ['Object Dimensions', %w[bed_width_mm bed_length_mm bed_height_mm tv_width_mm tv_height_mm]]
+      ].freeze
+
+      # Field details from HubSpot (label, kind of field, dropdown options), read once a session.
+      def self.meta
+        @meta ||= begin
+          all = HubSpot.get('/crm/v3/properties/listings')['results']
+          owners = nil
+          all.to_h do |p|
+            opts = Array(p['options']).map { |o| [o['label'], o['value']] }
+            note = nil
+            if p['referencedObjectType'] == 'OWNER'
+              owners ||= (HubSpot.owners rescue :none)
+              opts = owners == :none ? [] : owners
+              note = 'needs the Users permission on the key' if owners == :none
+            end
+            ro = (p['modificationMetadata'] || {})['readOnlyValue'] ? true : false
+            [p['name'], { 'label' => p['label'], 'type' => p['type'], 'field' => p['fieldType'], 'options' => opts,
+                          'readonly' => ro || !note.nil?, 'note' => note || (ro ? 'set on the Project' : nil) }]
+          end
+        end
+      end
+
+      def self.forget_meta!
+        @meta = nil
+      end
+
       # --- what SketchUp says ---------------------------------------------------------------
 
       def self.floor(model)
-        found = nil
-        Finder.each_instance(model.entities) do |i|
-          n = (DC.read(i, '_name') || i.definition.name).to_s
-          found ||= i if n =~ /\Afloor\z/i
+        hit = nil
+        walk = lambda do |ents, tr, depth|
+          ents.each do |e|
+            next unless e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)
+            t = tr * e.transformation
+            n = (e.is_a?(Sketchup::ComponentInstance) ? (DC.read(e, '_name') || e.definition.name) : e.name).to_s
+            return hit = [e, t] if n =~ /\Afloor\z/i
+            walk.call(e.definition.entities, t, depth + 1) if depth < 6
+            return if hit
+          end
         end
-        found
+        walk.call(model.entities, Geom::Transformation.new, 0)
+        hit
       end
 
-      # Room width x depth (mm) from the FLOOR component: [w, d] or nil.
+      # Room width x depth (mm) from the FLOOR component as drawn: its own size times
+      # every scale on the way down (the Scale tool doesn't update the DC LenX / LenY).
       def self.floor_mm(model)
-        f = floor(model) or return nil
-        x = DC.read(f, 'lenx').to_f
-        y = DC.read(f, 'leny').to_f
-        x, y = [f.bounds.width, f.bounds.height].map(&:to_f) unless x > 0 && y > 0
-        [(x * 25.4).round, (y * 25.4).round]
+        e, t = floor(model)
+        return nil unless e
+        b = e.definition.bounds
+        sx = Geom::Vector3d.new(t.to_a[0], t.to_a[1], t.to_a[2]).length.to_f
+        sy = Geom::Vector3d.new(t.to_a[4], t.to_a[5], t.to_a[6]).length.to_f
+        [(b.width.to_f * sx * 25.4).round, (b.height.to_f * sy * 25.4).round]
       end
 
       def self.counts(model)
@@ -157,111 +218,94 @@ module HarryWardrobes
         Runouts.report(model).map { |label, d| "#{label}: #{d.join(', ')}" }.join("\n")
       end
 
-      # Every field: { prop, label, group, number, mine (value to send), shown (text),
-      #                can_send, can_take }
-      def self.fields(model)
+      # The job's colour for each row as painted: "Default" exterior / interior / worktop
+      # follow the door colour, like the Colours window.
+      def self.colour_names(model)
+        choices = Colours.defaults.merge(Colours.job_choices(model).compact)
+        Colours.resolved(model, choices).transform_values { |n| n == Colours::DEFAULT ? nil : n }
+      end
+
+      # Values SketchUp works out: { prop => { 'value' (HubSpot form), 'shown', 'take' (file can take
+      # HubSpot's value), 'note' } }.
+      def self.calculated(model, m = meta)
         c = counts(model)
-        out = []
-        add = lambda do |prop, label, group, mine, number: true, take: false, shown: nil|
-          out << { 'prop' => prop, 'label' => label, 'group' => group, 'number' => number,
-                   'mine' => mine, 'shown' => shown || (mine.nil? ? '' : mine.to_s), 'can_take' => take }
-        end
+        out = {}
+        put = ->(prop, value, take: false, shown: nil, note: nil) { out[prop] = { 'value' => value, 'shown' => shown, 'take' => take, 'note' => note } }
         w, d = floor_mm(model)
-        add.call('room_width_mm', 'Room width (FLOOR)', 'Room', w)
-        add.call('room_depth_mm', 'Room depth (FLOOR)', 'Room', d)
+        put.call('room_width_mm', w, note: w ? nil : 'no FLOOR component')
+        put.call('room_depth_mm', d, note: d ? nil : 'no FLOOR component')
         ceil = Ceiling.mm(model)
-        add.call('ceiling_height_mm', 'Ceiling height', 'Room', ceil > 0 ? ceil.round : nil, take: true)
-        add.call('bottom_facing_mm', 'Bottom facing', 'Runouts', Facing.mm(model).round, take: true)
+        put.call('ceiling_height_mm', ceil > 0 ? ceil.round : nil, take: true)
+        put.call('bottom_facing_mm', Facing.mm(model).round, take: true)
         jv = Runouts.job_values(model)
-        RUNOUT_FIELDS.each { |side, prop| add.call(prop, "Runout - #{side}", 'Runouts', jv[side].round, take: true) }
-        add.call('runout_exceptions', 'Units set differently', 'Runouts', exceptions(model), number: false)
-
-        choices = Colours.job_choices(model)
+        RUNOUT_FIELDS.each { |side, prop| put.call(prop, jv[side].round, take: true) }
+        put.call('runout_exceptions', exceptions(model))
+        names = colour_names(model)
         COLOUR_FIELDS.each do |gid, prop|
-          name = choices[gid]
-          name = nil if name == Colours::DEFAULT
-          opts = HubSpot.options(prop)
-          val = match_option(name, opts)
-          add.call(prop, Colours::GROUPS.to_h[gid], 'Colours', val, number: false, take: true,
-                                                                     shown: name ? (val ? name : "#{name} (not in HubSpot's list)") : '')
-          out.last['colour'] = gid
-          out.last['options'] = opts
-          out.last['blocked'] = name && !val ? true : false
+          name = names[gid]
+          val = match_option(name, m.dig(prop, 'options') || [])
+          put.call(prop, val, take: !(name && !val), shown: name, note: name && !val ? "#{name} isn't in HubSpot's list" : nil)
         end
-
-        Settings::HINGE_TYPES.each { |id, label| add.call(HINGE_FIELDS[id], "Hinges - #{label}", 'Hardware', c['hinges'][id].to_i) }
-        add.call('blum_push_tipon_set', 'TIP-ON', 'Hardware', c['tip_on'])
-        add.call('drawer_total_quantity', 'Drawers (total)', 'Hardware', c['ext_drawers'] + c['int_drawers'])
+        Settings::HINGE_TYPES.each_key { |id| put.call(HINGE_FIELDS[id], c['hinges'][id].to_i) }
+        put.call('blum_push_tipon_set', c['tip_on'])
+        put.call('drawer_total_quantity', c['ext_drawers'] + c['int_drawers'])
         dt = drawer_type(c['ext_drawers'], c['int_drawers'])
-        dt_opts = HubSpot.options('drawer_type')
-        add.call('drawer_type', 'Drawer type', 'Hardware', match_option(dt, dt_opts), number: false, shown: dt)
-        out.last['options'] = dt_opts
-        add.call('main_robe_handle_quantity', 'Handles - robe doors', 'Hardware', c['h_door'])
-        add.call('drawer_handle_quantity', 'Handles - drawers', 'Hardware', c['h_ext'])
-        add.call('interior_handle_quantity', 'Handles - interior', 'Hardware', c['h_int'])
+        put.call('drawer_type', match_option(dt, m.dig('drawer_type', 'options') || []), shown: dt)
+        put.call('main_robe_handle_quantity', c['h_door'])
+        put.call('drawer_handle_quantity', c['h_ext'])
+        put.call('interior_handle_quantity', c['h_int'])
         out
       end
 
-      # The send window's rows: each field with HubSpot's value and what to do.
-      def self.compare(model, room_id)
-        f = fields(model)
-        theirs = HubSpot.read_one('listings', room_id, f.map { |x| x['prop'] } + INFO_FIELDS.map(&:first) + ROOM_PROPS)['properties'] || {}
-        rows = f.map do |x|
-          hs = theirs[x['prop']]
-          x['hubspot'] = hs
-          x['hubspot_shown'] = x['options'] ? label_of(hs, x['options']).to_s : hs.to_s
-          x['same'] = same?(x['mine'], hs, x['number'])
-          mine_blank = x['number'] ? x['mine'].nil? : x['mine'].to_s.empty?
-          hs_blank = hs.to_s.strip.empty?
-          x['action'] = if x['same'] then 'none'
-                        elsif x['blocked'] then 'none'
-                        elsif mine_blank && !hs_blank && x['can_take'] then 'take'
-                        elsif mine_blank then 'none'
-                        else 'send'
-                        end
-          x.delete('options') unless x['colour']
-          x
+      # Everything the window needs: sections of rows with HubSpot's value and SketchUp's.
+      def self.card(model, room_id)
+        m = meta
+        calc = calculated(model, m)
+        props = LAYOUT.flat_map(&:last).select { |p| m[p] }
+        theirs = HubSpot.read_one('listings', room_id, props + %w[hs_name])['properties'] || {}
+        sections = LAYOUT.map do |title, list|
+          rows = list.filter_map do |p|
+            f = m[p] or next
+            hs = theirs[p]
+            hs = hs.to_s[0, 10] if f['type'] == 'date' && hs
+            r = { 'prop' => p, 'label' => f['label'], 'field' => f['field'], 'type' => f['type'], 'options' => f['options'],
+                  'hubspot' => hs, 'file' => FILE_FIELDS.include?(p),
+                  'readonly' => f['readonly'] || f['field'] == 'calculation_equation', 'note' => f['note'] }
+            r.merge!('calc' => true, 'sketchup' => calc[p]['value'], 'shown' => calc[p]['shown'], 'take' => calc[p]['take'], 'note' => calc[p]['note'] || r['note']) if calc[p]
+            r
+          end
+          { 'title' => title, 'rows' => rows }
         end
-        info = INFO_FIELDS.to_h { |k, label| [label, theirs[k]] }
-        info['Door style'] = label_of(theirs['door_style'], HubSpot.options('door_style')) if theirs['door_style']
-        [rows, info.reject { |_k, v| v.to_s.empty? }, theirs['hs_name']]
+        [sections, theirs['hs_name']]
       end
 
       # --- doing it ------------------------------------------------------------------------
 
-      def self.send_and_take(model, room_id, rows, picks)
-        send = {}
-        take = {}
-        rows.each do |r|
-          case picks[r['prop']]
-          when 'send' then send[r['prop']] = r['mine'].nil? ? '' : r['mine'].to_s
-          when 'take' then take[r['prop']] = r
-          end
-        end
+      # send: { prop => new HubSpot value }; take: { prop => value for this file }.
+      def self.send_and_take(model, room_id, send, take)
         HubSpot.update_room(room_id, send) unless send.empty?
         took = take_values(model, take)
         Ops.run(model, 'HubSpot: record send', transparent: true) do
           model.set_attribute(DICT, 'hs_sent_at', Time.now.strftime('%d/%m/%Y %H:%M'))
         end
-        [send.size, took]
+        took
       end
 
-      # HubSpot -> this file. Job values first (one step), then colours (their own step),
-      # then the units are offered the new values through the pencil window.
+      # Into this file. Job values first (one step), then colours (their own step);
+      # the units are then offered the new values through the pencil window.
       def self.take_values(model, take)
         return [] if take.empty?
         took = []
         runouts = Runouts.job_values(model)
         Ops.run(model, 'Values from HubSpot') do
-          take.each do |prop, r|
-            v = r['hubspot']
+          take.each do |prop, v|
             case prop
             when 'ceiling_height_mm'
               model.set_attribute(DICT, 'ceiling_mm', v.to_f)
               took << 'ceiling'
             when 'bottom_facing_mm'
               model.set_attribute(DICT, 'facing_btm_mm', v.to_f)
-              took << 'facing'
+              took << 'bottom facing'
             else
               side = RUNOUT_FIELDS.key(prop)
               if side
@@ -272,11 +316,14 @@ module HarryWardrobes
           end
           model.set_attribute(DICT, 'scribe_values', JSON.generate(runouts)) if took.include?('runouts')
         end
-        colours = take.values.select { |r| r['colour'] }
+        colours = COLOUR_FIELDS.select { |_gid, prop| take.key?(prop) }
         unless colours.empty?
           choices = Colours.job_choices(model).compact
           choices['drawer_box'] ||= Colours.defaults['drawer_box']
-          colours.each { |r| choices[r['colour']] = closest_colour(label_of(r['hubspot'], r['options']), r['colour']) }
+          colours.each do |gid, prop|
+            label = label_of(take[prop], meta.dig(prop, 'options') || [])
+            choices[gid] = label.to_s.empty? ? Colours::DEFAULT : closest_colour(label, gid)
+          end
           ColoursWindow.apply(model, choices)
           took << 'colours'
         end
@@ -427,30 +474,32 @@ module HarryWardrobes
           return unless UI.messagebox("This file isn't linked to a HubSpot room yet.\n\nLink it now?", MB_YESNO) == IDYES
           return show_pick(model.path.to_s.empty? ? :new : :link)
         end
-        rows, info, name = begin
-          compare(model, l['room_id'])
+        sections, name = begin
+          card(model, l['room_id'])
         rescue StandardError => e
           return fail('read room', e)
         end
-        Ops.run(model, 'HubSpot details', transparent: true) { store_link(model, l.merge('info' => info)) } unless info == l['info']
-        data = { 'room' => name || l['room_name'], 'customer' => l['customer'], 'rows' => rows, 'info' => info,
+        data = { 'room' => name || l['room_name'], 'customer' => l['customer'], 'sections' => sections,
+                 'project' => !l['project_id'].to_s.empty?,
                  'sent_at' => model.get_attribute(DICT, 'hs_sent_at', nil), 'scribes_on' => Pencil.on?(model) }
-        dlg = Dialog.open('hubspot_send', title: 'HW - Send to HubSpot', key: 'hw_hubspot_send', width: 760, height: 640, data: data)
-        dlg.add_action_callback('open') { |_c| UI.openURL(HubSpot.room_url(l['room_id'])) rescue nil }
+        dlg = Dialog.open('hubspot_send', title: 'HW - HubSpot room', key: 'hw_hubspot_send2', width: 820, height: 760, data: data)
+        dlg.add_action_callback('openRoom') { |_c| open_record('listings', l['room_id']) }
+        dlg.add_action_callback('openProject') { |_c| open_record('projects', l['project_id']) }
         dlg.add_action_callback('send') do |_c, json|
-          picks = JSON.parse(json)
+          req = JSON.parse(json)
           dlg.close
           begin
-            sent, took = send_and_take(model, l['room_id'], rows, picks)
+            took = send_and_take(model, l['room_id'], req['send'] || {}, req['take'] || {})
           rescue StandardError => e
             next fail('send', e)
           end
-          msg = ["#{sent} field(s) sent to HubSpot (#{l['room_name']})."]
-          msg << "Taken from HubSpot: #{took.join(', ')}." unless took.empty?
-          job = (took & %w[ceiling facing runouts]).any?
+          sent = (req['send'] || {}).size
+          msg = [sent.zero? ? 'Nothing sent to HubSpot.' : "#{sent} field(s) sent to HubSpot (#{l['room_name']})."]
+          msg << "Into this file: #{took.join(', ')}." unless took.empty?
+          job = (took & ['ceiling', 'bottom facing', 'runouts']).any?
           if job
             msg << (Pencil.on?(model) ? "\nThe units still have the old values - the pencil window opens next so you can apply them." :
-                                         "\nScribes are off: the new values are used when you press the pencil (ceiling: the ceiling button).")
+                                         "\nScribes are off: the new values are used when you press the pencil.")
           end
           UI.messagebox(msg.join("\n"))
           Pencil.show(model, nil) if job && Pencil.on?(model)
@@ -458,12 +507,17 @@ module HarryWardrobes
         dlg.show
       end
 
-      def self.open_in_hubspot
-        l = link(Sketchup.active_model)
-        return UI.messagebox("This file isn't linked to a HubSpot room yet.") unless l
-        UI.openURL(HubSpot.room_url(l['room_id']))
+      def self.open_record(type, id)
+        return UI.messagebox('Not linked.') if id.to_s.empty?
+        UI.openURL(HubSpot.record_url(type, id))
       rescue StandardError => e
         fail('open', e)
+      end
+
+      def self.open_in_hubspot(type = 'listings')
+        l = link(Sketchup.active_model)
+        return UI.messagebox("This file isn't linked to a HubSpot room yet.") unless l
+        open_record(type, type == 'projects' ? l['project_id'] : l['room_id'])
       end
     end
   end

@@ -6,8 +6,11 @@ module HarryWardrobes
     # To add a button: make a command with Menus.command (icon = icons/<name>.svg),
     # add it to the menu below and, if it belongs on the toolbar, to TOOLBAR order.
     module Menus
+      # An icon file of your own wins: %APPDATA%\HW Door Style\icons\<name>.svg (or .png),
+      # e.g. the HubSpot logo from HubSpot's own brand kit as hubspot.svg / hubspot.png.
       def self.icon(name)
-        File.join(PATH, 'icons', "#{name}.svg")
+        own = %w[svg png].map { |x| File.join(Settings::USER_DIR, 'icons', "#{name}.#{x}") }.find { |f| File.exist?(f) }
+        own || File.join(PATH, 'icons', "#{name}.svg")
       end
 
       def self.command(text, tip, icon_name = nil, &blk)
@@ -63,10 +66,11 @@ module HarryWardrobes
         hs = menu.add_submenu('HubSpot')
         hs.add_item('New room from HubSpot...') { HubSpotRoom.show_pick(:new) }
         hs.add_item('Link this file to a HubSpot room...') { HubSpotRoom.show_pick(:link) }
-        c[:hubspot] = command('Send to HubSpot', 'Room sizes, ceiling, runouts, colours and hardware next to HubSpot\'s values; nothing is sent until you press Send.',
+        c[:hubspot] = command('Send to HubSpot...', 'The whole HubSpot Room card with this file\'s sizes, runouts, colours and hardware filled in; you see every change before it is sent.',
                               'hubspot') { HubSpotRoom.show_send }
         hs.add_item(c[:hubspot])
-        hs.add_item('Open this room in HubSpot') { HubSpotRoom.open_in_hubspot }
+        hs.add_item('Open Room in HubSpot') { HubSpotRoom.open_in_hubspot('listings') }
+        hs.add_item('Open Project in HubSpot') { HubSpotRoom.open_in_hubspot('projects') }
 
         # Library export, scribes, ceiling
         menu.add_separator
