@@ -281,6 +281,16 @@
   <h2>General</h2>
   <div class="lead" id="verLine"></div>
   <fieldset><legend>What's new</legend><div class="news" id="news"></div></fieldset>
+  <fieldset><legend>Updates</legend>
+    <div class="info" id="updLine" style="margin-bottom:6px"></div>
+    <div class="btnrow" style="margin-top:0">
+      <button onclick="sketchup.checkUpdate($('update_folder').value)">Check for updates</button>
+      <button onclick="sketchup.installFile()">Install from a file...</button>
+    </div>
+    <div class="f t" style="margin-top:8px"><span>Updates folder</span><input type="text" id="update_folder"></div>
+    <div class="f c"><span>Check for a new version when SketchUp starts</span><input type="checkbox" id="update_check_at_start"></div>
+    <div class="hint">New versions are saved to this Google Drive folder. Updating installs over the old version and loads the new code straight away - no uninstall or restart. New toolbar buttons or menu items appear after the next restart.</div>
+  </fieldset>
   <fieldset><legend>Settings file</legend>
     <div class="path" id="setPath"></div>
     <div class="hint">Your changes are kept here, outside the plugin, so updates don't remove them.</div>
@@ -359,6 +369,8 @@ function load(s){
   var p22 = (DEFAULT_ROWS.filter(function(r){ return r[0] === 'panels_22'; })[0] || [0, 0, []])[2];
   opts($('panels_22_default'), p22.map(function(n){ return [n, n]; }), s.panels_22_default);
   $('_debug').checked = !!S._debug;
+  $('update_folder').value = s.update_folder || '';
+  $('update_check_at_start').checked = s.update_check_at_start !== false;
   $('ocl_thicknesses_mm').value = (s.ocl_thicknesses_mm || []).join(', ');
   $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
@@ -392,6 +404,8 @@ function collect(){
     var i = line.indexOf(':'); if (i < 1) return;
     var t = line.slice(0, i).trim(); if (t) o.hardware_tags[t] = split(line.slice(i + 1));
   });
+  o.update_folder = $('update_folder').value.trim();
+  o.update_check_at_start = $('update_check_at_start').checked;
   o.ocl_thicknesses_mm = $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
@@ -529,7 +543,18 @@ function renderInfo(){
     return '<h4>' + esc(e.title) + '</h4><ul>' + e.items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
   }).join('') || '<div class="hint">No notes.</div>';
   $('setPath').textContent = S._settings_file || '';
+  updInfo(S._update || {});
   $('teamLine').textContent = S._team_file ? 'Team file: ' + S._team_file : 'No team file chosen yet.';
+}
+
+// ---------- updates ----------
+// Called from Ruby with { running, latest, newer, folder_ok }.
+function updInfo(u){
+  var t = 'Running ' + (S._version || '') + '. ';
+  if (!u.folder_ok) t += 'Updates folder not found.';
+  else if (u.newer) t += 'Version ' + u.latest + ' is in the updates folder.';
+  else t += u.latest ? 'Up to date (newest in the folder: ' + u.latest + ').' : 'No versions in the updates folder yet.';
+  $('updLine').textContent = t;
 }
 
 // ---------- cut list ----------

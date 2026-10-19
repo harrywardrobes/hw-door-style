@@ -23,7 +23,7 @@ module HarryWardrobes
       colours/colours
       job/runouts job/ceiling job/standardise job/pencil job/pdf job/report
       export/library_export export/opencutlist
-      ui/dialog core/batch ui/colours_window ui/settings_window
+      ui/dialog core/batch core/updater ui/colours_window ui/settings_window
       dev/acceptance dev/developer ui/menus
     ].freeze
     FILES.each { |f| Sketchup.require(File.join(PATH, f)) }
@@ -31,6 +31,7 @@ module HarryWardrobes
     unless file_loaded?(__FILE__)
       Menus.build
       Pencil.start_watching # keeps the pencil button in step with the open model
+      Updater.check_at_startup # newer version in the updates folder? offer it
       file_loaded(__FILE__)
     end
   end

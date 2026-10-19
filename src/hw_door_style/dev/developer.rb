@@ -53,12 +53,7 @@ module HarryWardrobes
 
       # Loads every plugin file again (menus and toolbar stay as they are).
       def self.reload
-        $VERBOSE, verbose = nil, $VERBOSE
-        FILES.each { |f| load File.join(PATH, "#{f}.rb") }
-        Dialog.instance_variable_set(:@shared, nil)
-        Sketchup.status_text = "HW Door Style #{VERSION}: code reloaded"
-      ensure
-        $VERBOSE = verbose
+        Updater.reload!
       end
     end
   end

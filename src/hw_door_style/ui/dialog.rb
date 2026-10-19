@@ -42,6 +42,17 @@ module HarryWardrobes
       def self.[](id)
         (@open ||= {})[id]
       end
+
+      # Closes every plugin window (before an update replaces their pages).
+      def self.close_all
+        (@open || {}).each_value { |d| d.close rescue nil }
+        @open = {}
+      end
+
+      # Forget the cached shared css / js (after an update).
+      def self.reset!
+        @shared = nil
+      end
     end
   end
 end

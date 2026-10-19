@@ -21,8 +21,17 @@ module HarryWardrobes
           '_settings_file' => Settings::USER_FILE,
           '_team_file' => Settings.team_file,
           '_debug' => Log.debug?,
-          '_job' => job_info(model)
+          '_job' => job_info(model),
+          '_update' => update_info
         )
+      end
+
+      def self.update_info(dir = Updater.folder)
+        r = Updater.latest(dir)
+        { 'folder_ok' => !dir.to_s.empty? && Dir.exist?(dir), 'latest' => r && r[:version],
+          'newer' => r ? Updater.newer?(r[:version], VERSION) : false }
+      rescue StandardError
+        { 'folder_ok' => false }
       end
 
       def self.job_info(model)
@@ -98,6 +107,24 @@ module HarryWardrobes
             UI.messagebox("OpenCutList set-up failed and was undone.\n\n#{e.message}")
             Log.error('opencutlist', e)
           end
+        end
+        dlg.add_action_callback('checkUpdate') do |_c, dir|
+          info = update_info(dir.to_s.strip)
+          dlg.execute_script("updInfo(#{JSON.generate(info)})")
+          r = info['newer'] && Updater.latest(dir.to_s.strip)
+          if r && Updater.offer(r)
+            next unless discard_ok.call
+            close.call
+            Updater.install(r[:path])
+          elsif !info['newer']
+            UI.messagebox(info['folder_ok'] ? "You have the newest version (#{VERSION})." : "Updates folder not found:\n#{dir}")
+          end
+        end
+        dlg.add_action_callback('installFile') do |_c|
+          f = UI.openpanel('Install HW Door Style from a file', nil, 'HW Door Style|hw_door_style*.rbz||')
+          next unless f && discard_ok.call
+          close.call
+          Updater.install(f)
         end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 

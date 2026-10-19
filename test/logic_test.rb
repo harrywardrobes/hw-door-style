@@ -427,5 +427,19 @@ check 'bought-in tag added, own tags kept', OC.mark_bought_in(door) && door.h['t
 old = FMat.new({ 'labels' => 'a;b' })
 check 'old OCL "labels" read as tags', OC.tags_of(old) == %w[a b]
 
+# --- updater (0.18) ---
+main_src = File.read(File.join(PATH, 'main.rb'), encoding: 'UTF-8')
+check 'updater can read the file list from main.rb', main_src[/FILES\s*=\s*%w\[(.*?)\]/m, 1].to_s.split.include?('core/updater')
+check 'updater can read VERSION from the loader', File.read(File.expand_path('../src/hw_door_style.rb', __dir__), encoding: 'UTF-8')[/VERSION\s*=\s*'([^']+)'/, 1] =~ /\A\d+\.\d+\.\d+\z/
+require 'hw_door_style/core/updater'
+check 'version compare', Updater.newer?('0.18.0', '0.17.9') && Updater.newer?('0.18.10', '0.18.9') && !Updater.newer?('0.17.0', '0.17.0')
+Dir.mktmpdir do |d|
+  %w[hw_door_style_v0.9.0.rbz hw_door_style_v0.18.0.rbz hw_door_style_v0.17.2.rbz other.rbz HW_Colours.zip].each { |f| File.write(File.join(d, f), 'x') }
+  File.write(File.join(d, 'hw_door_style_latest.json'), '{"version":"0.18.0","notes":["Updates without restarting"]}')
+  r = Updater.latest(d)
+  check 'newest release found (not by name order)', r[:version] == '0.18.0' && r[:path].end_with?('hw_door_style_v0.18.0.rbz') && r[:notes] == ['Updates without restarting']
+  check 'missing folder: nothing offered', Updater.latest(File.join(d, 'nope')).nil? && Updater.latest('').nil?
+end
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

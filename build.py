@@ -61,6 +61,22 @@ with zipfile.ZipFile(pack, "w", zipfile.ZIP_DEFLATED) as z:
         z.write(p, "HW Colours/textures/" + p.name)
 print(pack)
 
+# Release notes for the in-plugin updater (Settings > General > Updates): saved next to
+# the .rbz in the updates folder as hw_door_style_latest.json.
+import json
+notes, on = [], False
+for line in changelog.read_text(encoding="utf-8").splitlines():
+    if line.startswith("## "):
+        if on:
+            break
+        on = line[3:].split()[0] == version
+    elif on and line.startswith("- "):
+        notes.append(re.sub(r"\*\*|`", "", line[2:].strip()))
+    elif on and line.startswith("  ") and notes:
+        notes[-1] += " " + re.sub(r"\*\*|`", "", line.strip())
+(root / "dist" / "hw_door_style_latest.json").write_text(
+    json.dumps({"version": version, "file": out.name, "notes": notes}, indent=2), encoding="utf-8")
+
 # Copy into releases/ (committed, so the files can be downloaded from GitHub).
 import shutil
 rel = root / "releases"

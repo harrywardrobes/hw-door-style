@@ -69,6 +69,11 @@ module HarryWardrobes
         s
       end
 
+      # Read the files again (after an update, so new defaults appear).
+      def self.reload!
+        @settings = nil
+      end
+
       def self.get
         @settings ||= load
       end
