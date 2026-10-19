@@ -3,6 +3,7 @@
 ## 0.44.0 — 2026-10-19
 - Product pictures are kept on this computer (AppData\HW Door Style\product_images): the Door style window and Settings > Products show them straight away and offline - nothing is loaded from the internet when a window opens. Missing (or changed) pictures are copied down once in the background, after the products are read from HubSpot or when a window that shows them opens.
 - Door style window: **Browse** next to each handle (or click its picture) opens a picture gallery to look through with the customer - one card per family (e.g. Bergamo Knob, not every finish and size), with search. Pick a family to see it large with its finishes (each with its own picture) and sizes, then "Use this ..." fills in the handle. N/A is there too.
+- Door order and parts list are saved as PDF only by default (Export door order, Workshop window, and the files sent to HubSpot). Settings > Export > "Also save CSV files" turns the CSVs back on.
 
 ## 0.43.0 — 2026-10-19
 - Door summary: a door with a mid-rail is a "Wardrobe Door", and Mid-rail says where it is - "Yes - 815mm" (the mid-rail's centre above the bottom of the door, from the style).

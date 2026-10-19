@@ -50,13 +50,13 @@ module HarryWardrobes
 
         # Summary and settings
         menu.add_separator
-        c[:summary] = command('Door summary', 'Show the door and drawer front summary (CSV / PDF export).', 'summary') { Report.show }
+        c[:summary] = command('Door summary', 'Show the door and drawer front summary (PDF export).', 'summary') { Report.show }
         c[:settings] = command('Settings', 'Frame sizes, mid-rail, hinge rules and component names.', 'settings') { SettingsWindow.show }
         menu.add_item(c[:summary])
         c[:parts] = command('Workshop', 'Everything for the workshop in one window: door order, sheet goods (boards, strips, edging), hardware and handles, labels to print - saved as one pack and synced to the HubSpot Room. Parts rules from OpenCutList.',
                             'parts') { PartsList.show }
         menu.add_item(c[:parts])
-        menu.add_item('Export door order (CSV + PDF)') { Report.export_order }
+        menu.add_item('Export door order (PDF)') { Report.export_order }
         menu.add_item(c[:settings])
 
         # HubSpot (one file = one Room)

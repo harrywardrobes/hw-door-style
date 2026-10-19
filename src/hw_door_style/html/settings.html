@@ -269,6 +269,10 @@
     <div class="f t"><span>Template keeps</span><input type="text" id="template_keep"></div>
     <div class="hint">The only things kept in the job template for Welcome to SketchUp (saved with Export components), e.g. FLOOR, CEILING. Everything else is left out.</div>
   </fieldset>
+  <fieldset><legend>Door order and parts list</legend>
+    <div class="f c"><span>Also save CSV files (the PDF is always saved)</span><input type="checkbox" id="export_csv"></div>
+    <div class="hint">Off: Export door order and the Workshop window save PDFs only (and send only the PDFs to HubSpot).</div>
+  </fieldset>
   <fieldset><legend>Add component (+)</legend>
     <div class="f t"><span>Library folder</span><input type="text" id="library_folder"></div>
     <div class="hint">The folder with WARDROBES, DRAWERS, BRIDGE... The latest version of each component is copied to this computer (AppData\HW Door Style\library) and kept up to date when the + window opens, so it opens straight away and works offline.</div>
@@ -442,7 +446,7 @@
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
-var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
+var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
 var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];

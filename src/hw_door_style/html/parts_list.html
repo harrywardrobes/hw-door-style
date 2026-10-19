@@ -198,7 +198,7 @@ function hubspotPlan(p){
   if (p.error) { $('p_hubspot').innerHTML = '<div class="warnbox">' + esc(p.error) + '</div>'; return; }
   if (!p.linked) { $('p_hubspot').innerHTML = '<div class="warnbox">This file isn\'t linked to a HubSpot Room yet - HubSpot > Link this file.</div>'; return; }
   var flags = p.rows.filter(function(r){ return r.flag; });
-  var h = '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list, PDF and CSV, into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
+  var h = '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list' + (D.export_csv ? ', PDF and CSV' : ' PDFs') + ', into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
   if (flags.length) h += '<div class="warnbox"><b>' + flags.length + ' order status(es) already set:</b> ' + flags.map(function(r){ return esc(r.label) + ' = ' + esc(r.hubspot); }).join(', ') + '. They are left as they are - check those orders still match the model.</div>';
   if (p.missing_colours.length) h += '<div class="warnbox">No MFC Sheets field in HubSpot for: ' + esc(p.missing_colours.join(', ')) + ' - they only count in MFC (Full Sheet) Quantity.</div>';
   var sec = null;

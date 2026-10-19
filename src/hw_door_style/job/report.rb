@@ -102,7 +102,12 @@ module HarryWardrobes
         [found, recorded.to_i].max + 1
       end
 
-      # Writes DOOR_ORDER_v<N> .csv + .pdf next to the .skp, no questions. Returns [csv, pdf, version].
+      # Writes DOOR_ORDER_v<N> .pdf (and .csv if set) next to the .skp, no questions. Returns [csv or nil, pdf, version].
+      # PDF only, unless Settings > General "Also save CSV files" is on.
+      def self.csv?
+        Settings.get['export_csv'] ? true : false
+      end
+
       def self.write_order(model = Sketchup.active_model)
         raise 'Save the SketchUp file first - the door order is saved next to it.' if model.path.to_s.empty?
         dir  = File.dirname(model.path)
@@ -110,10 +115,10 @@ module HarryWardrobes
         v    = next_version(dir, base, model.get_attribute(DICT, 'export_version', 0))
         stem = File.join(dir, order_stem(v, base))
         data = payload(model).merge('export_version' => v)
-        File.write("#{stem}.csv", "\uFEFF" + csv(data['rows']), mode: 'w:UTF-8')
+        File.write("#{stem}.csv", "\uFEFF" + csv(data['rows']), mode: 'w:UTF-8') if csv?
         Pdf.write("#{stem}.pdf", data)
         Ops.run(model, 'Record door order export', transparent: true) { model.set_attribute(DICT, 'export_version', v) }
-        ["#{stem}.csv", "#{stem}.pdf", v]
+        [csv? ? "#{stem}.csv" : nil, "#{stem}.pdf", v]
       end
 
       def self.export_order(model = Sketchup.active_model)
@@ -130,12 +135,12 @@ module HarryWardrobes
         stem = File.join(dir, order_stem(v, base))
         data = payload(model).merge('export_version' => v)
 
-        File.write("#{stem}.csv", "﻿" + csv(data['rows']), mode: 'w:UTF-8')
+        File.write("#{stem}.csv", "﻿" + csv(data['rows']), mode: 'w:UTF-8') if csv?
         Pdf.write("#{stem}.pdf", data)
 
         Ops.run(model, 'Record door order export') { model.set_attribute(DICT, 'export_version', v) }
 
-        UI.messagebox("Door order v#{v} saved in:\n#{dir}\n\n#{File.basename(stem)}.csv\n#{File.basename(stem)}.pdf")
+        UI.messagebox("Door order v#{v} saved in:\n#{dir}\n\n#{csv? ? "#{File.basename(stem)}.csv\n" : ''}#{File.basename(stem)}.pdf")
         v
       rescue StandardError => e
         UI.messagebox("Export failed: #{e.message}\n\nIf the file is open in Excel or a PDF viewer, close it and try again.")

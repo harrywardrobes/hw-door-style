@@ -674,10 +674,10 @@ module HarryWardrobes
         base = File.basename(model.path, '.skp')
         v = next_version(dir, base, model.get_attribute(DICT, 'parts_list_version', 0))
         s = stem(dir, base, v)
-        File.write("#{s}.csv", "﻿" + csv(d), mode: 'w:UTF-8')
+        File.write("#{s}.csv", "﻿" + csv(d), mode: 'w:UTF-8') if Report.csv?
         PartsPdf.write("#{s}.pdf", d.merge('list_version' => v))
         Ops.run(model, 'Record parts list export', transparent: true) { model.set_attribute(DICT, 'parts_list_version', v) }
-        ["#{s}.csv", "#{s}.pdf", v]
+        [Report.csv? ? "#{s}.csv" : nil, "#{s}.pdf", v]
       end
 
       # --- HubSpot: the Room's "Order / Parts List" file field --------------------------------
@@ -693,6 +693,7 @@ module HarryWardrobes
         build = lambda do
           data = generate(model)
           data['door'] = Report.payload(model)
+          data['export_csv'] = Report.csv?
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
         fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }

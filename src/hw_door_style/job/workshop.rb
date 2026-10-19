@@ -69,11 +69,11 @@ module HarryWardrobes
           'has_files' => !theirs['order_parts_list'].to_s.empty?, 'url' => (HubSpot.record_url('listings', l['room_id']) rescue nil) }
       end
 
-      # Saves the door order and the parts list (CSV + PDF each). Returns [paths..., versions].
+      # Saves the door order and the parts list (PDF each; CSV too if set in Settings). Returns [paths..., versions].
       def self.save(model, parts)
         door = Report.write_order(model)
         part = PartsList.export(model, parts)
-        { 'files' => [door[1], door[0], part[1], part[0]], 'door_v' => door[2], 'parts_v' => part[2] }
+        { 'files' => [door[1], door[0], part[1], part[0]].compact, 'door_v' => door[2], 'parts_v' => part[2] }
       end
 
       # Uploads the four files into Order / Parts List (replacing the last ones), sends the
