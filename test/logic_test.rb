@@ -639,5 +639,41 @@ CFX = HarryWardrobes::DoorStyle::ComponentFixes
 check 'old formulas matched however they are spaced / quoted', CFX.norm('A02_FRAME_HEIGHT_CEILING - D02_FACING_TOP-ZZ_FLOOR_HEIGHT') == CFX.norm(CFX::FIXES[0][:old]) && CFX.norm('parent!G06_RAIL_DROP ') == CFX.norm('parent!G06_RAIL_DROP')
 check 'new formulas differ from old (so a fixed file is left alone)', CFX::FIXES.all? { |f| CFX.norm(f[:new]) != CFX.norm(f[:old]) }
 
+puts "\n== Library cache (Add component)"
+require 'hw_door_style/core/library_cache'
+LC = HarryWardrobes::DoorStyle::LibraryCache
+check 'versions read from file names', LC.parse('WARDROBE_V10') == ['WARDROBE', 10] && LC.parse('SHOE_UNIT V2') == ['SHOE_UNIT', 2] && LC.parse('CAB') == ['CAB', 0] && LC.parse('INT_DRAWER_PLUS_V9') == ['INT_DRAWER_PLUS', 9]
+check 'names made readable', LC.pretty('INT_DRAWER_PLUS') == 'Int Drawer Plus' && LC.pretty('WALK-IN') == 'Walk-In' && LC.pretty('MAIN COMPONENTS') == 'Main Components'
+lib = Dir.mktmpdir('hw_lib')
+{ 'WARDROBES' => %w[WARDROBE_V9.skp WARDROBE_V10.skp TOPBOX_V13.skp desktop.ini], 'DRAWERS' => %w[EXT_DRAWER_V8.skp], '_old' => %w[WARDROBE_V11.skp], 'SURVEY RENDERS' => %w[a.jpg] }.each do |d, fs|
+  FileUtils.mkdir_p(File.join(lib, d))
+  fs.each { |f| File.write(File.join(lib, d, f), f) }
+end
+File.write(File.join(lib, 'Components V28.skp'), 'master')
+File.write(File.join(lib, 'COVER_WITH_WORKTOP.skp'), 'x')
+sc = LC.scan(lib)
+check 'scan: latest version of each, _old and the master file skipped', sc.map { |e| [e['key'], e['ver']] }.sort == [['DRAWERS/EXT_DRAWER', 8], ['OTHER/COVER_WITH_WORKTOP', 0], ['WARDROBES/TOPBOX', 13], ['WARDROBES/WARDROBE', 10]]
+idx = {}
+get, gone = LC.plan(sc, idx)
+check 'plan: everything new is copied', get.size == 4 && gone.empty?
+get.each { |e| LC.fetch(e, idx) }
+check 'fetch: copied to this computer, not the library', idx.values.all? { |e| File.exist?(e['file']) && e['file'].start_with?(LC::DIR) } && File.read(idx['WARDROBES/WARDROBE']['file']) == 'WARDROBE_V10.skp'
+get, gone = LC.plan(sc, idx)
+check 'plan: nothing to do when up to date', get.empty? && gone.empty?
+File.rename(File.join(lib, 'WARDROBES', 'WARDROBE_V10.skp'), File.join(lib, '_old', 'WARDROBE_V10.skp'))
+File.write(File.join(lib, 'WARDROBES', 'WARDROBE_V11.skp'), 'WARDROBE_V11.skp')
+File.delete(File.join(lib, 'WARDROBES', 'TOPBOX_V13.skp'))
+old_file = idx['WARDROBES/WARDROBE']['file']
+get, gone = LC.plan(LC.scan(lib), idx)
+check 'plan: newer version copied, removed component dropped', get.map { |e| e['key'] } == ['WARDROBES/WARDROBE'] && gone == ['WARDROBES/TOPBOX']
+get.each { |e| LC.fetch(e, idx) }
+LC.forget(gone, idx)
+check 'old copy replaced by the new version', !File.exist?(old_file) && idx['WARDROBES/WARDROBE']['ver'] == 11 && !idx.key?('WARDROBES/TOPBOX')
+LC.save_index(idx)
+cs = LC.cards
+check 'cards: by category order, colour coded', cs.map { |c| c['key'] } == ['WARDROBES/WARDROBE', 'DRAWERS/EXT_DRAWER', 'OTHER/COVER_WITH_WORKTOP'] && cs.first['colour'] == LC::COLOURS['WARDROBES'] && cs.first['label'] == 'Wardrobe'
+check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
+check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

@@ -28,6 +28,12 @@ module HarryWardrobes
         menu = UI.menu('Extensions').add_submenu('HW Door Style')
         c = {}
 
+        # Add a library component (picture cards, set up to the job when placed)
+        c[:add] = command('Add component', 'Pick a component from the library (pictures by category) and place it - set up with this job\'s colours, door style, hinges, runouts and ceiling height.',
+                          'plus') { ComponentPicker.show }
+        menu.add_item(c[:add])
+        menu.add_separator
+
         # Doors and drawer fronts
         c[:doors] = command('Door style', 'Styles for doors, drawer fronts and internal drawers, hinge type and handles for this job.',
                             'doors') { DoorStyleWindow.show }
@@ -91,7 +97,7 @@ module HarryWardrobes
 
       # Two toolbars (nil = separator). Everyday survey work, then the admin / library tools.
       TOOLBARS = {
-        'HW measure once' => [:colours, :doors, nil, :pencil, :parts, :hubspot],
+        'HW measure once' => [:add, nil, :colours, :doors, nil, :pencil, :parts, :hubspot],
         'HW dev' => [:settings, :export]
       }.freeze
 

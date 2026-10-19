@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.42.0 — 2026-10-19
+- New **Add component (+)** button (first on the HW measure once toolbar): picture cards of the latest version of every library component, grouped and colour coded by category (Wardrobes, Drawers, Bridge, Bookcase, Shelving, Main Components), with search (Enter places the first match). Click a card, click in the model - like File > Import without the file browser.
+- Works from a copy on this computer (AppData\HW Door Style\library), so the window opens straight away and works offline; each time it opens it checks the library folder and copies any newer versions in the background (old copies replaced, removed components dropped). Library folder: Settings > Export > Add component.
+- A placed unit is set up to the job in one quick step, merged with the place (one Undo removes both): runouts and bottom facing as the pencil has them (0 when scribes are off), the ceiling height for Scribed To Ceiling units, the job's door style and hinges on its doors and drawer fronts (once a Door colour is chosen) and the job's colours. Only the new unit is touched, so it stays quick on older computers. Untick "Set up to this job" to place it as it comes from the library.
+
 ## 0.41.0 — 2026-10-19
 - **Shortening a wardrobe no longer breaks the shelf and rails** (double hanging especially):
   - the top shelf now stops under the top frame rail - before, it ran into the rail once the wardrobe was

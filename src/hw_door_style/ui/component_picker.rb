@@ -1,0 +1,226 @@
+require 'json'
+
+module HarryWardrobes
+  module DoorStyle
+    # Add component (+ button): picture cards of the latest library components, grouped and
+    # colour coded by category, from the copy on this computer (LibraryCache). Click a card,
+    # then click in the model to place it - like File > Import, without the file browser.
+    #
+    # Once placed, the unit is set up to this job in one quick step (merged into the place,
+    # so one Undo takes it away): runouts / bottom facing as the pencil has them, the ceiling
+    # height for "Scribed To Ceiling" units, the job's door style and hinges on its doors and
+    # drawer fronts, and the job's colours. Only the new unit is touched - nothing else in the
+    # model is scanned or redrawn, so it stays quick on older computers.
+    module ComponentPicker
+      ID = 'component_picker'.freeze
+      PREF = 'picker_setup'.freeze
+      KINDS = [:door, :ext_drawer, :int_drawer].freeze
+
+      def self.setup_on?
+        Sketchup.read_default(Settings::PREFS, PREF, true) ? true : false
+      end
+
+      # What a placed unit will get, in words (top of the window).
+      def self.job_summary(model)
+        ch = Colours.job_choices(model).reject { |_k, v| v.nil? }
+        styles = DoorStyleWindow.job_styles(model)
+        c = Ceiling.mm(model)
+        {
+          'colours' => ch.empty? ? 'none chosen yet' : ch.map { |k, v| "#{k.tr('_', ' ')}: #{v}" }.join(', '),
+          'doors' => Colours.door_colour_chosen?(model) ? "#{Styles.label(styles['door'])} doors, #{Styles.label(styles['ext_drawer'])} drawer fronts, #{Settings::HINGE_TYPES[Settings.job_hinge_type(model)] || 'job'} hinges" : 'not set - choose a Door colour first',
+          'scribes' => Pencil.on?(model) ? "on (#{Runouts.job_values(model).map { |s, v| "#{s} #{v.round}" }.join(', ')})" : 'off (all 0)',
+          'ceiling' => c.positive? ? "#{c.round} mm" : 'not set'
+        }
+      rescue StandardError => e
+        Log.error('picker summary', e)
+        {}
+      end
+
+      def self.data(model)
+        { 'cards' => LibraryCache.cards, 'root' => LibraryCache.root, 'setup' => setup_on?, 'job' => job_summary(model),
+          'cats' => LibraryCache::ORDER.map { |c| [c, LibraryCache.pretty(c), LibraryCache.colour(c)] } }
+      end
+
+      def self.show
+        model = Sketchup.active_model
+        dlg = Dialog.open(ID, title: 'Add component', key: 'hw_component_picker_v1', width: 780, height: 640,
+                              data: data(model), utility: true)
+        dlg.add_action_callback('ready') { |_c| sync(dlg) }
+        dlg.add_action_callback('sync') { |_c| sync(dlg) }
+        dlg.add_action_callback('place') { |_c, key| place(dlg, key.to_s) }
+        dlg.add_action_callback('setSetup') { |_c, on| Sketchup.write_default(Settings::PREFS, PREF, on ? true : false) }
+        dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{LibraryCache.root}") }
+        dlg.add_action_callback('job') { |_c| push(dlg, 'setJob', job_summary(Sketchup.active_model)) }
+        dlg.show
+        dlg
+      end
+
+      def self.push(dlg, fn, o)
+        dlg.execute_script("#{fn}(#{JSON.generate(o)})") if dlg && dlg.visible?
+      rescue StandardError
+        nil
+      end
+
+      # --- keeping the copy up to date (in the background) ------------------------
+
+      def self.sync(dlg)
+        return if @syncing
+        @syncing = true
+        idx = LibraryCache.index
+        Steps.one(dlg, 'Checking the library for new versions...',
+                  done: lambda { |scanned|
+                    get, gone = LibraryCache.plan(scanned, idx)
+                    LibraryCache.forget(gone, idx)
+                    LibraryCache.save_index(idx) unless gone.empty?
+                    if get.empty?
+                      @syncing = false
+                      push(dlg, 'setCards', 'cards' => LibraryCache.cards(idx), 'note' => gone.empty? ? 'Up to date with the library.' : "#{gone.size} removed (no longer in the library).")
+                      next
+                    end
+                    steps = get.map do |e|
+                      ["Copying #{LibraryCache.pretty(e['name'])} V#{e['ver']} (#{(e['size'] / 1024.0 / 1024).round(1)} MB)", lambda {
+                        LibraryCache.fetch(e, idx)
+                        LibraryCache.save_index(idx)
+                        push(dlg, 'setCards', 'cards' => LibraryCache.cards(idx))
+                        e['key']
+                      }]
+                    end
+                    Steps.run(dlg, steps,
+                              done: lambda { |r|
+                                @syncing = false
+                                push(dlg, 'setCards', 'cards' => LibraryCache.cards(idx), 'note' => "#{r.size} updated from the library.")
+                              },
+                              fail: lambda { |err|
+                                @syncing = false
+                                LibraryCache.save_index(idx)
+                                push(dlg, 'setCards', 'cards' => LibraryCache.cards(idx), 'note' => "Stopped copying: #{err.message}", 'warn' => true)
+                              })
+                  },
+                  fail: lambda { |_err|
+                    @syncing = false
+                    push(dlg, 'setCards', 'cards' => LibraryCache.cards(idx), 'warn' => true,
+                                          'note' => "Library folder not reachable - showing the copy on this computer. (#{LibraryCache.root})")
+                  }) { LibraryCache.scan }
+      rescue StandardError => e
+        @syncing = false
+        Log.error('library sync', e)
+      end
+
+      # --- placing ----------------------------------------------------------------
+
+      def self.place(dlg, key)
+        model = Sketchup.active_model
+        e = LibraryCache.index[key]
+        unless e && File.exist?(e['file'].to_s)
+          return push(dlg, 'status', 'text' => 'That component is not on this computer yet - press Check library.', 'warn' => true)
+        end
+        defn = model.definitions.load(e['file'])
+        # Scribes on / off as the model is NOW (the new unit's own runouts mustn't decide it).
+        job = setup_on? ? { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model) } : nil
+        @watch&.stop
+        @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']))
+        model.add_observer(@watch)
+        model.place_component(defn, false)
+        push(dlg, 'status', 'text' => "Click in the model to place #{LibraryCache.pretty(e['name'])} (Esc to cancel).")
+      rescue StandardError => err
+        Log.error('place component', err)
+        push(dlg, 'status', 'text' => "Couldn't load it: #{err.message}", 'warn' => true)
+      end
+
+      # Told when the component is put down; sets it up once, then stops listening.
+      class PlaceWatch < Sketchup::ModelObserver
+        def initialize(model, defn, job, dlg, label)
+          super()
+          @model, @defn, @job, @dlg, @label = model, defn, job, dlg, label
+        end
+
+        def onPlaceComponent(inst)
+          return unless inst.is_a?(Sketchup::ComponentInstance) && inst.definition == @defn
+          stop
+          UI.start_timer(0, false) { ComponentPicker.after_place(@model, inst, @job, @dlg, @label) }
+        end
+
+        def stop
+          @model.remove_observer(self)
+        rescue StandardError
+          nil
+        end
+      end
+
+      def self.after_place(model, inst, job, dlg, label)
+        return unless inst.valid?
+        unless job
+          return push(dlg, 'status', 'text' => "#{label} placed (not set up to the job - the tick is off).")
+        end
+        t = Time.now
+        notes = []
+        Ops.run(model, "Add #{label}", transparent: true) { notes = setup(model, inst, job) }
+        push(dlg, 'status', 'text' => "#{label} placed and set up in #{(Time.now - t).round(1)} s: #{notes.join(', ')}.")
+      rescue StandardError => e
+        Log.error('set up placed component', e)
+        push(dlg, 'status', 'text' => "#{label} placed, but setting it up failed: #{e.message}", 'warn' => true)
+      end
+
+      # The job's settings on one newly placed component (inside the caller's step).
+      # Returns what was done, in words.
+      def self.setup(model, inst, job)
+        done = []
+        TopOfUnit.upgrade_definition(inst.definition) if TopOfUnit.keys(inst)
+
+        # 1. sizes: runouts, bottom facing, ceiling - then one redraw (ceiling redraws itself)
+        units = Runouts.unit?(inst) || Facing.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities))
+        units.each do |u|
+          changed = Runouts.unit?(u) && Runouts.set(u, job['runouts'])
+          changed = Facing.set(u, job['facing']) || changed if Facing.has?(u)
+          changed = false if job['ceiling'].to_f.positive? && Ceiling.apply_to(u, job['ceiling'])
+          next unless changed
+          Drawers.close(u.definition.entities)
+          DC.redraw(u)
+        end
+        done << (job['runouts'].values.all?(&:zero?) ? 'scribes off' : 'runouts') unless units.empty?
+        done << 'ceiling height' if job['ceiling'].to_f.positive? && units.any? { |u| Ceiling.up_to_ceiling?(u) }
+
+        # 2. doors and drawer fronts: the job's style and hinges (needs the door colour, as the window does)
+        pairs = Finder.targets([inst], KINDS)
+        if pairs.any?
+          if Colours.door_colour_chosen?(model)
+            styles = DoorStyleWindow.job_styles(model)
+            pairs.group_by { |_i, k| styles[k.to_s] }.each do |style, ps|
+              Converter.rebuild(model, ps, style, override: false, finish: false)
+            end
+            door_tag = Tagger.tag_for(model, :door)
+            pairs.each do |i, k|
+              i.layer = door_tag if k == :door && i.layer != door_tag
+              Tagger.tag_item(i, k)
+            end
+            Tagger.tag_hardware(model, definitions_in(inst))
+            done << "#{pairs.size} door(s) / front(s) styled"
+          else
+            done << 'door style skipped (choose a Door colour first)'
+          end
+        end
+
+        # 3. colours
+        choices = Colours.job_choices(model).reject { |_k, v| v.nil? }
+        unless choices.empty?
+          Colours.apply(model, choices, root: inst, record: false)
+          done << 'colours'
+        end
+        done
+      end
+
+      # Every definition used inside inst (for tagging its hardware only).
+      def self.definitions_in(inst)
+        seen = {}
+        stack = [inst.definition]
+        until stack.empty?
+          d = stack.pop
+          next if seen[d]
+          seen[d] = true
+          d.entities.each { |e| stack << e.definition if e.respond_to?(:definition) }
+        end
+        seen.keys
+      end
+    end
+  end
+end

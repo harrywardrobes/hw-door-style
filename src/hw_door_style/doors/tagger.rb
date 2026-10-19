@@ -22,10 +22,10 @@ module HarryWardrobes
       end
 
       # Every listed hardware component: its instances and the faces/edges inside it.
-      # Returns { instances: n, geometry: n }.
-      def self.tag_hardware(model)
+      # Returns { instances: n, geometry: n }. defs: only these definitions (default all).
+      def self.tag_hardware(model, defs = model.definitions)
         n = { instances: 0, geometry: 0 }
-        model.definitions.each do |d|
+        defs.each do |d|
           next if d.image? || d.group?
           tname = Hardware.ours?(d) ? Settings.get['hinge_tag'] : hardware_tag_name(d)
           next unless tname

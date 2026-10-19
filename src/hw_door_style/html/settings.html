@@ -264,6 +264,10 @@
     <div class="f t"><span>Never export</span><input type="text" id="export_skip"></div>
     <div class="hint">Top-level components left out of the export list.</div>
   </fieldset>
+  <fieldset><legend>Add component (+)</legend>
+    <div class="f t"><span>Library folder</span><input type="text" id="library_folder"></div>
+    <div class="hint">The folder with WARDROBES, DRAWERS, BRIDGE... The latest version of each component is copied to this computer (AppData\HW Door Style\library) and kept up to date when the + window opens, so it opens straight away and works offline.</div>
+  </fieldset>
 </section>
 
 <!-- ======================= CUT LIST ======================= -->
@@ -434,7 +438,7 @@ var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish'];
-var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old' };
+var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
