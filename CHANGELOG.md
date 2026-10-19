@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.36.0 — 2026-10-19
+- **Toolbar tidied:** the Ceiling height button is gone from "HW measure once" (the Scribe / runouts window
+  already asks for the ceiling height). Scribe / runouts now sits to the left of Door summary:
+  Colours, Door style | Scribe / runouts, Door summary, Send to HubSpot. Ceiling height is still in the
+  Extensions > HW Door Style menu.
+
+## 0.36.0 — 2026-10-19
+- 
+
 ## 0.35.0 — 2026-10-19
 - **Export components now requires a clean model.** The window checks the library file when it opens, after
   Clean model, and again when you press Export. Export all / Export selected stay locked while any part

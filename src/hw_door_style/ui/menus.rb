@@ -88,7 +88,7 @@ module HarryWardrobes
 
       # Two toolbars (nil = separator). Everyday survey work, then the admin / library tools.
       TOOLBARS = {
-        'HW measure once' => [:colours, :doors, :pencil, :ceiling, nil, :summary, :hubspot],
+        'HW measure once' => [:colours, :doors, nil, :pencil, :summary, :hubspot],
         'HW dev' => [:settings, :export]
       }.freeze
 
