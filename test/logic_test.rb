@@ -33,7 +33,13 @@ module Sketchup
   class Group; end
   class ModelObserver; end
   class AppObserver; end
+  @prefs = {}
+  def self.read_default(sec, key, d = nil); @prefs.fetch([sec, key], d); end
+  def self.write_default(sec, key, v); @prefs[[sec, key]] = v; end
 end
+
+require 'tmpdir'
+ENV['APPDATA'] = Dir.mktmpdir('hw_appdata')
 
 $LOAD_PATH.unshift File.expand_path('../src', __dir__)
 module HarryWardrobes
@@ -55,6 +61,31 @@ def check(name, cond)
   $fail += 1 unless cond
 end
 def mm(v); (v * 25.4).round(1); end
+
+# --- settings location (0.12) ---
+check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
+check 'legacy file in plugin folder', Settings::LEGACY_FILE == File.join(PATH, 'settings.json')
+Dir.mktmpdir do |plug|
+  legacy = File.join(plug, 'settings.json')
+  File.write(legacy, '{"door_frame_mm": 90}')
+  Settings.send(:remove_const, :LEGACY_FILE); Settings.const_set(:LEGACY_FILE, legacy)
+  Settings.migrate_location
+  check 'old settings copied to AppData once', File.exist?(Settings::USER_FILE) && File.read(Settings::USER_FILE).include?('90')
+  File.write(legacy, '{"door_frame_mm": 80}')
+  Settings.migrate_location
+  check 'AppData copy never overwritten', File.read(Settings::USER_FILE).include?('90')
+  check 'loaded from AppData', Settings.load['door_frame_mm'] == 90
+  File.delete(Settings::USER_FILE)
+end
+check 'no team file yet', Settings.team_file.nil?
+Settings.team_file = 'G:/My Drive/team.json'
+check 'team file remembered', Settings.team_file == 'G:/My Drive/team.json'
+Dir.mktmpdir do |d|
+  f = File.join(d, 'team.json')
+  File.write(f, '{"hw_door_style_settings":"0.12","door_frame_mm":95,"junk":1}')
+  t = Settings.read_backup(f)
+  check 'team file read (known keys only)', t['door_frame_mm'] == 95 && !t.key?('junk')
+end
 
 # --- settings
 check 'door frame 100mm', (mm(Settings.mm('door_frame_mm')) == 100.0)
@@ -231,15 +262,63 @@ h = { 'j01_runout_floor' => '1', 'runout_ceiling' => '2', 'a01_frame_width' => 3
 check 'prefixed key found', DC.key_in(h, 'runout_floor') == 'j01_runout_floor' && DC.key_in(h, 'frame_width') == 'a01_frame_width'
 check 'plain key still found', DC.key_in(h, 'runout_ceiling') == 'runout_ceiling'
 check 'no false match (zz_ / partial)', DC.key_in(h, 'runout_back') .nil? && DC.key_in(h, 'width').nil?
-fake_u = Object.new
-def fake_u.is_a?(c); c == Sketchup::ComponentInstance; end
-vals = { 'j01_runout_floor' => '0.0', 'j02_runout_ceiling' => '0.0', 'j03_runout_l' => '0.0' }
-SC.define_singleton_method(:units) { |_e| [fake_u] }
-SC.define_singleton_method(:mm_of) { |_u, sd| { 'floor' => vals['j01_runout_floor'].to_f * 25.4, 'ceiling' => 0.0, 'left' => 0.0 }[sd] }
-fake_m = Struct.new(:entities).new([])
+check 'unit key match (plain + prefixed)', %w[runout_floor j01_runout_floor j05_runout_back_wall runout_l].all? { |k| SC::UNIT_KEY.match?(k) } &&
+                                          %w[zz_runout_l runout_lx _runout_l_label runout_back].none? { |k| SC::UNIT_KEY.match?(k) }
+FDict = Struct.new(:h) do
+  def each_pair(&b); h.each_pair(&b); end
+end
+FE = Struct.new(:dd) do
+  def attribute_dictionary(_n); dd && FDict.new(dd); end
+end
+fu = FE.new({ 'j01_runout_floor' => '0.0', 'j03_runout_l' => '0' })
+def fu.definition; FE.new({ 'j01_runout_floor' => (25 / 25.4).to_s, 'a01_frame_width' => '20' }); end
+check 'instance runout 0 wins over definition 25', SC.any_runout?(fu) == false
+fu2 = FE.new(nil)
+def fu2.definition; FE.new({ 'j05_runout_back_wall' => (25 / 25.4).to_s }); end
+check 'definition runout used when instance has none', SC.any_runout?(fu2) == true
+# Fake tree: model > group > [unit A, unit B, 3 hinges sharing one definition]
+FDef = Struct.new(:entities, :name)
+class FInst < Sketchup::ComponentInstance
+  attr_reader :definition, :runout
+  attr_accessor :runout
+  def initialize(defn, unit, runout = 0.0); @definition, @unit, @runout = defn, unit, runout; end
+  def unit; @unit; end
+end
+class FGroup < Sketchup::Group
+  attr_reader :definition
+  def initialize(defn); @definition = defn; end
+end
+$visits = Hash.new(0)
+class FEnts < Array
+  def each(&b); $visits[object_id] += 1; super; end
+end
+screw = FEnts.new
+hinge_def = FDef.new(FEnts.new([FInst.new(FDef.new(screw, 'SCREW'), false)]), 'HINGE')
+ua = FInst.new(FDef.new(FEnts.new, 'A'), true)
+ub = FInst.new(FDef.new(FEnts.new, 'B'), true)
+hinges = Array.new(3) { FInst.new(hinge_def, false) }
+grp = FGroup.new(FDef.new(FEnts.new([ua] + hinges + [ub]), 'G'))
+fake_m = Struct.new(:entities).new(FEnts.new([grp]))
+def fake_m.get_attribute(*_a); true; end
+SC.define_singleton_method(:unit?) { |i| i.unit }
+SC.define_singleton_method(:any_runout?) { |u| u.runout > SC::TOL }
+check 'units found inside groups', SC.units(fake_m.entities) == [ua, ub]
+check 'repeated parts looked into once', $visits[hinge_def.entities.object_id] == 1 && $visits[screw.object_id] == 1
 check 'pencil off when every runout is 0', SC.detect(fake_m) == false
-vals['j01_runout_floor'] = (25 / 25.4).to_s
+ua.runout = 25.0
+$visits.clear
 check 'pencil on when any runout > 0', SC.detect(fake_m) == true
+check 'pencil check stops at first unit with a runout', $visits[hinge_def.entities.object_id].zero?
+empty_m = Struct.new(:entities).new(FEnts.new)
+def empty_m.get_attribute(*_a); false; end
+check 'no units: stored pencil state used', SC.detect(empty_m) == false
+SC.invalidate
+SC.hold
+SC.invalidate
+check 'pencil check held during a long job', SC.busy?
+module UI; def self.refresh_toolbars; end; end unless defined?(UI)
+SC.release
+check 'released after the job', !SC.busy?
 check '25mm stored as inches string', SC.inch_s(25) == (25 / 25.4).to_s
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"

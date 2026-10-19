@@ -1,13 +1,21 @@
 require 'json'
+require 'fileutils'
 
 module HarryWardrobes
   module DoorStyle
-    # Settings live inside the plugin folder.
-    #   settings_default.json - shipped defaults (overwritten on update)
-    #   settings.json         - local overrides written by the Settings dialog
+    # Where settings live:
+    #   <plugin>/settings_default.json      shipped defaults (replaced on update)
+    #   %APPDATA%/HW Door Style/settings.json  this computer's changes (kept on update)
+    #   team file (optional)                 a settings backup on Google Drive that
+    #                                        anyone can load with "Load team settings"
+    # Versions up to 0.11 kept settings.json in the plugin folder, where a
+    # reinstall wiped it; it is copied to AppData once (see migrate_location).
     module Settings
       DEFAULT_FILE = File.join(PATH, 'settings_default.json')
-      USER_FILE    = File.join(PATH, 'settings.json')
+      USER_DIR     = File.join(ENV['APPDATA'] || Dir.home, 'HW Door Style')
+      USER_FILE    = File.join(USER_DIR, 'settings.json')
+      LEGACY_FILE  = File.join(PATH, 'settings.json')
+      PREFS        = 'HW Door Style'.freeze # Sketchup.read_default section
 
       HINGE_TYPES = {
         'soft_close_110' => 'Soft Close 110',
@@ -38,7 +46,18 @@ module HarryWardrobes
         user
       end
 
+      # One-time copy of a pre-0.12 settings.json from the plugin folder.
+      def self.migrate_location
+        return if File.exist?(USER_FILE) || !File.exist?(LEGACY_FILE)
+        FileUtils.mkdir_p(USER_DIR)
+        FileUtils.cp(LEGACY_FILE, USER_FILE)
+        puts "HW Door Style: settings moved to #{USER_FILE}"
+      rescue StandardError => e
+        puts "HW Door Style: could not move old settings (#{e.message})."
+      end
+
       def self.load
+        migrate_location
         s = defaults
         if File.exist?(USER_FILE)
           begin
@@ -55,6 +74,7 @@ module HarryWardrobes
       end
 
       def self.save(hash)
+        FileUtils.mkdir_p(USER_DIR)
         File.write(USER_FILE, JSON.pretty_generate(hash.merge('settings_version' => SETTINGS_VERSION)))
         @settings = load
       end
@@ -81,17 +101,50 @@ module HarryWardrobes
       end
 
       # Returns the known settings from a backup file (unknown keys ignored), or nil.
-      def self.import_backup
-        file = UI.openpanel('Upload settings backup', nil, 'Settings backup|*.json||')
+      # With no file given, asks for one.
+      def self.import_backup(file = nil)
+        file ||= UI.openpanel('Upload settings backup', nil, 'Settings backup|*.json||')
         return nil unless file
+        read_backup(file)
+      rescue StandardError => e
+        UI.messagebox("Backup not loaded: #{e.message}")
+        nil
+      end
+
+      def self.read_backup(file)
         raw = JSON.parse(File.read(file))
         raise 'not an HW Door Style settings backup' unless raw.is_a?(Hash) && raw.key?(BACKUP_MARK)
         known = defaults.keys
         data = migrate(raw.select { |k, _| known.include?(k) }, defaults)
         raise 'no settings found in the file' if data.empty?
         data
+      end
+
+      # --- team settings file ---------------------------------------------
+      # A settings backup kept somewhere shared (e.g. Google Drive). The path is
+      # remembered per computer in SketchUp's own preferences.
+
+      def self.team_file
+        f = Sketchup.read_default(PREFS, 'team_settings_file', '').to_s
+        f.empty? ? nil : f
+      end
+
+      def self.team_file=(file)
+        Sketchup.write_default(PREFS, 'team_settings_file', file.to_s)
+      end
+
+      # Asks for the team file (starting at the last one used), remembers it and
+      # returns its settings, or nil.
+      def self.load_team
+        last = team_file
+        dir = last && File.dirname(last)
+        file = UI.openpanel('Load team settings (a settings backup on Drive)', dir, 'Settings backup|*.json||')
+        return nil unless file
+        data = read_backup(file)
+        self.team_file = file
+        data
       rescue StandardError => e
-        UI.messagebox("Backup not loaded: #{e.message}")
+        UI.messagebox("Team settings not loaded: #{e.message}")
         nil
       end
 

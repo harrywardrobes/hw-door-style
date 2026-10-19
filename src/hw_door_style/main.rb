@@ -248,13 +248,15 @@ module HarryWardrobes
       dlg.add_action_callback('exportSettings') do |_c, json|
         Settings.export_backup(Settings.get.merge(pending).merge(JSON.parse(json)))
       end
-      dlg.add_action_callback('importSettings') do |_c|
-        data = Settings.import_backup
+      # Backup and team file both load into the window; nothing is kept until Save.
+      show_loaded = lambda do |data, what|
         next unless data
         pending = data
         dlg.execute_script("load(#{JSON.generate(Settings.defaults.merge(data))})")
-        UI.messagebox("Backup loaded into the Settings window.\nPress Save to keep it, or Cancel to discard.")
+        UI.messagebox("#{what} loaded into the Settings window.\nPress Save to keep it, or Cancel to discard.")
       end
+      dlg.add_action_callback('importSettings') { |_c| show_loaded.call(Settings.import_backup, 'Backup') }
+      dlg.add_action_callback('loadTeam') { |_c| show_loaded.call(Settings.load_team, 'Team settings') }
       dlg.add_action_callback('save') do |_c, json|
         begin
           data = JSON.parse(json)
@@ -340,7 +342,6 @@ module HarryWardrobes
                            'Pressed: every unit has the job runouts. Click to set all to 0 (easier to move); click again to choose floor, ceiling, left, right and back.',
                            'pencil') { Scribe.toggle }
       cmd_scribe.set_validation_proc { Scribe.on? ? MF_CHECKED : MF_UNCHECKED }
-      Scribe.start_watching
       menu.add_item(cmd_scribe)
       cmd_ceiling = command('Ceiling height',
                             'Set the ceiling height for every unit with "Up to ceiling" = TRUE (any time; scribes not changed).',
@@ -386,6 +387,9 @@ module HarryWardrobes
           sub.add_item('Rebuild selected') { rebuild_selection }
         end
       end
+
+      # Observers: keep the pencil button in step with the open model.
+      Scribe.start_watching
 
       file_loaded(__FILE__)
     end

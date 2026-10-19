@@ -50,15 +50,41 @@ module HarryWardrobes
         @state[k]
       end
 
+      # Stops at the first unit with a runout, so a job with scribes on costs a
+      # handful of lookups. With scribes off every unit is checked once; parts
+      # inside a definition already found to hold no units are skipped.
       def self.detect(model)
-        us = units(model.entities)
-        return model.get_attribute(DICT, 'scribe_on', true) ? true : false if us.empty?
-        us.any? { |u| SIDES.any? { |sd, _, _| (mm_of(u, sd) || 0) > TOL } }
+        seen = false
+        each_unit(model.entities) do |u|
+          seen = true
+          return true if any_runout?(u)
+        end
+        seen ? false : (model.get_attribute(DICT, 'scribe_on', true) ? true : false)
       end
 
+      # Cleared after every change (see ModelWatch). While a long job is running
+      # (Scribe.run, Export components) each unit commits its own step, so the
+      # check is held until the job ends instead of re-scanning per unit.
       def self.invalidate(model = nil)
         @state ||= {}
+        return @dirty = true if busy?
         model ? @state.delete(model.object_id) : @state.clear
+      end
+
+      def self.busy?
+        @busy ? true : false
+      end
+
+      # Wraps a long job: pencil checks are held, then re-done once at the end.
+      def self.hold
+        @busy = true
+      end
+
+      def self.release
+        @busy = false
+        invalidate if @dirty
+        @dirty = false
+        UI.refresh_toolbars if UI.respond_to?(:refresh_toolbars)
       end
 
       # Last values used on this job (mm), else the Settings defaults.
@@ -87,25 +113,60 @@ module HarryWardrobes
         v
       end
 
+      # Any runout key, with or without a section prefix (j01_runout_floor).
+      UNIT_KEY = /\A(?:[a-z]\d{1,2}_)?(?:#{KEYS.values.map { |k| Regexp.escape(k) }.join('|')})\z/.freeze
+
+      # One pass over each attribute list (a key-by-key lookup re-scanned the
+      # list five times per part, which made the pencil check slow).
       def self.unit?(inst)
-        inst.is_a?(Sketchup::ComponentInstance) && KEYS.values.any? { |k| !read(inst, k).nil? }
+        return false unless inst.is_a?(Sketchup::ComponentInstance)
+        [inst.definition, inst].any? do |e|
+          d = e.attribute_dictionary(DCD)
+          d && d.keys.any? { |k| UNIT_KEY.match?(k) }
+        end
       end
 
       # Outermost instances that carry runout attributes (nested parts are driven
       # by their unit through parent! formulas, so they are not touched).
       def self.units(entities)
         found = []
+        each_unit(entities) { |u| found << u }
+        found
+      end
+
+      # Yields each outermost unit. Definitions with no units inside are
+      # remembered for the rest of the walk so repeated parts (hinges,
+      # shelves, drawer boxes) are only looked into once.
+      def self.each_unit(entities, &blk)
+        empty = {}
         walk = lambda do |ents|
+          any = false
           ents.each do |e|
-            if e.is_a?(Sketchup::ComponentInstance)
-              unit?(e) ? (found << e) : walk.call(e.definition.entities)
-            elsif e.is_a?(Sketchup::Group)
-              walk.call(e.definition.entities)
+            next unless e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)
+            defn = e.definition
+            if e.is_a?(Sketchup::ComponentInstance) && unit?(e)
+              any = true
+              blk.call(e)
+            elsif !empty[defn]
+              found = walk.call(defn.entities)
+              empty[defn] = true unless found
+              any ||= found
             end
           end
+          any
         end
         walk.call(entities)
-        found
+      end
+
+      # True when any runout on the unit is above 0 (one pass per attribute
+      # list; an instance value wins over its definition's).
+      def self.any_runout?(inst)
+        vals = {}
+        [inst.definition, inst].each do |e|
+          d = e.attribute_dictionary(DCD)
+          d&.each_pair { |k, v| vals[k.sub(/\A[a-z]\d{1,2}_/, '')] = v if UNIT_KEY.match?(k) && !v.nil? }
+        end
+        vals.values.any? { |v| v.to_f * 25.4 > TOL }
       end
 
       def self.mm_of(inst, side)
@@ -291,6 +352,8 @@ module HarryWardrobes
       # before: optional lambda run inside the same undo step (job state changes).
       def self.run(model, units, values, title, done_msg, before: nil, ceiling: nil)
         return UI.messagebox('No units with runout settings found.') if units.empty?
+        return if busy?
+        hold
         dlg = progress_dialog(title)
         queue = units.dup
         total = queue.size
@@ -300,6 +363,7 @@ module HarryWardrobes
         tick = lambda do
           inst = queue.shift
           if inst.nil?
+            release
             dlg.execute_script("progress(#{total}, #{total}, 'Done')")
             UI.start_timer(0.4, false) { dlg.close }
             msg = done_msg.to_s
@@ -335,6 +399,10 @@ module HarryWardrobes
             model.commit_operation
             n += 1
             tick.call
+          rescue StandardError => e
+            # Something outside a unit failed (e.g. the window closed): stop cleanly.
+            release
+            puts "HW Door Style scribe stopped: #{e.class}: #{e.message}"
           end
         end
         tick.call
@@ -350,6 +418,7 @@ module HarryWardrobes
 
       # Pencil: ON -> all 0 straight away. OFF -> window with the dropdowns.
       def self.toggle(model = Sketchup.active_model)
+        return if busy?
         return unless ready?(model)
         if on?(model)
           run(model, units(model.entities), SIDES.to_h { |s, _, _| [s, 0.0] }, 'Scribes off (all runouts 0)',
@@ -441,7 +510,10 @@ module HarryWardrobes
           [Finder.label(u), d] unless d.empty?
         end
       end
-      # Keeps the pencil button in step with whichever model is open.
+
+      # --- observers --------------------------------------------------------
+      # Keeps the pencil button in step with whichever model is open. Added
+      # once from main.rb at load; one ModelWatch is shared by every model.
       class ModelWatch < Sketchup::ModelObserver
         def onTransactionCommit(model); Scribe.invalidate(model); end
         def onTransactionUndo(model); Scribe.invalidate(model); end
@@ -450,6 +522,8 @@ module HarryWardrobes
       end
 
       class AppWatch < Sketchup::AppObserver
+        # Also told about the model SketchUp opens at start-up (or by double-click).
+        def expectsStartupModelNotifications; true; end
         def onNewModel(model); Scribe.watch(model); end
         def onOpenModel(model); Scribe.watch(model); end
         def onActivateModel(model); Scribe.watch(model); end

@@ -378,7 +378,9 @@ module HarryWardrobes
         queue = rows.dup
         js = ->(s) { dlg.execute_script(s) }
         js.call("progress(0, #{total}, 'Starting...')")
+        Scribe.hold
         finish = lambda do
+          Scribe.release
           master = nil
           if save_master
             js.call("progress(#{total - 1}, #{total}, #{JSON.generate("Saving #{File.basename(next_master(model))}...")})")
@@ -403,6 +405,9 @@ module HarryWardrobes
               errors << "#{row['name']}: #{e.message}"
             end
             step.call
+          rescue StandardError => e
+            Scribe.release
+            puts "HW Door Style export stopped: #{e.class}: #{e.message}"
           end
         end
         step.call

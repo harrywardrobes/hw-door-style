@@ -172,6 +172,7 @@
 <div class="bar">
   <button onclick="sketchup.exportSettings(JSON.stringify(collect()))" title="Save these settings to a .json file">Download backup</button>
   <button onclick="sketchup.importSettings()" title="Load settings from a backup .json file">Upload backup</button>
+  <button onclick="sketchup.loadTeam()" title="Load the shared team settings (a backup kept on Google Drive). Remembers the file for next time.">Load team settings</button>
   <span style="flex:1"></span>
   <button onclick="sketchup.reset()">Reset to defaults</button>
   <button onclick="sketchup.cancel()">Cancel</button>

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.0 — 2026-10-19
+- **Settings now kept in `%APPDATA%\HW Door Style\settings.json`**, so installing an update no longer
+  wipes them. A settings.json left in the plugin folder by an older version is copied across once.
+- **Load team settings** (Settings window, bottom bar): pick a settings backup kept on Google Drive;
+  it loads into the window (press Save to keep it) and the file is remembered for next time.
+  Make the team file with Download backup.
+- Needs SketchUp 2021 or newer; older versions show a message instead of half-loading.
+- Pencil check about 40x faster on big models (0.6 s -> 0.016 s on Components V20), and held while
+  Scribes / Ceiling / Export components are running, then checked once at the end. Pressing the
+  pencil while a job is running is ignored.
+- Observers start once when the plugin loads (and see the file SketchUp opens at start-up).
+- Extension description updated (Extension Manager).
+
 ## 0.11.8 — 2026-10-19
 - The pencil now shows the state of the open model, like SketchUp's own toggles (X-ray, Hidden
   Geometry): pressed when any unit has a runout above 0, released when every runout is 0. Worked out
