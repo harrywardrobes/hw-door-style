@@ -609,5 +609,15 @@ pc = pa.merge('flipped' => true)
 st = '-thickness>-length>-width>-count>name>-edge_pattern>tags>thickness_layer_count'
 check 'parts: longest first, mirrored after', [pb, pc, pa].sort { |x, y| PLX.part_order(x, y, st) }.map { |x| [x['length'], x['flipped']] } == [[2400.0, false], [2400.0, true], [1200.0, false]]
 
+puts "\n== Workshop: strips and Room values"
+gx = { 'material' => 'Graphite', 'all_sizes' => [[2800.0, 2070.0], [2800.0, 610.0]] }
+px = [{ 'number' => 'A', 'length' => 2000.0, 'width' => 90.0, 'qty' => 3 }, { 'number' => 'B', 'length' => 700.0, 'width' => 90.0, 'qty' => 2 }, { 'number' => 'C', 'length' => 2400.0, 'width' => 610.0, 'qty' => 1 }, { 'number' => 'D', 'length' => 900.0, 'width' => 450.0, 'qty' => 4 }]
+sx = PLX.strips_for(gx, px)
+s90 = sx.find { |x| x['width'] == 90 }
+check 'strips: 3x2000 + 2x700 at 90mm pack into 3 strips of 2800', s90 && s90['count'] == 3 && s90['numbers'] == %w[A B] && s90['length'] == 2800.0
+check 'strips: 610 uses the 2800x610 stock, 450 wide parts stay on sheets', sx.find { |x| x['width'] == 610 }['count'] == 1 && sx.none? { |x| x['width'] == 450 }
+rv = PLX.room_values('groups' => [{ 'material' => 'Graphite', 'sheets' => 6, 'strips' => sx }, { 'material' => 'Graphite', 'sheets' => 1, 'strips' => [] }, { 'material' => 'Frost White', 'sheets' => 2, 'strips' => [] }])
+check 'Room: sheets per colour, total, strips per width', rv['mfc_sheets_graphite'] == 7 && rv['mfc_sheets_frost_white'] == 2 && rv['mfc_quantity'] == 9 && rv['cut_and_edged_90mm_quantity'] == 3 && rv['cut_and_edged_300mm_quantity'] == 0
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

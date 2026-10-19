@@ -266,7 +266,8 @@ module HarryWardrobes
             th_std, available = std_thickness(th_mm, std)
             gid = "#{mat.name}|#{th_std}"
             g = (groups[gid] ||= { 'material' => mat.name, 'thickness' => th_std, 'std_ok' => true, 'grained' => mat.get_attribute(OCL, 'grained', false) ? true : false,
-                                   'sheet' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')).max_by { |a, b| a * b }, 'parts' => {} })
+                                   'sheet' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')).max_by { |a, b| a * b },
+                                   'all_sizes' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')), 'parts' => {} })
             g['std_ok'] &&= available
             p = g['parts'][pid]
             unless p
@@ -363,6 +364,45 @@ module HarryWardrobes
         r.to_i
       end
 
+      # HPP cut and edged strips (Room fields cut_and_edged_<w>mm_quantity).
+      STRIP_WIDTHS = [90, 160, 300, 500, 570, 610].freeze
+      STRIP_LENGTH = 2800.0
+
+      # Parts exactly a strip width wide, packed end to end (longest first, first fit) into
+      # strips of that colour. Strip length = the colour's stock size of that width, else 2800.
+      def self.strips_for(g, parts)
+        sizes = Array(g['all_sizes'])
+        STRIP_WIDTHS.filter_map do |w|
+          ps = parts.select { |p| (p['width'] - w).abs < 0.5 }
+          next if ps.empty?
+          len = sizes.select { |a, b| (b - w).abs < 0.5 || (a - w).abs < 0.5 }.map(&:max).max || STRIP_LENGTH
+          ps = ps.select { |p| p['length'] <= len }
+          next if ps.empty?
+          bins = []
+          ps.flat_map { |p| [p['length']] * p['qty'] }.sort.reverse.each do |l|
+            b = bins.find { |x| x + l <= len }
+            b ? bins[bins.index(b)] += l : bins << l
+          end
+          { 'width' => w, 'length' => len, 'count' => bins.size, 'numbers' => ps.map { |p| p['number'] }, 'pieces' => ps.sum { |p| p['qty'] } }
+        end
+      end
+
+      def self.slug(s)
+        s.to_s.downcase.gsub(/[^a-z0-9]+/, '_').gsub(/\A_|_\z/, '')
+      end
+
+      # What the parts list puts on the Room: full sheets per colour (mfc_sheets_<colour>, only
+      # the fields that exist), the total, and the cut and edged strips.
+      def self.room_values(d)
+        out = {}
+        per = Hash.new(0)
+        d['groups'].each { |g| per[g['material']] += g['sheets'].to_i }
+        per.each { |m, n| out["mfc_sheets_#{slug(m)}"] = n }
+        out['mfc_quantity'] = per.values.sum
+        STRIP_WIDTHS.each { |w| out["cut_and_edged_#{w}mm_quantity"] = d['groups'].sum { |g| Array(g['strips']).select { |st| st['width'] == w }.sum { |st| st['count'] } } }
+        out
+      end
+
       def self.first_number(opts)
         opts['part_number_with_letters'] ? 'A' : 1
       end
@@ -389,7 +429,9 @@ module HarryWardrobes
               e['parts'] += p['qty']
             end
           end
-          area = parts.sum { |p| p['area_m2'] }
+          strips = strips_for(g, parts)
+          in_strips = strips.flat_map { |st| st['numbers'] }
+          area = parts.reject { |p| in_strips.include?(p['number']) }.sum { |p| p['area_m2'] }
           sheet = g['sheet']
           sheets = nil
           if sheet
@@ -397,7 +439,8 @@ module HarryWardrobes
             sheets = usable > 0 ? (area / usable).ceil : nil
           end
           too_big = sheet ? parts.select { |p| [p['length'], p['width']].max > sheet.max || [p['length'], p['width']].min > sheet.min }.map { |p| p['number'] } : []
-          g.merge('parts' => parts, 'count' => parts.sum { |p| p['qty'] }, 'area_m2' => area.round(2), 'sheets' => sheets, 'too_big' => too_big)
+          g.merge('parts' => parts, 'count' => parts.sum { |p| p['qty'] }, 'area_m2' => area.round(2), 'sheets' => sheets, 'too_big' => too_big,
+                  'strips' => strips, 'in_strips' => in_strips)
         end
         edge_list = edging.values.map { |e| e.merge('metres' => e['metres'].round(1)) }.sort_by { |e| [e['material'], e['height']] }
         hw = hardware.keys.sort_by(&:downcase).flat_map do |mname|
@@ -446,6 +489,7 @@ module HarryWardrobes
           end
         end
         d['groups'].each { |g| rows << ['Boards', '', "#{g['material']} #{fmt(g['thickness'])}mm", g['material'], *(g['sheet'] || ['', '']), g['thickness'], g['sheets'], '', '', '', '', '', ''] }
+        d['groups'].each { |g| Array(g['strips']).each { |st| rows << ['Cut and edged', st['numbers'].join(' '), "#{st['width']}mm strip", g['material'], st['length'], st['width'], g['thickness'], st['count'], '', '', '', '', '', ''] } }
         d['edging'].each { |e| rows << ['Edging', '', "#{e['material']} (#{fmt(e['height'])}mm)", e['material'], e['metres'] * 1000, '', e['height'], '', '', '', '', '', '', ''] }
         d['hardware'].each { |h| rows << ['Hardware', h['number'], h['name'], h['material'], h['length'], h['width'], h['thickness'], h['qty'], '', '', '', '', '', ''] }
         d['handles'].each { |h| rows << ['Handles', '', "#{h['kind']}: #{h['name']}", '', '', '', '', h['qty'], '', '', '', '', h['sku'], h['supplier']] }
@@ -486,51 +530,25 @@ module HarryWardrobes
 
       FIELD = 'order_parts_list'.freeze
 
-      def self.ensure_field
-        HubSpot.get("/crm/v3/properties/listings/#{FIELD}")
-        false
-      rescue HubSpot::Error => e
-        raise unless e.status == 404
-        HubSpot.post('/crm/v3/properties/listings', { name: FIELD, label: 'Order / Parts List', type: 'string', fieldType: 'file',
-                                                      groupName: (HubSpot.get('/crm/v3/properties/listings/sheets_order_status')['groupName'] rescue 'listinginformation'), description: 'Parts list PDF + CSV from SketchUp (HW Door Style)' })
-        HubSpotRoom.forget_meta!
-        true
-      end
-
-      # Uploads the PDF and CSV and puts them in the field (replacing the last ones there).
-      def self.send_to_room(model, files)
-        l = HubSpotRoom.link(model) or raise 'Link this file to a HubSpot room first (HubSpot > Link this file).'
-        ensure_field
-        folder = HubSpotPictures.config['files_folder']
-        ids = files.map { |f| HubSpot.upload(f, folder) }
-        HubSpot.update_room(l['room_id'], { FIELD => ids.join(';') })
-        ids.size
-      end
-
-      # --- window ------------------------------------------------------------------------------
+      # --- window: Workshop (door order + parts list + labels + HubSpot) ---------------------
 
       def self.show
         model = Sketchup.active_model
-        dlg = nil
         data = nil
-        build = -> { data = generate(model) }
-        dlg = Dialog.open('parts_list', title: 'HW - Parts list', key: 'hw_parts_list', width: 1000, height: 700, data: nil)
+        build = lambda do
+          data = generate(model)
+          data['door'] = Report.payload(model)
+        end
+        dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
+        fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }
         reload = lambda do
           Steps.run(dlg, [['Reading the parts in the model', build]],
-                    done: ->(_r) { dlg.execute_script("render(#{JSON.generate(data)})") },
-                    fail: ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }, count: false)
+                    done: ->(_r) { dlg.execute_script("render(#{JSON.generate(data)})") }, fail: fail_js, count: false)
         end
         dlg.add_action_callback('ready') { |_c| reload.call }
         dlg.add_action_callback('refresh') { |_c| reload.call }
         dlg.add_action_callback('close') { |_c| dlg.close }
-        dlg.add_action_callback('export') do |_c|
-          files = nil
-          Steps.run(dlg, [['Writing the CSV and PDF', -> { files = export(model, data) }]],
-                    done: lambda { |_r|
-                      dlg.execute_script("exported(#{JSON.generate('csv' => File.basename(files[0]), 'pdf' => File.basename(files[1]), 'v' => files[2], 'dir' => File.dirname(files[0]))})")
-                    },
-                    fail: ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }, count: false)
-        end
+        dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{File.dirname(model.path).tr('\\', '/')}") unless model.path.to_s.empty? }
         dlg.add_action_callback('labels') do |_c, json|
           req = JSON.parse(json)
           begin
@@ -547,18 +565,33 @@ module HarryWardrobes
             dlg.execute_script("labelEntries(#{JSON.generate('entries' => entries, 'errors' => errors)})")
           rescue StandardError => e
             Log.error('labels', e)
-            dlg.execute_script("failed(#{JSON.generate("Labels: #{e.message}")})")
+            fail_js.call(e)
           end
         end
-        dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{File.dirname(model.path).tr('\\', '/')}") unless model.path.to_s.empty? }
-        dlg.add_action_callback('send') do |_c|
-          next unless HubSpotRoom.ready?
-          files = nil
+        dlg.add_action_callback('hubspot') do |_c|
+          next dlg.execute_script("hubspotPlan(#{JSON.generate('error' => 'No HubSpot key saved (Settings > HubSpot).')})") unless HubSpot.key?
+          plan = nil
+          Steps.run(dlg, [['Reading the HubSpot Room', -> { plan = Workshop.plan(model, data) }]],
+                    done: ->(_r) { dlg.execute_script("hubspotPlan(#{JSON.generate(plan)})") },
+                    fail: ->(e) { dlg.execute_script("hubspotPlan(#{JSON.generate('error' => e.message)})") }, count: false)
+        end
+        dlg.add_action_callback('save') do |_c|
+          out = nil
+          Steps.run(dlg, [['Saving the door order and parts list', -> { out = Workshop.save(model, data) }]],
+                    done: ->(_r) { dlg.execute_script("saved(#{JSON.generate(out.merge('names' => out['files'].map { |f| File.basename(f) }))})") },
+                    fail: fail_js, count: false)
+        end
+        dlg.add_action_callback('send') do |_c, json|
+          req = JSON.parse(json)
+          l = HubSpotRoom.link(model)
+          next fail_js.call(StandardError.new('Link this file to a HubSpot room first (HubSpot > Link this file).')) unless l
+          out = nil
           n = 0
-          Steps.run(dlg, [['Writing the CSV and PDF', -> { files = export(model, data) }],
-                          ['Uploading to the HubSpot Room', -> { n = send_to_room(model, files[0, 2]) }]],
-                    done: ->(_r) { dlg.execute_script("sent(#{JSON.generate('n' => n, 'v' => files[2], 'pdf' => File.basename(files[1]))})") },
-                    fail: ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }, count: false)
+          steps = [['Saving the door order and parts list', -> { out = Workshop.save(model, data) }],
+                   ['Uploading the files and updating the Room', -> { n = Workshop.send_room(model, l['room_id'], out['files'], req['values'] || {}, req['stage']) }]]
+          Steps.run(dlg, steps,
+                    done: ->(_r) { dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'names' => out['files'].map { |f| File.basename(f) })})") },
+                    fail: fail_js)
         end
         dlg.show
       end

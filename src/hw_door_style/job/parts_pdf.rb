@@ -86,6 +86,12 @@ module HarryWardrobes
         doc.heading('Boards', "estimate: part area + #{f(d['waste_pct'])}% waste, per full sheet")
         doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Parts', 45, :right], ['Area m2', 60, :right], ['Sheet', 110, :right], ['Sheets', 50, :right]],
                   d['groups'].map { |g| [g['material'], "#{f(g['thickness'])} mm", g['count'], format('%.2f', g['area_m2']), g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : 'no size set', g['sheets'] || '-'] })
+        strips = d['groups'].flat_map { |g| Array(g['strips']).map { |st| [g, st] } }
+        unless strips.empty?
+          doc.heading('Cut and edged strips', 'parts exactly that wide, packed end to end (not in the sheet count)')
+          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Strip', 90, :right], ['Parts', 200, :left], ['Pieces', 45, :right], ['Strips', 45, :right]],
+                    strips.map { |g, st| [g['material'], "#{f(g['thickness'])} mm", "#{st['width']} x #{f(st['length'])}", st['numbers'].join(', '), st['pieces'], st['count']] })
+        end
         d['groups'].each do |g|
           doc.heading("#{g['material']} - #{f(g['thickness'])} mm", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['std_ok'] ? '' : ', thickness not in the standard list'}")
           doc.table([['#', 26, :left], ['Name', nil, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right],

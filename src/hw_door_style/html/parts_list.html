@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Parts list</title>
+<title>Workshop</title>
 <!--HW-->
 <!--
   Labels: drawing ported from OpenCutList by L'Air du Bois (twig/tabs/cutlist/_slide-labels.twig and
@@ -34,6 +34,15 @@
   .lpage svg { display:block; }
   .grid-line { stroke:#000; }
   .grid-line.no-print { stroke:#ddd; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px; margin-bottom:10px; }
+  .card { border:1px solid var(--line); border-radius:4px; padding:6px 9px; font-size:11.5px; }
+  .card h4 { margin:0 0 3px; font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  .card div { display:flex; justify-content:space-between; }
+  tr.flag td { background:#fff6e5; }
+  tr.off td { color:var(--muted); }
+  .flagtxt { color:#7a5300; font-size:10.5px; }
+  .sec td { background:#f7f8f8; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
+  .stage { border:1px solid var(--line); border-radius:4px; padding:8px 10px; margin:10px 0; font-size:11.5px; }
   .credit { font-size:10.5px; color:var(--muted); margin-top:6px; }
   #printArea { display:none; }
   @media print {
@@ -48,16 +57,19 @@
 <style id="pageSize"></style>
 </head>
 <body>
-<h1>Parts list</h1>
+<h1>Workshop</h1>
 <div class="sub" id="sub">Reading the model...</div>
 <div id="warns"></div>
 <div class="tabs" id="tabs">
-  <button data-t="sheets" class="on">Sheet goods</button>
+  <button data-t="door" class="on">Door order</button>
+  <button data-t="sheets">Sheet goods</button>
   <button data-t="edging">Edging</button>
   <button data-t="hardware">Hardware</button>
   <button data-t="labels">Labels</button>
+  <button data-t="hubspot">HubSpot</button>
 </div>
-<div class="pane on" id="p_sheets"></div>
+<div class="pane on" id="p_door"></div>
+<div class="pane" id="p_sheets"></div>
 <div class="pane" id="p_edging"></div>
 <div class="pane" id="p_hardware"></div>
 <div class="pane" id="p_labels">
@@ -70,31 +82,33 @@
   </div>
   <div class="lpages" id="lPages"></div>
 </div>
+<div class="pane" id="p_hubspot"><div class="hint">Reading the HubSpot Room...</div></div>
 <div class="credit">Parts list and labels follow <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), GPL-3.0. Label layouts are the ones saved in OpenCutList.</div>
 <div class="bar">
   <span id="status" style="align-self:center;margin-right:auto;font-size:11.5px;color:var(--muted)"></span>
   <button onclick="sketchup.refresh()">Refresh</button>
   <button onclick="sketchup.openFolder()">Open folder</button>
   <button onclick="sketchup.close()">Close</button>
-  <button onclick="sketchup.export()">Save CSV + PDF</button>
-  <button class="primary" onclick="sketchup.send()">Save + attach to HubSpot Room</button>
+  <button onclick="sketchup.save()">Save workshop pack</button>
+  <button class="primary" id="sendBtn" onclick="sendRoom()">Save + send to HubSpot</button>
 </div>
 <div id="printArea"></div>
 <script>
-var D = null, ENTRIES = [];
+var D = null, ENTRIES = [], HS = null;
 function f(v){ v = +v; return Math.round(v) === v ? String(v) : v.toFixed(1); }
 Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){
   b.onclick = function(){
     Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(x){ x.classList.toggle('on', x === b); });
     Array.prototype.forEach.call(document.querySelectorAll('.pane'), function(p){ p.classList.toggle('on', p.id === 'p_' + b.getAttribute('data-t')); });
     if (b.getAttribute('data-t') === 'labels' && D) labels();
+    if (b.getAttribute('data-t') === 'hubspot' && D && !HS) { HS = 'loading'; sketchup.hubspot(); }
   };
 });
 function edgeCell(name, color){ return name ? '<span class="edge"><span class="swatch" style="background:' + esc(color || '#999') + '"></span>' + esc(name) + '</span>' : ''; }
 function render(d){
-  D = d;
+  D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
-  $('sub').textContent = d.job + ' - ' + d.date + '. Doors and drawer fronts are on the door summary.';
+  $('sub').textContent = d.job + ' - ' + d.date + '. Doors and drawer fronts are on the Door order tab; everything else comes from the parts.';
   var w = [];
   if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
   if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
@@ -103,10 +117,25 @@ function render(d){
     if (g.too_big.length) w.push(g.material + ' ' + f(g.thickness) + ' mm: part(s) ' + g.too_big.join(', ') + ' are bigger than the sheet.');
     if (!g.sheet) w.push(g.material + ': no sheet size set - no board count.');
   });
-  $('warns').innerHTML = w.map(function(t){ return '<div class="warnbox">' + esc(t) + '</div>'; }).join('');
+  $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
+  // door order (the door summary)
+  var dd = d.door, t = dd.totals;
+  var card = function(title, pairs){ return '<div class="card"><h4>' + esc(title) + '</h4>' + pairs.map(function(p){ return '<div><span>' + esc(p[0]) + '</span><b>' + esc(p[1]) + '</b></div>'; }).join('') + '</div>'; };
+  var dh = '<div class="cards">' + card('Items by style', Object.keys(t.by_style).map(function(k){ return [k, t.by_style[k]]; })) +
+    card('Hinges (' + dd.hinge_type + ')', Object.keys(t.hinges).map(function(k){ return [k, t.hinges[k]]; })) +
+    card('Totals', [['Items', t.items], ['TIP-ON', t.tip_on], ['Handles / knobs', t.handles]]) + '</div>';
+  var cols = [['n', '#'], ['unit', 'Unit'], ['item', 'Item'], ['kind', 'Kind'], ['width', 'W', 1], ['height', 'H', 1], ['style', 'Style'], ['midrail', 'Mid-rail'], ['hinge_type', 'Hinge type'], ['hinges', 'Hinges', 1], ['tip_on', 'TIP-ON', 1], ['handles', 'Handles', 1], ['notes', 'Notes']];
+  dh += dd.rows.length ? '<table><tr>' + cols.map(function(c){ return '<th' + (c[2] ? ' class="n"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr>' +
+    dd.rows.map(function(r){ return '<tr>' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
+  if (dd.last_export) dh += '<div class="hint">Last door order saved: v' + dd.last_export + '.</div>';
+  $('p_door').innerHTML = dh;
   // sheet goods
   var h = '<div class="grp"><h3>Boards <span>estimate: part area + ' + f(d.waste_pct) + '% waste per full sheet (Settings > Cut list)</span></h3><table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Parts</th><th class="n">Area m&sup2;</th><th class="n">Sheet</th><th class="n">Sheets</th></tr>' +
-    d.groups.map(function(g){ return '<tr><td>' + esc(g.material) + (g.grained ? ' <span style="color:var(--muted)">(grained)</span>' : '') + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + g.count + '</td><td class="n">' + g.area_m2.toFixed(2) + '</td><td class="n">' + (g.sheet ? f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '-') + '</td><td class="n"><b>' + (g.sheets == null ? '-' : g.sheets) + '</b></td></tr>'; }).join('') + '</table></div>';
+    d.groups.map(function(g){ return '<tr><td>' + esc(g.material) + (g.strips.length ? ' <span style="color:var(--muted)">(+ ' + g.strips.map(function(st){ return st.count + ' x ' + st.width + 'mm strip'; }).join(', ') + ')</span>' : '') + (g.grained ? ' <span style="color:var(--muted)">(grained)</span>' : '') + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + g.count + '</td><td class="n">' + g.area_m2.toFixed(2) + '</td><td class="n">' + (g.sheet ? f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '-') + '</td><td class="n"><b>' + (g.sheets == null ? '-' : g.sheets) + '</b></td></tr>'; }).join('') + '</table></div>';
+  var strips = [];
+  d.groups.forEach(function(g){ g.strips.forEach(function(st){ strips.push([g, st]); }); });
+  if (strips.length) h += '<div class="grp"><h3>Cut and edged strips <span>parts exactly that wide, packed end to end into strips (not counted in the sheets above)</span></h3><table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Strip</th><th>Parts</th><th class="n">Pieces</th><th class="n">Strips</th></tr>' +
+    strips.map(function(x){ return '<tr><td>' + esc(x[0].material) + '</td><td class="n">' + f(x[0].thickness) + ' mm</td><td class="n">' + x[1].width + ' x ' + f(x[1].length) + '</td><td>' + esc(x[1].numbers.join(', ')) + '</td><td class="n">' + x[1].pieces + '</td><td class="n"><b>' + x[1].count + '</b></td></tr>'; }).join('') + '</table></div>';
   d.groups.forEach(function(g){
     h += '<div class="grp"><h3>' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
       g.parts.map(function(p){ return '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n">' + p.qty + '</td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
@@ -128,8 +157,58 @@ function render(d){
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 function failed(msg){ $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
-function exported(r){ $('status').textContent = 'Saved parts list v' + r.v + ': ' + r.csv + ' and ' + r.pdf + '.'; }
-function sent(r){ $('status').textContent = 'Saved v' + r.v + ' and attached ' + r.n + ' file(s) to the Room\'s Order / Parts List.'; }
+function saved(r){ $('status').textContent = 'Saved door order v' + r.door_v + ' and parts list v' + r.parts_v + ' next to the file: ' + r.names.join(', ') + '.'; }
+function sent(r){ $('status').textContent = 'Sent: ' + r.n + ' file(s) in Order / Parts List, ' + r.fields + ' field(s) updated' + (r.stage ? ', moved to ' + r.stage : '') + '.'; HS = 'loading'; sketchup.hubspot(); }
+
+// ---------- HubSpot tab ----------
+function hubspotPlan(p){
+  HS = p;
+  if (p.error) { $('p_hubspot').innerHTML = '<div class="warnbox">' + esc(p.error) + '</div>'; return; }
+  if (!p.linked) { $('p_hubspot').innerHTML = '<div class="warnbox">This file isn\'t linked to a HubSpot Room yet - HubSpot > Link this file.</div>'; return; }
+  var flags = p.rows.filter(function(r){ return r.flag; });
+  var h = '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list, PDF and CSV, into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
+  if (flags.length) h += '<div class="warnbox"><b>' + flags.length + ' order status(es) already set:</b> ' + flags.map(function(r){ return esc(r.label) + ' = ' + esc(r.hubspot); }).join(', ') + '. They are left as they are - check those orders still match the model.</div>';
+  if (p.missing_colours.length) h += '<div class="warnbox">No MFC Sheets field in HubSpot for: ' + esc(p.missing_colours.join(', ')) + ' - they only count in MFC (Full Sheet) Quantity.</div>';
+  var sec = null;
+  h += '<table><tr><th style="width:24px"></th><th>Field</th><th>In HubSpot</th><th>From this file</th><th></th></tr>';
+  p.rows.forEach(function(r, i){
+    if (r.section !== sec) { sec = r.section; h += '<tr class="sec"><td colspan="5">' + esc(sec) + '</td></tr>'; }
+    var same = !r.send && !r.locked;
+    h += '<tr class="' + (r.flag ? 'flag' : (same ? 'off' : '')) + '"><td>' + (r.locked ? '&#9888;' : '<input type="checkbox" data-i="' + i + '"' + (r.send ? ' checked' : '') + (same ? ' disabled' : '') + '>') + '</td><td>' + esc(r.label) + '</td><td>' + esc(r.hubspot == null || r.hubspot === '' ? '-' : r.hubspot) + '</td><td><b>' + esc(r.shown != null ? r.shown : (r.value == null ? '-' : r.value)) + '</b></td><td>' + (r.flag ? '<span class="flagtxt">' + esc(r.flag) + '</span>' : (r.why ? '<span class="hint" style="margin:0">' + esc(r.why) + '</span>' : (same ? '<span class="hint" style="margin:0">same</span>' : ''))) + '</td></tr>';
+  });
+  h += '</table>';
+  h += '<div class="stage"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="moveStage" onchange="stageCheck()" style="width:auto"> Also move the Room to</label> <select id="stageTo" onchange="stageCheck()" style="margin-top:4px">' +
+    p.stage.next.map(function(st){ return '<option value="' + esc(st.id) + '">' + esc(st.label) + '</option>'; }).join('') + '</select> <span id="stageMsg" class="hint" style="margin:0"></span><div class="hint" style="margin:4px 0 0">Off by default - the stage only changes when you tick this. Fields that stage needs must be filled first (Settings > HubSpot > Required).</div></div>';
+  $('p_hubspot').innerHTML = h;
+  stageCheck();
+}
+function chosenValues(){
+  var v = {};
+  Array.prototype.forEach.call(document.querySelectorAll('#p_hubspot input[data-i]'), function(c){ if (c.checked) { var r = HS.rows[+c.getAttribute('data-i')]; v[r.prop] = r.value == null ? '' : r.value; } });
+  return v;
+}
+function stageMissing(){
+  if (!HS || !HS.stage || !$('moveStage') || !$('moveStage').checked) return [];
+  var st = HS.stage.next.filter(function(s){ return s.id === $('stageTo').value; })[0]; if (!st) return [];
+  var v = chosenValues(), have = function(p){ var x = p in v ? v[p] : HS.theirs[p]; return p === 'order_parts_list' || (x != null && String(x).trim() !== ''); };
+  return st.required.filter(function(p){ return !have(p); }).map(function(p){ return HS.labels[p] || p; });
+}
+function stageCheck(){
+  var m = stageMissing(), el = $('stageMsg'); if (!el) return;
+  el.innerHTML = !$('moveStage').checked ? '' : (m.length ? '<span class="bad">Needs: ' + esc(m.join(', ')) + '</span>' : 'Ready to move.');
+}
+function sendRoom(){
+  if (!HS || HS === 'loading' || HS.error || !HS.linked) {
+    document.querySelector('#tabs button[data-t=hubspot]').click();
+    $('status').textContent = 'Check the HubSpot tab, then press Save + send to HubSpot again.';
+    return;
+  }
+  var m = stageMissing();
+  if (m.length) { $('status').innerHTML = '<span class="bad">Can\'t move the stage yet - fill: ' + esc(m.join(', ')) + '</span>'; return; }
+  var move = $('moveStage') && $('moveStage').checked, sel = $('stageTo');
+  sketchup.send(JSON.stringify({ values: chosenValues(), stage: move ? sel.value : null, stage_label: move ? sel.options[sel.selectedIndex].text : null }));
+}
+document.addEventListener('change', function(e){ if (e.target && e.target.getAttribute && e.target.getAttribute('data-i') != null) stageCheck(); });
 
 // ---------- labels (OpenCutList _slide-labels.twig / _label-element.twig) ----------
 function labels(){ $('lInfo').textContent = 'Preparing labels...'; sketchup.labels(JSON.stringify({ preset: $('lPreset').value, which: $('lWhich').value })); }

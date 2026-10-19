@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.38.0 — 2026-10-19
+- **Workshop window** replaces the Door summary and Parts list buttons (toolbar: Colours, Door style |
+  Scribe / runout, Workshop, Send to HubSpot). Tabs: Door order, Sheet goods, Edging, Hardware, Labels,
+  HubSpot. Door summary is still in the menu. OpenCutList stays for cutting diagrams - both read the same
+  OpenCutList settings, so letters and counts agree.
+- **Save workshop pack**: door order (DOOR_ORDER_v<N>) and parts list (PARTS_LIST_v<N>), PDF + CSV, next
+  to the .skp.
+- **Save + send to HubSpot**: the four files go in the Room's Order / Parts List, plus (each one shown
+  first, untick to leave out):
+  - quantities: hinges, TIP-ON, drawers, handles (name, SKU, supplier, quantity);
+  - **MFC Sheets - <colour>** (new fields, one per colour + MDF) and MFC (Full Sheet) Quantity (total);
+  - **Cut and edged** 90 / 160 / 300 / 500 / 570 / 610mm: parts exactly that wide, packed end to end into
+    strips of that colour's stock length (2800 if none) - not counted in the full sheets;
+  - **order statuses**: Needs Ordering when the model has it, Not Applicable when it doesn't (doors / vinyl,
+    drawers, sheets, hardware, 25mm worktop). Statuses already Ordered / Received / Partially Received are
+    never changed - they're flagged so you can check the order still matches.
+  - the stage only moves if you tick "Also move the Room to", and only once that stage's required fields
+    are filled.
+- Strips are on the Sheet goods tab, the parts list PDF and the CSV.
+
+## 0.38.0 — 2026-10-19
+- 
+
 ## 0.37.0 — 2026-10-19
 - **Parts list** (new toolbar button, after Door summary), built on OpenCutList's rules:
   - **Sheet goods** per colour and thickness: every part with its letter, length, width, quantity and the

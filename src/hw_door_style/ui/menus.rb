@@ -47,7 +47,7 @@ module HarryWardrobes
         c[:summary] = command('Door summary', 'Show the door and drawer front summary (CSV / PDF export).', 'summary') { Report.show }
         c[:settings] = command('Settings', 'Frame sizes, mid-rail, hinge rules and component names.', 'settings') { SettingsWindow.show }
         menu.add_item(c[:summary])
-        c[:parts] = command('Parts list', 'Sheet goods (with board count and edging), hardware and handles, labels to print, CSV / PDF and the HubSpot Room. Rules from OpenCutList.',
+        c[:parts] = command('Workshop', 'Everything for the workshop in one window: door order, sheet goods (boards, strips, edging), hardware and handles, labels to print - saved as one pack and synced to the HubSpot Room. Parts rules from OpenCutList.',
                             'parts') { PartsList.show }
         menu.add_item(c[:parts])
         menu.add_item('Export door order (CSV + PDF)') { Report.export_order }
@@ -91,7 +91,7 @@ module HarryWardrobes
 
       # Two toolbars (nil = separator). Everyday survey work, then the admin / library tools.
       TOOLBARS = {
-        'HW measure once' => [:colours, :doors, nil, :pencil, :summary, :parts, :hubspot],
+        'HW measure once' => [:colours, :doors, nil, :pencil, :parts, :hubspot],
         'HW dev' => [:settings, :export]
       }.freeze
 

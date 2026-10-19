@@ -90,6 +90,20 @@ module HarryWardrobes
         [found, recorded.to_i].max + 1
       end
 
+      # Writes DOOR_ORDER_v<N> .csv + .pdf next to the .skp, no questions. Returns [csv, pdf, version].
+      def self.write_order(model = Sketchup.active_model)
+        raise 'Save the SketchUp file first - the door order is saved next to it.' if model.path.to_s.empty?
+        dir  = File.dirname(model.path)
+        base = File.basename(model.path, '.skp')
+        v    = next_version(dir, base, model.get_attribute(DICT, 'export_version', 0))
+        stem = File.join(dir, order_stem(v, base))
+        data = payload(model).merge('export_version' => v)
+        File.write("#{stem}.csv", "\uFEFF" + csv(data['rows']), mode: 'w:UTF-8')
+        Pdf.write("#{stem}.pdf", data)
+        Ops.run(model, 'Record door order export', transparent: true) { model.set_attribute(DICT, 'export_version', v) }
+        ["#{stem}.csv", "#{stem}.pdf", v]
+      end
+
       def self.export_order(model = Sketchup.active_model)
         unless Pencil.on?(model) || Runouts.units(model.entities).empty?
           return nil unless UI.messagebox("Scribes are OFF - every runout is 0, so sizes may be wrong.\n\nExport the door order anyway?", MB_YESNO) == IDYES
