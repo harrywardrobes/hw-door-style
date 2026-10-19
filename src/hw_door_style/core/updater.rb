@@ -182,6 +182,7 @@ module HarryWardrobes
         Settings.reload!
         Dialog.reset!
         Pencil.invalidate
+        Scenes.start if defined?(Scenes) # watchers added by a newer version start straight away
         UI.refresh_toolbars if UI.respond_to?(:refresh_toolbars)
         Sketchup.status_text = "HW Door Style #{VERSION} loaded"
       end

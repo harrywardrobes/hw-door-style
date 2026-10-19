@@ -23,7 +23,7 @@ module HarryWardrobes
       colours/colours
       job/runouts job/ceiling job/facing job/standardise job/pencil job/pdf job/report
       export/library_export export/opencutlist export/hubspot
-      ui/dialog core/batch core/steps core/updater ui/colours_window ui/door_style_window ui/settings_window
+      ui/dialog core/batch core/steps core/scenes core/updater ui/colours_window ui/door_style_window ui/settings_window
       export/hubspot_room export/hubspot_pictures export/hubspot_products
       dev/acceptance dev/developer ui/menus
     ].freeze
@@ -32,6 +32,7 @@ module HarryWardrobes
     unless file_loaded?(__FILE__)
       Menus.build
       Pencil.start_watching # keeps the pencil button in step with the open model
+      Scenes.start # renamed scenes are renamed in Settings too
       Updater.check_at_startup # newer version in the updates folder? offer it
       file_loaded(__FILE__)
     end

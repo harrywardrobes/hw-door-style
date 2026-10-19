@@ -541,6 +541,13 @@ require 'hw_door_style/doors/hardware' unless defined?(HarryWardrobes::DoorStyle
 check 'unit option values: 1 / "1" / TRUE are on; 0 / "0" / blank off', [1, '1', 'TRUE', 1.0].all? { |v| Hardware.truthy?(v) } && [0, '0', '0.0', '', nil, 'FALSE'].none? { |v| Hardware.truthy?(v) }
 require 'hw_door_style/core/updater' unless Updater.respond_to?(:read_new_version)
 check 'updater reads the installed version and file list', (Updater.read_new_version rescue nil).then { |v, f| v.to_s =~ /\A\d+\.\d+\.\d+\z/ && Array(f).include?('core/updater') }
+module Sketchup; class PagesObserver; end; end unless defined?(Sketchup::PagesObserver)
+module Sketchup; class AppObserver; end; end unless defined?(Sketchup::AppObserver)
+require 'hw_door_style/core/scenes'
+Settings.save(Settings.get.merge('hubspot_pictures' => [{ 'field' => 'render_1', 'label' => 'Renders', 'scenes' => ['D external', 'D internal'] }]))
+check 'renamed scene renamed in Settings (any case)', Scenes.rename_in_settings([['d external', 'view 1']]) && Settings.get['hubspot_pictures'][0]['scenes'] == ['view 1', 'D internal']
+check 'scene not in Settings: nothing saved', !Scenes.rename_in_settings([['room', 'room 2']])
+Settings.reset
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

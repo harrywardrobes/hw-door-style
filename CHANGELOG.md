@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.29.0 — 2026-10-19
+- **Renamed scenes stay in step with Settings.** Rename a scene in the Scenes panel and every setting that
+  names it is renamed too - for now Settings > HubSpot > Pictures to HubSpot (the scenes ticked to start).
+  If the Settings window is open its fields change as well. Scenes are followed by their id, so a rename
+  is never taken for a new scene.
+- HubSpot Products are connected (e-commerce permission): the Supplier and Category product fields and the
+  Robe / Drawer / Interior Handle Supplier Room fields are in HubSpot.
+
 ## 0.28.0 — 2026-10-19
 - **Settings > Products**, kept in HubSpot's Products: name, SKU, category (Robe / Drawer / Interior handle,
   Hinge, TIP-ON, Drawer box, Drawer runner, Mirror, Cable outlet, Other hardware - tick as many as fit),

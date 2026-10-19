@@ -656,6 +656,16 @@ var REQUIRED = {}, HS_STAGES = null, PICS = [];
 function picsDraw(){
   $('hsPics').innerHTML = PICS.map(function(r, i){ return '<tr><td>' + esc(r.label) + '</td><td><input type="text" id="pic_' + i + '" value="' + esc((r.scenes || []).join(', ')) + '"></td></tr>'; }).join('');
 }
+// A scene renamed in SketchUp (core/scenes.rb): rename it here too (already saved).
+function sceneRenamed(oldName, newName){
+  PICS.forEach(function(r, i){
+    var el = $('pic_' + i); if (!el) return;
+    var list = el.value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+    var hit = false;
+    list = list.map(function(x){ if (x.toLowerCase() === oldName.trim().toLowerCase()) { hit = true; return newName; } return x; });
+    if (hit) { el.value = list.join(', '); r.scenes = list; }
+  });
+}
 function hsStages(){ $('hsReq').textContent = 'Reading stages and fields...'; sketchup.hsStages(); }
 function hsStageList(r){
   if (r.error) { $('hsReq').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
