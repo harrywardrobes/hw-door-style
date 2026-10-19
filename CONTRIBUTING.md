@@ -28,7 +28,9 @@ One module per file, named after the file. A new file goes into `FILES` in `main
    Use `Ops.throwaway` for work that must always be undone (Export components).
    Never call something that opens its own step from inside another step.
 2. **Long jobs over many units use `Batch.run`**, which gives a progress window, one undo
-   step and holds the pencil check until the end.
+   step and holds the pencil check until the end. Slow work inside an open window (HubSpot calls,
+   pictures) uses `Steps.run(dlg, [[label, lambda], ...], done:, fail:)` - one step per timer tick
+   with the window's busy bar, so nothing shows "Not Responding".
 3. **Dynamic Component values are read with `DC.read` (exact key) or `DC.value` (base name)**.
    Library options carry a section prefix (`j01_runout_floor`); `DC.value(inst, 'runout_floor')`
    finds it. Write with `DC.set_value`. Lengths are inches; convert with `* 25.4`.

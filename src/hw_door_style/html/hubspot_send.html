@@ -63,10 +63,6 @@
 <script>
 var D = /*DATA*/null;
 var R = {}, V = {};   // rows by prop; current value by prop
-$('h').textContent = (D.room || 'HubSpot room');
-$('sub').textContent = 'The Room card from HubSpot, with this file\'s sizes, runouts, colours and hardware filled in (marked SketchUp). Green = will change in HubSpot; blue = will change in this file.' + (D.sent_at ? ' Last sent ' + D.sent_at + '.' : '');
-if (!D.project) $('openProject').disabled = true;
-if (D.scribes_on === false) $('warn').innerHTML = '<div class="warnbox"><b>Scribes are OFF</b> - the runouts shown are the job values used when the pencil is pressed.</div>';
 
 function blank(v){ return v === null || v === undefined || String(v) === ''; }
 function norm(r, v){
@@ -86,7 +82,7 @@ var REQ = [];
 function stageDraw(){
   var st = D.stage || { next: [] };
   if (!st.next.length) { $('stage').innerHTML = st.current ? 'Stage: <b>' + esc(st.current) + '</b> (last stage)' : ''; return; }
-  $('stage').innerHTML = (st.current ? 'Stage: <b>' + esc(st.current) + '</b>. ' : '') + 'Getting ready for <select id="target">' +
+  $('stage').innerHTML = '<span>' + (st.current ? 'Stage: <b>' + esc(st.current) + '</b>. ' : '') + 'Getting ready for</span><select id="target">' +
     st.next.map(function(x, i){ return '<option value="' + i + '">' + esc(x.label) + ' (' + x.required.length + ' required)</option>'; }).join('') + '</select>' +
     '<span class="hint" style="margin:0">Required fields are marked * - Settings > HubSpot sets them.</span>';
   $('target').onchange = function(){ REQ = st.next[+this.value].required; draw(); };
@@ -184,11 +180,26 @@ function review(){
                          (c.lt.length ? '<h2>This SketchUp file - ' + c.lt.length + ' value(s)</h2>' + c.lt.map(line).join('') : '');
   $('review').style.display = 'flex';
 }
-function send(){ var c = changes(); sketchup.send(JSON.stringify({ send: c.send, take: c.take })); }
+function send(){ $('review').style.display = 'none'; var c = changes(); sketchup.send(JSON.stringify({ send: c.send, take: c.take })); }
+function sendFailed(m){ $('warn').innerHTML = '<div class="warnbox"><b>Not sent:</b> ' + esc(m) + ' Nothing after that step was changed - press Review changes to try again.</div>'; }
+function loadFailed(m){ $('t').innerHTML = '<tr><td class="v" style="color:var(--warn)">Couldn\'t read the Room: ' + esc(m) + '</td></tr>'; }
 
-D.sections.forEach(function(s){ s.rows.forEach(function(r){ R[r.prop] = r; V[r.prop] = r.calc ? (blank(r.sketchup) ? r.hubspot : r.sketchup) : r.hubspot; }); });
-stageDraw();
-draw();
+function init(d){
+  D = d; R = {}; V = {};
+  $('h').textContent = (D.room || 'HubSpot room');
+  $('sub').textContent = 'The Room card from HubSpot, with this file\'s sizes, runouts, colours and hardware filled in (marked SketchUp). Green = will change in HubSpot; blue = will change in this file.' + (D.sent_at ? ' Last sent ' + D.sent_at + '.' : '');
+  $('openProject').disabled = !D.project;
+  if (D.scribes_on === false) $('warn').innerHTML = '<div class="warnbox"><b>Scribes are OFF</b> - the runouts shown are the job values used when the pencil is pressed.</div>';
+  D.sections.forEach(function(s){ s.rows.forEach(function(r){ R[r.prop] = r; V[r.prop] = r.calc ? (blank(r.sketchup) ? r.hubspot : r.sketchup) : r.hubspot; }); });
+  stageDraw();
+  draw();
+}
+if (D.loading) {
+  $('h').textContent = D.room || 'HubSpot room';
+  $('sub').textContent = 'Reading the Room from HubSpot and measuring this model...';
+  $('go').disabled = true;
+  window.onload = function(){ sketchup.ready(); };
+} else init(D);
 </script>
 </body>
 </html>

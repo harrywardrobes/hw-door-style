@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.25.0 — 2026-10-19
+- **Progress bars instead of "Not Responding".** Slow jobs in the HubSpot windows now run one step at a
+  time with a bar along the bottom of the window saying what is happening (and "3 of 7"):
+  - Pictures: making each picture, uploading each file, putting them on the Room.
+  - Send to HubSpot: the window opens straight away, then reads the fields, measures the model and
+    reads the Room; Send shows each step, and if a step fails the window stays open to try again.
+  - New room / Link: searching and reading the rooms.
+  - Settings > HubSpot: Test connection, Show Room fields, Load stages and fields.
+  Buttons wait while the bar shows.
+
 ## 0.24.2 — 2026-10-19
 - Picture files are named "<room> - view 1, <SURNAME> <First names>", e.g.
   "Master Bedroom - view 3, HASPREY Kenny.jpg". Views count up across every picture made and carry

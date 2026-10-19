@@ -261,9 +261,17 @@ module HarryWardrobes
       def self.card(model, room_id)
         m = meta
         calc = calculated(model, m)
+        theirs = room_values(room_id, m)
+        [card_sections(m, calc, theirs), theirs['hs_name'], stage_info(theirs['hs_pipeline_stage'])]
+      end
+
+      def self.room_values(room_id, m = meta)
         props = LAYOUT.flat_map(&:last).select { |p| m[p] }
-        theirs = HubSpot.read_one('listings', room_id, props + %w[hs_name hs_pipeline_stage])['properties'] || {}
-        sections = LAYOUT.map do |title, list|
+        HubSpot.read_one('listings', room_id, props + %w[hs_name hs_pipeline_stage])['properties'] || {}
+      end
+
+      def self.card_sections(m, calc, theirs)
+        LAYOUT.map do |title, list|
           rows = list.filter_map do |p|
             f = m[p] or next
             hs = theirs[p]
@@ -276,7 +284,6 @@ module HarryWardrobes
           end
           { 'title' => title, 'rows' => rows }
         end
-        [sections, theirs['hs_name'], stage_info(theirs['hs_pipeline_stage'])]
       end
 
       # The Room's stage and the stages after it, each with the fields needed to move
@@ -377,22 +384,14 @@ module HarryWardrobes
         dlg = Dialog.open('hubspot_pick', title: mode == :new ? 'HW - New room from HubSpot' : 'HW - Link to a HubSpot room',
                                           key: 'hw_hubspot_pick', width: 560, height: 520, data: data)
         dlg.add_action_callback('search') do |_c, q|
-          r = begin
-            { 'projects' => HubSpot.search_projects(q) }
-          rescue StandardError => e
-            Log.error('hubspot search', e) unless e.is_a?(HubSpot::Error)
-            { 'error' => e.message }
-          end
-          dlg.execute_script("projects(#{JSON.generate(r)})")
+          Steps.one(dlg, q.to_s.strip.empty? ? 'Reading recent projects' : "Searching HubSpot for \"#{q.to_s.strip}\"",
+                    done: ->(r) { dlg.execute_script("projects(#{JSON.generate('projects' => r)})") },
+                    fail: ->(e) { dlg.execute_script("projects(#{JSON.generate('error' => e.message)})") }) { HubSpot.search_projects(q) }
         end
         dlg.add_action_callback('project') do |_c, pid|
-          r = begin
-            project_details(pid.to_s)
-          rescue StandardError => e
-            Log.error('hubspot project', e) unless e.is_a?(HubSpot::Error)
-            { 'error' => e.message }
-          end
-          dlg.execute_script("rooms(#{JSON.generate(r)})")
+          Steps.one(dlg, 'Reading the rooms and customer',
+                    done: ->(r) { dlg.execute_script("rooms(#{JSON.generate(r)})") },
+                    fail: ->(e) { dlg.execute_script("rooms(#{JSON.generate('error' => e.message)})") }) { project_details(pid.to_s) }
         end
         dlg.add_action_callback('choose') do |_c, json|
           pick = JSON.parse(json)
@@ -506,41 +505,56 @@ module HarryWardrobes
           return unless UI.messagebox("This file isn't linked to a HubSpot room yet.\n\nLink it now?", MB_YESNO) == IDYES
           return show_pick(model.path.to_s.empty? ? :new : :link)
         end
-        sections, name, stage = begin
-          card(model, l['room_id'])
-        rescue StandardError => e
-          return fail('read room', e)
+        dlg = Dialog.open('hubspot_send', title: 'HW - HubSpot room', key: 'hw_hubspot_send2', width: 820, height: 760,
+                                          data: { 'loading' => true, 'room' => l['room_name'] })
+        m = calc = theirs = nil
+        load_card = lambda do
+          Steps.run(dlg, [
+            ['Reading the HubSpot Room fields', -> { m = meta }],
+            ['Measuring this model (floor, hinges, handles, drawers)', -> { calc = calculated(model, m) }],
+            ['Reading the Room from HubSpot', -> { theirs = room_values(l['room_id'], m) }],
+            ['Reading the Room stages', -> { HubSpot.room_stages rescue [] }]
+          ], done: lambda { |_r|
+            data = { 'room' => theirs['hs_name'] || l['room_name'], 'customer' => l['customer'],
+                     'sections' => card_sections(m, calc, theirs), 'stage' => stage_info(theirs['hs_pipeline_stage']),
+                     'project' => !l['project_id'].to_s.empty?,
+                     'sent_at' => model.get_attribute(DICT, 'hs_sent_at', nil), 'scribes_on' => Pencil.on?(model) }
+            dlg.execute_script("init(#{JSON.generate(data)})")
+          }, fail: ->(e) { dlg.execute_script("loadFailed(#{JSON.generate(e.message)})") })
         end
-        data = { 'room' => name || l['room_name'], 'customer' => l['customer'], 'sections' => sections, 'stage' => stage,
-                 'project' => !l['project_id'].to_s.empty?,
-                 'sent_at' => model.get_attribute(DICT, 'hs_sent_at', nil), 'scribes_on' => Pencil.on?(model) }
-        dlg = Dialog.open('hubspot_send', title: 'HW - HubSpot room', key: 'hw_hubspot_send2', width: 820, height: 760, data: data)
+        dlg.add_action_callback('ready') { |_c| load_card.call }
         dlg.add_action_callback('openRoom') { |_c| open_record('listings', l['room_id']) }
         dlg.add_action_callback('openProject') { |_c| open_record('projects', l['project_id']) }
         dlg.add_action_callback('pictures') do |_c|
           HubSpotPictures.show(lambda {
-            files = HubSpot.read_one('listings', l['room_id'], FILE_FIELDS)['properties'] || {}
-            dlg.execute_script("filesUpdated(#{JSON.generate(files.slice(*FILE_FIELDS))})") if dlg.visible?
+            Steps.one(dlg, 'Reading the pictures on the Room', done: lambda { |files|
+              dlg.execute_script("filesUpdated(#{JSON.generate(files.slice(*FILE_FIELDS))})")
+            }, fail: ->(_e) {}) { HubSpot.read_one('listings', l['room_id'], FILE_FIELDS)['properties'] || {} }
           })
         end
         dlg.add_action_callback('send') do |_c, json|
           req = JSON.parse(json)
-          dlg.close
-          begin
-            took = send_and_take(model, l['room_id'], req['send'] || {}, req['take'] || {})
-          rescue StandardError => e
-            next fail('send', e)
-          end
-          sent = (req['send'] || {}).size
-          msg = [sent.zero? ? 'Nothing sent to HubSpot.' : "#{sent} field(s) sent to HubSpot (#{l['room_name']})."]
-          msg << "Into this file: #{took.join(', ')}." unless took.empty?
-          job = (took & ['ceiling', 'bottom facing', 'runouts']).any?
-          if job
-            msg << (Pencil.on?(model) ? "\nThe units still have the old values - the pencil window opens next so you can apply them." :
-                                         "\nScribes are off: the new values are used when you press the pencil.")
-          end
-          UI.messagebox(msg.join("\n"))
-          Pencil.show(model, nil) if job && Pencil.on?(model)
+          send = req['send'] || {}
+          take = req['take'] || {}
+          took = []
+          steps = []
+          steps << ["Sending #{send.size} field(s) to HubSpot", -> { HubSpot.update_room(l['room_id'], send) }] unless send.empty?
+          steps << ['Updating this file', -> { took = take_values(model, take) }] unless take.empty?
+          steps << ['Finishing', lambda {
+            Ops.run(model, 'HubSpot: record send', transparent: true) { model.set_attribute(DICT, 'hs_sent_at', Time.now.strftime('%d/%m/%Y %H:%M')) }
+          }]
+          Steps.run(dlg, steps, done: lambda { |_r|
+            dlg.close
+            msg = [send.empty? ? 'Nothing sent to HubSpot.' : "#{send.size} field(s) sent to HubSpot (#{l['room_name']})."]
+            msg << "Into this file: #{took.join(', ')}." unless took.empty?
+            job = (took & ['ceiling', 'bottom facing', 'runouts']).any?
+            if job
+              msg << (Pencil.on?(model) ? "\nThe units still have the old values - the pencil window opens next so you can apply them." :
+                                           "\nScribes are off: the new values are used when you press the pencil.")
+            end
+            UI.messagebox(msg.join("\n"))
+            Pencil.show(model, nil) if job && Pencil.on?(model)
+          }, fail: ->(e) { dlg.execute_script("sendFailed(#{JSON.generate(e.message)})") })
         end
         dlg.show
       end

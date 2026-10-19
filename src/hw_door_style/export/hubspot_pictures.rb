@@ -55,67 +55,70 @@ module HarryWardrobes
         Dir.children(dir).map { |f| f[pat, 1].to_i }.max.to_i
       end
 
-      # picks: { field => [scene names] }. Returns { field => [{ 'scene', 'path', 'thumb' }] }.
-      def self.export(model, picks, cfg = config, link = HubSpotRoom.link(model))
-        dir = out_dir(model, cfg['folder'])
-        FileUtils.mkdir_p(dir)
-        view = model.active_view
-        pages = model.pages
-        was_page = pages.selected_page
-        was_cam = Sketchup::Camera.new(view.camera.eye, view.camera.target, view.camera.up, view.camera.perspective?, view.camera.fov)
-        po = model.options['PageOptions']
-        was_trans = po['ShowTransition']
-        po['ShowTransition'] = false
-        n = last_view(dir, link)
-        thumb_file = File.join(Dir.tmpdir, "hw_thumb_#{Process.pid}.jpg")
-        out = {}
-        begin
-          picks.each do |field, scenes|
-            out[field] = Array(scenes).filter_map do |name|
-              page = pages[name] or next
-              pages.selected_page = page
-              view.refresh
-              n += 1
-              path = File.join(dir, file_for(link, n, cfg['format']))
-              opts = { filename: path, width: cfg['width'], height: cfg['height'], antialias: true, transparent: false }
-              opts[:compression] = 0.9 if cfg['format'] == 'jpg'
-              view.write_image(opts) or raise "Couldn't save #{File.basename(path)}"
-              tw = 360
-              view.write_image(filename: thumb_file, width: tw, height: (tw * cfg['height'] / cfg['width'].to_f).round, antialias: true, compression: 0.7)
-              { 'scene' => name, 'path' => path, 'name' => File.basename(path),
-                'thumb' => "data:image/jpeg;base64,#{Base64.strict_encode64(File.binread(thumb_file))}" }
-            end
-          end
-        ensure
-          File.delete(thumb_file) if File.exist?(thumb_file)
-          if was_page
-            pages.selected_page = was_page
-          else
-            view.camera = was_cam
-          end
-          po['ShowTransition'] = was_trans
+      # Making pictures, one scene at a time (so the window can show progress):
+      #   job = Shoot.new(model, cfg, link); job.shot(field, scene) ...; job.finish
+      # finish puts back the scene / camera that was showing.
+      class Shoot
+        attr_reader :out
+
+        def initialize(model, cfg, link)
+          @model = model
+          @cfg = cfg
+          @link = link
+          @dir = HubSpotPictures.out_dir(model, cfg['folder'])
+          FileUtils.mkdir_p(@dir)
+          @view = model.active_view
+          @pages = model.pages
+          @was_page = @pages.selected_page
+          c = @view.camera
+          @was_cam = Sketchup::Camera.new(c.eye, c.target, c.up, c.perspective?, c.fov)
+          @po = model.options['PageOptions']
+          @was_trans = @po['ShowTransition']
+          @po['ShowTransition'] = false
+          @n = HubSpotPictures.last_view(@dir, link)
+          @thumb = File.join(Dir.tmpdir, "hw_thumb_#{Process.pid}.jpg")
+          @out = {}
         end
-        out
+
+        def shot(field, name)
+          (@out[field] ||= [])
+          page = @pages[name] or return nil
+          @pages.selected_page = page
+          @view.refresh
+          @n += 1
+          path = File.join(@dir, HubSpotPictures.file_for(@link, @n, @cfg['format']))
+          opts = { filename: path, width: @cfg['width'], height: @cfg['height'], antialias: true, transparent: false }
+          opts[:compression] = 0.9 if @cfg['format'] == 'jpg'
+          @view.write_image(opts) or raise "Couldn't save #{File.basename(path)}"
+          tw = 360
+          @view.write_image(filename: @thumb, width: tw, height: (tw * @cfg['height'] / @cfg['width'].to_f).round, antialias: true, compression: 0.7)
+          pic = { 'scene' => name, 'path' => path, 'name' => File.basename(path),
+                  'thumb' => "data:image/jpeg;base64,#{Base64.strict_encode64(File.binread(@thumb))}" }
+          @out[field] << pic
+          pic
+        end
+
+        def finish
+          File.delete(@thumb) if File.exist?(@thumb)
+          @was_page ? (@pages.selected_page = @was_page) : (@view.camera = @was_cam)
+          @po['ShowTransition'] = @was_trans
+          @out
+        end
       end
 
-      # uploads: { field => { 'paths' => [...], 'mode' => 'replace' | 'add' } }.
-      # Returns { field => number uploaded }.
-      def self.upload(room_id, uploads, cfg = config, &progress)
-        current = HubSpot.read_one('listings', room_id, uploads.keys)['properties'] || {}
-        props = {}
-        done = {}
-        uploads.each do |field, u|
-          ids = Array(u['paths']).map do |path|
-            progress&.call(File.basename(path))
-            HubSpot.upload(path, cfg['files_folder'])
-          end
-          next if ids.empty?
-          old = current[field].to_s.split(';').reject(&:empty?)
-          props[field] = (u['mode'] == 'add' ? old + ids : ids).uniq.join(';')
-          done[field] = ids.size
-        end
-        HubSpot.update_room(room_id, props) unless props.empty?
-        done
+      # All at once (no window). picks: { field => [scene names] }.
+      def self.export(model, picks, cfg = config, link = HubSpotRoom.link(model))
+        job = Shoot.new(model, cfg, link)
+        picks.each { |field, scenes| Array(scenes).each { |n| job.shot(field, n) } }
+        job.out
+      ensure
+        job&.finish
+      end
+
+      # New value of a Room picture field: the new file ids, or added to the old ones.
+      def self.merged(old, ids, mode)
+        o = old.to_s.split(';').reject(&:empty?)
+        (mode == 'add' ? o + ids : ids).uniq.join(';')
       end
 
       def self.show(after = nil)
@@ -130,15 +133,23 @@ module HarryWardrobes
         data = cfg.merge('room' => l['room_name'], 'scenes' => names, 'dir' => out_dir(model, cfg['folder']),
                          'rows' => cfg['rows'].map { |r| r.merge('ticked' => preset(names, r['scenes'])) })
         dlg = Dialog.open('hubspot_pictures', title: 'HW - Pictures to HubSpot', key: 'hw_hubspot_pictures', width: 820, height: 680, data: data)
+        labels = cfg['rows'].to_h { |r| [r['field'], r['label']] }
+
         dlg.add_action_callback('make') do |_c, json|
           picks = JSON.parse(json)
-          r = begin
-            { 'made' => export(model, picks, cfg, l) }
+          job = begin
+            Shoot.new(model, cfg, l)
           rescue StandardError => e
-            Log.error('hubspot pictures', e)
-            { 'error' => e.message }
+            next dlg.execute_script("made(#{JSON.generate('error' => e.message)})")
           end
-          dlg.execute_script("made(#{JSON.generate(r)})")
+          steps = picks.flat_map { |f, scenes| Array(scenes).map { |n| ["Making #{labels[f] || f}: #{n}", -> { job.shot(f, n) }] } }
+          Steps.run(dlg, steps,
+                    done: ->(_r) { dlg.execute_script("made(#{JSON.generate('made' => job.finish)})") },
+                    fail: lambda { |e|
+                      job.finish
+                      Log.error('hubspot pictures', e)
+                      dlg.execute_script("made(#{JSON.generate('error' => e.message)})")
+                    })
         end
         dlg.add_action_callback('openFolder') do |_c|
           d = out_dir(model, cfg['folder'])
@@ -146,15 +157,24 @@ module HarryWardrobes
         end
         dlg.add_action_callback('upload') do |_c, json|
           ups = JSON.parse(json)
-          r = begin
-            done = upload(l['room_id'], ups, cfg) { |name| dlg.execute_script("uploading(#{JSON.generate(name)})") }
-            { 'done' => done }
-          rescue StandardError => e
-            Log.error('hubspot upload', e) unless e.is_a?(HubSpot::Error)
-            { 'error' => e.message }
+          ids = Hash.new { |h, k| h[k] = [] }
+          current = {}
+          steps = [['Reading the Room', -> { current = HubSpot.read_one('listings', l['room_id'], ups.keys)['properties'] || {} }]]
+          ups.each do |field, u|
+            Array(u['paths']).each do |path|
+              steps << ["Uploading #{File.basename(path)}", -> { ids[field] << HubSpot.upload(path, cfg['files_folder']) }]
+            end
           end
-          dlg.execute_script("uploaded(#{JSON.generate(r)})")
-          after&.call if r['done']
+          steps << ['Putting the pictures on the Room', lambda {
+            props = ids.to_h { |field, list| [field, merged(current[field], list, ups[field]['mode'])] }
+            HubSpot.update_room(l['room_id'], props) unless props.empty?
+          }]
+          Steps.run(dlg, steps,
+                    done: lambda { |_r|
+                      dlg.execute_script("uploaded(#{JSON.generate('done' => ids.transform_values(&:size))})")
+                      after&.call
+                    },
+                    fail: ->(e) { dlg.execute_script("uploaded(#{JSON.generate('error' => e.message, 'done' => ids.transform_values(&:size))})") })
         end
         dlg.show
       end

@@ -132,33 +132,26 @@ module HarryWardrobes
           dlg.execute_script("hsHint(#{JSON.generate(HubSpot.key_hint)})")
         end
         dlg.add_action_callback('hsTest') do |_c|
-          r = begin
-            HubSpot.test
-          rescue StandardError => e
-            Log.error('hubspot test', e) unless e.is_a?(HubSpot::Error)
-            { 'error' => e.message }
-          end
-          dlg.execute_script("hsResult(#{JSON.generate(r)})")
+          info = nil
+          steps = [['Connecting to HubSpot', -> { info = HubSpot.get('/account-info/v3/details') }]] +
+                  HubSpot::PROBES.map { |id, label, path| ["Checking #{label}", -> { HubSpot.probe(id, label, path) }] }
+          Steps.run(dlg, steps,
+                    done: ->(r) { dlg.execute_script("hsResult(#{JSON.generate('portal' => info['portalId'], 'region' => info['dataHostingLocation'], 'checks' => r.drop(1))})") },
+                    fail: ->(e) { dlg.execute_script("hsResult(#{JSON.generate('error' => e.message)})") })
         end
         dlg.add_action_callback('hsFields') do |_c|
-          r = begin
-            { 'fields' => HubSpot.room_fields }
-          rescue StandardError => e
-            Log.error('hubspot fields', e) unless e.is_a?(HubSpot::Error)
-            { 'error' => e.message }
-          end
-          dlg.execute_script("hsFieldList(#{JSON.generate(r)})")
+          Steps.one(dlg, 'Reading the Room fields',
+                    done: ->(f) { dlg.execute_script("hsFieldList(#{JSON.generate('fields' => f)})") },
+                    fail: ->(e) { dlg.execute_script("hsFieldList(#{JSON.generate('error' => e.message)})") }) { HubSpot.room_fields }
         end
         dlg.add_action_callback('hsStages') do |_c|
-          r = begin
-            m = HubSpotRoom.meta
-            secs = HubSpotRoom::LAYOUT.map { |t, props| [t, props.select { |p| m[p] }.map { |p| [p, m[p]['label']] }] }
-            { 'stages' => HubSpot.room_stages, 'sections' => secs }
-          rescue StandardError => e
-            Log.error('hubspot stages', e) unless e.is_a?(HubSpot::Error)
-            { 'error' => e.message }
-          end
-          dlg.execute_script("hsStageList(#{JSON.generate(r)})")
+          m = st = nil
+          Steps.run(dlg, [['Reading the Room fields', -> { m = HubSpotRoom.meta }], ['Reading the Room stages', -> { st = HubSpot.room_stages }]],
+                    done: lambda { |_r|
+                      secs = HubSpotRoom::LAYOUT.map { |t, props| [t, props.select { |p| m[p] }.map { |p| [p, m[p]['label']] }] }
+                      dlg.execute_script("hsStageList(#{JSON.generate('stages' => st, 'sections' => secs)})")
+                    },
+                    fail: ->(e) { dlg.execute_script("hsStageList(#{JSON.generate('error' => e.message)})") })
         end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 

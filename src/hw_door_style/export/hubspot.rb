@@ -110,15 +110,14 @@ module HarryWardrobes
       # { 'portal' =>, 'region' =>, 'checks' => [{ id, label, ok, detail }] }
       def self.test
         info = get('/account-info/v3/details')
-        checks = PROBES.map do |id, label, path|
-          begin
-            get(path)
-            { 'id' => id, 'label' => label, 'ok' => true, 'detail' => 'OK' }
-          rescue Error => e
-            { 'id' => id, 'label' => label, 'ok' => false, 'detail' => e.status == 403 ? 'needs permission' : e.message }
-          end
-        end
-        { 'portal' => info['portalId'], 'region' => info['dataHostingLocation'], 'checks' => checks }
+        { 'portal' => info['portalId'], 'region' => info['dataHostingLocation'], 'checks' => PROBES.map { |pr| probe(*pr) } }
+      end
+
+      def self.probe(id, label, path)
+        get(path)
+        { 'id' => id, 'label' => label, 'ok' => true, 'detail' => 'OK' }
+      rescue Error => e
+        { 'id' => id, 'label' => label, 'ok' => false, 'detail' => e.status == 403 ? 'needs permission' : e.message }
       end
 
       def self.post(path, body)

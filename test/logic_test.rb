@@ -512,6 +512,15 @@ check 'pictures: saved in SURVEY RENDERS next to the file', P.out_dir(fm2, 'SURV
 cfg = P.config
 check 'pictures: settings defaults', cfg['rows'].map { |r| r['field'] } == %w[render_1 floor_plan survey_door_dimensions_1] && cfg['width'] == 1920 && cfg['format'] == 'jpg' && cfg['mode'] == 'replace'
 check 'required: empty fields listed by label', R.missing(%w[a b c], { 'a' => '1', 'b' => ' ', 'c' => nil }, { 'b' => 'Bed' }) == %w[Bed c]
+require 'hw_door_style/core/steps'
+module UI; def self.start_timer(*_a, &b); b.call; end; end unless UI.respond_to?(:start_timer)
+fd = Struct.new(:js) { def execute_script(x); (self.js ||= []) << x; end; def visible?; true; end }.new
+got = nil
+Steps.run(fd, [['One', -> { 1 }], ['Two', -> { 2 }]], done: ->(r) { got = r })
+check 'steps: run in order, bar shown then hidden', got == [1, 2] && fd.js.first.include?('"text":"One"') && fd.js[1].include?('"done":1') && fd.js.last == 'hwBusy(null)'
+err = nil
+Steps.run(fd, [['Bad', -> { raise HubSpot::Error, 'nope' }], ['Never', -> { got = :ran }]], fail: ->(e) { err = e.message })
+check 'steps: an error stops the rest', err == 'nope' && got == [1, 2]
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
