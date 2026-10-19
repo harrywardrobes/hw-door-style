@@ -209,11 +209,13 @@ module HarryWardrobes
       end
 
       # Uploads one picture to HubSpot's file manager; returns its file id.
-      # Same place and privacy as a file added on the Room card in HubSpot.
+      # Same folder as a file added on the Room card in HubSpot; private (signed-in users only).
       def self.upload(path, folder)
         raise Error, 'No HubSpot key saved (Settings > HubSpot).' unless key?
         uri = URI("#{BASE}/files/v3/files")
-        opts = JSON.generate(access: 'HIDDEN_PRIVATE', overwrite: false, duplicateValidationStrategy: 'NONE')
+        # PRIVATE: only signed-in HubSpot users can open it. (HIDDEN_PRIVATE, which HubSpot
+        # itself uses for record files, is refused through the API as "Invalid JSON".)
+        opts = JSON.generate(access: 'PRIVATE')
         1.upto(3) do |attempt|
           begin
             res = File.open(path, 'rb') do |io|

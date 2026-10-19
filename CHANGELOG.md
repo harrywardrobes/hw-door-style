@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.24.1 — 2026-10-19
+- Fixed: Upload to HubSpot stopped with "Invalid JSON for options input". Pictures are now uploaded
+  as private files (only people signed in to HubSpot can open them).
+
 ## 0.24.0 — 2026-10-19
 - **Pictures to HubSpot** (HubSpot menu, or Pictures... in the Send window):
   - Tick the scenes for Renders, Survey Floor Plan and Survey Door Dimensions, then Make pictures.
