@@ -17,8 +17,15 @@ module HarryWardrobes
     module Updater
       PATTERN = /\Ahw_door_style_v(\d+)\.(\d+)\.(\d+)\.rbz\z/i.freeze
 
+      # The updates folder. An old "_plugin_updates" path that no longer exists falls
+      # back to its new home, "_HW Door Style\Updates" beside it.
       def self.folder
-        Settings.get['update_folder'].to_s.strip
+        f = Settings.get['update_folder'].to_s.strip
+        if !f.empty? && !Dir.exist?(f) && f =~ /_plugin_updates\z/i
+          moved = File.join(File.dirname(f), '_HW Door Style', 'Updates')
+          return moved if Dir.exist?(moved)
+        end
+        f
       end
 
       def self.parse(version)

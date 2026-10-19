@@ -16,7 +16,7 @@ module HarryWardrobes
     # Folder / version / fingerprint per component are remembered in the master.
     module LibraryExport
       META = 'hw_library_export'.freeze
-      SKIP_DIRS = /\A(_|\.)|\AHW Colours\z/i.freeze
+      SKIP_DIRS = /\A(_|\.)/.freeze # _old, _HW Door Style, hidden folders
       MASTER_RE = /\AComponents V(\d+)\.(skp|skb)\z/i.freeze
       MAIN = 'MAIN COMPONENTS'.freeze
       GUESS = [

@@ -106,4 +106,9 @@ Job values stored **on the model** (attribute dictionary `hw_door_style`): `hing
 1. `python3 build.py --bump minor` (or `patch` / `major`): sets `VERSION` and adds a
    `CHANGELOG.md` heading. Write the notes under it (they show in Settings > General).
 2. `python3 build.py`: runs the tests, then writes `dist/` and `releases/`.
-3. Commit, push, install the `.rbz` from `releases/`.
+3. Commit, push, and copy `dist/hw_door_style_v<version>.rbz` + `dist/hw_door_style_latest.json` into
+   the updates folder (`Harry Wardrobes\_HW Door Style\Updates` on Google Drive). Every computer
+   running the plugin offers the update at its next start-up (or Settings > General > Check for updates).
+
+Shared Drive folders (`Harry Wardrobes\_HW Door Style`): `Updates` (releases), `Colours` (colour pack),
+`Team settings` (the file for Load team settings), `Dev` (test files).

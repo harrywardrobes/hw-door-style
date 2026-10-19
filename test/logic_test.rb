@@ -218,7 +218,7 @@ require 'tmpdir'
 require 'hw_door_style/export/library_export'
 LE = LibraryExport
 Dir.mktmpdir do |root|
-  %w[_old WARDROBES DRAWERS BRIDGE BOOKCASE SHELVING HW\ Colours].each { |d| FileUtils.mkdir_p(File.join(root, d)) }
+  %w[_old WARDROBES DRAWERS BRIDGE BOOKCASE SHELVING _HW\ Door\ Style].each { |d| FileUtils.mkdir_p(File.join(root, d)) }
   { 'WARDROBES' => %w[WRD_V1.skp TOPBOX_V5.skp LINEN_PRESS_V1.skp],
     'DRAWERS' => ['INT_DRAWER_228_V3.skp', 'INT_DRAWER_228_PLUS_V2.skp', 'SHOE_UNIT V2.skp'],
     'BRIDGE' => %w[BRIDGE_FRAME_V5.skp], 'BOOKCASE' => %w[BOOKCASE_4.skp],
@@ -228,7 +228,7 @@ Dir.mktmpdir do |root|
   end
   model = Struct.new(:path).new(File.join(root, 'Components V17.skp'))
   check 'export: only in a "Components" file', LE.master?(model) && !LE.master?(Struct.new(:path).new(File.join(root, 'Smith job.skp')))
-  check 'export: folders skip _old and HW Colours, add MAIN COMPONENTS', LE.folders(model) == ['BOOKCASE', 'BRIDGE', 'DRAWERS', 'MAIN COMPONENTS', 'SHELVING', 'WARDROBES']
+  check 'export: folders skip _old and _HW Door Style, add MAIN COMPONENTS', LE.folders(model) == ['BOOKCASE', 'BRIDGE', 'DRAWERS', 'MAIN COMPONENTS', 'SHELVING', 'WARDROBES']
   w = LE.scan(model, 'WARDROBE')
   check 'export: WARDROBE finds WRD_V1 -> next V2', w[:version] == 1 && w[:current].map { |p| File.basename(p) } == ['WRD_V1.skp']
   check 'export: BRIDGE_FRAME next V6 (V5 current, older in _old)', LE.scan(model, 'BRIDGE_FRAME')[:version] == 5
@@ -450,6 +450,19 @@ check 'facing set keeps text', Facing.set(fw, 100) && fw.attrs['d01_facing_btm']
 fb = FDcInst.new({ 'facing_btm' => 79 / 25.4 }, {})
 check 'facing set keeps number (unprefixed key)', Facing.set(fb, 90) && fb.attrs['facing_btm'].is_a?(Float) && Facing.of(fb) == 90.0
 check 'no facing option: untouched', !Facing.set(FDcInst.new({ 'a01_frame_width' => 1.0 }, {}), 90)
+
+# --- folders moved into "_HW Door Style" (0.20) ---
+old = { 'settings_version' => 2, 'update_folder' => 'G:\\X\\Harry Wardrobes\\_plugin_updates' }
+check 'old updates folder setting moved', Settings.migrate(old, Settings.defaults)['update_folder'].end_with?('_HW Door Style\\Updates')
+mine = { 'settings_version' => 2, 'update_folder' => 'D:\\My updates' }
+check 'own updates folder kept', Settings.migrate(mine, Settings.defaults)['update_folder'] == 'D:\\My updates'
+Dir.mktmpdir do |d|
+  FileUtils.mkdir_p(File.join(d, '_HW Door Style', 'Updates'))
+  Settings.get['update_folder'] = File.join(d, '_plugin_updates')
+  check 'missing _plugin_updates falls back to the new folder', Updater.folder == File.join(d, '_HW Door Style', 'Updates')
+  Settings.reload!
+end
+check 'export skips _HW Door Style', '_HW Door Style' =~ LibraryExport::SKIP_DIRS && 'WARDROBES' !~ LibraryExport::SKIP_DIRS
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

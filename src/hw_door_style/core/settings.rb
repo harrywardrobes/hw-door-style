@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 2
+      SETTINGS_VERSION = 3
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -41,6 +41,10 @@ module HarryWardrobes
             ext = Array(cg['exterior'])
             cg['exterior'] = ext + (d['colour_groups']['exterior'] - ext)
           end
+        end
+        # 0.20: the plugin's Drive folders moved into "_HW Door Style".
+        if v < 3 && user['update_folder'].to_s =~ /_plugin_updates\z/i
+          user['update_folder'] = d['update_folder']
         end
         user['settings_version'] = SETTINGS_VERSION
         user
@@ -147,9 +151,15 @@ module HarryWardrobes
 
       # Asks for the team file (starting at the last one used), remembers it and
       # returns its settings, or nil.
+      # "Team settings" next to the updates folder (Harry Wardrobes\_HW Door Style).
+      def self.team_dir
+        d = File.join(File.dirname(get['update_folder'].to_s), 'Team settings')
+        Dir.exist?(d) ? d : nil
+      end
+
       def self.load_team
         last = team_file
-        dir = last && File.dirname(last)
+        dir = last ? File.dirname(last) : team_dir
         file = UI.openpanel('Load team settings (a settings backup on Drive)', dir, 'Settings backup|*.json||')
         return nil unless file
         data = read_backup(file)

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20.0 — 2026-10-19
+- The plugin's Google Drive folders are now together in Harry Wardrobes\_HW Door Style:
+  - Updates (was _plugin_updates) - the updates folder setting moves there on its own.
+  - Colours (was HW Colours) - the colour pack.
+  - Team settings - Load team settings opens here the first time.
+  - Dev - test files.
+- Export components skips every folder starting with _ (no special case for HW Colours).
+
 ## 0.19.0 — 2026-10-19
 - **Bottom facing (plinth) is a job value**, like the ceiling height: set it in the pencil
   window for every unit (default 79 mm, Settings > Scribe & ceiling).
