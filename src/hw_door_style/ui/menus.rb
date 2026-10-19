@@ -114,8 +114,14 @@ module HarryWardrobes
           targets = Doors.selection_targets
           units = Runouts.selected | Facing.selected
           deep = Depth.selected
-          next if targets.empty? && units.empty? && deep.empty?
+          sel = Sketchup.active_model.selection
+          part = sel.size == 1 && (sel.first.is_a?(Sketchup::ComponentInstance) || sel.first.is_a?(Sketchup::Group)) ? sel.first : nil
+          next if targets.empty? && units.empty? && deep.empty? && part.nil?
           sub = cm.add_submenu('HW Door Style')
+          if part
+            Plan.menu(sub, part)
+            sub.add_separator unless deep.empty? && units.empty? && targets.empty?
+          end
           unless deep.empty?
             Depth.menu(sub, deep)
             sub.add_separator unless units.empty? && targets.empty?

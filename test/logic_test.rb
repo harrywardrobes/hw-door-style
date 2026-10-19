@@ -746,7 +746,7 @@ PR = HarryWardrobes::DoorStyle::Products
 pc = { 'types' => { 'WARDROBE' => 'Wardrobe', 'INT_DRAWER' => 'Internal drawers', 'INT_DRAWER_PLUS' => 'Internal drawers+', 'BRIDGE_SKELETON' => 'Bridge unit' }, 'joiners' => %w[INT_DRAWER BOX_SHELF], 'skip' => %w[FACING_BLOCK BULLNOSE], 'prefix' => 'T' }
 check 'product types: exact, longer names, longest match wins', PR.type_of('WARDROBE', pc) == 'Wardrobe' && PR.type_of('WARDROBE_LEFT', pc) == 'Wardrobe' && PR.type_of('INT_DRAWER_PLUS', pc) == 'Internal drawers+' && PR.type_of('FLOOR', pc).nil?
 check 'joiners and skipped components', PR.joiner?('INT_DRAWER_PLUS', pc) && PR.joiner?('BOX_SHELF', pc) && !PR.joiner?('WARDROBE', pc) && PR.skip?('FACING_BLOCK_L_HALF', pc) && PR.skip?('BULLNOSE', pc) && !PR.skip?('WARDROBE', pc)
-check 'Workshop has the Product List first', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')) =~ /data-t="products" class="on">Product List/
+check 'Workshop has the Product List first', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html'), encoding: 'UTF-8') =~ /data-t="products" class="on">Product List/
 
 puts "\n== Depth"
 require 'hw_door_style/job/depth'

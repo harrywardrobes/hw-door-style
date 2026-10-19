@@ -715,6 +715,25 @@ module HarryWardrobes
           Products.set_host(model, req['pid'], req['host'])
           reload.call
         end
+        # Floor Plan tab
+        plan_js = ->(d) { dlg.execute_script("planData(#{JSON.generate(d)})") }
+        dlg.add_action_callback('planLoad') do |_c|
+          Steps.one(dlg, 'Making the plan picture', done: ->(d) { plan_js.call(d) }, fail: ->(e) { plan_js.call('error' => e.message, 'notes' => Plan.notes(model)) }) { Plan.data(model) }
+        end
+        dlg.add_action_callback('planDims') do |_c|
+          Steps.one(dlg, 'Dimensioning the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.dimension(model); Plan.data(model) }
+        end
+        dlg.add_action_callback('planTs') do |_c|
+          Steps.one(dlg, 'T numbers on the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Products.label(model); Plan.data(model) }
+        end
+        dlg.add_action_callback('planNote') do |_c, json|
+          req = JSON.parse(json)
+          Plan.edit(model, req['id'], req['text'])
+          Steps.one(dlg, 'Updating the plan picture', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.data(model) }
+        end
+        dlg.add_action_callback('planPdf') do |_c|
+          Steps.one(dlg, 'Saving the installation plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { Plan.write(model) }
+        end
         dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
         dlg.add_action_callback('labelPlan') do |_c|
           n = Products.label(model)
@@ -767,7 +786,7 @@ module HarryWardrobes
         dlg.add_action_callback('save') do |_c|
           out = nil
           Steps.run(dlg, [['Saving the door order and parts list', -> { out = Workshop.save(model, data) }]],
-                    done: ->(_r) { dlg.execute_script("saved(#{JSON.generate(out.merge('names' => out['files'].map { |f| File.basename(f) }))})") },
+                    done: ->(_r) { dlg.execute_script("saved(#{JSON.generate(out.merge('names' => (out['files'] + [out['plan']].compact).map { |f| File.basename(f) }))})") },
                     fail: fail_js, count: false)
         end
         dlg.add_action_callback('send') do |_c, json|
@@ -777,7 +796,7 @@ module HarryWardrobes
           out = nil
           n = 0
           steps = [['Saving the door order and parts list', -> { out = Workshop.save(model, data) }],
-                   ['Uploading the files and updating the Room', -> { n = Workshop.send_room(model, l['room_id'], out['files'], req['values'] || {}, req['stage']) }]]
+                   ['Uploading the files and updating the Room', -> { n = Workshop.send_room(model, l['room_id'], out['files'], req['values'] || {}, req['stage'], plan: out['plan']) }]]
           Steps.run(dlg, steps,
                     done: ->(_r) { dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'names' => out['files'].map { |f| File.basename(f) })})") },
                     fail: fail_js)

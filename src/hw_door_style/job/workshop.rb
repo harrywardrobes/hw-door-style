@@ -73,15 +73,25 @@ module HarryWardrobes
       def self.save(model, parts)
         door = Report.write_order(model)
         part = PartsList.export(model, parts)
-        { 'files' => [door[1], door[0], part[1], part[0]].compact, 'door_v' => door[2], 'parts_v' => part[2] }
+        plan = Plan.plan_page(model) ? (Plan.write(model) rescue nil) : nil
+        { 'files' => [door[1], door[0], part[1], part[0]].compact, 'plan' => plan&.first, 'door_v' => door[2], 'parts_v' => part[2], 'plan_v' => plan&.last }
       end
 
       # Uploads the four files into Order / Parts List (replacing the last ones), sends the
       # ticked values and, only if chosen, moves the stage.
-      def self.send_room(model, room_id, files, values, stage)
+      def self.send_room(model, room_id, files, values, stage, plan: nil)
         folder = HubSpotPictures.config['files_folder']
         ids = files.map { |f| HubSpot.upload(f, folder) }
         props = values.merge(PartsList::FIELD => ids.join(';'))
+        if plan && File.exist?(plan)
+          # Floor Plan keeps the survey pictures; the last installation plan is replaced.
+          pid = HubSpot.upload(plan, folder)
+          cur = (HubSpot.read_one('listings', room_id, ['floor_plan'])['properties'] || {})['floor_plan'].to_s.split(';')
+          last = model.get_attribute(DICT, 'plan_hs_file').to_s
+          props['floor_plan'] = (cur.reject { |x| x == last || x.empty? } + [pid]).join(';')
+          Ops.run(model, 'HubSpot: record plan', transparent: true) { model.set_attribute(DICT, 'plan_hs_file', pid.to_s) }
+          ids << pid
+        end
         props['hs_pipeline_stage'] = stage if stage && !stage.to_s.empty?
         HubSpot.update_room(room_id, props)
         Ops.run(model, 'HubSpot: record workshop send', transparent: true) { model.set_attribute(DICT, 'hs_workshop_sent_at', Time.now.strftime('%d/%m/%Y %H:%M')) }

@@ -65,9 +65,32 @@ module HarryWardrobes
           @ops << format('%.2f G %.2f w %.2f %.2f m %.2f %.2f l S 0 G', gray, w, x1, y1, x2, y2)
         end
 
+        # A JPEG (Pdf.jpeg) drawn at x, y (bottom-left), w x h points.
+        def image(name, x, y, w, h)
+          @ops << format('q %.2f 0 0 %.2f %.2f %.2f cm /%s Do Q', w, h, x, y, name)
+        end
+
         def to_s
           @ops.join("\n")
         end
+      end
+
+      # { 'bytes', 'w', 'h' } for a baseline / progressive JPEG file (size read from its SOF).
+      def self.jpeg(path)
+        b = File.binread(path)
+        i = 2
+        while i < b.bytesize
+          i += 1 while b.getbyte(i) == 0xFF && b.getbyte(i + 1) == 0xFF
+          marker = b.getbyte(i + 1)
+          len = (b.getbyte(i + 2) << 8) | b.getbyte(i + 3)
+          if [0xC0, 0xC1, 0xC2].include?(marker)
+            h = (b.getbyte(i + 5) << 8) | b.getbyte(i + 6)
+            w = (b.getbyte(i + 7) << 8) | b.getbyte(i + 8)
+            return { 'bytes' => b, 'w' => w, 'h' => h }
+          end
+          i += 2 + len
+        end
+        raise "#{File.basename(path)}: not a JPEG"
       end
 
       def self.columns
@@ -161,24 +184,32 @@ module HarryWardrobes
       end
 
       # Page content streams -> PDF bytes.
-      def self.document(pages)
+      # images: { 'Im1' => Pdf.jpeg(path) } - drawn with Page#image.
+      def self.document(pages, images: {})
         objs = []
         objs << '<< /Type /Catalog /Pages 2 0 R >>'
+        first_img = 5 + pages.size * 2
         kids = pages.each_index.map { |i| "#{5 + i * 2} 0 R" }
         objs << "<< /Type /Pages /Kids [#{kids.join(' ')}] /Count #{pages.size} >>"
         objs << '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>'
         objs << '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'
+        xo = images.keys.each_with_index.map { |n, k| "/#{n} #{first_img + k} 0 R" }.join(' ')
+        res = "/Font << /F1 3 0 R /F2 4 0 R >>#{xo.empty? ? '' : " /XObject << #{xo} >>"}"
         pages.each_with_index do |c, i|
           objs << "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 #{PAGE_W.to_i} #{PAGE_H.to_i}] " \
-                  "/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents #{6 + i * 2} 0 R >>"
+                  "/Resources << #{res} >> /Contents #{6 + i * 2} 0 R >>"
           objs << "<< /Length #{c.bytesize} >>\nstream\n#{c}\nendstream"
+        end
+        images.each_value do |im|
+          objs << ("<< /Type /XObject /Subtype /Image /Width #{im['w']} /Height #{im['h']} /ColorSpace /DeviceRGB " \
+                   "/BitsPerComponent 8 /Filter /DCTDecode /Length #{im['bytes'].bytesize} >>\nstream\n".b + im['bytes'].b + "\nendstream".b)
         end
 
         out = String.new("%PDF-1.4\n", encoding: Encoding::BINARY)
         offsets = []
         objs.each_with_index do |o, i|
           offsets << out.bytesize
-          out << "#{i + 1} 0 obj\n#{o}\nendobj\n".b
+          out << "#{i + 1} 0 obj\n".b << o.b << "\nendobj\n".b
         end
         xref = out.bytesize
         out << "xref\n0 #{objs.size + 1}\n0000000000 65535 f \n".b

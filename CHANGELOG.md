@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.47.0 — 2026-10-20
+- **Floor Plan** tab in the Workshop (next to the Product List): the plan scene (e.g. "S top") with its notes, dimensions and T numbers; buttons for T numbers on the plan, Dimension the plan (the room and each product's width along the wall - made again each time) and Save installation plan (PDF). Notes are listed to edit or delete.
+- Plan notes: right-click a part > HW Door Style > Plan note > a standard message ("81mm FILLER", "CABLE PORT", "BOOKCASE SHELVING 300mm DEEP"...) or Other text. A SketchUp text with an arrow to the part, on the "Plan notes" tag, shown only in the plan scene(s). {size} {width} {depth} {height} fill in from the part. Messages are edited in Settings > Floor plan (new section, with the plan scenes, tags and distances).
+- INSTALLATION_PLAN_v<N>_<file>.pdf: "Installation Plan" with the ceiling height and top fascia and the plan picture. Saved with the workshop pack, and Save + send to HubSpot adds it to the Room's Floor Plan (replacing the last plan, keeping the survey pictures).
+
 ## 0.46.0 — 2026-10-20
 - **Depth** on every unit: back wall to the back of the facing (finished depth adds the facing / door, e.g. 580 / 598). Standard 580, bridge units / worktops / box ends 500 (Settings > Components, with own depths for box shelves and the bookcase). New units from the + window get it; the Scribe / runout window has the job's depths (standard and bridge / worktop) and sets every unit; right-click > HW Door Style > Depth changes any unit (standard, bridge / worktop, job depth for each, or a number).
 - Library components (from Components V29): Depth in Component Options in place of the old depth boxes - a wardrobe's floor / divider and shelf depth follow it (shelves keep their setback, the linen press worktop its gap), the bridge / box shelf / box end / end panel / bookcase / worktop depth follows it (less the back runout). Axis at the back-left corner on the floor, so units go straight against the wall and changing Depth moves the front only. Units already in job files keep their old axis.

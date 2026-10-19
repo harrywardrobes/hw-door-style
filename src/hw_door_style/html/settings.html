@@ -109,6 +109,7 @@
   <a data-s="scribe">Scribe &amp; ceiling<i class="dot"></i></a>
   <h3>Output</h3>
   <a data-s="productlist">Product list<i class="dot"></i></a>
+  <a data-s="floorplan">Floor plan<i class="dot"></i></a>
   <a data-s="export">Export<i class="dot"></i></a>
   <a data-s="cutlist">Cut list<i class="dot"></i></a>
   <a data-s="hubspot">HubSpot<i class="dot"></i></a>
@@ -283,6 +284,23 @@
     <div class="f t"><span>Plan label tag</span><input type="text" id="product_label_tag"></div>
     <div class="f t"><span>Plan scenes</span><input type="text" id="product_label_scenes"></div>
     <div class="hint">"Show T numbers on the plan" puts T1 (580/598) - the number with depth / finished depth - over each product on its own tag, shown only in scenes whose name matches (e.g. <code>top|plan</code> for "S top").</div>
+  </fieldset>
+</section>
+
+<section id="s_floorplan">
+  <h2>Floor plan</h2>
+  <div class="lead">The Installation Plan (Workshop &gt; Floor Plan): notes with arrows, dimensions and T numbers on the plan scene, saved as a PDF with the workshop pack and sent to the Room's Floor Plan.</div>
+  <fieldset><legend>Standard messages</legend>
+    <div class="f t"><span>Messages</span><textarea id="plan_messages" rows="12"></textarea></div>
+    <div class="hint">One per line - offered when you right-click a part &gt; HW Door Style &gt; Plan note (there's also "Other text..."). {size} = the part's size (the narrower of its width / depth, e.g. a filler), {width}, {depth}, {height} - in mm.</div>
+  </fieldset>
+  <fieldset><legend>Plan</legend>
+    <div class="f t"><span>Plan scenes</span><input type="text" id="plan_scenes"></div>
+    <div class="f t"><span>Notes tag</span><input type="text" id="plan_notes_tag"></div>
+    <div class="f t"><span>Dimensions tag</span><input type="text" id="plan_dims_tag"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Note distance (mm)</span><input type="number" id="plan_note_offset_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Dimension distance (mm)</span><input type="number" id="plan_dim_offset_mm"></div>
+    <div class="hint">Notes, dimensions and T numbers show only in scenes whose name matches (e.g. <code>top|plan</code> for "S top"). Distances: how far a note sits from its part, and the dimensions from the wall.</div>
   </fieldset>
 </section>
 
@@ -475,9 +493,9 @@
 var S = /*DATA*/null;
 var LISTS = ['door_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip','depth_short_components'];
 var LOWER_LISTS = ['product_depth_keys'];
-var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm'];
+var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', product_prefix:'T', product_label_tag:'T numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'Plan notes', plan_dims_tag:'Plan dimensions', product_prefix:'T', product_label_tag:'T numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
@@ -500,6 +518,7 @@ function load(s){
   $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
   var rd = s.runout_defaults_mm || {};
   SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
+  $('plan_messages').value = (s.plan_messages || []).join('\n');
   var dbc = s.depth_by_component || {};
   $('depth_by_component').value = Object.keys(dbc).map(function(k){ return k + ': ' + dbc[k]; }).join(', ');
   var pt = s.product_types || {};
@@ -564,6 +583,7 @@ function collect(){
   o.runout_defaults_mm = {};
   SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
+  o.plan_messages = $('plan_messages').value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
   o.depth_by_component = {};
   $('depth_by_component').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = parseFloat(x.slice(i + 1)); if (k && v > 0) o.depth_by_component[k] = v; });
   o.product_types = {};
