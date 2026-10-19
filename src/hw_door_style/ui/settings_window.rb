@@ -149,6 +149,17 @@ module HarryWardrobes
           end
           dlg.execute_script("hsFieldList(#{JSON.generate(r)})")
         end
+        dlg.add_action_callback('hsStages') do |_c|
+          r = begin
+            m = HubSpotRoom.meta
+            secs = HubSpotRoom::LAYOUT.map { |t, props| [t, props.select { |p| m[p] }.map { |p| [p, m[p]['label']] }] }
+            { 'stages' => HubSpot.room_stages, 'sections' => secs }
+          rescue StandardError => e
+            Log.error('hubspot stages', e) unless e.is_a?(HubSpot::Error)
+            { 'error' => e.message }
+          end
+          dlg.execute_script("hsStageList(#{JSON.generate(r)})")
+        end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 
         dlg.add_action_callback('save') do |_c, json|

@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Pictures to HubSpot</title>
+<!--HW-->
+<style>
+  body { display:flex; flex-direction:column; height:100vh; }
+  .wrap { flex:1; overflow:auto; }
+  .grp { border:1px solid var(--line); border-radius:4px; padding:7px 10px 9px; margin-bottom:9px; }
+  .grp h2 { font-size:12.5px; margin:0 0 5px; display:flex; gap:10px; align-items:center; }
+  .grp h2 .hint { margin:0; font-weight:normal; }
+  .grp h2 select { margin-left:auto; font:inherit; font-size:11px; padding:1px 3px; }
+  .scenes { display:flex; flex-wrap:wrap; gap:4px 14px; }
+  .scenes label { font-size:11.5px; display:flex; gap:4px; align-items:center; }
+  .pics { display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+  .pic { width:180px; border:1px solid var(--line); border-radius:3px; padding:3px; font-size:10.5px; }
+  .pic img { width:100%; display:block; border-radius:2px; background:#f3f4f5; }
+  .pic label { display:flex; gap:4px; align-items:flex-start; margin-top:3px; word-break:break-word; }
+  .pic.off { opacity:.45; }
+  .err { color:var(--warn); }
+  .ok { color:var(--accent); font-weight:600; }
+  #status { font-size:11px; color:var(--muted); align-self:center; margin-right:auto; }
+  .bar button { white-space:nowrap; }
+</style>
+</head>
+<body>
+<h1 id="h"></h1>
+<div class="sub" id="sub"></div>
+<div class="wrap" id="groups"></div>
+<div class="bar">
+  <span id="status"></span>
+  <button onclick="sketchup.openFolder()">Open folder</button>
+  <button onclick="sketchup.cancel()">Close</button>
+  <button id="make" onclick="make()">Make pictures</button>
+  <button class="primary" id="up" disabled onclick="upload()">Upload to HubSpot</button>
+</div>
+<script>
+var D = /*DATA*/null;
+var MADE = null;
+$('h').textContent = 'Pictures to HubSpot - ' + (D.room || '');
+$('sub').textContent = 'Tick the scenes for each field, then Make pictures (' + D.width + ' x ' + D.height + ' ' + D.format.toUpperCase() + ', saved in ' + D.dir + '). Check them, then Upload. Settings > HubSpot sets the size, folder and which scenes start ticked.';
+
+function draw(){
+  $('groups').innerHTML = D.rows.map(function(r, i){
+    var made = MADE && MADE[r.field] || null;
+    var h = '<div class="grp"><h2>' + esc(r.label) + '<span class="hint">' + (made ? made.length + ' picture(s) made' : '') + '</span>' +
+      '<select id="mode_' + i + '"><option value="replace"' + (D.mode === 'replace' ? ' selected' : '') + '>Replace what is in HubSpot</option><option value="add"' + (D.mode === 'add' ? ' selected' : '') + '>Add to what is in HubSpot</option></select></h2>';
+    h += '<div class="scenes">' + D.scenes.map(function(s){
+      return '<label><input type="checkbox" data-f="' + esc(r.field) + '" value="' + esc(s) + '"' + (r.ticked.indexOf(s) >= 0 ? ' checked' : '') + '> ' + esc(s) + '</label>';
+    }).join('') + '</div>';
+    if (made) h += '<div class="pics">' + made.map(function(p, j){
+      return '<div class="pic"><img src="' + p.thumb + '"><label><input type="checkbox" data-up="' + esc(r.field) + '" data-j="' + j + '" checked> ' + esc(p.name) + '</label></div>';
+    }).join('') + '</div>';
+    return h + '</div>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-f]'), function(c){
+    c.onchange = function(){ var r = D.rows.filter(function(x){ return x.field === c.getAttribute('data-f'); })[0];
+      r.ticked = r.ticked.filter(function(s){ return s !== c.value; }); if (c.checked) r.ticked.push(c.value); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-up]'), function(c){
+    c.onchange = function(){ c.closest('.pic').className = 'pic' + (c.checked ? '' : ' off'); count(); };
+  });
+  count();
+}
+function picks(){ var o = {}; D.rows.forEach(function(r){ o[r.field] = D.scenes.filter(function(s){ return r.ticked.indexOf(s) >= 0; }); }); return o; }
+function make(){
+  var p = picks(), n = 0; Object.keys(p).forEach(function(k){ n += p[k].length; });
+  if (!n) { $('status').innerHTML = '<span class="err">Tick at least one scene.</span>'; return; }
+  $('status').textContent = 'Making ' + n + ' picture(s)...'; $('make').disabled = true; $('up').disabled = true;
+  setTimeout(function(){ sketchup.make(JSON.stringify(p)); }, 30);
+}
+function made(r){
+  $('make').disabled = false;
+  if (r.error) { $('status').innerHTML = '<span class="err">' + esc(r.error) + '</span>'; return; }
+  MADE = r.made; draw();
+  $('status').textContent = 'Saved in ' + D.dir + '. Untick any you don\'t want, then Upload.';
+}
+function chosen(){
+  var o = {};
+  D.rows.forEach(function(r, i){
+    var list = MADE && MADE[r.field] || [];
+    var paths = list.filter(function(p, j){ var c = document.querySelector('[data-up="' + r.field + '"][data-j="' + j + '"]'); return c && c.checked; }).map(function(p){ return p.path; });
+    if (paths.length) o[r.field] = { paths: paths, mode: $('mode_' + i).value };
+  });
+  return o;
+}
+function count(){ var c = chosen(), n = 0; Object.keys(c).forEach(function(k){ n += c[k].paths.length; }); $('up').disabled = n === 0; $('up').textContent = n ? 'Upload ' + n + ' to HubSpot' : 'Upload to HubSpot'; }
+function upload(){
+  $('status').textContent = 'Uploading - this can take a little while...'; $('up').disabled = true; $('make').disabled = true;
+  setTimeout(function(){ sketchup.upload(JSON.stringify(chosen())); }, 30);
+}
+function uploading(name){ $('status').textContent = 'Uploading ' + name + '...'; }
+function uploaded(r){
+  $('make').disabled = false;
+  if (r.error) { $('status').innerHTML = '<span class="err">Upload stopped: ' + esc(r.error) + '</span>'; $('up').disabled = false; return; }
+  var parts = D.rows.filter(function(x){ return r.done[x.field]; }).map(function(x){ return x.label + ' ' + r.done[x.field]; });
+  $('status').innerHTML = '<span class="ok">Uploaded to the Room: ' + esc(parts.join(', ')) + '.</span>';
+}
+draw();
+</script>
+</body>
+</html>

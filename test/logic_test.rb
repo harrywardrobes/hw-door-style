@@ -495,6 +495,16 @@ check 'colour match: punctuation ignored', R.match_option('Dark Onyx Grey', opts
 check 'colour match: unknown -> nil', R.match_option('Sage Green', opts).nil? && R.match_option(nil, opts).nil?
 check 'numbers: blank = 0, 2400 = 2400.0', R.same?(0, nil, true) && R.same?(2400, '2400.0', true) && !R.same?(25, '50', true)
 check 'drawer type', R.drawer_type(2, 0) == 'External' && R.drawer_type(0, 3) == 'Internal' && R.drawer_type(1, 1).start_with?('Both') && R.drawer_type(0, 0).start_with?('None')
+require 'base64'
+require 'hw_door_style/export/hubspot_pictures'
+P = HubSpotPictures
+check 'pictures: default scenes matched any case', P.preset(['room', 'D external', 'D internal', 'S top'], ['d external', 'S TOP', 'Gone']) == ['D external', 'S top']
+fm2 = Struct.new(:path).new('H:/x/WILLIAMS Rebecca (Rossett - 1)/SURVEY - felix - rebecca williams.skp')
+check 'pictures: file name', P.file_for('', fm2, 'Renders', 'D external', 'jpg') == 'SURVEY - felix - rebecca williams - Renders - D external.jpg'
+check 'pictures: saved in SURVEY RENDERS next to the file', P.out_dir(fm2, 'SURVEY RENDERS').end_with?('(Rossett - 1)/SURVEY RENDERS') && P.out_dir(fm2, '').end_with?('(Rossett - 1)')
+cfg = P.config
+check 'pictures: settings defaults', cfg['rows'].map { |r| r['field'] } == %w[render_1 floor_plan survey_door_dimensions_1] && cfg['width'] == 1920 && cfg['format'] == 'jpg' && cfg['mode'] == 'replace'
+check 'required: empty fields listed by label', R.missing(%w[a b c], { 'a' => '1', 'b' => ' ', 'c' => nil }, { 'b' => 'Bed' }) == %w[Bed c]
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

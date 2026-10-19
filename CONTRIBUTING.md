@@ -13,7 +13,7 @@ Everything lives in the module `HarryWardrobes::DoorStyle`.
 | `doors/` | `Styles` (Flat / Shaker builders), `Converter`, `Hardware` (hinges / TIP-ON), `Tagger`, `Repair`, `DrawerBox`, `Doors` (what the door menu items do). |
 | `colours/` | `Colours`: the library, painting by tag group, 22mm panels. |
 | `job/` | `Runouts`, `Ceiling`, `Pencil` (button state + window + observers), `Standardise` (one-off component update), `Report` (summary, door order), `Pdf`. |
-| `export/` | `LibraryExport` (Export components), `OpenCutList`, `HubSpot` (API calls, key in SketchUp prefs only), `HubSpotRoom` (file <-> Room link, field mapping, send window). |
+| `export/` | `LibraryExport` (Export components), `OpenCutList`, `HubSpot` (API calls, key in SketchUp prefs only), `HubSpotRoom` (file <-> Room link, field mapping, send window), `HubSpotPictures` (scenes -> images -> Room file fields). |
 | `ui/` | `Dialog` (opens every window), `ColoursWindow`, `SettingsWindow`, `Menus` (menu, toolbar, right-click). |
 | `html/` | One page per window, plus `hw.css` / `hw.js` shared by all of them. |
 
@@ -78,6 +78,8 @@ dlg.show
 | `runout_values_mm`, `runout_defaults_mm` | Pencil dropdowns and defaults |
 | `export_old_folder`, `export_aliases`, `export_skip` | Export components |
 | `ocl_thicknesses_mm`, `ocl_sheet_sizes`, `ocl_doors_bought_in`, `ocl_bought_in_tag` | Set up OpenCutList (Cut list) |
+| `hubspot_pictures`, `hubspot_picture_size`, `hubspot_picture_format`, `hubspot_picture_folder`, `hubspot_picture_mode`, `hubspot_files_folder` | Pictures to HubSpot |
+| `hubspot_required` | Fields each Room stage needs (`{ stage id => [field names] }`) |
 | `settings_version` | Migration marker (see `Settings.migrate`) |
 
 Window-only data the Settings window receives starts with `_` (`_job`, `_version`, `_colour_rows`...)

@@ -262,7 +262,7 @@ module HarryWardrobes
         m = meta
         calc = calculated(model, m)
         props = LAYOUT.flat_map(&:last).select { |p| m[p] }
-        theirs = HubSpot.read_one('listings', room_id, props + %w[hs_name])['properties'] || {}
+        theirs = HubSpot.read_one('listings', room_id, props + %w[hs_name hs_pipeline_stage])['properties'] || {}
         sections = LAYOUT.map do |title, list|
           rows = list.filter_map do |p|
             f = m[p] or next
@@ -276,7 +276,23 @@ module HarryWardrobes
           end
           { 'title' => title, 'rows' => rows }
         end
-        [sections, theirs['hs_name']]
+        [sections, theirs['hs_name'], stage_info(theirs['hs_pipeline_stage'])]
+      end
+
+      # The Room's stage and the stages after it, each with the fields needed to move
+      # into it (Settings > HubSpot > Required to move on).
+      def self.stage_info(current_id)
+        stages = HubSpot.room_stages rescue []
+        req = Settings.get['hubspot_required'] || {}
+        i = stages.index { |st| st['id'] == current_id.to_s }
+        later = i ? stages[(i + 1)..] : stages
+        { 'current' => i ? stages[i]['label'] : nil,
+          'next' => later.map { |st| { 'id' => st['id'], 'label' => st['label'], 'required' => Array(req[st['id']]) } } }
+      end
+
+      # Fields still empty that the chosen stage needs: [labels]. values: { prop => value }.
+      def self.missing(required, values, labels = {})
+        required.select { |p| values[p].to_s.strip.empty? }.map { |p| labels[p] || p }
       end
 
       # --- doing it ------------------------------------------------------------------------
@@ -474,17 +490,23 @@ module HarryWardrobes
           return unless UI.messagebox("This file isn't linked to a HubSpot room yet.\n\nLink it now?", MB_YESNO) == IDYES
           return show_pick(model.path.to_s.empty? ? :new : :link)
         end
-        sections, name = begin
+        sections, name, stage = begin
           card(model, l['room_id'])
         rescue StandardError => e
           return fail('read room', e)
         end
-        data = { 'room' => name || l['room_name'], 'customer' => l['customer'], 'sections' => sections,
+        data = { 'room' => name || l['room_name'], 'customer' => l['customer'], 'sections' => sections, 'stage' => stage,
                  'project' => !l['project_id'].to_s.empty?,
                  'sent_at' => model.get_attribute(DICT, 'hs_sent_at', nil), 'scribes_on' => Pencil.on?(model) }
         dlg = Dialog.open('hubspot_send', title: 'HW - HubSpot room', key: 'hw_hubspot_send2', width: 820, height: 760, data: data)
         dlg.add_action_callback('openRoom') { |_c| open_record('listings', l['room_id']) }
         dlg.add_action_callback('openProject') { |_c| open_record('projects', l['project_id']) }
+        dlg.add_action_callback('pictures') do |_c|
+          HubSpotPictures.show(lambda {
+            files = HubSpot.read_one('listings', l['room_id'], FILE_FIELDS)['properties'] || {}
+            dlg.execute_script("filesUpdated(#{JSON.generate(files.slice(*FILE_FIELDS))})") if dlg.visible?
+          })
+        end
         dlg.add_action_callback('send') do |_c, json|
           req = JSON.parse(json)
           dlg.close

@@ -23,6 +23,11 @@
   .ro { color:var(--muted); white-space:pre-wrap; }
   .use { font-size:10.5px; padding:1px 6px; margin-top:3px; }
   .warnbox { border:1px solid #efcdb9; background:#fbefe8; padding:6px 8px; border-radius:3px; margin-bottom:8px; font-size:11.5px; }
+  tr.need td.lab::after { content:' *'; color:var(--warn); font-weight:700; }
+  tr.need.empty td.val { background:#fbefe8; }
+  .stage { display:flex; gap:8px; align-items:center; font-size:11.5px; margin-bottom:8px; }
+  .stage select { width:auto; }
+  .missing { color:var(--warn); font-weight:600; }
   #count { font-size:11px; color:var(--muted); align-self:center; margin-right:auto; }
   #review { display:none; position:fixed; inset:0; z-index:10; background:#fff; padding:14px; flex-direction:column; }
   #review .list { flex:1; overflow:auto; border:1px solid var(--line); border-radius:3px; padding:6px 10px; }
@@ -36,9 +41,11 @@
 <h1 id="h"></h1>
 <div class="sub" id="sub"></div>
 <div id="warn"></div>
+<div class="stage" id="stage"></div>
 <div class="wrap"><table><colgroup><col class="l"><col class="v"><col class="h"></colgroup><tbody id="t"></tbody></table></div>
 <div class="bar">
   <span id="count"></span>
+  <button onclick="sketchup.pictures()">Pictures...</button>
   <button onclick="sketchup.openRoom()">Open Room</button>
   <button id="openProject" onclick="sketchup.openProject()">Open Project</button>
   <button onclick="sketchup.cancel()">Cancel</button>
@@ -50,7 +57,7 @@
   <div class="list" id="rlist"></div>
   <div class="bar">
     <button onclick="$('review').style.display='none'">Back</button>
-    <button class="primary" onclick="send()">Send</button>
+    <button class="primary" id="sendBtn" onclick="send()">Send</button>
   </div>
 </div>
 <script>
@@ -75,6 +82,19 @@ function label(r, v){
   }
   return String(v);
 }
+var REQ = [];
+function stageDraw(){
+  var st = D.stage || { next: [] };
+  if (!st.next.length) { $('stage').innerHTML = st.current ? 'Stage: <b>' + esc(st.current) + '</b> (last stage)' : ''; return; }
+  $('stage').innerHTML = (st.current ? 'Stage: <b>' + esc(st.current) + '</b>. ' : '') + 'Getting ready for <select id="target">' +
+    st.next.map(function(x, i){ return '<option value="' + i + '">' + esc(x.label) + ' (' + x.required.length + ' required)</option>'; }).join('') + '</select>' +
+    '<span class="hint" style="margin:0">Required fields are marked * - Settings > HubSpot sets them.</span>';
+  $('target').onchange = function(){ REQ = st.next[+this.value].required; draw(); };
+  REQ = st.next[0].required;
+}
+function isEmpty(r){ return r.file ? blank(r.hubspot) : blank(V[r.prop]); }
+function missingList(){ var out = []; REQ.forEach(function(p){ var r = R[p]; if (r && isEmpty(r)) out.push(r.label); else if (!r) out.push(p); }); return out; }
+function filesUpdated(f){ Object.keys(f).forEach(function(p){ if (R[p]) { R[p].hubspot = f[p]; } }); draw(); }
 function changedHS(r){ return !r.readonly && !r.file && norm(r, V[r.prop]) !== norm(r, r.hubspot); }
 function changedFile(r){ return r.calc && r.take && norm(r, V[r.prop]) !== norm(r, r.sketchup); }
 
@@ -99,7 +119,7 @@ function input(r){
 }
 
 function row(r){
-  var cls = changedFile(r) ? 'take' : (changedHS(r) ? 'chg' : '');
+  var cls = (changedFile(r) ? 'take' : (changedHS(r) ? 'chg' : '')) + (REQ.indexOf(r.prop) >= 0 ? ' need' + (isEmpty(r) ? ' empty' : '') : '');
   var hs = 'HubSpot: ' + label(r, r.hubspot);
   if (r.calc) hs += '\nSketchUp: ' + (blank(r.sketchup) ? (r.shown || '--') : (r.shown || label(r, r.sketchup)));
   var use = r.calc && r.take && !blank(r.hubspot) && norm(r, r.hubspot) !== norm(r, V[r.prop]) ? '<br><button class="use" data-use="'+esc(r.prop)+'">Use HubSpot\'s</button>' : '';
@@ -130,7 +150,7 @@ function wire(){
       if (el.type === 'checkbox') {
         V[p] = Array.prototype.filter.call(document.querySelectorAll('input[type=checkbox][data-p="'+p+'"]'), function(c){ return c.checked; }).map(function(c){ return c.value; }).join(';');
       } else V[p] = el.value;
-      var tr = $('r_' + p); tr.className = changedFile(R[p]) ? 'take' : (changedHS(R[p]) ? 'chg' : ''); count();
+      var tr = $('r_' + p); tr.className = (changedFile(R[p]) ? 'take' : (changedHS(R[p]) ? 'chg' : '')) + (REQ.indexOf(p) >= 0 ? ' need' + (isEmpty(R[p]) ? ' empty' : '') : ''); count();
     });
     if (ev === 'input') el.addEventListener('change', function(){ redrawRow(p); });
   });
@@ -147,12 +167,19 @@ function changes(){
 }
 function count(){
   var c = changes();
-  $('count').textContent = c.ls.length + ' change(s) for HubSpot, ' + c.lt.length + ' for this file';
+  var miss = missingList();
+  $('count').innerHTML = esc(c.ls.length + ' change(s) for HubSpot, ' + c.lt.length + ' for this file') + (miss.length ? ' - <span class="missing">' + miss.length + ' required field(s) empty</span>' : '');
   $('go').disabled = c.ls.length + c.lt.length === 0;
 }
 function line(x){ return '<div class="ch"><b>'+esc(x[0].label)+'</b>: <span class="old">'+esc(label(x[0], x[1]))+'</span><span class="arrow">→</span>'+esc(label(x[0], x[2]))+'</div>'; }
 function review(){
-  var c = changes();
+  var c = changes(), miss = missingList();
+  if (miss.length) {
+    $('rlist').innerHTML = '<h2 class="missing">Fill these in first - needed for ' + esc($('target').options[$('target').selectedIndex].text.replace(/ \(.*$/, '')) + ':</h2>' +
+      miss.map(function(m){ return '<div class="ch">' + esc(m) + '</div>'; }).join('') + '<div class="hint">Pictures: use Pictures... to upload them.</div>';
+    $('sendBtn').style.display = 'none'; $('review').style.display = 'flex'; return;
+  }
+  $('sendBtn').style.display = '';
   $('rlist').innerHTML = (c.ls.length ? '<h2>HubSpot Room - ' + c.ls.length + ' field(s)</h2>' + c.ls.map(line).join('') : '') +
                          (c.lt.length ? '<h2>This SketchUp file - ' + c.lt.length + ' value(s)</h2>' + c.lt.map(line).join('') : '');
   $('review').style.display = 'flex';
@@ -160,6 +187,7 @@ function review(){
 function send(){ var c = changes(); sketchup.send(JSON.stringify({ send: c.send, take: c.take })); }
 
 D.sections.forEach(function(s){ s.rows.forEach(function(r){ R[r.prop] = r; V[r.prop] = r.calc ? (blank(r.sketchup) ? r.hubspot : r.sketchup) : r.hubspot; }); });
+stageDraw();
 draw();
 </script>
 </body>

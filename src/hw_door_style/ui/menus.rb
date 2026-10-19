@@ -69,6 +69,7 @@ module HarryWardrobes
         c[:hubspot] = command('Send to HubSpot...', 'The whole HubSpot Room card with this file\'s sizes, runouts, colours and hardware filled in; you see every change before it is sent.',
                               'hubspot') { HubSpotRoom.show_send }
         hs.add_item(c[:hubspot])
+        hs.add_item('Pictures to HubSpot...') { HubSpotPictures.show }
         hs.add_item('Open Room in HubSpot') { HubSpotRoom.open_in_hubspot('listings') }
         hs.add_item('Open Project in HubSpot') { HubSpotRoom.open_in_hubspot('projects') }
 

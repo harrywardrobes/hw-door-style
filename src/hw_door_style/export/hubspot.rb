@@ -201,6 +201,44 @@ module HarryWardrobes
         get("/crm/v3/objects/#{type}/#{id}?properties=#{props.join(',')}")
       end
 
+      # Room pipeline stages in order: [{ 'id', 'label', 'pipeline' }] (cached for the session).
+      def self.room_stages
+        @stages ||= Array(get('/crm/v3/pipelines/listings')['results']).sort_by { |p| p['displayOrder'].to_i }.flat_map do |p|
+          Array(p['stages']).sort_by { |st| st['displayOrder'].to_i }.map { |st| { 'id' => st['id'], 'label' => st['label'], 'pipeline' => p['label'] } }
+        end
+      end
+
+      # Uploads one picture to HubSpot's file manager; returns its file id.
+      # Same place and privacy as a file added on the Room card in HubSpot.
+      def self.upload(path, folder)
+        raise Error, 'No HubSpot key saved (Settings > HubSpot).' unless key?
+        uri = URI("#{BASE}/files/v3/files")
+        opts = JSON.generate(access: 'HIDDEN_PRIVATE', overwrite: false, duplicateValidationStrategy: 'NONE')
+        1.upto(3) do |attempt|
+          begin
+            res = File.open(path, 'rb') do |io|
+              http = Net::HTTP.new(uri.host, uri.port)
+              http.use_ssl = true
+              http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+              http.open_timeout = 15
+              http.read_timeout = 120
+              req = Net::HTTP::Post.new(uri)
+              req['Authorization'] = "Bearer #{key}"
+              req.set_form([['file', io, { filename: File.basename(path) }], ['folderPath', folder.to_s], ['options', opts]], 'multipart/form-data')
+              http.request(req)
+            end
+          rescue Net::OpenTimeout, Net::ReadTimeout, SocketError, Errno::ECONNRESET => e
+            next sleep(attempt * 1.5) if attempt < 3
+            raise Error, "Can't reach HubSpot (#{e.class.name.split('::').last}). Check the internet connection."
+          end
+          code = res.code.to_i
+          next sleep(attempt * 1.5) if (code == 429 || code >= 500) && attempt < 3
+          data = (JSON.parse(res.body) rescue { 'message' => res.body.to_s[0, 200] })
+          raise Error.new(message_for(code, data), code) unless code.between?(200, 299)
+          return data['id'].to_s
+        end
+      end
+
       def self.update_room(id, props)
         patch("/crm/v3/objects/listings/#{id}", { properties: props })
       end
@@ -213,6 +251,7 @@ module HarryWardrobes
       def self.forget_cache!
         @options = nil
         @account = nil
+        @stages = nil
       end
 
       # The Room (Listings) fields: [{ name, label, type, group }], HubSpot's own

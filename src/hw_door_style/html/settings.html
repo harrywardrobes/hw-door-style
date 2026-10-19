@@ -284,7 +284,7 @@
 <!-- ======================= HUBSPOT ======================= -->
 <section id="s_hubspot">
   <h2>HubSpot</h2>
-  <div class="lead">Link job files to their Project and Room records. This version only reads from HubSpot - sending survey data comes next.</div>
+  <div class="lead">One SketchUp file = one HubSpot Room (Extensions > HW Door Style > HubSpot).</div>
   <fieldset><legend>Connection</legend>
     <div class="f t"><span>Private app key</span><input type="password" id="hsKey" autocomplete="off" placeholder=""></div>
     <div class="hint" id="hsKeyHint"></div>
@@ -296,6 +296,22 @@
     <div class="hint">HubSpot > Settings > Integrations > Private apps > your app (the one Measure Once used) > Auth > Show token, then paste it here. Kept on this computer only - never in settings backups or team settings.</div>
   </fieldset>
   <fieldset><legend>Result</legend><div id="hsOut" class="hint" style="margin-top:0">Not tested yet.</div></fieldset>
+  <fieldset><legend>Pictures to HubSpot</legend>
+    <table class="ocl"><thead><tr><th style="width:150px">Room field</th><th>Scenes ticked to start (comma separated)</th></tr></thead><tbody id="hsPics"></tbody></table>
+    <div class="hint" style="margin-bottom:6px">Scene names as in SketchUp, any case. You can still tick others each time.</div>
+    <div class="f t"><span>Picture size (px)</span><input type="text" id="hubspot_picture_size" placeholder="1920x1080"></div>
+    <div class="f t"><span>Format</span><select id="hubspot_picture_format"><option value="jpg">JPG (smaller)</option><option value="png">PNG (sharper lines)</option></select></div>
+    <div class="f t"><span>Folder next to the .skp</span><input type="text" id="hubspot_picture_folder"></div>
+    <div class="hint" style="margin-bottom:6px">Pictures are saved here before uploading; empty = the same folder as the .skp.</div>
+    <div class="f t"><span>In HubSpot</span><select id="hubspot_picture_mode"><option value="replace">Replace the pictures already there</option><option value="add">Add to the pictures already there</option></select></div>
+    <div class="f t"><span>HubSpot files folder</span><input type="text" id="hubspot_files_folder"></div>
+    <div class="hint">Where the files go in HubSpot's file manager. /crm-properties-file-values is where HubSpot puts files added on a record.</div>
+  </fieldset>
+  <fieldset><legend>Required to move on</legend>
+    <div class="hint" style="margin-top:0">HubSpot doesn't share its stage rules, so tick here the fields each Room stage needs. Send to HubSpot won't send until the stage you're getting ready for has them all.</div>
+    <div class="btnrow"><button onclick="hsStages()">Load stages and fields</button><select id="hsStage" style="width:auto;display:none"></select></div>
+    <div id="hsReq" class="hint"></div>
+  </fieldset>
 </section>
 
 <!-- ======================= GENERAL ======================= -->
@@ -397,6 +413,14 @@ function load(s){
   $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
+  PICS = JSON.parse(JSON.stringify(s.hubspot_pictures || [])); picsDraw();
+  $('hubspot_picture_size').value = s.hubspot_picture_size || '1920x1080';
+  $('hubspot_picture_format').value = s.hubspot_picture_format === 'png' ? 'png' : 'jpg';
+  $('hubspot_picture_folder').value = s.hubspot_picture_folder == null ? 'SURVEY RENDERS' : s.hubspot_picture_folder;
+  $('hubspot_picture_mode').value = s.hubspot_picture_mode === 'add' ? 'add' : 'replace';
+  $('hubspot_files_folder').value = s.hubspot_files_folder || '/crm-properties-file-values';
+  REQUIRED = JSON.parse(JSON.stringify(s.hubspot_required || {}));
+  if (HS_STAGES) hsStageList(HS_STAGES); else reqDraw();
 }
 
 function collect(){
@@ -432,6 +456,13 @@ function collect(){
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
   o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';
+  o.hubspot_pictures = PICS.map(function(r, i){ return { field: r.field, label: r.label, scenes: $('pic_' + i).value.split(',').map(function(x){ return x.trim(); }).filter(Boolean) }; });
+  o.hubspot_picture_size = $('hubspot_picture_size').value.replace(/\s/g, '').toLowerCase() || '1920x1080';
+  o.hubspot_picture_format = $('hubspot_picture_format').value;
+  o.hubspot_picture_folder = $('hubspot_picture_folder').value.trim();
+  o.hubspot_picture_mode = $('hubspot_picture_mode').value;
+  o.hubspot_files_folder = $('hubspot_files_folder').value.trim() || '/crm-properties-file-values';
+  o.hubspot_required = REQUIRED;
   o._debug = $('_debug').checked;
   return o;
 }
@@ -476,6 +507,7 @@ function problems(){
   });
   var sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   need('cutlist', 'ocl_sheet_sizes', sizes.length > 0 && sizes.every(function(x){ return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(x); }), 'Stock sizes: length x width, e.g. 2800x2070');
+  need('hubspot', 'hubspot_picture_size', /^\d{3,5}x\d{3,5}$/.test($('hubspot_picture_size').value.replace(/\s/g, '').toLowerCase()), 'Picture size: width x height in pixels, e.g. 1920x1080');
   need('cutlist', 'ocl_thicknesses_mm', $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).length > 0, 'Enter at least one board thickness');
   need('export', 'export_old_folder', /^[^\\/:*?"<>|]+$/.test($('export_old_folder').value.trim() || '_old'), 'Folder name can\'t contain \\ / : * ? " < > |');
   return out;
@@ -582,6 +614,34 @@ function updInfo(u){
 }
 
 // ---------- HubSpot ----------
+var REQUIRED = {}, HS_STAGES = null, PICS = [];
+function picsDraw(){
+  $('hsPics').innerHTML = PICS.map(function(r, i){ return '<tr><td>' + esc(r.label) + '</td><td><input type="text" id="pic_' + i + '" value="' + esc((r.scenes || []).join(', ')) + '"></td></tr>'; }).join('');
+}
+function hsStages(){ $('hsReq').textContent = 'Reading stages and fields...'; sketchup.hsStages(); }
+function hsStageList(r){
+  if (r.error) { $('hsReq').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
+  HS_STAGES = r; var sel = $('hsStage'); sel.style.display = '';
+  sel.innerHTML = r.stages.map(function(st){ return '<option value="' + esc(st.id) + '">To move to: ' + esc(st.label) + ' (' + (REQUIRED[st.id] || []).length + ')</option>'; }).join('');
+  sel.onchange = reqDraw; reqDraw();
+}
+function reqDraw(){
+  if (!HS_STAGES) { var n = Object.keys(REQUIRED).reduce(function(a, k){ return a + REQUIRED[k].length; }, 0); $('hsReq').textContent = n ? n + ' required field(s) set over ' + Object.keys(REQUIRED).length + ' stage(s). Load stages and fields to change them.' : 'None set yet.'; return; }
+  var id = $('hsStage').value, on = REQUIRED[id] || [];
+  $('hsReq').innerHTML = HS_STAGES.sections.map(function(sec){
+    return '<div style="margin-top:6px;font-weight:600;color:var(--ink)">' + esc(sec[0]) + '</div><div style="display:flex;flex-wrap:wrap;gap:2px 14px">' +
+      sec[1].map(function(f){ return '<label style="display:flex;gap:4px;align-items:center;width:47%"><input type="checkbox" style="width:auto" data-req="' + esc(f[0]) + '"' + (on.indexOf(f[0]) >= 0 ? ' checked' : '') + '> ' + esc(f[1]) + '</label>'; }).join('') + '</div>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-req]'), function(c){
+    c.onchange = function(){
+      var list = (REQUIRED[id] || []).filter(function(p){ return p !== c.getAttribute('data-req'); });
+      if (c.checked) list.push(c.getAttribute('data-req'));
+      if (list.length) REQUIRED[id] = list; else delete REQUIRED[id];
+      var o = $('hsStage').options[$('hsStage').selectedIndex]; o.text = o.text.replace(/\(\d+\)$/, '(' + list.length + ')');
+      markDirty();
+    };
+  });
+}
 function hsHint(h){ $('hsKeyHint').textContent = h ? 'Saved key: ' + h + ' (paste a new one to replace it).' : 'No key saved yet.'; $('hsKey').value = ''; }
 function hsSaveKey(){ var k = $('hsKey').value.trim(); if (!k) { $('hsKeyHint').textContent = 'Paste the key first.'; return; } sketchup.hsSaveKey(k); }
 function hsTest(){ $('hsOut').textContent = 'Testing...'; sketchup.hsTest(); }

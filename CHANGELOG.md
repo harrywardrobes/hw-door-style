@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.24.0 — 2026-10-19
+- **Pictures to HubSpot** (HubSpot menu, or Pictures... in the Send window):
+  - Tick the scenes for Renders, Survey Floor Plan and Survey Door Dimensions, then Make pictures.
+  - Each scene is saved as an image next to the .skp (SURVEY RENDERS folder) and shown in the window.
+  - Untick any you don't want, choose Replace or Add for each field, then Upload - they go onto the Room.
+- **Required fields per stage.** Settings > HubSpot > Required to move on: tick the fields each Room
+  stage needs. The Send window shows the Room's stage, which stage you're getting ready for, marks the
+  required fields * and won't send until they're filled in (pictures included).
+- Settings > HubSpot > Pictures to HubSpot: scenes ticked to start, picture size, JPG / PNG, folder,
+  replace or add, and the HubSpot files folder.
+
 ## 0.23.0 — 2026-10-19
 - **Send to HubSpot is now the whole Room card**, in the same sections as HubSpot (Survey Questions,
   Colours + Style, Hardware, Blum Hinges, Drawer Boxes, Order List, Installation, Delivery, Object

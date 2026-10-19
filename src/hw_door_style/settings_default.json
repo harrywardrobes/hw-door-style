@@ -171,5 +171,16 @@
   "ocl_bought_in_tag": "bought-in",
   "update_folder": "G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Harry Wardrobes\\_HW Door Style\\Updates",
   "update_check_at_start": true,
+  "hubspot_pictures": [
+    { "field": "render_1", "label": "Renders", "scenes": ["D external", "D internal"] },
+    { "field": "floor_plan", "label": "Survey Floor Plan", "scenes": ["S top"] },
+    { "field": "survey_door_dimensions_1", "label": "Survey Door Dimensions", "scenes": ["S front internal"] }
+  ],
+  "hubspot_picture_size": "1920x1080",
+  "hubspot_picture_format": "jpg",
+  "hubspot_picture_folder": "SURVEY RENDERS",
+  "hubspot_picture_mode": "replace",
+  "hubspot_files_folder": "/crm-properties-file-values",
+  "hubspot_required": {},
   "settings_version": 3
 }
