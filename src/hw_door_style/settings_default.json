@@ -131,6 +131,9 @@
     ],
     "drawer_rails": [
       "DRW_RUNNER_410"
+    ],
+    "cable_outlets": [
+      "CABLE_OUTLET_80"
     ]
   },
   "colour_groups": {
