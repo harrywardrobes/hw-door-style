@@ -863,5 +863,14 @@ check 'ZPL label: 102 x 76 at 203 dpi (^PW816 ^LL608), 5mm home, T + qty left, p
       zt.start_with?('^XA') && zt.include?('^PW816') && zt.include?('^LL608') && zt.include?('^LH40,40') && zt.include?('^FDT3   1 of 2^FS') && zt.include?(',R,0^FD12^FS') &&
       zt.include?('^FD788 x 490^FS') && zt.include?('^GB') && zt =~ /\^BCN,\d+,N,N,N/ && zt.include?('^FDHW-TEST-12^FS') && zt.include?('^CI28') && zt.end_with?('^XZ')
 
+require 'hw_door_style/job/pdf_print'
+PP = HarryWardrobes::DoorStyle::PdfPrint
+pp_list = [['Adobe PDF', ''], ['Brother HL-L5000D series', 'BROTHER - Harry Wardrobes'], ['\\\\OFFICE\\Brother MFC', 'MFC']]
+PP.define_singleton_method(:printers) { pp_list }
+pp_try = ->(name) { PP.define_singleton_method(:printer) { name }; (PP.resolve rescue :none) }
+check 'PDF printer found by Windows name, share name or \\\\pc\\share - never guessed',
+      pp_try.call('BROTHER - Harry Wardrobes') == 'Brother HL-L5000D series' && pp_try.call('brother hl-l5000d series') == 'Brother HL-L5000D series' &&
+      pp_try.call('\\\\OFFICE\\Brother MFC') == '\\\\OFFICE\\Brother MFC' && pp_try.call('Brother MFC') == '\\\\OFFICE\\Brother MFC' && pp_try.call('Brother') == :none
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

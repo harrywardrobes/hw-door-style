@@ -1,8 +1,10 @@
 # Changelog
 
+## 0.68.1 — 2026-10-20
+- PDF printer: the setting is the Brother's network share name again, "BROTHER - Harry Wardrobes"; the plugin finds the printer it belongs to in Windows by its share name (or its Windows name, or \\computer\share). No guessing - a name that matches nothing lists the printers and their share names.
+
 ## 0.68.0 — 2026-10-20
 - Workshop HubSpot tab: tick what to do - **Send to HubSpot**, **Print labels (Zebra)**, **Print PDFs** - all ticked to start; the button says what it'll do (e.g. "Print PDFs"). The summary box lists only what was done.
-- PDF printer: the default is the Brother's Windows name, "Brother HL-L5000D series" (the old "BROTHER - Harry Wardrobes" setting is updated). A name that doesn't match falls back to the only printer starting with the same word.
 
 ## 0.67.6 — 2026-10-20
 - Updates: test builds in the Dev folder (beside Updates) are found too - at start-up and by Check for updates - and marked "(test build)". Settings > General > "Also offer test builds" (on). When you're ahead of the released version it says so instead of "You have the newest version".

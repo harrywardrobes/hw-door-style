@@ -3,7 +3,7 @@ require 'tmpdir'
 module HarryWardrobes
   module DoorStyle
     # The workshop pack's PDFs straight to the office printer (Settings > Labels > PDF printer,
-    # default "Brother HL-L5000D series") with no print dialog. Labels never go here - they
+    # default "BROTHER - Harry Wardrobes") with no print dialog. Labels never go here - they
     # go to the Zebra (Zpl).
     #
     #   SumatraPDF (free, sumatrapdfreader.org) does the printing: Windows has no reliable
@@ -11,7 +11,7 @@ module HarryWardrobes
     #   the path in Settings. Without it, Windows' "PrintTo" for the default PDF app is tried
     #   (works with Adobe Reader; not with Edge).
     module PdfPrint
-      DEFAULT = 'Brother HL-L5000D series'.freeze
+      DEFAULT = 'BROTHER - Harry Wardrobes'.freeze
 
       def self.printer
         p = Settings.get['pdf_printer'].to_s.strip
@@ -33,10 +33,10 @@ module HarryWardrobes
         dirs.compact.uniq.map { |d| File.join(d, 'SumatraPDF', 'SumatraPDF.exe') }.find { |f| File.exist?(f) }
       end
 
-      # The printers Windows has (names), or nil if they can't be read.
+      # The printers Windows has: [[name, share name]], or nil if they can't be read.
       def self.printers
         require 'win32ole'
-        WIN32OLE.connect('winmgmts://').ExecQuery('SELECT Name FROM Win32_Printer').each.map { |p| p.Name.to_s }
+        WIN32OLE.connect('winmgmts://').ExecQuery('SELECT Name, ShareName FROM Win32_Printer').each.map { |p| [p.Name.to_s, p.ShareName.to_s] }
       rescue StandardError, LoadError => e
         Log.info("printer list: #{e.message}")
         nil
@@ -48,14 +48,13 @@ module HarryWardrobes
         want = printer
         list = printers
         return want if list.nil?
+        # the setting can be the printer's Windows name, its network share name ("BROTHER - Harry
+        # Wardrobes") or \\computer\share; spacing / capitals forgiven. Never a guess.
         norm = ->(n) { n.to_s.downcase.gsub(/\s+/, ' ').strip }
-        hit = list.find { |n| norm.call(n) == norm.call(want) } || list.find { |n| norm.call(n).include?(norm.call(want)) }
-        return hit if hit
-        # not found by name: the only printer with the name's first word (e.g. the one Brother)
-        word = norm.call(want).split.first.to_s
-        same = list.select { |n| !word.empty? && norm.call(n).include?(word) }
-        return same.first if same.size == 1
-        raise "There's no printer called \"#{want}\" in Windows. Printers: #{list.join(', ')}. Set the name in Settings > Labels > PDF printer."
+        w = norm.call(want.to_s.sub(/\A\\\\[^\\]+\\/, ''))
+        hit = list.find { |name, share| norm.call(name) == w || (!share.empty? && norm.call(share) == w) || norm.call(name).end_with?("\\#{w}") }
+        return hit[0] if hit
+        raise "There's no printer called or shared as \"#{want}\" on this computer. Printers: #{list.map { |n, sh| sh.empty? ? n : "#{n} (shared as #{sh})" }.join(', ')}. Set the name in Settings > Labels > PDF printer."
       end
 
       # Prints each PDF (in order) on the printer. Raises with what to do when it can't.

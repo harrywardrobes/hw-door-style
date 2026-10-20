@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 9
+      SETTINGS_VERSION = 10
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -82,9 +82,9 @@ module HarryWardrobes
         if v < 8
           user['product_label_tag'] = d['product_label_tag'] if %w[T_numbers T\ numbers].include?(user['product_label_tag'].to_s) || user['product_label_tag'].to_s.strip.empty?
         end
-        # 0.68: the Brother's Windows name
-        if v < 9
-          user['pdf_printer'] = d['pdf_printer'] if user['pdf_printer'].to_s.strip.empty? || user['pdf_printer'] == 'BROTHER - Harry Wardrobes'
+        # 0.68.1: back to the Brother's network share name (found by its share name in Windows)
+        if v < 10
+          user['pdf_printer'] = d['pdf_printer'] if user['pdf_printer'].to_s.strip.empty? || user['pdf_printer'] == 'Brother HL-L5000D series'
         end
         user['settings_version'] = SETTINGS_VERSION
         user
