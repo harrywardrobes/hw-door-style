@@ -232,11 +232,7 @@ module HarryWardrobes
 
       # --- T labels on the floor plan -------------------------------------------------
 
-      def self.label_tag(model)
-        n = Settings.get['product_label_tag'].to_s.strip
-        n = 'T numbers' if n.empty?
-        model.layers[n] || model.layers.add(n)
-      end
+      def self.label_tag(model) = Tags.get(model, 'product_label_tag')
 
       # Text over the middle of each product, on its own tag, shown only in the plan scenes
       # (Settings "product_label_scenes", e.g. "top"). Replaces the labels made last time.
@@ -263,8 +259,10 @@ module HarryWardrobes
             n += 1
           end
           # Hidden everywhere except the plan scenes.
-          tag.visible = false unless model.pages.select { |pg| pg.name =~ pattern }.include?(model.pages.selected_page)
-          model.pages.each { |pg| pg.set_visibility(tag, pg.name =~ pattern ? true : false) }
+          if Tags.ours?(tag)
+            tag.visible = false unless model.pages.select { |pg| pg.name =~ pattern }.include?(model.pages.selected_page)
+            model.pages.each { |pg| pg.set_visibility(tag, pg.name =~ pattern ? true : false) }
+          end
         end
         n
       end

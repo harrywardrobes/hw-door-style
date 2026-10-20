@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 5
+      SETTINGS_VERSION = 6
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -62,6 +62,12 @@ module HarryWardrobes
             user['door_names'] = user['door_names'] + (%w[WST_DOOR WST_DOOR_UPPER WST_STABLE_PANEL] - user['door_names'])
           end
           user['product_types']['WARDROBE_STABLE'] ||= 'Stable wardrobe' if user['product_types'].is_a?(Hash)
+        end
+        # 0.54: plan tags moved into the "dimensions / labels" folder with its names.
+        if v < 6
+          { 'plan_notes_tag' => 'Plan notes', 'plan_dims_tag' => 'Plan dimensions', 'product_label_tag' => 'T numbers', 'door_view_tag' => 'Door elevation' }.each do |k, old|
+            user[k] = d[k] if user[k].to_s.strip.empty? || user[k] == old
+          end
         end
         user['settings_version'] = SETTINGS_VERSION
         user

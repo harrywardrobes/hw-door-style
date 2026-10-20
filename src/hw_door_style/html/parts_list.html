@@ -207,7 +207,7 @@ function renderProducts(d){
 }
 function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
 function setHost(pid, host){ $('status').textContent = 'Updating the product list...'; sketchup.setHost(JSON.stringify({ pid: pid, host: host })); }
-function doorViewMade(w){ $('status').textContent = w.length ? 'Doors view drawn: ' + (w.length === 1 ? 'scene "Doors"' : w.length + ' scenes "Doors - ' + w.join('", "Doors - ') + '"') + ' (tag "Door elevation"). It is also in the Room Plan and on the door order.' : 'No doors or drawer fronts found.'; }
+function doorViewMade(w){ $('status').textContent = w.length ? 'Doors view drawn: ' + (w.length === 1 ? 'scene "Doors"' : w.length + ' scenes "Doors - ' + w.join('", "Doors - ') + '"') + ' (tag "door_elevation"). It is also in the Room Plan and on the door order.' : 'No doors or drawer fronts found.'; }
 function planLabelled(n){ $('status').textContent = n + ' T number(s) put on the plan (tag "T numbers", shown in the plan scenes).'; }
 // ---------- Floor Plan ----------
 var PLAN = null;

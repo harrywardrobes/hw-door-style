@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.54.0 — 2026-10-20
+- Plan tags in the "dimensions / labels" tag folder: plan dimensions on room_dims, plan notes on plan_notes, T numbers on T_numbers, the doors view on door_elevation (Settings > Floor plan / Product list; folder in Settings > Floor plan). The old "Plan notes", "Plan dimensions", "T numbers" and "Door elevation" tags are renamed, or their items moved onto the tag that's already there, the next time they're used.
+- Only tags the plugin made are switched to show in the plan / doors scenes only - room_dims, which has your own room dimensions too, keeps your scene settings.
+
+## 0.54.0 — 2026-10-20
+- 
+
 ## 0.53.0 — 2026-10-20
 - Doors view clearer: no overall height at the ends; each front's height is written in it (in the top panel of a door with a mid-rail, so the rail stays clear); widths under the bottom row and over every other front (the linen press doors above the drawers, top box doors); the mid-rail centre reads "815 (mid-rail)"; each product's T number under its doors.
 - Linen press drawer fronts are framed like the doors above them (the door frame all round, e.g. 100) - Settings > Doors > Drawers framed like doors (LINEN_PRESS). Shown that way in the doors view too.

@@ -5,8 +5,8 @@ module HarryWardrobes
     # overall height at each end, the height of any door that isn't full height, each drawer
     # front's height, the mid-rail width on each door and the mid-rail centre on the first.
     #
-    #   Model   Workshop > Floor Plan > "Doors view": a drawing per wall on the "Door elevation"
-    #           tag (below the floor, out of the way) and a scene for each - "Doors", or
+    #   Model   Workshop > Floor Plan > "Doors view": a drawing per wall on the "door_elevation"
+    #           tag (in the "dimensions / labels" folder) (below the floor, out of the way) and a scene for each - "Doors", or
     #           "Doors - back wall" / "- left wall"... when there is more than one wall. The tag
     #           shows only in those scenes. Made again each time, like the T numbers.
     #   PDFs    a Door elevation page per wall in the Room Plan and on the door order.
@@ -18,11 +18,7 @@ module HarryWardrobes
 
       def self.mm(v) = v.to_f * 25.4
 
-      def self.tag(model)
-        n = Settings.get['door_view_tag'].to_s.strip
-        n = 'Door elevation' if n.empty?
-        model.layers[n] || model.layers.add(n)
-      end
+      def self.tag(model) = Tags.get(model, 'door_view_tag')
 
       def self.scene_re = /\ADoors\b/i
 

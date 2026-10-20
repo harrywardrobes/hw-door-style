@@ -130,7 +130,7 @@
   "handles_on_pto_doors": false,
   "door_tag": "DOOR",
   "drawer_tag": "DRAWER_FRONT",
-  "door_view_tag": "Door elevation",
+  "door_view_tag": "door_elevation",
   "hinge_tag": "hinges",
   "hardware_material": "HARDWARE",
   "hardware_tags": {
@@ -238,8 +238,9 @@
   "product_joiners": ["BRIDGE_FRAME", "INT_DRAWER", "INT_DRAWER_PLUS", "SHOE_PULL_OUT", "BOX_SHELF", "BXEND"],
   "product_skip": ["FACING_BLOCK", "FACING", "BULLNOSE", "END_PAN", "FLOOR", "CEILING", "CABLE_OUTLET"],
   "plan_scenes": "top|plan",
-  "plan_notes_tag": "Plan notes",
-  "plan_dims_tag": "Plan dimensions",
+  "plan_notes_tag": "plan_notes",
+  "plan_dims_tag": "room_dims",
+  "label_tag_folder": "dimensions / labels",
   "plan_note_offset_mm": 350,
   "plan_dim_offset_mm": 250,
   "plan_messages": [
@@ -266,7 +267,7 @@
   "depth_short_components": ["BRIDGE", "WORKTOP", "BXEND"],
   "depth_by_component": { "BOX_SHELF": 225, "BOOKCASE": 475 },
   "product_front_mm": 18,
-  "product_label_tag": "T numbers",
+  "product_label_tag": "T_numbers",
   "product_label_scenes": "top|plan",
   "export_skip": [
     "FLOOR"

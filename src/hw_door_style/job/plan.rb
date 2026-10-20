@@ -25,17 +25,14 @@ module HarryWardrobes
         Regexp.new(r.empty? ? 'top|plan' : r, Regexp::IGNORECASE)
       end
 
-      def self.tag(model, key, default)
-        n = s[key].to_s.strip
-        n = default if n.empty?
-        model.layers[n] || model.layers.add(n)
-      end
+      # Tags in the "dimensions / labels" folder (Tags): room_dims and plan_notes by default.
+      def self.notes_tag(model) = Tags.get(model, 'plan_notes_tag')
+      def self.dims_tag(model) = Tags.get(model, 'plan_dims_tag')
 
-      def self.notes_tag(model) = tag(model, 'plan_notes_tag', 'Plan notes')
-      def self.dims_tag(model) = tag(model, 'plan_dims_tag', 'Plan dimensions')
-
-      # Shown only in the plan scenes (and hidden now unless a plan scene is showing).
+      # Shown only in the plan scenes (and hidden now unless a plan scene is showing) - only
+      # for a tag the plugin made; one that was already yours (room_dims) is left as it is.
       def self.plan_only(model, layer)
+        return unless Tags.ours?(layer)
         re = scene_re
         model.pages.each { |pg| pg.set_visibility(layer, pg.name =~ re ? true : false) }
         sel = model.pages.selected_page
