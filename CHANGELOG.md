@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.67.1 — 2026-10-20
+- Workshop "Before you start": doors drawn with hinges that aren't the ones they should have now (their own, the stable wardrobe big door's 155, or the job's) are listed and redrawn in one click (style kept). Save Workshop Pack waits until they're right.
+
 ## 0.67.0 — 2026-10-20
 - Hinge type per door: right-click doors > HW Door Style > Hinge > Soft Close 110 / 155, PTO 110 / 155, or "the job's". Kept on those doors (like a right-click style) - changing the job's hinge type in the Door style window leaves them as they are. The door order, Room Plan, hinge totals and HubSpot counts follow each door's own hinges; handles follow PTO per door.
 - Stable wardrobe: the big door (WST_DOOR) gets Soft Close 155 hinges by default (settings "hinge_defaults").

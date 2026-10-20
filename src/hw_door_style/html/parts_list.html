@@ -377,7 +377,7 @@ function fixChecks(){
   if (on('colours')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-col]'), function(s){ cols[s.getAttribute('data-col')] = s.value; });
   var jc = {};
   if (on('nocolour')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-grp]'), function(s){ jc[s.getAttribute('data-grp')] = s.value; });
-  var req = JSON.stringify({ scribes: !!on('scribes'), hubspot: !!on('hubspot'), colours: cols, job_colours: jc });
+  var req = JSON.stringify({ scribes: !!on('scribes'), hinges: !!on('hinges'), hubspot: !!on('hubspot'), colours: cols, job_colours: jc });
   $('fixBox').innerHTML = '<h3>Fixing...</h3><div class="hint">The Workshop window opens again when it\'s done.</div>';
   sketchup.fixChecks(req);
 }

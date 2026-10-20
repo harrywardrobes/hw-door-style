@@ -877,6 +877,7 @@ module HarryWardrobes
                      reopen0
                    end
           begin
+            Workshop.fix_hinges(model) if req['hinges']
             Workshop.set_job_colours(model, req['job_colours']) unless (req['job_colours'] || {}).empty?
             Workshop.set_colours(model, req['colours'] || {}) unless (req['colours'] || {}).empty?
             if req['scribes']

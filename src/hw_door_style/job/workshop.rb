@@ -95,6 +95,11 @@ module HarryWardrobes
           out << { 'id' => 'hubspot', 'text' => 'This file isn\'t linked to its HubSpot customer - the PDFs and labels need the customer, account and drawing number.',
                    'fix' => 'Link it: pick the customer\'s project, then its Room (or Design Visit if it has none).' }
         end
+        wrong = wrong_hinges(model)
+        unless wrong.empty?
+          out << { 'id' => 'hinges', 'text' => "#{wrong.size} door(s) have the wrong hinges: #{wrong.first(6).map { |w| "#{w[:label]} (#{w[:have]}, should be #{w[:want]})" }.join(', ')}#{wrong.size > 6 ? '...' : ''}.",
+                   'fix' => 'Redraw those doors with the right hinges (style kept).' }
+        end
         units = Runouts.units(model.entities)
         if !parts['scribes_on'] && !units.empty?
           v = Runouts.job_values(model)
@@ -127,6 +132,29 @@ module HarryWardrobes
         out
       end
 
+      # Converted doors whose hinges aren't the ones they should have now (their own, the
+      # default for their name - the stable wardrobe's big door 155 - or the job's): drawn
+      # before the setting changed. [{ inst:, label:, have:, want: }]
+      def self.wrong_hinges(model)
+        job = Settings.job_hinge_type(model)
+        Doors.processed(model, [:door]).filter_map do |inst, _k|
+          next if Finder.fixed?(inst)
+          d = inst.definition
+          kids = d.entities.grep(Sketchup::ComponentInstance).select { |e| e.get_attribute(DICT, 'role') == 'hinge' }
+          have = kids.first ? kids.first.get_attribute(DICT, 'type').to_s : d.get_attribute(DICT, 'hinge_type').to_s
+          next if have.empty?
+          want = Converter.hinge_for(inst, job)
+          next if have == want
+          { inst: inst, label: Finder.label(inst), have: Settings::HINGE_TYPES.fetch(have, have), want: Settings::HINGE_TYPES.fetch(want, want) }
+        end
+      end
+
+      def self.fix_hinges(model)
+        pairs = wrong_hinges(model).map { |w| [w[:inst], :door] }
+        Converter.apply(pairs, nil, 'Redraw doors with the right hinges') unless pairs.empty?
+        pairs.size
+      end
+
       # Applies the job colours chosen in the checks box (the rest stay as they are).
       def self.set_job_colours(model, picks)
         choices = Colours.job_choices(model).transform_values { |v| v || Colours::DEFAULT }
@@ -142,6 +170,8 @@ module HarryWardrobes
         unless HubSpotRoom.customer_link(model)
           out << 'Link this file to its HubSpot customer first (HubSpot > Link this file) - the PDFs and labels take the customer, account and drawing number from it.'
         end
+        wh = wrong_hinges(model).size
+        out << "#{wh} door(s) have the wrong hinges - redraw them (Before you start box, or right-click > Rebuild selected)." if wh.positive?
         out << 'Scribes are OFF - turn them on (every runout is 0).' if !parts['scribes_on'] && !Runouts.units(model.entities).empty?
         n = Array(parts['untyped']).sum { |u| u['count'].to_i }
         out << "#{n} part(s) are left out (no colour, or a colour not set up as a sheet good or hardware)." if n.positive?
