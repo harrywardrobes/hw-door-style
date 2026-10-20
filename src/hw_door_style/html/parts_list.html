@@ -86,6 +86,7 @@
     <input type="text" id="lNums" placeholder="e.g. 3, 7, H1" style="width:90px;display:none" onchange="labels()">
     <span id="lInfo" style="color:var(--muted)"></span>
     <span style="flex:1"></span>
+    <button onclick="editLayout()" title="Move, add and size the fields on the label (saved as an HW layout)">Edit layout</button>
     <button id="renumParts" onclick="renumberParts(this)" title="Part numbers are kept on the parts; this starts again from 1">Renumber parts</button>
     <button class="primary" onclick="printLabels()">Print labels</button>
   </div>
@@ -97,6 +98,12 @@
     Room <input type="text" id="jiRoom" style="width:140px" onchange="saveJob()">
     <b id="jiShow" style="margin-left:6px"></b>
   </div>
+  <div id="lEditWrap" style="display:none;border:1px solid var(--line);border-radius:4px;padding:8px;margin:6px 0">
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap"><b>Layout</b> <input type="text" id="leName" style="width:200px">
+      <button class="primary" onclick="saveLayout(false)">Save</button><button onclick="saveLayout(true)">Save as new</button><button onclick="deleteLayout(this)">Delete</button><button onclick="closeEditor()">Close</button>
+      <span class="hint" style="margin:0">Preview below: the first 3 labels. Layouts are kept in the plugin settings.</span></div>
+    <div id="lEditor"></div>
+  </div>
   <details id="aggBox" style="margin:4px 0 8px"><summary style="cursor:pointer"><b>Grouped labels</b> <span class="hint" style="margin:0" id="aggSum"></span></summary>
     <div style="display:flex;gap:10px;align-items:center;margin:6px 0">Timber stock length <select id="tStock" onchange="sketchup.setTimberStock(this.value)"><option>2400</option><option>2100</option></select>
       <span class="hint" style="margin:0">Hardware, timber and the names in Settings &gt; Labels get one label each with the total. Tick or untick to change it for this job.</span></div>
@@ -105,7 +112,7 @@
   <div class="lpages" id="lPages"></div>
 </div>
 <div class="pane" id="p_hubspot"><div class="hint">Reading the HubSpot Room...</div></div>
-<div class="credit">Parts list and labels follow <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), GPL-3.0. Label layouts are the ones saved in OpenCutList.</div>
+<div class="credit">Parts list and labels follow <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), GPL-3.0. Label layouts: HW's own (Edit layout - editor ported from OpenCutList) and the ones saved in OpenCutList. Barcodes: JsBarcode (MIT).</div>
 <div class="bar">
   <button onclick="sketchup.refresh()">Refresh</button>
   <button onclick="sketchup.openFolder()">Open folder</button>
@@ -115,6 +122,7 @@
 </div>
 <div id="printArea"></div>
 <!--VENDOR:JsBarcode.code128.min.js-->
+<!--VENDOR:label_editor.js-->
 <script>
 var D = null, ENTRIES = [], HS = null;
 function f(v){ v = +v; return Math.round(v) === v ? String(v) : v.toFixed(1); }
@@ -343,6 +351,37 @@ function sendRoom(){
 document.addEventListener('change', function(e){ if (e.target && e.target.getAttribute && e.target.getAttribute('data-i') != null) stageCheck(); });
 
 // ---------- labels (OpenCutList _slide-labels.twig / _label-element.twig) ----------
+// ---------- layout editor (vendor/label_editor.js, ported from OpenCutList) ----------
+var EDITOR = null;
+function editLayout(){
+  var name = $('lPreset').value, o = D.labels.presets[name];
+  if (!o) return;
+  $('lEditWrap').style.display = '';
+  $('leName').value = o.hw ? name : name + ' (HW copy)';
+  EDITOR = new LabelEditor($('lEditor'), o, ENTRIES.slice(0, 3), function(def, e, i, unit, lw){ return element(def, e, i, unit, lw); }, function(layout){ previewLayout(layout); });
+  previewLayout(o);
+}
+function previewLayout(o){
+  var keep = ENTRIES; ENTRIES = keep.slice(0, 3);
+  var scale = Math.min(1, 300 / o.page_width);
+  $('lPages').innerHTML = '<div class="hint">Editing - preview of the first 3 labels:</div>' + paginate(o).slice(0, 3).map(function(p){ return '<div class="lpage">' + pageSvg(o, p, true, (o.page_width * scale * 3.78) + 'px', (o.page_height * scale * 3.78) + 'px') + '</div>'; }).join('');
+  ENTRIES = keep;
+}
+function saveLayout(asNew){
+  if (!EDITOR) return;
+  var name = $('leName').value.trim();
+  if (!name) { failed('Give the layout a name.'); return; }
+  if (asNew && D.labels.presets[name]) name = name + ' (2)';
+  sketchup.saveLayout(JSON.stringify({ name: name, layout: EDITOR.layout() }));
+}
+function layoutSaved(r){ D.labels = r.labels; renderLabels(D); $('lPreset').value = r.name; $('leName').value = r.name; $('status').textContent = 'Layout "' + r.name + '" saved.'; labels(); }
+function deleteLayout(b){
+  var name = $('leName').value.trim();
+  if (!D.labels.presets[name] || !D.labels.presets[name].hw) { failed('Only HW layouts can be deleted here (OpenCutList layouts are deleted in OpenCutList).'); return; }
+  if (!b.dataset.sure) { b.dataset.sure = '1'; b.textContent = 'Click again to delete'; return; }
+  sketchup.deleteLayout(JSON.stringify({ name: name })); closeEditor();
+}
+function closeEditor(){ EDITOR = null; $('lEditWrap').style.display = 'none'; labels(); }
 function labelReq(){ return { preset: $('lPreset').value, which: $('lWhich').value, range: $('lRange') ? rangeValue() : '' }; }
 function rangeValue(){ var v = $('lRange').value; if (v === 'sel') return ($('lNums').value || '').split(/[\s,]+/).filter(Boolean); return v; }
 function labels(){ $('lInfo').textContent = 'Preparing labels...'; sketchup.labels(JSON.stringify(labelReq())); }
@@ -434,6 +473,7 @@ function element(el, e, idx, minUnit, lw){
     if (key === 'number') value = agg ? e.name : (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
     else if (key === 'name') value = agg ? 'Qty ' + e.count : e.name;
     else if (key === 't' || key === 't_number') value = e.t || '';
+    else if (key === 'no') value = agg ? '' : String(e.number);
     else if (key === 'ts' || key === 't_numbers') value = e.ts || e.t || '';
     else if (key === 'note') value = e.note || '';
     else if (key === 'dims') value = agg ? (e.note || '') : [mmS(e.length), mmS(e.width), mmS(e.thickness)].filter(Boolean).join(' x ') + ' mm';

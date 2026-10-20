@@ -11,3 +11,6 @@ The parts list and labels (`job/parts_list.rb`, `job/labels.rb`, `core/formula_p
 `html/parts_list.html`) are adapted from **OpenCutList** by L'Air du Bois,
 https://github.com/lairdubois/lairdubois-opencutlist-sketchup-extension, licensed under the
 GNU General Public License v3.0. Copyright (C) the OpenCutList contributors.
+
+The label layout editor (`html/vendor/label_editor.js`) is ported from OpenCutList's label editor, and
+JsBarcode (MIT) is bundled for barcodes - see `THIRD_PARTY_NOTICES.md` for the full list.

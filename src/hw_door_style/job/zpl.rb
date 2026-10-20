@@ -44,6 +44,7 @@ module HarryWardrobes
           when 'number' then agg ? e['name'].to_s : [e['t'], e['number']].reject { |x| x.to_s.empty? }.join('  ')
           when 'name' then agg ? "Qty #{e['count']}" : e['name'].to_s
           when 't', 't_number' then e['t'].to_s
+          when 'no' then agg ? '' : e['number'].to_s
           when 'ts', 't_numbers' then (e['ts'] || e['t']).to_s
           when 'note' then e['note'].to_s
           when 'dims' then agg ? e['note'].to_s : "#{[mm_s(e['length']), mm_s(e['width']), mm_s(e['thickness'])].reject(&:empty?).join(' x ')} mm"

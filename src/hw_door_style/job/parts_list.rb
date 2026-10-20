@@ -889,6 +889,33 @@ module HarryWardrobes
             fail_js.call(e)
           end
         end
+        # Layout editor: HW layouts kept in the plugin settings ("label_layouts").
+        dlg.add_action_callback('saveLayout') do |_c, json|
+          begin
+            req = JSON.parse(json)
+            s = Settings.get.dup
+            lay = (s['label_layouts'].is_a?(Hash) ? s['label_layouts'] : {}).dup
+            lay[req['name'].to_s] = req['layout'].reject { |k, _| k == 'hw' }
+            s['label_layouts'] = lay
+            s['label_layout_active'] = req['name'].to_s
+            Settings.save(s)
+            data['labels'] = Labels.options(model)
+            dlg.execute_script("layoutSaved(#{JSON.generate('labels' => data['labels'], 'name' => req['name'].to_s)})")
+          rescue StandardError => e
+            Log.error('save label layout', e)
+            fail_js.call(e)
+          end
+        end
+        dlg.add_action_callback('deleteLayout') do |_c, json|
+          name = JSON.parse(json)['name'].to_s
+          s = Settings.get.dup
+          lay = (s['label_layouts'].is_a?(Hash) ? s['label_layouts'] : {}).dup
+          lay.delete(name)
+          s['label_layouts'] = lay
+          Settings.save(s)
+          data['labels'] = Labels.options(model)
+          dlg.execute_script("D.labels = #{JSON.generate(data['labels'])}; renderLabels(D);")
+        end
         # Zebra layouts: straight to the printer as ZPL (no print dialog).
         dlg.add_action_callback('printZpl') do |_c, json|
           begin
