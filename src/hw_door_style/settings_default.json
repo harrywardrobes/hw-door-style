@@ -441,5 +441,17 @@
   "pdf_printer": "BROTHER - Harry Wardrobes",
   "sumatra_path": "",
   "label_layouts": {},
-  "label_layout_active": ""
+  "label_layout_active": "",
+  "survey_questions": [
+    "type_of_flooring",
+    "flooring_requirements",
+    "flooring_requirement_notes",
+    "bed_requirements",
+    "bed_requirement_notes",
+    "cutting_location",
+    "cutting_location_notes",
+    "internal_sides",
+    "internal_sides_description",
+    "notes"
+  ]
 }

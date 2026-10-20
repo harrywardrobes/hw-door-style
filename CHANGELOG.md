@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.66.0 — 2026-10-20
+- Workshop **Survey** tab (left of Check): the Room's survey questions, read from HubSpot each time and saved back with **Save to HubSpot** (only what you changed). Dropdowns, checkboxes, yes / no, numbers, dates and text as in HubSpot. **Reload from HubSpot** and **Open in HubSpot** buttons. Not linked / design visit: a Link / Connect button.
+- Settings > HubSpot > Survey questions: the list (Room field names, in order); **Add a Room field...** picks any existing Room field; **New question in HubSpot** makes a new Room field (text, paragraph, number, dropdown, checkboxes, yes / no, date - you confirm first) and adds it.
+- HubSpot tab: **Open in HubSpot** next to Send to HubSpot + print.
+
 ## 0.65.1 — 2026-10-20
 - Workshop, HubSpot tab: a file that isn't linked (or a design visit with no Room yet) gets a **Link to HubSpot... / Connect to a Room...** button - the customer's project, then its Room (or Design Visit). The Workshop opens again once it's linked.
 - The "Before you start" box also offers linking when the file has no HubSpot customer (done last, in its own window).

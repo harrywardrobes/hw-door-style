@@ -469,6 +469,19 @@
     <div class="f t"><span>HubSpot files folder</span><input type="text" id="hubspot_files_folder"></div>
     <div class="hint">Where the files go in HubSpot's file manager. /crm-properties-file-values is where HubSpot puts files added on a record.</div>
   </fieldset>
+  <fieldset><legend>Survey questions (Workshop &gt; Survey)</legend>
+    <div class="f t"><span>Questions</span><textarea id="survey_questions" rows="4"></textarea></div>
+    <div class="hint">HubSpot Room field names, comma separated, in the order the Survey tab shows them. Answers are read from the Room and saved back to it.</div>
+    <div class="btnrow" style="align-items:center"><button onclick="surveyFields()">Add a Room field...</button><select id="svPick" style="display:none;width:auto;max-width:320px"></select><button id="svAdd" style="display:none" onclick="surveyAdd()">Add</button></div>
+    <div style="margin-top:8px"><b style="font-size:11.5px">New question in HubSpot</b></div>
+    <div class="btnrow" style="align-items:center;flex-wrap:wrap">
+      <input type="text" id="svLabel" placeholder="Question (e.g. Loft access)" style="max-width:220px">
+      <select id="svKind" style="width:auto" onchange="$('svOpts').style.display = /dropdown|checkboxes/.test(this.value) ? '' : 'none'"><option value="text">Short text</option><option value="paragraph">Paragraph</option><option value="number">Number</option><option value="dropdown">Dropdown</option><option value="checkboxes">Checkboxes</option><option value="yesno">Yes / No</option><option value="date">Date</option></select>
+      <input type="text" id="svOpts" placeholder="Answers, comma separated" style="display:none;max-width:240px">
+      <button onclick="surveyCreate()">Create in HubSpot</button>
+    </div>
+    <div class="hint" id="svMsg">Makes a new field on the HubSpot Room (you're asked to confirm) and adds it to the list.</div>
+  </fieldset>
   <fieldset><legend>Required to move on</legend>
     <div class="hint" style="margin-top:0">HubSpot doesn't share its stage rules, so tick here the fields each Room stage needs. Send to HubSpot won't send until the stage you're getting ready for has them all.</div>
     <div class="btnrow"><button onclick="hsStages()">Load stages and fields</button><select id="hsStage" style="width:auto;display:none"></select></div>
@@ -529,7 +542,7 @@
 <script>
 var S = /*DATA*/null;
 var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrail_names','framed_drawer_units','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip','depth_short_components'];
-var LOWER_LISTS = ['product_depth_keys'];
+var LOWER_LISTS = ['survey_questions', 'product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
 var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'Pod_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
@@ -1016,6 +1029,26 @@ var DDS = {};
 function hsHint(h){ $('hsKeyHint').textContent = h ? 'Saved key: ' + h + ' (paste a new one to replace it).' : 'No key saved yet.'; $('hsKey').value = ''; }
 function hsSaveKey(){ var k = $('hsKey').value.trim(); if (!k) { $('hsKeyHint').textContent = 'Paste the key first.'; return; } sketchup.hsSaveKey(k); }
 function hsTest(){ $('hsOut').textContent = 'Testing...'; sketchup.hsTest(); }
+function lsplit(v){ return v.split(',').map(function(x){ return x.trim().toLowerCase(); }).filter(Boolean); }
+function surveyFields(){ $('svMsg').textContent = 'Reading the Room fields...'; sketchup.surveyFields(); }
+function surveyFieldList(r){
+  if (r.error) { $('svMsg').textContent = r.error; return; }
+  var have = lsplit($('survey_questions').value);
+  $('svPick').innerHTML = r.fields.filter(function(f){ return have.indexOf(f[0]) < 0; }).map(function(f){ return '<option value="' + esc(f[0]) + '">' + esc(f[1]) + ' (' + esc(f[0]) + ')</option>'; }).join('');
+  $('svPick').style.display = ''; $('svAdd').style.display = ''; $('svMsg').textContent = r.fields.length + ' Room fields - pick one and Add.';
+}
+function surveyAdd(){ var v = $('svPick').value; if (!v) return; var l = lsplit($('survey_questions').value); if (l.indexOf(v) < 0) l.push(v); $('survey_questions').value = l.join(', '); $('svPick').remove($('svPick').selectedIndex); $('svMsg').textContent = 'Added ' + v + ' - press Save to keep it.'; }
+function surveyCreate(){
+  var label = $('svLabel').value.trim(); if (!label) { $('svMsg').textContent = 'Type the question first.'; return; }
+  $('svMsg').textContent = 'Creating...';
+  sketchup.surveyCreate(JSON.stringify({ label: label, kind: $('svKind').value, options: $('svOpts').value.split(',') }));
+}
+function surveyMade(r){
+  if (r.error) { $('svMsg').textContent = r.error; return; }
+  if (!r.name) { $('svMsg').textContent = 'Not created.'; return; }
+  var l = lsplit($('survey_questions').value); l.push(r.name); $('survey_questions').value = l.join(', ');
+  $('svLabel').value = ''; $('svOpts').value = ''; $('svMsg').textContent = 'Made "' + r.name + '" on the HubSpot Room and added it - press Save to keep the list.';
+}
 function hsFields(){ $('hsOut').textContent = 'Reading Room fields...'; sketchup.hsFields(); }
 // Called from Ruby.
 function hsResult(r){

@@ -176,7 +176,7 @@ module HarryWardrobes
               note = 'needs the Users permission on the key' if owners == :none
             end
             ro = (p['modificationMetadata'] || {})['readOnlyValue'] ? true : false
-            [p['name'], { 'label' => p['label'], 'type' => p['type'], 'field' => p['fieldType'], 'options' => opts,
+            [p['name'], { 'label' => p['label'], 'type' => p['type'], 'field' => p['fieldType'], 'options' => opts, 'group' => p['groupName'],
                           'readonly' => ro || !note.nil?, 'note' => note || (ro ? 'set on the Project' : nil) }]
           end
         end

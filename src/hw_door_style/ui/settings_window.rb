@@ -157,6 +157,26 @@ module HarryWardrobes
                     done: ->(f) { dlg.execute_script("hsFieldList(#{JSON.generate('fields' => f)})") },
                     fail: ->(e) { dlg.execute_script("hsFieldList(#{JSON.generate('error' => e.message)})") }) { HubSpot.room_fields }
         end
+        dlg.add_action_callback('surveyFields') do |_c|
+          r = begin
+            { 'fields' => Survey.available }
+          rescue StandardError => e
+            { 'error' => e.message }
+          end
+          dlg.execute_script("surveyFieldList(#{JSON.generate(r)})")
+        end
+        dlg.add_action_callback('surveyCreate') do |_c, json|
+          req = JSON.parse(json)
+          r = begin
+            kind = Survey::KINDS.key?(req['kind']) ? req['kind'] : 'text'
+            opts = Array(req['options']).map(&:strip).reject(&:empty?)
+            msg = "Create a new field on the HubSpot Room?\n\n#{req['label']}\n(#{kind}#{opts.empty? ? '' : ": #{opts.join(', ')}"})"
+            UI.messagebox(msg, MB_YESNO) == IDYES ? { 'name' => Survey.create(req['label'], kind, opts) } : { 'name' => nil }
+          rescue StandardError => e
+            { 'error' => e.message }
+          end
+          dlg.execute_script("surveyMade(#{JSON.generate(r)})")
+        end
         dlg.add_action_callback('hsStages') do |_c|
           m = st = nil
           Steps.run(dlg, [['Reading the Room fields', -> { m = HubSpotRoom.meta }], ['Reading the Room stages', -> { st = HubSpot.room_stages }]],

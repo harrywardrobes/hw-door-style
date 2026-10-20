@@ -951,6 +951,25 @@ module HarryWardrobes
             model.selection.add(e)
           end
         end
+        # Survey tab: the Room's survey questions from HubSpot, saved back to it.
+        survey_js = ->(d) { dlg.execute_script("surveyData(#{JSON.generate(d)})") }
+        dlg.add_action_callback('surveyLoad') do |_c|
+          next survey_js.call('error' => 'No HubSpot key saved (Settings > HubSpot).') unless HubSpot.key?
+          Steps.one(dlg, 'Reading the survey from HubSpot', done: ->(d) { survey_js.call(d) }, fail: ->(e) { survey_js.call('error' => e.message) }) { Survey.data(model) }
+        end
+        dlg.add_action_callback('surveySave') do |_c, json|
+          vals = JSON.parse(json)
+          Steps.one(dlg, 'Saving the survey to HubSpot', done: lambda { |n|
+            dlg.execute_script("$('status').textContent = #{JSON.generate("#{n} survey answer(s) saved to HubSpot.")}")
+            survey_js.call(Survey.data(model))
+          }, fail: ->(e) { survey_js.call('error' => e.message) }) { Survey.save(model, vals) }
+        end
+        # Open in HubSpot: the Room (a design visit: its project).
+        dlg.add_action_callback('openHubspot') do |_c|
+          l = HubSpotRoom.customer_link(model)
+          next fail_js.call(StandardError.new('Link this file to HubSpot first.')) unless l
+          l['room_id'] ? HubSpotRoom.open_record('listings', l['room_id']) : HubSpotRoom.open_record('projects', l['project_id'])
+        end
         # HubSpot tab, file not linked: the Link window; the Workshop reopens once it's linked.
         dlg.add_action_callback('linkHubspot') do |_c|
           HubSpotRoom.show_pick(:link, after: -> { UI.start_timer(0.3, false) { PartsList.show } })

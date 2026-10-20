@@ -43,6 +43,9 @@
   .pdfi { display:block; flex:1 1 0; min-width:120px; text-align:left; background:#fff; border:1px solid var(--line); border-radius:4px; padding:6px 8px; cursor:pointer; }
   .pdfi b { display:block; font-size:12px; } .pdfi span { font-size:11px; color:var(--muted); }
   .tabs button.muted { opacity:.45; }
+  table.survey td { padding:6px 8px; vertical-align:middle; }
+  table.survey select { max-width:100%; }
+  table.survey input, table.survey select, table.survey textarea { font:inherit; padding:4px 6px; border:1px solid var(--line); border-radius:3px; }
   #fixBack { position:fixed; inset:0; background:rgba(20,30,25,.35); display:none; align-items:flex-start; justify-content:center; z-index:50; padding-top:70px; }
   #fixBox { background:#fff; border-radius:6px; box-shadow:0 6px 30px rgba(0,0,0,.3); width:560px; max-height:calc(100vh - 120px); overflow:auto; padding:14px 16px; }
   #fixBox h3 { margin:0 0 6px; font-size:14px; }
@@ -85,6 +88,7 @@
   <button data-t="sheets">Sheet goods</button>
   <button data-t="boxes">Drawer Boxes</button>
   <button data-t="hardware">Hardware</button>
+  <button data-t="survey">Survey</button>
   <button data-t="labels">Check</button>
   <button data-t="hubspot" class="muted" title="Save the Workshop Pack on the Check tab first">HubSpot</button>
 </div>
@@ -95,6 +99,7 @@
 <div class="pane" id="p_sheets"></div>
 <div class="pane" id="p_boxes"></div>
 <div class="pane" id="p_hardware"></div>
+<div class="pane" id="p_survey"><div class="hint">Reading the survey from HubSpot...</div></div>
 <div class="pane" id="p_labels">
   <div class="lbar">
     Layout <select id="lPreset" onchange="labels()"></select>
@@ -142,7 +147,7 @@
 <!--VENDOR:JsBarcode.code128.min.js-->
 <!--VENDOR:label_editor.js-->
 <script>
-var D = null, ENTRIES = [], HS = null, PACK = null, PDFS = [];
+var D = null, ENTRIES = [], HS = null, PACK = null, PDFS = [], SURVEY = null;
 function f(v){ v = +v; return Math.round(v) === v ? String(v) : v.toFixed(1); }
 Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){
   b.onclick = function(){
@@ -150,12 +155,14 @@ Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function
     Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(x){ x.classList.toggle('on', x === b); });
     Array.prototype.forEach.call(document.querySelectorAll('.pane'), function(p){ p.classList.toggle('on', p.id === 'p_' + b.getAttribute('data-t')); });
     if (b.getAttribute('data-t') === 'labels' && D) labels();
+    if (b.getAttribute('data-t') === 'survey' && D && !SURVEY) { SURVEY = 'loading'; sketchup.surveyLoad(); }
     if (b.getAttribute('data-t') === 'hubspot' && D && !HS) { HS = 'loading'; sketchup.hubspot(); }
   };
 });
 document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('#tabs button'); if (b && b.getAttribute('data-t') === 'plan') planOpen(); });
 function edgeCell(name, color){ return name ? '<span class="edge"><span class="swatch" style="background:' + esc(color || '#999') + '"></span>' + esc(name) + '</span>' : ''; }
 function render(d){
+  SURVEY = null; if (document.querySelector('#tabs button.on') && document.querySelector('#tabs button.on').getAttribute('data-t') === 'survey') { SURVEY = 'loading'; sketchup.surveyLoad(); }
   if (PACK) packStale(); // the model was read again - save the pack again before sending
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
@@ -374,6 +381,47 @@ function fixChecks(){
   $('fixBox').innerHTML = '<h3>Fixing...</h3><div class="hint">The Workshop window opens again when it\'s done.</div>';
   sketchup.fixChecks(req);
 }
+// ---------- Survey tab: the Room's survey questions in HubSpot ----------
+function surveyData(d){
+  SURVEY = d;
+  var el = $('p_survey');
+  if (d.error) { el.innerHTML = '<div class="warnbox">' + esc(d.error) + '</div><button onclick="SURVEY=\'loading\';sketchup.surveyLoad()">Try again</button>'; return; }
+  if (!d.linked) {
+    el.innerHTML = '<div class="warnbox" style="display:flex;gap:12px;align-items:center"><div style="flex:1">' + (d.design_visit ? 'This file is a <b>design visit</b> - the survey questions are on the Room, so connect it to the Room first.' : 'This file isn\'t linked to a HubSpot Room yet.') + '</div>' +
+      (d.design_visit ? '<button onclick="sketchup.openHubspot()">Open in HubSpot</button>' : '') + '<button class="primary" onclick="sketchup.linkHubspot()">' + (d.design_visit ? 'Connect to a Room...' : 'Link to HubSpot...') + '</button></div>';
+    return;
+  }
+  var h = '<div class="lbar"><span class="hint" style="margin:0;flex:1">Room: <b>' + esc(d.room || '') + '</b> - answers are read from HubSpot and saved back to it. Questions: Settings &gt; HubSpot &gt; Survey questions.</span>' +
+    '<button onclick="SURVEY=\'loading\';sketchup.surveyLoad()">Reload from HubSpot</button><button onclick="sketchup.openHubspot()">Open in HubSpot</button><button class="primary" onclick="surveySave()">Save to HubSpot</button></div>';
+  if (d.missing && d.missing.length) h += '<div class="warnbox">Not on the HubSpot Room: ' + esc(d.missing.join(', ')) + ' (Settings &gt; HubSpot &gt; Survey questions).</div>';
+  h += '<table class="survey">' + d.questions.map(function(q, i){ return '<tr><td style="width:34%"><b>' + esc(q.label) + '</b>' + (q.readonly ? ' <span class="hint" style="margin:0">(read only)</span>' : '') + '</td><td>' + surveyInput(q, i) + '</td></tr>'; }).join('') + '</table>';
+  el.innerHTML = h;
+}
+function surveyInput(q, i){
+  var v = q.value == null ? '' : String(q.value), dis = q.readonly ? ' disabled' : '', id = ' data-q="' + i + '"';
+  if (q.field === 'checkbox') { var on = v.split(';'); return q.options.map(function(o){ return '<label style="margin-right:10px;display:inline-flex;gap:4px;align-items:center"><input type="checkbox" style="width:auto" data-qm="' + i + '" value="' + esc(o[1]) + '"' + (on.indexOf(o[1]) >= 0 ? ' checked' : '') + dis + '>' + esc(o[0]) + '</label>'; }).join(''); }
+  if (q.type === 'enumeration' || q.type === 'bool' || q.field === 'booleancheckbox') {
+    var opts = q.options && q.options.length ? q.options : [['Yes', 'true'], ['No', 'false']];
+    return '<select' + id + dis + '><option value=""></option>' + opts.map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === v ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('') + '</select>';
+  }
+  if (q.field === 'textarea') return '<textarea rows="3" style="width:100%"' + id + dis + '>' + esc(v) + '</textarea>';
+  if (q.type === 'number') return '<input type="number" style="width:140px"' + id + dis + ' value="' + esc(v) + '">';
+  if (q.type === 'date' || q.type === 'datetime') return '<input type="date"' + id + dis + ' value="' + esc(v.slice(0, 10)) + '">';
+  return '<input type="text" style="width:100%"' + id + dis + ' value="' + esc(v) + '">';
+}
+function surveySave(){
+  if (!SURVEY || !SURVEY.questions) return;
+  var out = {};
+  SURVEY.questions.forEach(function(q, i){
+    if (q.readonly) return;
+    var v;
+    if (q.field === 'checkbox') v = Array.prototype.filter.call(document.querySelectorAll('[data-qm="' + i + '"]'), function(c){ return c.checked; }).map(function(c){ return c.value; }).join(';');
+    else { var el = document.querySelector('[data-q="' + i + '"]'); if (!el) return; v = el.value; }
+    if (String(q.value == null ? '' : q.value) !== v) out[q.name] = v;
+  });
+  if (!Object.keys(out).length) { $('status').textContent = 'Nothing changed in the survey.'; return; }
+  sketchup.surveySave(JSON.stringify(out));
+}
 // ---------- Check tab: PDFs and the preview ----------
 function renderPdfs(list){
   PDFS = list || [];
@@ -411,7 +459,7 @@ function hubspotPlan(p){
   var flags = p.rows.filter(function(r){ return r.flag; });
   var h = '<div class="warnbox" style="background:#eef6f1;border-color:#9cc7ad;display:flex;gap:12px;align-items:center"><div style="flex:1"><b>Ready to send:</b> ' + esc((PACK.names || []).join(', ')) +
     '<br>Prints ' + PACK.label_count + ' label(s) on the Zebra and ' + (PACK.pdfs || []).filter(function(x){ return x.pack; }).length + ' PDF(s) on "' + esc(PACK.pdf_printer) + '".</div>' +
-    '<button class="primary" style="font-size:13px;padding:8px 16px" onclick="sendRoom()">Send to HubSpot + print</button></div>';
+    '<button style="padding:8px 14px" onclick="sketchup.openHubspot()">Open in HubSpot</button><button class="primary" style="font-size:13px;padding:8px 16px" onclick="sendRoom()">Send to HubSpot + print</button></div>';
   h += '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list' + (D.export_csv ? ', PDF and CSV' : ' PDFs') + ', into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
   if (flags.length) h += '<div class="warnbox"><b>' + flags.length + ' order status(es) already set:</b> ' + flags.map(function(r){ return esc(r.label) + ' = ' + esc(r.hubspot); }).join(', ') + '. They are left as they are - check those orders still match the model.</div>';
   if (p.missing_colours.length) h += '<div class="warnbox">No MFC Sheets field in HubSpot for: ' + esc(p.missing_colours.join(', ')) + ' - they only count in MFC (Full Sheet) Quantity.</div>';
