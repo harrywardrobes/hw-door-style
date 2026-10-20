@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.59.0 — 2026-10-20
+- Part types, like the front types: a part's Workshop section is kept on its component - Worktop, Bullnose / cornice (vinyl), 22mm white back or Sheet goods - and wins over the name / thickness rules, so the linen press and drawer unit worktops (18mm / 25mm) go in the Worktops tab. Right-click a part > HW Door Style > Part type (or Automatic).
+- Library V32: WRKTP, LIN_WORKTOP and EXT_DRW_WORKTOP marked Worktop; WRKTP_FACING marked Sheet goods (it matched "WRKTP" before).
+
+## 0.59.0 — 2026-10-20
+- 
+
 ## 0.58.0 — 2026-10-20
 - Front types: what a door, drawer front, internal drawer front or fixed panel is now kept on the component itself (hidden data on its definition), so it travels with every copy, export and job file whatever the component is called. The plugin reads it first and only falls back to the names in Settings > Doors for components without one (older job files keep working). Tags stay for showing / hiding.
 - Right-click a component > HW Door Style > Front type: Door, Drawer front, Internal drawer front, Fixed panel (no hinges / handles), Not a front, or By name. New components no longer need adding to Settings.

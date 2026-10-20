@@ -248,7 +248,20 @@ module HarryWardrobes
       VINYL_RE = /BULLNOSE|CORNICE/i.freeze
       WORKTOP_RE = /WRKTP|WORKTOP/i.freeze
 
-      def self.section_of(names, thickness, material)
+      # Part type kept on the part's component ("part_role" on the definition), like the
+      # front types: worktop, vinyl (bullnose / cornice), white_back (22mm) or sheet. It wins
+      # over the name / thickness rules below.
+      PART_ROLE = 'part_role'.freeze
+      PART_ROLES = { 'worktop' => 'worktops', 'vinyl' => 'vinyl', 'white_back' => 'white_back', 'sheet' => 'sheets' }.freeze
+      PART_ROLE_LABELS = [['worktop', 'Worktop'], ['vinyl', 'Bullnose / cornice (vinyl)'], ['white_back', '22mm white back'], ['sheet', 'Sheet goods']].freeze
+
+      def self.part_role(defn)
+        r = defn.get_attribute(DICT, PART_ROLE).to_s
+        r.empty? ? nil : r
+      end
+
+      def self.section_of(names, thickness, material, role = nil)
+        return PART_ROLES[role] if role && PART_ROLES[role]
         return 'vinyl' if names.any? { |n| n.to_s =~ VINYL_RE }
         return 'worktops' if names.any? { |n| n.to_s =~ WORKTOP_RE } && [22, 25].include?(thickness.to_f.round) && material.to_s !~ /\AMDF\z/i
         # 22mm panels are white-backed vinyl, ordered with the doors.
@@ -293,7 +306,7 @@ module HarryWardrobes
           when TYPE_SHEET_GOOD
             std = mm_list(mat.get_attribute(OCL, 'std_thicknesses', ''))
             th_std, available = std_thickness(th_mm, std)
-            section = section_of([name, defn.name], th_std, mat.name)
+            section = section_of([name, defn.name], th_std, mat.name, part_role(defn))
             gid = gid_of(mat.name, th_std, section)
             g = (groups[gid] ||= { 'material' => mat.name, 'thickness' => th_std, 'std_ok' => true, 'section' => section, 'grained' => mat.get_attribute(OCL, 'grained', false) ? true : false,
                                    'sheet' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')).max_by { |a, b| a * b },

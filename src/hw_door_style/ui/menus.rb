@@ -122,6 +122,7 @@ module HarryWardrobes
           if part
             Plan.menu(sub, part)
             front_menu(sub, part) if part.is_a?(Sketchup::ComponentInstance)
+            part_menu(sub, part) if part.is_a?(Sketchup::ComponentInstance)
             sub.add_separator unless deep.empty? && units.empty? && targets.empty?
           end
           unless deep.empty?
@@ -158,6 +159,25 @@ module HarryWardrobes
         end
         fm.add_separator
         item = fm.add_item('By name (Settings > Doors)') { set.call(nil, 'by name') }
+        fm.set_validation_proc(item) { cur.nil? ? MF_CHECKED : MF_ENABLED }
+      end
+
+      # Right-click > Part type: which Workshop section a part goes in (kept on it), or
+      # automatic (name / thickness).
+      def self.part_menu(sub, inst)
+        cur = PartsList.part_role(inst.definition)
+        fm = sub.add_submenu("Part type (#{cur ? PartsList::PART_ROLE_LABELS.to_h[cur] : 'automatic'})")
+        set = lambda do |role, label|
+          model = Sketchup.active_model
+          Ops.run(model, "Part type: #{label}") { role ? inst.definition.set_attribute(DICT, PartsList::PART_ROLE, role) : inst.definition.delete_attribute(DICT, PartsList::PART_ROLE) }
+          Sketchup.status_text = "#{inst.definition.name}: #{label}."
+        end
+        PartsList::PART_ROLE_LABELS.each do |role, label|
+          item = fm.add_item(label) { set.call(role, label) }
+          fm.set_validation_proc(item) { cur == role ? MF_CHECKED : MF_ENABLED }
+        end
+        fm.add_separator
+        item = fm.add_item('Automatic (name / thickness)') { set.call(nil, 'automatic') }
         fm.set_validation_proc(item) { cur.nil? ? MF_CHECKED : MF_ENABLED }
       end
     end

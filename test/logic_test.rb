@@ -796,5 +796,8 @@ require 'hw_door_style/core/finder'
 FD = HarryWardrobes::DoorStyle::Finder
 check 'front types: door / drawer front / internal / fixed (styled as a door) / not a front', FD::ROLES['fixed'] == :door && FD::ROLES['none'].nil? && FD::ROLE_LABELS.map(&:first) == %w[door ext_drawer int_drawer fixed none]
 
+
+check 'part type wins over the name / thickness rules (an 18mm worktop is still a worktop)', PLX.section_of(['LIN_WORKTOP'], 18, 'Oak', 'worktop') == 'worktops' && PLX.section_of(['WRKTP_FACING'], 25, 'Oak', 'sheet') == 'sheets' && PLX.section_of(['WRKTP'], 25, 'Oak') == 'worktops'
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
