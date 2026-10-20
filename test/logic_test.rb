@@ -792,5 +792,9 @@ check 'mid-rail option names (stable wardrobe and linen press)', %w[b06_midrail_
 
 check 'reference letter key in list order, only the letters used', PR.key(%w[F T L]).map(&:first) == %w[T L F] && PR.key_text(%w[T]).start_with?('Key: T = ')
 
+require 'hw_door_style/core/finder'
+FD = HarryWardrobes::DoorStyle::Finder
+check 'front types: door / drawer front / internal / fixed (styled as a door) / not a front', FD::ROLES['fixed'] == :door && FD::ROLES['none'].nil? && FD::ROLE_LABELS.map(&:first) == %w[door ext_drawer int_drawer fixed none]
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

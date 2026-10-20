@@ -22,9 +22,34 @@ module HarryWardrobes
         [dc_name(inst), base].reject(&:empty?).uniq
       end
 
+      # Front type kept on the component itself ("front_role" on the definition), so it goes
+      # with every copy and export whatever the component is called: door, ext_drawer,
+      # int_drawer, fixed (a fixed panel - styled like a door, no hinges or handles) or none.
+      # Components without one are found by name (Settings > Doors > Component names).
+      ROLE = 'front_role'.freeze
+      ROLES = { 'door' => :door, 'ext_drawer' => :ext_drawer, 'int_drawer' => :int_drawer, 'fixed' => :door }.freeze
+      ROLE_LABELS = [['door', 'Door'], ['ext_drawer', 'Drawer front'], ['int_drawer', 'Internal drawer front'],
+                     ['fixed', 'Fixed panel (no hinges / handles)'], ['none', 'Not a front']].freeze
+
+      def self.role(inst)
+        d = inst.respond_to?(:definition) ? inst.definition : inst
+        r = d.get_attribute(DICT, ROLE).to_s
+        r.empty? ? nil : r
+      end
+
+      # Sets (or with nil clears) the front type on the components' definitions (in an operation).
+      def self.set_role(insts, role)
+        insts.map { |i| i.respond_to?(:definition) ? i.definition : i }.uniq.each do |d|
+          role ? d.set_attribute(DICT, ROLE, role.to_s) : d.delete_attribute(DICT, ROLE)
+        end
+      end
+
       # :door, :ext_drawer, :int_drawer or nil
       def self.kind_of(inst)
         return nil unless inst.is_a?(Sketchup::ComponentInstance)
+        if (r = role(inst))
+          return ROLES[r]
+        end
         names = names_for(inst)
         return :int_drawer if (names & Settings.names('int_drawer_names')).any?
         return :ext_drawer if (names & Settings.names('ext_drawer_names')).any?
@@ -39,8 +64,17 @@ module HarryWardrobes
         Settings.names('fixed_panel_names').include?(base)
       end
 
+      # A fixed panel definition: its front type, else its name.
+      def self.fixed_def?(defn)
+        r = role(defn)
+        r ? r == 'fixed' : fixed_name?(defn.name)
+      end
+
       def self.fixed?(inst)
-        inst.respond_to?(:definition) && (names_for(inst) & Settings.names('fixed_panel_names')).any?
+        return false unless inst.respond_to?(:definition)
+        r = role(inst)
+        return r == 'fixed' if r
+        (names_for(inst) & Settings.names('fixed_panel_names')).any?
       end
 
       # Drawer fronts framed like a door (Settings "framed_drawer_units", e.g. the linen press):

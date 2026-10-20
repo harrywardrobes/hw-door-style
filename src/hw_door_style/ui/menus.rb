@@ -111,6 +111,7 @@ module HarryWardrobes
 
       def self.context_menu
         UI.add_context_menu_handler do |cm|
+          # (front_menu below: right-click > HW Door Style > Front type)
           targets = Doors.selection_targets
           units = Runouts.selected | Facing.selected
           deep = Depth.selected
@@ -120,6 +121,7 @@ module HarryWardrobes
           sub = cm.add_submenu('HW Door Style')
           if part
             Plan.menu(sub, part)
+            front_menu(sub, part) if part.is_a?(Sketchup::ComponentInstance)
             sub.add_separator unless deep.empty? && units.empty? && targets.empty?
           end
           unless deep.empty?
@@ -138,6 +140,25 @@ module HarryWardrobes
           sub.add_item('Follow the Door style window') { Doors.follow_job }
           sub.add_item('Rebuild selected') { Doors.rebuild_selection }
         end
+      end
+
+      # Right-click > Front type: what the component is (kept on it, so it travels with copies
+      # and exports), or back to finding it by name.
+      def self.front_menu(sub, inst)
+        cur = Finder.role(inst)
+        fm = sub.add_submenu("Front type (#{cur ? Finder::ROLE_LABELS.to_h[cur] : 'by name'})")
+        set = lambda do |role, label|
+          model = Sketchup.active_model
+          Ops.run(model, "Front type: #{label}") { Finder.set_role([inst], role) }
+          Sketchup.status_text = "#{inst.definition.name}: #{label}. Apply the Door style window to style it."
+        end
+        Finder::ROLE_LABELS.each do |role, label|
+          item = fm.add_item(label) { set.call(role, label) }
+          fm.set_validation_proc(item) { cur == role ? MF_CHECKED : MF_ENABLED }
+        end
+        fm.add_separator
+        item = fm.add_item('By name (Settings > Doors)') { set.call(nil, 'by name') }
+        fm.set_validation_proc(item) { cur.nil? ? MF_CHECKED : MF_ENABLED }
       end
     end
   end

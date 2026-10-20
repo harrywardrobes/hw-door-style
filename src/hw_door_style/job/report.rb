@@ -17,7 +17,7 @@ module HarryWardrobes
 
       # A door with a mid-rail is a wardrobe door.
       def self.kind_label(kind, defn)
-        return 'Stable Panel' if kind == :door && Finder.fixed_name?(defn.name)
+        return 'Stable Panel' if kind == :door && Finder.fixed_def?(defn)
         kind == :door && defn.get_attribute(DICT, 'midrail') ? 'Wardrobe Door' : Finder::KINDS[kind]
       end
 

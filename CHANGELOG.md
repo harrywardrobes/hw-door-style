@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.58.0 — 2026-10-20
+- Front types: what a door, drawer front, internal drawer front or fixed panel is now kept on the component itself (hidden data on its definition), so it travels with every copy, export and job file whatever the component is called. The plugin reads it first and only falls back to the names in Settings > Doors for components without one (older job files keep working). Tags stay for showing / hiding.
+- Right-click a component > HW Door Style > Front type: Door, Drawer front, Internal drawer front, Fixed panel (no hinges / handles), Not a front, or By name. New components no longer need adding to Settings.
+- Library V32: every door (15), drawer front (8), internal drawer front (2) and the stable panel (fixed) marked.
+
+## 0.58.0 — 2026-10-20
+- 
+
 ## 0.57.0 — 2026-10-20
 - Key for the reference letters (T Tall units, W Wall / bridge units, B Base units, L Drawer units, F Facings, M Miscellaneous) at the top of the Product List and along the bottom of every Room Plan and door order page - only the letters used in the job. Wording in Settings > Product list > Letter key.
 

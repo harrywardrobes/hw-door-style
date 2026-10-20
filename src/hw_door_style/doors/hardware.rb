@@ -221,7 +221,7 @@ module HarryWardrobes
       def self.add(door_def, wrappers, w, t, h, kind, hinge_type)
         return { hinges: 0, tip_on: 0 } unless kind == :door
         # Fixed panels (the stable panel) have no hinges or TIP-ON.
-        return { hinges: 0, tip_on: 0 } if Finder.fixed_name?(door_def.name)
+        return { hinges: 0, tip_on: 0 } if Finder.fixed_def?(door_def)
         model = door_def.model
         ents = door_def.entities
         gap = EDGE_GAP.mm
