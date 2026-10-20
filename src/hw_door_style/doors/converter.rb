@@ -23,11 +23,29 @@ module HarryWardrobes
       # Returns { items: n, definitions: n, notes: [..] }
       # override:   true = set by right-click (Apply in the Door style window leaves it),
       #             false = follows the window again, nil = unchanged
-      def self.apply(pairs, style, op_name, hinge_type: nil, override: nil)
+      # hinge:      a hinge type for just these doors (right-click > Hinge), :clear = back to the
+      #             job / default hinge, nil = each door keeps its own
+      def self.apply(pairs, style, op_name, hinge_type: nil, override: nil, hinge: nil)
         model = Sketchup.active_model
         return { items: 0, definitions: 0, notes: [] } if pairs.empty?
 
-        Ops.run(model, op_name) { rebuild(model, pairs, style, hinge_type: hinge_type, override: override) }
+        Ops.run(model, op_name) { rebuild(model, pairs, style, hinge_type: hinge_type, override: override, hinge: hinge) }
+      end
+
+      # A door's own hinge type, set by right-click (kept on the door until "Hinge: job's").
+      def self.hinge_override(inst)
+        h = inst.definition.get_attribute(DICT, 'hinge_override')
+        Settings::HINGE_TYPES.key?(h) ? h : nil
+      end
+
+      # The hinge a door gets: its own, else Settings "hinge_defaults" for its name (the stable
+      # wardrobe's big door WST_DOOR: Soft Close 155), else the job's.
+      def self.hinge_for(inst, job_hinge, own = hinge_override(inst))
+        return own if own
+        d = Settings.get['hinge_defaults']
+        d = {} unless d.is_a?(Hash)
+        hit = Finder.names_for(inst).map { |n| d[n] || d[n.upcase] }.find { |h| Settings::HINGE_TYPES.key?(h) }
+        hit || job_hinge
       end
 
       def self.override?(inst)
@@ -52,7 +70,7 @@ module HarryWardrobes
 
       # Does all the work; call inside an operation.
       # finish: false leaves tags / colours for the caller to do once at the end (Finish).
-      def self.rebuild(model, pairs, style, hinge_type: nil, override: nil, finish: true)
+      def self.rebuild(model, pairs, style, hinge_type: nil, override: nil, finish: true, hinge: nil)
         Settings.set_job_hinge_type(hinge_type, model) if hinge_type
         job_hinge = Settings.job_hinge_type(model)
 
@@ -60,14 +78,16 @@ module HarryWardrobes
         jobs = pairs.map do |inst, kind|
           # Fixed panels (the stable panel) are always flat.
           s = Finder.fixed?(inst) ? 'flat' : (style || current_style(inst))
-          { inst: inst, kind: kind, style: s, plain: Finder.no_midrail?(inst) || kind != :door,
+          own = hinge == :clear ? nil : (Settings::HINGE_TYPES.key?(hinge) ? hinge : hinge_override(inst))
+          own = nil unless kind == :door
+          { inst: inst, kind: kind, style: s, own_hinge: own, hinge: kind == :door ? hinge_for(inst, job_hinge, own) : job_hinge, plain: Finder.no_midrail?(inst) || kind != :door,
             draw_kind: kind == :ext_drawer && Finder.framed?(inst) ? :door : kind, defn: inst.definition, size: Finder.real_size(inst),
             formulas: wrapper_formulas(inst), override: override.nil? ? override?(inst) : override,
             right: kind == :door ? Hardware.right?(inst) : false }
         end
 
         groups = jobs.group_by do |j|
-          [j[:defn].entityID, j[:style], j[:kind], j[:draw_kind], j[:plain], j[:override], j[:right], j[:size].map { |v| (v * 25.4 * 2).round }]
+          [j[:defn].entityID, j[:style], j[:kind], j[:draw_kind], j[:plain], j[:override], j[:right], j[:hinge], j[:own_hinge], j[:size].map { |v| (v * 25.4 * 2).round }]
         end
 
         style_cache = {}
@@ -86,7 +106,7 @@ module HarryWardrobes
           js.each { |j| migrate_wrapper(j[:inst], j[:size], j[:formulas]) }
           js.each { |j| reset_scale(j[:inst]) }
 
-          info = rebuild_definition(model, defn, first, js.map { |j| j[:inst] }, job_hinge, style_cache)
+          info = rebuild_definition(model, defn, first, js.map { |j| j[:inst] }, first[:hinge], style_cache)
           notes << "#{Finder.label(first[:inst])} #{Finder.mm_s(first[:size][0])}x#{Finder.mm_s(first[:size][2])}: #{info[:note]}" unless info[:note].to_s.empty?
         end
 
@@ -151,7 +171,8 @@ module HarryWardrobes
           'width_mm' => (w * 25.4).round(1), 'height_mm' => (h * 25.4).round(1),
           'hinge_type' => (job[:kind] == :door ? hinge_type : ''),
           'hinges' => hw[:hinges], 'tip_on' => hw[:tip_on], 'plugin_version' => VERSION,
-          'style_override' => job[:override] ? true : false
+          'style_override' => job[:override] ? true : false,
+          'hinge_override' => job[:own_hinge]
         }.each { |k, v| defn.set_attribute(DICT, k, v) }
 
         info

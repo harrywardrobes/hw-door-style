@@ -171,6 +171,16 @@ module HarryWardrobes
         end
       end
 
+      # Right-click > Hinge: just the selected doors (kept on them, like a right-click style).
+      # nil = back to the job's hinge (or the default for that door, e.g. the stable door's 155).
+      def self.hinge_selection(type)
+        return unless colour_ready?
+        pairs = selection_targets.select { |_i, k| k == :door }
+        return UI.messagebox('Select one or more doors.') if pairs.empty?
+        name = type ? "Selected doors - #{Settings::HINGE_TYPES[type]} hinges" : "Selected doors - job's hinges"
+        run(name) { Converter.apply(pairs, nil, name, hinge: type || :clear) }
+      end
+
       def self.rebuild_selection
         return unless colour_ready?
         pairs = selection_targets

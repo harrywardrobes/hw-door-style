@@ -137,6 +137,16 @@ module HarryWardrobes
             sub.add_separator
           end
           Styles.ids.each { |s| sub.add_item("Style: #{Styles.label(s)}") { Doors.convert_selection(s) } }
+          if targets.any? { |_i, k| k == :door }
+            sub.add_separator
+            doors = targets.select { |_i, k| k == :door }.map(&:first)
+            own = doors.map { |d| Converter.hinge_override(d) }.uniq
+            cur = own.size == 1 && own.first ? Settings::HINGE_TYPES[own.first] : (own.size > 1 ? 'mixed' : "job's")
+            hm = sub.add_submenu("Hinge (#{cur})")
+            Settings::HINGE_TYPES.each { |k, l| hm.add_item("Hinge: #{l}") { Doors.hinge_selection(k) } }
+            hm.add_separator
+            hm.add_item("Hinge: the job's (#{Settings::HINGE_TYPES[Settings.job_hinge_type]})") { Doors.hinge_selection(nil) }
+          end
           sub.add_separator
           sub.add_item('Follow the Door style window') { Doors.follow_job }
           sub.add_item('Rebuild selected') { Doors.rebuild_selection }

@@ -57,7 +57,7 @@ module HarryWardrobes
             'hand' => kind == :door && hinges.any? ? (Hardware.right?(inst) ? 'RH' : 'LH') : '',
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
-            'handles' => none[kind] || Finder.fixed?(inst) ? 0 : Settings.handle_count(kind, w, pto, rules: rules,
+            'handles' => none[kind] || Finder.fixed?(inst) ? 0 : Settings.handle_count(kind, w, hinges.empty? ? pto : Settings.pto?(hinges.first.get_attribute(DICT, 'type').to_s), rules: rules,
                                                 handleless: Styles.handleless?(d.get_attribute(DICT, 'requested_style') || style || 'flat')),
             'notes' => notes.reject(&:empty?).join('; ')
           }

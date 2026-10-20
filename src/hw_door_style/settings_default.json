@@ -453,5 +453,8 @@
     "internal_sides",
     "internal_sides_description",
     "notes"
-  ]
+  ],
+  "hinge_defaults": {
+    "WST_DOOR": "soft_close_155"
+  }
 }

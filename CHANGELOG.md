@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.67.0 — 2026-10-20
+- Hinge type per door: right-click doors > HW Door Style > Hinge > Soft Close 110 / 155, PTO 110 / 155, or "the job's". Kept on those doors (like a right-click style) - changing the job's hinge type in the Door style window leaves them as they are. The door order, Room Plan, hinge totals and HubSpot counts follow each door's own hinges; handles follow PTO per door.
+- Stable wardrobe: the big door (WST_DOOR) gets Soft Close 155 hinges by default (settings "hinge_defaults").
+
 ## 0.66.1 — 2026-10-20
 - HubSpot: dropdown, yes / no and checkbox fields are sent as HubSpot's internal option values ("pending"), not the labels ("Needs Ordering") - every send to the Room (Workshop, Send to HubSpot, pictures, Survey) goes through the same check. Fixes "Needs Ordering was not one of the allowed options".
 - Workshop HubSpot tab: order statuses are read and compared by label ("Ordered" stays locked), and dropdown fields show their labels.
