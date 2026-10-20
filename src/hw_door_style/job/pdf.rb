@@ -17,8 +17,8 @@ module HarryWardrobes
 
       # key, label, width (pt), align
       COLUMNS = [
-        ['n', '#', 18, :right], ['unit', 'Unit', 96, :left], ['item', 'Item', 70, :left],
-        ['kind', 'Kind', 46, :left], ['width', 'W', 26, :right], ['height', 'H', 26, :right],
+        ['n', '#', 18, :right], ['unit', 'Unit', 86, :left], ['item', 'Item', 70, :left],
+        ['kind', 'Kind', 46, :left], ['hand', 'Hand', 32, :left], ['width', 'W', 26, :right], ['height', 'H', 26, :right],
         ['style', 'Style', 38, :left], ['midrail', 'Mid', 26, :left],
         ['hinge_type', 'Hinge type', 62, :left], ['hinges', 'Hng', 24, :right],
         ['tip_on', 'TIP', 22, :right], ['handles', 'Hdl', 24, :right], ['notes', 'Notes', nil, :left]
@@ -145,8 +145,8 @@ module HarryWardrobes
         key = Array(data['hinge_key'])
         unless key.empty?
           y -= 12
-          page.text(MARGIN, y, 'Different hinges (shaded rows):', font: 'F2', size: 9)
-          x = MARGIN + Pdf.width('Different hinges (shaded rows):', 'F2', 9) + 8
+          page.text(MARGIN, y, 'Different hinges (shaded):', font: 'F2', size: 9)
+          x = MARGIN + Pdf.width('Different hinges (shaded):', 'F2', 9) + 8
           key.each do |mark, type, shade|
             label = "#{mark} #{type}"
             wdt = Pdf.width(label, 'F2', 9) + 8
@@ -199,12 +199,15 @@ module HarryWardrobes
             pages << page
             y = table_header(page, PAGE_H - MARGIN - 10)
           end
-          page.rect_fill(MARGIN, y - 4, PAGE_W - 2 * MARGIN, ROW_H, r['hinge_shade']) if r['hinge_shade']
           x = MARGIN
           columns.each do |key, _l, w, align|
             v = r[key]
             v = v.to_s.sub('Soft Close', 'SC') if key == 'hinge_type'
-            v = "#{r['hinge_mark']} #{v}" if key == 'hinge_type' && r['hinge_mark']
+            if key == 'hinge_type' && r['hinge_mark']
+              v = "#{r['hinge_mark']} #{v}"
+              # shade just the hinge text, not the row
+              page.rect_fill(x + 1, y - 3, [Pdf.width(Pdf.clean(v), 'F2', SIZE) + 4, w - 2].min, ROW_H - 2, r['hinge_shade'])
+            end
             v = '' if v.nil? || (v.is_a?(Integer) && v.zero? && %w[hinges tip_on handles].include?(key))
             tx = align == :right ? x + w - 3 : x + 3
             page.text(tx, y, v.to_s, align: align, max: w - 6, **(key == 'hinge_type' && r['hinge_mark'] ? { font: 'F2' } : {}))

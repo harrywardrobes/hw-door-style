@@ -219,7 +219,7 @@ Dir.mktmpdir do |dir|
 
   data = { 'job' => 'Smith Wardrobes', 'head' => { 'customer' => 'SMITH, John', 'room' => 'Master Bedroom', 'drawing' => 'X830735284436', 'account' => 'HW123456789' }, 'hinge_type' => 'Soft Close 110', 'date' => '15/10/2026 11:00',
            'version' => '0.2.0', 'export_version' => 4,
-           'rows' => Array.new(75) { |i| rows[0].merge('n' => i + 1, 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
+           'rows' => Array.new(75) { |i| rows[0].merge('n' => i + 1, 'hand' => i.even? ? 'LH' : 'RH', 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
   data['rows'].each_with_index { |r, i| r['hinge_type'] = i % 9 == 0 ? 'Soft Close 155' : (i % 13 == 0 ? 'PTO 110' : 'Soft Close 110') }
   data['totals'] = Report.totals(data['rows'])
   data['hinge_key'] = Report.mark_hinges(data['rows'], 'Soft Close 110')

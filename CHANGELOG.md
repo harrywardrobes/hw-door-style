@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.68.4 — 2026-10-20
+- Door order (PDF and the Doors / Vinyl tab): a **Hand** column - LH / RH for each door.
+- Different hinges: only the hinge text is shaded (e.g. "** SC 155"), not the whole row.
+
 ## 0.68.3 — 2026-10-20
 - Settings > Labels: **View queue** (yellow) for the Zebra and the PDF printer - opens Windows' queue window for it.
 
