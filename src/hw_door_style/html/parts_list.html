@@ -87,6 +87,14 @@
     <button id="renumParts" onclick="renumberParts(this)" title="Part numbers are kept on the parts; this starts again from 1">Renumber parts</button>
     <button class="primary" onclick="printLabels()">Print labels</button>
   </div>
+  <div class="lbar" id="jobBar" style="flex-wrap:wrap">
+    <span class="hint" style="margin:0">On every label:</span>
+    First name <input type="text" id="jiFirst" style="width:90px" onchange="saveJob()">
+    Surname <input type="text" id="jiLast" style="width:110px" onchange="saveJob()">
+    Room ID <input type="text" id="jiId" style="width:120px" onchange="saveJob()">
+    Room <input type="text" id="jiRoom" style="width:140px" onchange="saveJob()">
+    <b id="jiShow" style="margin-left:6px"></b>
+  </div>
   <div class="lpages" id="lPages"></div>
 </div>
 <div class="pane" id="p_hubspot"><div class="hint">Reading the HubSpot Room...</div></div>
@@ -208,6 +216,8 @@ function renderProducts(d){
   if (K.length) h = '<div class="hint" style="margin:0 0 6px"><b>Key:</b> ' + K.map(function(k){ return '<b>' + esc(k[0]) + '</b> ' + esc(k[1]); }).join(' &middot; ') + '</div>' + h;
   $('p_products').innerHTML = h;
 }
+function jobInfo(j){ if (!j) return; D.job_info = j; $('jiFirst').value = j.customer_first || ''; $('jiLast').value = j.customer_last || ''; $('jiId').value = j.room_id || ''; $('jiRoom').value = j.room_name || ''; $('jiShow').textContent = [j.customer, j.room_id, j.room_name].filter(Boolean).join('  |  '); if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
+function saveJob(){ sketchup.setJobInfo(JSON.stringify({ customer_first: $('jiFirst').value, customer_last: $('jiLast').value, room_id: $('jiId').value, room_name: $('jiRoom').value })); }
 function renumberParts(b){ if (b.dataset.sure) { $('status').textContent = 'Renumbering parts...'; sketchup.renumberParts(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every part number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber parts'; } }, 4000); }
 function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
 function setHost(pid, host){ $('status').textContent = 'Updating the product list...'; sketchup.setHost(JSON.stringify({ pid: pid, host: host })); }
@@ -242,6 +252,7 @@ function renderLabels(d){
   var wcur = $('lWhich').value;
   $('lWhich').innerHTML = '<option value="">All parts</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
   if (wcur) $('lWhich').value = wcur;
+  jobInfo(d.job_info);
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 function failed(msg){ $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
@@ -392,7 +403,11 @@ function element(el, e, idx, minUnit){
     else if (key === 'material_name') value = e.material_name;
     else if (key === 'std_dimension') value = e.std_dimension;
     else value = '';
-  } else if (terms[0] === 'filename') value = D.filename;
+  } else if (terms[0] === 'customer') value = (D.job_info || {}).customer || '';
+  else if (terms[0] === 'room_id') value = (D.job_info || {}).room_id || '';
+  else if (terms[0] === 'room_name') value = (D.job_info || {}).room_name || '';
+  else if (terms[0] === 'room') value = [(D.job_info || {}).room_id, (D.job_info || {}).room_name].filter(Boolean).join('  ');
+  else if (terms[0] === 'filename') value = D.filename;
   else if (terms[0] === 'model_name') value = D.model_name;
   else if (terms[0] === 'page_name') value = D.page_name;
   else if (terms[0] === 'length_unit') value = 'mm';

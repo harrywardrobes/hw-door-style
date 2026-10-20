@@ -764,6 +764,7 @@ module HarryWardrobes
           data['products'] = prods
           data['product_prefix'] = Products.cfg['prefix']
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
+          data['job_info'] = JobInfo.get(model)
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
         fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }
@@ -800,6 +801,11 @@ module HarryWardrobes
           Steps.one(dlg, 'Saving the room plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { RoomPlan.write(model, data) }
         end
         dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
+        dlg.add_action_callback('setJobInfo') do |_c, json|
+          JobInfo.save(model, JSON.parse(json))
+          data['job_info'] = JobInfo.get(model) if data
+          dlg.execute_script("jobInfo(#{JSON.generate(data ? data['job_info'] : JobInfo.get(model))})")
+        end
         dlg.add_action_callback('renumberParts') { |_c| PartsList.renumber_parts(model); reload.call }
         dlg.add_action_callback('doorView') do |_c|
           Steps.one(dlg, 'Drawing the doors view', done: ->(r) { dlg.execute_script("doorViewMade(#{JSON.generate(r)})") }, fail: fail_js) { DoorView.build(model) }

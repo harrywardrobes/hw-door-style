@@ -813,5 +813,15 @@ LB = HarryWardrobes::DoorStyle::Labels
 ord = LB.by_t([{ 't' => '', 'number' => 1, 'position' => 1 }, { 't' => 'W1', 'number' => 2, 'position' => 1 }, { 't' => 'T2', 'number' => 1, 'position' => 1 }, { 't' => 'T10', 'number' => 3, 'position' => 1 }, { 't' => 'T2', 'number' => 10, 'position' => 1 }, { 't' => 'T2', 'number' => 9, 'position' => 1 }])
 check 'labels print T number then part number (T2 9 before T2 10, T10 after T2, no T last)', ord.map { |e| "#{e['t']}#{e['t'].empty? ? '' : ':'}#{e['number']}" } == %w[T2:1 T2:9 T2:10 T10:3 W1:2 1]
 
+require 'hw_door_style/job/job_info'
+JI = HarryWardrobes::DoorStyle::JobInfo
+check 'label name: SURNAME INITIALS (single, double-barrelled, hyphenated, lower case)',
+      JI.customer_label('Jane Ann', 'Smith') == 'SMITH JA' && JI.customer_label('', 'Madonna') == 'MADONNA' && JI.customer_label('Andrew', 'Lloyd Webber') == 'LLOYD WEBBER A' &&
+      JI.customer_label('mary-jane', 'smith-jones') == 'SMITH-JONES MJ' && JI.customer_label('john', 'o\'neill') == "O'NEILL J"
+check 'customer folder -> first / surname', JI.split_name('WILLIAMS Rebecca (Rossett - 830735284436)') == %w[Rebecca Williams] && JI.split_name('Jane Smith') == %w[Jane Smith] &&
+      JI.split_name('SMITH-JONES Mary Ann (123)') == ['Mary Ann', 'Smith-Jones'] && JI.split_name('SMITH') == ['', 'Smith']
+check 'room from the file name', JI.room_from_file('SURVEY - master bedroom - williams rebecca') == 'Master Bedroom' && JI.room_from_file('Bedroom 2') == 'Bedroom 2'
+check 'made-up Room ID {SUR}{YYMMDD}{NN}', JI.new_room_id('Williams', nil, Time.new(2026, 10, 20)) == 'WIL26102001' && JI.new_room_id("O'Neill", nil, Time.new(2026, 1, 2)) == 'ONE26010201' && JI.new_room_id('Ng', nil, Time.new(2026, 1, 2)) == 'NGX26010201'
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
