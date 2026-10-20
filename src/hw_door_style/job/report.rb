@@ -110,13 +110,40 @@ module HarryWardrobes
         Settings.get['export_csv'] ? true : false
       end
 
-      def self.write_order(model = Sketchup.active_model)
+      # 22mm (white back) panels and bullnose / cornice from the parts list: ordered with the
+      # doors, so they're on this order (not the parts list). [{ title, note, cols, rows }]
+      def self.vinyl_sections(parts)
+        f = ->(v) { PartsList.fmt(v) }
+        wb = parts['groups'].select { |g| g['section'] == 'white_back' }
+        vin = parts['groups'].select { |g| g['section'] == 'vinyl' }
+        [
+          { 'title' => '22mm panels (white back)', 'note' => 'vinyl-wrapped 22mm panels, white backed',
+            'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
+            'rows' => wb.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], f.call(p['length']), f.call(p['width']), p['qty']] } } },
+          { 'title' => 'Bullnose / cornice', 'note' => 'vinyl',
+            'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
+            'rows' => vin.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], "#{f.call(g['thickness'])} mm", f.call(p['length']), f.call(p['width']), p['qty']] } } }
+        ]
+      end
+
+      # parts: the parts list (PartsList.generate) for the 22mm / bullnose sections and the
+      # worktop views; made here when not given.
+      def self.write_order(model = Sketchup.active_model, parts: nil)
         raise 'Save the SketchUp file first - the door order is saved next to it.' if model.path.to_s.empty?
         dir  = File.dirname(model.path)
         base = File.basename(model.path, '.skp')
         v    = next_version(dir, base, model.get_attribute(DICT, 'export_version', 0))
         stem = File.join(dir, order_stem(v, base))
         data = payload(model).merge('export_version' => v)
+        parts ||= PartsList.generate(model)
+        tops = (Products.list(model)[1] rescue {})
+        data['vinyl'] = vinyl_sections(parts)
+        data['worktops'] = begin
+          WorktopView.worktops(model, parts, tops)
+        rescue StandardError => e
+          Log.error('worktop view', e)
+          []
+        end
         data['elevation'] = begin
           DoorView.walls(model)
         rescue StandardError => e
@@ -129,6 +156,7 @@ module HarryWardrobes
         [csv? ? "#{stem}.csv" : nil, "#{stem}.pdf", v]
       end
 
+      # Menu: the Door / Vinyl order on its own (the Workshop pack is the usual way).
       def self.export_order(model = Sketchup.active_model)
         unless Pencil.on?(model) || Runouts.units(model.entities).empty?
           return nil unless UI.messagebox("Scribes are OFF - every runout is 0, so sizes may be wrong.\n\nExport the door order anyway?", MB_YESNO) == IDYES
@@ -137,21 +165,12 @@ module HarryWardrobes
           UI.messagebox('Save the SketchUp file first - the door order is saved next to it and named after it.')
           return nil
         end
-        dir  = File.dirname(model.path)
-        base = File.basename(model.path, '.skp')
-        v    = next_version(dir, base, model.get_attribute(DICT, 'export_version', 0))
-        stem = File.join(dir, order_stem(v, base))
-        data = payload(model).merge('export_version' => v)
-
-        File.write("#{stem}.csv", "﻿" + csv(data['rows']), mode: 'w:UTF-8') if csv?
-        Pdf.write("#{stem}.pdf", data)
-
-        Ops.run(model, 'Record door order export') { model.set_attribute(DICT, 'export_version', v) }
-
-        UI.messagebox("Door order v#{v} saved in:\n#{dir}\n\n#{csv? ? "#{File.basename(stem)}.csv\n" : ''}#{File.basename(stem)}.pdf")
+        csv_path, pdf, v = write_order(model)
+        UI.messagebox("Door / Vinyl order v#{v} saved in:\n#{File.dirname(pdf)}\n\n#{csv_path ? "#{File.basename(csv_path)}\n" : ''}#{File.basename(pdf)}")
         v
       rescue StandardError => e
-        UI.messagebox("Export failed: #{e.message}\n\nIf the file is open in Excel or a PDF viewer, close it and try again.")
+        UI.messagebox("Export failed: #{e.message}")
+        Log.error('export order', e)
         nil
       end
 

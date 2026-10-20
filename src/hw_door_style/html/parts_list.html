@@ -111,7 +111,7 @@
     <button onclick="editLayout()" title="Move, add and size the fields on the label (saved as an HW layout)">Edit layout</button>
     <button id="renumParts" onclick="renumberParts(this)" title="Part numbers are kept on the parts; this starts again from 1">Renumber parts</button>
     <button onclick="printLabels()" title="Reprint the labels shown (Print range) on the Zebra">Reprint on Zebra</button>
-    <button class="primary" id="packBtn" onclick="savePack()" title="Makes the PDFs (door order, parts list, Room Plan) and the labels, ready to check and send">Save Workshop Pack</button>
+    <button class="primary" id="packBtn" onclick="savePack()" title="Makes the PDFs (Door / Vinyl order, parts list, Room Plan) and the labels, ready to check and send">Save Workshop Pack</button>
   </div>
   <div class="lbar" id="jobBar" style="flex-wrap:wrap">
     <span class="hint" style="margin:0">On every label:</span>
@@ -189,7 +189,7 @@ function render(d){
   dh += dd.rows.length ? '<table><tr>' + cols.map(function(c){ return '<th' + (c[2] ? ' class="n"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr>' +
     dd.rows.map(function(r){ return '<tr title="' + esc(r.unit_path || '') + '">' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; if (c[0] === 'hinge_type' && r.hinge_mark) return '<td><b style="background:' + grey(r.hinge_shade) + ';padding:1px 5px">' + r.hinge_mark + ' ' + esc(v) + '</b></td>'; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
   if ((dd.hinge_key || []).length) dh = dh.replace('<table>', '<div style="margin:0 0 6px;font-size:12px"><b>Different hinges (shaded):</b> ' + dd.hinge_key.map(function(k){ return '<span style="background:' + grey(k[2]) + ';padding:2px 6px;margin-left:6px;font-weight:600">' + k[0] + ' ' + esc(k[1]) + '</span>'; }).join('') + '</div><table>');
-  if (dd.last_export) dh += '<div class="hint">Last door order saved: v' + dd.last_export + '.</div>';
+  if (dd.last_export) dh += '<div class="hint">Last Door / Vinyl order saved: v' + dd.last_export + '.</div>';
   var wb = d.groups.filter(function(g){ return g.section === 'white_back'; });
   wb.forEach(function(g){
     dh += '<div class="grp" style="margin-top:10px"><h3>22mm (White Back) <span>' + esc(g.material) + ' - ' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;, ordered with the doors</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
@@ -318,7 +318,7 @@ function renderLabels(d){
   jobInfo(d.job_info);
   renderPdfs(d.pdfs || []);
   showChecks(d.checks || []);
-  var bl = d.blockers || []; $('packBtn').style.opacity = bl.length ? '.5' : ''; $('packBtn').title = bl.length ? 'Fix first: ' + bl.join(' ') : 'Makes the PDFs (door order, parts list, Room Plan) and the labels, ready to check and send';
+  var bl = d.blockers || []; $('packBtn').style.opacity = bl.length ? '.5' : ''; $('packBtn').title = bl.length ? 'Fix first: ' + bl.join(' ') : 'Makes the PDFs (Door / Vinyl order, parts list, Room Plan) and the labels, ready to check and send';
   labelParts({ parts: d.label_parts, stock: d.timber_stock });
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }

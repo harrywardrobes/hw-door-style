@@ -73,7 +73,7 @@ module HarryWardrobes
 
       # Saves the door order and the parts list (PDF each; CSV too if set in Settings). Returns [paths..., versions].
       def self.save(model, parts)
-        door = Report.write_order(model)
+        door = Report.write_order(model, parts: parts)
         part = PartsList.export(model, parts)
         # One Room Plan PDF (cover, product list, installation plan, pod sheet, panel list).
         plan = begin
@@ -223,7 +223,7 @@ module HarryWardrobes
                       }, after: after)
       end
 
-      PDF_KINDS = [['DOOR_ORDER', 'Door order'], ['PARTS_LIST', 'Parts list'], ['ROOM_PLAN', 'Room Plan']].freeze
+      PDF_KINDS = [['DOOR_ORDER', 'Door / Vinyl order'], ['PARTS_LIST', 'Parts list'], ['ROOM_PLAN', 'Room Plan']].freeze
 
       # The latest PDF of each kind saved for this model (next to it): [{ title, name, path, v, date }].
       def self.pdfs(model)

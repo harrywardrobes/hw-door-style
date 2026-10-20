@@ -70,6 +70,11 @@ module HarryWardrobes
           @ops << format('%.2f G %.2f w %.2f %.2f %.2f %.2f re S 0 G', gray, lw, x, y, w, h)
         end
 
+        # A dashed line (dash / gap in points).
+        def dashed(x1, y1, x2, y2, gray = 0, w = 0.5, dash = 3)
+          @ops << format('%.2f G %.2f w [%.1f %.1f] 0 d %.2f %.2f m %.2f %.2f l S [] 0 d 0 G', gray, w, dash, dash, x1, y1, x2, y2)
+        end
+
         # A JPEG (Pdf.jpeg) drawn at x, y (bottom-left), w x h points.
         def image(name, x, y, w, h)
           @ops << format('q %.2f 0 0 %.2f %.2f %.2f cm /%s Do Q', w, h, x, y, name)
@@ -135,7 +140,7 @@ module HarryWardrobes
 
       def self.title_block(page, data)
         y = PAGE_H - MARGIN - 12
-        page.text(MARGIN, y, 'Harry Wardrobes - Door order', font: 'F2', size: 15)
+        page.text(MARGIN, y, 'Harry Wardrobes - Door / Vinyl Order', font: 'F2', size: 15)
         page.text(PAGE_W - MARGIN, y, "Version v#{data['export_version']}", font: 'F2', size: 12, align: :right)
         y -= 16
         page.text(MARGIN, y, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
@@ -217,14 +222,59 @@ module HarryWardrobes
           y -= ROW_H
         end
 
-        # Door elevation, a page per wall (DoorView).
+        # 22mm (white back) panels and bullnose / cornice: ordered with the doors.
+        Array(data['vinyl']).each do |sec|
+          next if sec['rows'].empty?
+          if y < MARGIN + 60
+            page = Page.new
+            pages << page
+            y = PAGE_H - MARGIN - 10
+          end
+          y -= 10
+          page.text(MARGIN, y, sec['title'], font: 'F2', size: 11)
+          page.text(MARGIN + Pdf.width(sec['title'], 'F2', 11) + 8, y, sec['note'].to_s, size: 8.5)
+          y -= ROW_H + 2
+          cols = sec['cols']
+          ws = fit_widths(cols.map { |c| c[1] }, PAGE_W - 2 * MARGIN)
+          head = lambda do
+            page.rect_fill(MARGIN, y - 4, PAGE_W - 2 * MARGIN, ROW_H, 0.92)
+            x = MARGIN
+            cols.each_with_index { |(l, _w, a), i| page.text(a == :right ? x + ws[i] - 3 : x + 3, y, l, font: 'F2', align: a, max: ws[i] - 6); x += ws[i] }
+            y -= ROW_H
+          end
+          head.call
+          sec['rows'].each do |r|
+            if y < MARGIN + 20
+              page = Page.new
+              pages << page
+              y = PAGE_H - MARGIN - 10
+              head.call
+            end
+            x = MARGIN
+            cols.each_with_index { |(_l, _w, a), i| page.text(a == :right ? x + ws[i] - 3 : x + 3, y, r[i].to_s, align: a, max: ws[i] - 6); x += ws[i] }
+            page.line(MARGIN, y - 4, PAGE_W - MARGIN, y - 4)
+            y -= ROW_H
+          end
+        end
+
+        # Drawings: door elevations (one per wall) then worktops, two to a page, stacked.
         walls = Array(data['elevation'])
-        walls.each do |w|
+        tops = Array(data['worktops'])
+        views = walls.map { |w| [:wall, w, DoorView.title(w, walls.size > 1)] } +
+                tops.each_with_index.map { |w, i| [:top, w, WorktopView.title(w, i, tops.size > 1)] }
+        views.each_slice(2) do |pair|
           pg = Page.new
-          pg.text(MARGIN, PAGE_H - MARGIN - 12, "Harry Wardrobes - #{DoorView.title(w, walls.size > 1)}", font: 'F2', size: 15)
           pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "v#{data['export_version']}", size: 9, align: :right)
           pg.text(MARGIN, PAGE_H - MARGIN - 26, head_line(data['head']), size: 8, max: PAGE_W - 2 * MARGIN)
-          DoorView.draw_pdf(pg, w, MARGIN, MARGIN + 6, PAGE_W - 2 * MARGIN, PAGE_H - 2 * MARGIN - 34)
+          box_h = (PAGE_H - 2 * MARGIN - 34) / pair.size
+          pair.each_with_index do |(kind, w, title), i|
+            top = PAGE_H - MARGIN - 34 - i * box_h
+            pg.text(MARGIN, top - (i.zero? ? -22 : 14), "Harry Wardrobes - #{title}", font: 'F2', size: i.zero? ? 15 : 12)
+            pg.line(MARGIN, top, PAGE_W - MARGIN, top, 0.7, 0.5) if i.positive?
+            by = top - box_h + 6
+            bh = box_h - (i.zero? ? 6 : 26)
+            kind == :wall ? DoorView.draw_pdf(pg, w, MARGIN, by, PAGE_W - 2 * MARGIN, bh) : WorktopView.draw_pdf(pg, w, MARGIN, by, PAGE_W - 2 * MARGIN, bh)
+          end
           pages << pg
         end
 

@@ -207,7 +207,16 @@ Dir.mktmpdir do |dir|
   check 'odd hinges: usual one plain, others marked * / ** with grey shades', data['hinge_key'].map { |m, t, _s| [m, t] } == [['*', 'Soft Close 155'], ['**', 'PTO 110']] &&
         data['rows'][0]['hinge_mark'] == '*' && data['rows'][1]['hinge_mark'].nil? && Report.mark_hinges([{ 'hinge_type' => 'A' }, { 'hinge_type' => 'A' }]).empty?
   pdf = File.join(dir, 'DOOR_ORDER_v4_Smith Wardrobes.pdf')
+  require 'hw_door_style/job/worktop_view'
+  module HarryWardrobes; module DoorStyle; module DoorView; def self.title(w, many) = (many ? "Door elevation - #{w['wall']}" : 'Door elevation'); def self.draw_pdf(page, wall, bx, by, bw, bh); page.rect(bx, by, bw, bh, 0.5, 0.3); end; end; end; end unless defined?(HarryWardrobes::DoorStyle::DoorView)
+  WV = HarryWardrobes::DoorStyle::WorktopView
+  data['vinyl'] = [{ 'title' => '22mm panels (white back)', 'note' => 'white backed', 'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
+                     'rows' => [[7, 'BKS_SH', 'Frost White', '960', '280', 3]] }]
+  data['worktops'] = [{ 'name' => 'WRKTP', 'pod' => 'B1', 'length' => 1200, 'depth' => 518, 'thickness' => 25, 'material' => 'Mussel', 'edges' => { 'front' => true, 'left' => true, 'right' => false, 'back' => false } },
+                      { 'name' => 'EXT_DRW_WORKTOP', 'pod' => 'L1', 'length' => 700, 'depth' => 480, 'thickness' => 25, 'material' => 'Mussel', 'edges' => { 'front' => true, 'left' => false, 'right' => false, 'back' => false } }]
+  data['elevation'] = [{ 'wall' => 'back wall', 'width' => 1000, 'height' => 2300, 'fronts' => [{ 'u0' => 0, 'u1' => 498, 'z0' => 0, 'z1' => 2300, 'panels' => [] }, { 'u0' => 502, 'u1' => 1000, 'z0' => 0, 'z1' => 2300, 'panels' => [] }], 'dims' => [], 'texts' => [], 'labels' => [] }]
   Pdf.write(pdf, data)
+  check 'door / vinyl order: 22mm section, two views on a page, worktop edges', File.binread(pdf).include?('Door / Vinyl Order') && File.binread(pdf).scan('/Type /Page ').size == 4
   bytes = File.binread(pdf)
   check 'pdf header/footer', bytes.start_with?('%PDF-1.4') && bytes.rstrip.end_with?('%%EOF')
   check 'pdf multi-page', bytes.scan('/Type /Page ').size >= 2

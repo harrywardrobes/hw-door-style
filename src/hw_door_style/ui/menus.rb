@@ -56,7 +56,7 @@ module HarryWardrobes
         c[:parts] = command('Workshop', 'Everything for the workshop in one window: door order, sheet goods (boards, strips, edging), hardware and handles, labels to print - saved as one pack and synced to the HubSpot Room. Parts rules from OpenCutList.',
                             'parts') { PartsList.show }
         menu.add_item(c[:parts])
-        menu.add_item('Export door order (PDF)') { Report.export_order }
+        menu.add_item('Export Door / Vinyl order (PDF)') { Report.export_order }
         menu.add_item(c[:settings])
 
         # HubSpot (one file = one Room)
