@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.60.0 — 2026-10-20
+Labels (Workshop > Labels):
+- Part numbers 1, 2, 3... across the whole room file (identical parts share one), kept on the parts so they stay the same when the list is made again; new parts get the next number. "Renumber parts" starts again from 1.
+- T number printed left of the part number ("T3  12"); labels print in T number then part number order.
+- Customer and room on every label: SURNAME INITIALS, Room ID, room name - from the HubSpot link, else the customer folder / file name (the Room ID is then made up once, {SUR}{YYMMDD}{NN}, and kept). Editable in the Labels tab.
+- Grouped labels: hardware, timber and the names in Settings > Labels (L_BRACKET, HINGE*...) get one label per name with the total and the T numbers it's for; any part can be switched for the job. 2x1 timber: one "2x1 Timber" label with the number of 2100 / 2400 stock lengths (first fit) and the cut lengths. Timber (dimensional) now in the parts list (Hardware tab, parts PDF).
+- Code 128 barcode on every label: HW-{ROOM_ID}-{PART_NO} (grouped: H1, H2...), kept on the parts. JsBarcode bundled - no internet needed.
+- Zebra GK420D: layouts set to the Zebra print straight to it as ZPL (shared as ZEBRA in Windows) - no print dialog, so no blank first label after the Brother. Settings > Labels > Test print.
+- Label layout editor (Edit layout), ported from OpenCutList: drag fields on a grid, sizes, anchors, rotation, barcode, free text, lines; page size, margins, columns / rows and printer; named layouts kept in the settings; live preview of the first 3 labels. Starter layouts: Zebra 102 x 76 and A4 sheet (Brother).
+- Print: all, grouped only, one T number or chosen part numbers.
+
+## 0.60.0 — 2026-10-20
+- 
+
 ## 0.59.0 — 2026-10-20
 - Part types, like the front types: a part's Workshop section is kept on its component - Worktop, Bullnose / cornice (vinyl), 22mm white back or Sheet goods - and wins over the name / thickness rules, so the linen press and drawer unit worktops (18mm / 25mm) go in the Worktops tab. Right-click a part > HW Door Style > Part type (or Automatic).
 - Library V32: WRKTP, LIN_WORKTOP and EXT_DRW_WORKTOP marked Worktop; WRKTP_FACING marked Sheet goods (it matched "WRKTP" before).
