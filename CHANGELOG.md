@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.49.0 — 2026-10-20
+- **Stable wardrobe** (WARDROBE_STABLE, Components V29+): a double wardrobe with a fixed stable panel below one door. Its doors are WST_DOOR (full height) and WST_DOOR_UPPER (above the panel, lined up like the linen press door), and the panel is WST_STABLE_PANEL. Each door hinges on its outer edge, whichever side the panel is on.
+- Fixed panels (Settings > Doors > Fixed panels, default WST_STABLE_PANEL) are styled, coloured and on the door order like a door ("Stable Panel"), with no hinges, TIP-ON or handles. The Room Plan lists them as "stable panel W x H (fixed)".
+- Settings brought up to date: the stable wardrobe's door names and "Stable wardrobe" product type are added to saved settings.
+
+## 0.49.0 — 2026-10-20
+- 
+
 ## 0.48.0 — 2026-10-20
 - **Room Plan**: one PDF, ROOM_PLAN_v<N>_<file>.pdf, in place of the separate installation plan - Cover / Specification (customer, address, colours, door style, hinges, handles, ceiling, top fascia, depths, scribes, cornice), Product List (loose items first, then each ref as "1000 Wardrobe (580 deep / 598 overall)", its doors with LH / RH and 155 hinges flagged, and an interior summary), Installation Plan (plan scene with the footer: client, account, drawing, main ceiling, scribe set L / R / F / C / back, cornice), Pod Sheet (the parts, hardware and doors in each ref) and Panel list (MDF / Timber / Cut / Worktop / Facing, with the refs each panel goes in).
 - Every page has the header: customer, room, drawing X<Room ID>, account HW<customer ID>, fit week (the Room's new "Fit week" field in HubSpot) and date, and "Page n of N".

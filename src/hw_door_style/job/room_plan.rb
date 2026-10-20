@@ -122,12 +122,15 @@ module HarryWardrobes
       def self.door_text(list)
         doors = list.select { |d| d['kind_id'] == 'door' }
         return '' if doors.empty?
-        doors.group_by { |d| [d['style'], d['height'], d['hinge_type']] }.map do |(style, h, hinge), ds|
+        fixed, doors = doors.partition { |d| d['kind'] == 'Stable Panel' }
+        out = doors.group_by { |d| [d['style'], d['height'], d['hinge_type']] }.map do |(style, h, hinge), ds|
           hands = ds.map { |d| d['hand'].to_s }.reject(&:empty?).tally.map { |k, n| n > 1 ? "#{n} #{k}" : k }.join(' + ')
           t = "#{ds.size} x #{style} #{h} high#{hands.empty? ? '' : " (#{hands})"}"
           t += ' - 155 HINGES' if hinge.to_s.include?('155')
           t
-        end.join('; ')
+        end
+        out += fixed.map { |d| "stable panel #{d['width']} x #{d['height']} (fixed)" }
+        out.join('; ')
       end
 
       def self.interior_text(info)

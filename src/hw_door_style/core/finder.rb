@@ -32,6 +32,17 @@ module HarryWardrobes
         nil
       end
 
+      # Fixed panels (Settings "fixed_panel_names", e.g. the stable panel): styled and ordered
+      # like a door, but no hinges or handles.
+      def self.fixed_name?(name)
+        base = name.to_s.sub(/#\d+\z/, '').strip.upcase
+        Settings.names('fixed_panel_names').include?(base)
+      end
+
+      def self.fixed?(inst)
+        inst.respond_to?(:definition) && (names_for(inst) & Settings.names('fixed_panel_names')).any?
+      end
+
       def self.label(inst)
         n = dc_name(inst)
         n = inst.definition.name if n.empty?

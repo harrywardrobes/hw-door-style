@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 4
+      SETTINGS_VERSION = 5
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -55,6 +55,13 @@ module HarryWardrobes
             sh&.merge!(old)
             user['door_styles'] = list
           end
+        end
+        # 0.49: the stable wardrobe's doors and stable panel.
+        if v < 5
+          if user['door_names'].is_a?(Array)
+            user['door_names'] = user['door_names'] + (%w[WST_DOOR WST_DOOR_UPPER WST_STABLE_PANEL] - user['door_names'])
+          end
+          user['product_types']['WARDROBE_STABLE'] ||= 'Stable wardrobe' if user['product_types'].is_a?(Hash)
         end
         user['settings_version'] = SETTINGS_VERSION
         user

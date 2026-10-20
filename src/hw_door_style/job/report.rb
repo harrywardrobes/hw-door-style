@@ -17,6 +17,7 @@ module HarryWardrobes
 
       # A door with a mid-rail is a wardrobe door.
       def self.kind_label(kind, defn)
+        return 'Stable Panel' if kind == :door && Finder.fixed_name?(defn.name)
         kind == :door && defn.get_attribute(DICT, 'midrail') ? 'Wardrobe Door' : Finder::KINDS[kind]
       end
 
@@ -56,7 +57,7 @@ module HarryWardrobes
             'hand' => kind == :door && hinges.any? ? (Hardware.right?(inst) ? 'RH' : 'LH') : '',
             'hinge_type' => hinges.empty? ? '' : Settings::HINGE_TYPES.fetch(hinges.first.get_attribute(DICT, 'type').to_s, hinges.first.get_attribute(DICT, 'type').to_s),
             'hinges' => hinges.size, 'tip_on' => tips,
-            'handles' => none[kind] ? 0 : Settings.handle_count(kind, w, pto, rules: rules,
+            'handles' => none[kind] || Finder.fixed?(inst) ? 0 : Settings.handle_count(kind, w, pto, rules: rules,
                                                 handleless: Styles.handleless?(d.get_attribute(DICT, 'requested_style') || style || 'flat')),
             'notes' => notes.reject(&:empty?).join('; ')
           }

@@ -5,7 +5,13 @@
     "BRGFR_DOOR",
     "WLK_DOOR",
     "TPBX_DOOR",
-    "TPBX_DOOR_TOP"
+    "TPBX_DOOR_TOP",
+    "WST_DOOR",
+    "WST_DOOR_UPPER",
+    "WST_STABLE_PANEL"
+  ],
+  "fixed_panel_names": [
+    "WST_STABLE_PANEL"
   ],
   "ext_drawer_names": [
     "DRW_FRONT"
@@ -206,6 +212,7 @@
   },
   "product_types": {
     "WARDROBE": "Wardrobe",
+    "WARDROBE_STABLE": "Stable wardrobe",
     "WALK-IN": "Walk-in",
     "LINEN_PRESS": "Linen press",
     "TOPBOX": "Top box wardrobe",

@@ -181,14 +181,32 @@ module HarryWardrobes
       end
 
       # Hinges on the door's right edge? (now, for drawing; the formula keeps it right later)
+      # Stable wardrobe: the stable panel's side (Left 0 / Right 1). The door above the panel
+      # ("..._UPPER") is on that side, the full-height door on the other; each hinges on its
+      # outer edge.
+      def self.stable_key(unit)
+        dd = unit && DC.dict(unit) or return nil
+        DC.key_in(dd, 'stable_side')
+      end
+
+      def self.upper?(inst) = Finder.names_for(inst).any? { |n| n.end_with?('_UPPER') }
+
       def self.right?(inst)
         unit = unit_def(inst)
+        if (sk = stable_key(unit))
+          on_stable = truthy?(unit_value(unit, sk))
+          return upper?(inst) ? on_stable : !on_stable
+        end
         dbl = double_key(unit)
         return DC.read(inst, 'copy').to_f >= 1 if dbl && truthy?(unit_value(unit, dbl))
         truthy?(unit_value(unit, side_key(unit)))
       end
 
-      def self.side_formula(unit)
+      def self.side_formula(unit, door = nil)
+        if (sk = stable_key(unit))
+          up = door && upper?(door)
+          return "IF(parent!#{sk.upcase}=1, #{up ? '1, 0' : '0, 1'})"
+        end
         dbl = double_key(unit)
         side = side_key(unit)
         single = side ? "IF(parent!#{side.upcase}=1, 1, 0)" : '0'
@@ -202,6 +220,8 @@ module HarryWardrobes
       # Returns { hinges: n, tip_on: n }.
       def self.add(door_def, wrappers, w, t, h, kind, hinge_type)
         return { hinges: 0, tip_on: 0 } unless kind == :door
+        # Fixed panels (the stable panel) have no hinges or TIP-ON.
+        return { hinges: 0, tip_on: 0 } if Finder.fixed_name?(door_def.name)
         model = door_def.model
         ents = door_def.entities
         gap = EDGE_GAP.mm
@@ -217,7 +237,7 @@ module HarryWardrobes
         unit = insts.map { |i| unit_def(i) }.compact.first
         ensure_side_option(unit)
         right = insts.first ? right?(insts.first) : false
-        side_f = side_formula(unit)
+        side_f = side_formula(unit, insts.first)
         wrappers.each do |o|
           DC.number_attr(o, 'ZZ_HINGE_RIGHT', side_f, o.is_a?(Sketchup::ComponentInstance) ? (right?(o) ? 1 : 0) : (right ? 1 : 0))
         end
