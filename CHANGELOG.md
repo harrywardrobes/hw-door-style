@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.65.0 — 2026-10-20
+- PDFs (door order, parts list, Room Plan): Customer as "WILLIAMS, Rebecca" (the HubSpot contact), Room (the Workshop room name), Drawing X<Room ID> and Account HW<HubSpot contact ID> on every one; the date is gone from the top. Door order / parts list: one "Customer | Room | Drawing | Account" line under the title.
+- Save Workshop Pack needs the file linked to its HubSpot customer (a Room or a design visit).
+
 ## 0.64.3 — 2026-10-20
 - Parts list: hardware-tagged items with no colour (cable outlets, hinges...) count as hardware (the HARDWARE material), and things outside every colour group - switches, sockets, room items - aren't parts at all, so neither is reported as "no colour".
 

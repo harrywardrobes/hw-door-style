@@ -57,7 +57,7 @@ module HarryWardrobes
           page.text(M, top, 'Harry Wardrobes - Room Plan', font: 'F2', size: 14)
           page.text(M, top - 15, @title, font: 'F2', size: 11)
           right = [["Customer", hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']],
-                   ['Account', hd['account']], ['Fit week', hd['fit_week']], ['Date', hd['date']]]
+                   ['Account', hd['account']], ['Fit week', hd['fit_week']]]
           right.each_slice(3).with_index do |col, ci|
             x = W - M - 270 + ci * 135
             col.each_with_index do |(k, v), i|
@@ -84,17 +84,22 @@ module HarryWardrobes
         nil
       end
 
+      # Customer "WILLIAMS, Rebecca" (the HubSpot contact), room (the Workshop's room name),
+      # drawing X<Room ID>, account HW<HubSpot contact ID> - the same on every PDF.
       def self.head(model, fit = :fetch)
         l = HubSpotRoom.customer_link(model) || {}
-        customer = l['customer'].to_s
-        customer = [l['first_name'], l['last_name']].compact.join(' ') if customer.strip.empty?
-        { 'customer' => customer.strip.empty? ? File.basename(model.path.to_s, '.skp') : customer,
+        j = (JobInfo.get(model) rescue {}) || {}
+        { 'customer' => customer_name(j['customer_first'], j['customer_last']),
           'address' => l['address'].to_s,
-          'room' => l['room_name'].to_s,
-          'drawing' => l['room_id'].to_s.empty? ? '' : "X#{l['room_id']}",
+          'room' => j['room_name'].to_s.empty? ? l['room_name'].to_s : j['room_name'].to_s,
+          'drawing' => j['room_id'].to_s.empty? ? '' : "X#{j['room_id']}",
           'account' => l['contact_id'].to_s.empty? ? '' : "HW#{l['contact_id']}",
-          'fit_week' => fit == :fetch ? fit_week(l['room_id']) : fit,
-          'date' => Time.now.strftime('%d/%m/%Y') }
+          'fit_week' => fit == :fetch ? fit_week(l['room_id']) : fit }
+      end
+
+      # "WILLIAMS, Rebecca Jane": surname in capitals, comma, first names as written.
+      def self.customer_name(first, last)
+        [last.to_s.strip.upcase, first.to_s.strip].reject(&:empty?).join(', ')
       end
 
       # --- what is in each ref -------------------------------------------------------------

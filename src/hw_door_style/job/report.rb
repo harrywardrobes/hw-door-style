@@ -166,6 +166,7 @@ module HarryWardrobes
         end
         {
           'job' => File.basename(model.path.to_s, '.skp'),
+          'head' => (RoomPlan.head(model, nil) rescue {}),
           'hinge_type' => Settings::HINGE_TYPES[Settings.job_hinge_type(model)],
           'date' => Time.now.strftime('%d/%m/%Y %H:%M'),
           'version' => VERSION,

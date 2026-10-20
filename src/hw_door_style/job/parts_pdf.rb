@@ -27,8 +27,9 @@ module HarryWardrobes
             page.text(M, @y - 2, 'Harry Wardrobes - Parts list', font: 'F2', size: 15)
             page.text(W - M, @y - 2, "Version v#{@data['list_version']}", font: 'F2', size: 12, align: :right)
             @y -= 18
-            meta = "Job: #{@data['job']}   |   #{@data['date']}   |   Doors and drawer fronts are on the door order"
-            page.text(M, @y, meta, size: 9)
+            page.text(M, @y, Pdf.head_line(@data['head']), size: 9, max: W - 2 * M)
+            @y -= 12
+            page.text(M, @y, 'Doors and drawer fronts are on the door order', size: 9)
             @y -= 8
             page.line(M, @y, W - M, @y, 0.2, 1.2)
             @y -= 16

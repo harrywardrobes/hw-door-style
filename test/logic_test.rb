@@ -217,7 +217,7 @@ Dir.mktmpdir do |dir|
   check 'next after v3 is v4 (other jobs ignored)', Report.next_version(dir, 'Smith Wardrobes') == 4
   check 'model record wins if higher', Report.next_version(dir, 'Smith Wardrobes', 6) == 7
 
-  data = { 'job' => 'Smith Wardrobes', 'hinge_type' => 'Soft Close 110', 'date' => '15/10/2026 11:00',
+  data = { 'job' => 'Smith Wardrobes', 'head' => { 'customer' => 'SMITH, John', 'room' => 'Master Bedroom', 'drawing' => 'X830735284436', 'account' => 'HW123456789' }, 'hinge_type' => 'Soft Close 110', 'date' => '15/10/2026 11:00',
            'version' => '0.2.0', 'export_version' => 4,
            'rows' => Array.new(75) { |i| rows[0].merge('n' => i + 1, 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
   data['totals'] = Report.totals(data['rows'])
@@ -777,8 +777,9 @@ check 'room plan: interior summary', RP.interior_text(info['T1']) == '3 shelves,
 check 'room plan: panel types', %w[Cut Facing MDF Worktop] == parts['groups'].flat_map { |g| g['parts'].map { |p| RP.panel_type(g, p) } }.sort
 rows = [{ 't' => 'T1', 'ref' => 'T', 'num' => 1, 'type' => 'Wardrobe', 'size' => [1000, 598, 2400], 'depth' => 580, 'finished' => 598 },
         { 't' => 'B1', 'ref' => 'B', 'num' => 1, 'type' => 'Worktop', 'size' => [1200, 518, 771], 'depth' => 500, 'finished' => 518 }]
+check 'PDF customer: SURNAME, First names', RP.customer_name('Rebecca Jane', 'Williams') == 'WILLIAMS, Rebecca Jane' && RP.customer_name('', 'Smith') == 'SMITH'
 check 'room plan: unit description', RP.describe(rows[0]) == '1000 Wardrobe (580 deep / 598 overall)'
-hd = { 'customer' => 'Mr Test', 'room' => 'Bedroom 1', 'drawing' => 'X123', 'account' => 'HW456', 'fit_week' => 'Week 44', 'date' => '20/10/2026' }
+hd = { 'customer' => 'WILLIAMS, Rebecca', 'room' => 'Master Bedroom', 'drawing' => 'X830735284436', 'account' => 'HW123456789', 'fit_week' => 'Week 44' }
 doc = RP::Doc.new(hd); doc.start
 RP.product_page(doc, rows, info); RP.pod_page(doc, rows, info); RP.panel_page(doc, parts, tops)
 pdf = HarryWardrobes::DoorStyle::Pdf.document(doc.pages.map(&:to_s))

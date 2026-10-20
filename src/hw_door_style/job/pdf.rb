@@ -110,6 +110,13 @@ module HarryWardrobes
         ws.map { |w| w || free }
       end
 
+      # "Customer: WILLIAMS, Rebecca   |   Room: ...   |   Drawing: X...   |   Account: HW..." (RoomPlan.head).
+      def self.head_line(hd)
+        hd ||= {}
+        [['Customer', hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']], ['Account', hd['account']]]
+          .map { |k, v| "#{k}: #{v.to_s.empty? ? '-' : v}" }.join('   |   ')
+      end
+
       def self.columns
         ws = fit_widths(COLUMNS.map { |c| c[2] }, PAGE_W - 2 * MARGIN, 70)
         COLUMNS.each_with_index.map { |(k, l, _w, a), i| [k, l, ws[i], a] }
@@ -131,7 +138,9 @@ module HarryWardrobes
         page.text(MARGIN, y, 'Harry Wardrobes - Door order', font: 'F2', size: 15)
         page.text(PAGE_W - MARGIN, y, "Version v#{data['export_version']}", font: 'F2', size: 12, align: :right)
         y -= 16
-        meta = "Job: #{data['job']}   |   Hinge type: #{data['hinge_type']}   |   #{data['date']}   |   Mid = mid-rail, Hng = hinges, TIP = TIP-ON, Hdl = handles"
+        page.text(MARGIN, y, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
+        y -= 12
+        meta = "Hinge type: #{data['hinge_type']}   |   Mid = mid-rail, Hng = hinges, TIP = TIP-ON, Hdl = handles"
         page.text(MARGIN, y, meta, size: 9)
         y -= 8
         page.line(MARGIN, y, PAGE_W - MARGIN, y, 0.2, 1.2)
@@ -194,7 +203,8 @@ module HarryWardrobes
         walls.each do |w|
           pg = Page.new
           pg.text(MARGIN, PAGE_H - MARGIN - 12, "Harry Wardrobes - #{DoorView.title(w, walls.size > 1)}", font: 'F2', size: 15)
-          pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "Job: #{data['job']}   |   v#{data['export_version']}", size: 9, align: :right)
+          pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "v#{data['export_version']}", size: 9, align: :right)
+          pg.text(MARGIN, PAGE_H - MARGIN - 26, head_line(data['head']), size: 8, max: PAGE_W - 2 * MARGIN)
           DoorView.draw_pdf(pg, w, MARGIN, MARGIN + 6, PAGE_W - 2 * MARGIN, PAGE_H - 2 * MARGIN - 34)
           pages << pg
         end

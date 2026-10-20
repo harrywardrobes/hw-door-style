@@ -659,6 +659,7 @@ module HarryWardrobes
         timber.each { |t| add_strings(t) }
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
+          'head' => (RoomPlan.head(model, nil) rescue {}),
           'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'timber' => timber, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
           'skipped' => skipped, 'untyped' => (@untyped || {}).map { |n, c| { 'name' => n, 'count' => c } }.sort_by { |u| u['name'] }, 'nocolour' => (@nocolour || {}).map { |n, c| c > 1 ? "#{n} x#{c}" : n }.sort, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,

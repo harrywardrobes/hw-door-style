@@ -133,6 +133,9 @@ module HarryWardrobes
       # unfinished. A thickness outside the standard list is only a warning.
       def self.blockers(model, parts)
         out = []
+        unless HubSpotRoom.customer_link(model)
+          out << 'Link this file to its HubSpot customer first (HubSpot > Link this file) - the PDFs and labels take the customer, account and drawing number from it.'
+        end
         out << 'Scribes are OFF - turn them on (every runout is 0).' if !parts['scribes_on'] && !Runouts.units(model.entities).empty?
         n = Array(parts['untyped']).sum { |u| u['count'].to_i }
         out << "#{n} part(s) are left out (no colour, or a colour not set up as a sheet good or hardware)." if n.positive?
