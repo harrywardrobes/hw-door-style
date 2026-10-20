@@ -437,6 +437,8 @@
     "RAIL_BTM": "Hanging rail (lower)"
   },
   "zebra_share": "ZEBRA",
+  "pdf_printer": "BROTHER - Harry Wardrobes",
+  "sumatra_path": "",
   "label_layouts": {},
   "label_layout_active": ""
 }

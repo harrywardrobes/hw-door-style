@@ -840,8 +840,9 @@ require 'hw_door_style/job/zpl'
 ZP = HarryWardrobes::DoorStyle::Zpl
 zt = ZP.test_label
 File.write(File.join(Dir.tmpdir, 'hw_test_label.zpl'), zt)
-check 'ZPL label: 102 x 76 at 203 dpi (^PW816 ^LL608), 5mm home, T + part number, Code 128 barcode, UTF-8',
-      zt.start_with?('^XA') && zt.include?('^PW816') && zt.include?('^LL608') && zt.include?('^LH40,40') && zt.include?('^FDT3  12^FS') && zt.include?('^BCN,') && zt.include?('^FDHW-TEST-12^FS') && zt.include?('^CI28') && zt.end_with?('^XZ')
+check 'ZPL label: 102 x 76 at 203 dpi (^PW816 ^LL608), 5mm home, T + qty left, part number right, L x W, outline, bars-only Code 128, UTF-8',
+      zt.start_with?('^XA') && zt.include?('^PW816') && zt.include?('^LL608') && zt.include?('^LH40,40') && zt.include?('^FDT3   1 of 2^FS') && zt.include?(',R,0^FD12^FS') &&
+      zt.include?('^FD788 x 490^FS') && zt.include?('^GB') && zt =~ /\^BCN,\d+,N,N,N/ && zt.include?('^FDHW-TEST-12^FS') && zt.include?('^CI28') && zt.end_with?('^XZ')
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

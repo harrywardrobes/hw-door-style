@@ -318,7 +318,7 @@
 
 <section id="s_labels">
   <h2>Labels</h2>
-  <div class="lead">Part labels (Workshop &gt; Labels). Hardware and timber always get one grouped label per name with the total; the names below do too. Any part can be switched for a job in the Labels tab.</div>
+  <div class="lead">Part labels (Workshop &gt; Check). Hardware and timber always get one grouped label per name with the total; the names below do too. Any part can be switched for a job in the Check tab.</div>
   <fieldset><legend>Grouped labels</legend>
     <div class="f t"><span>Names</span><textarea id="label_aggregate_names" rows="4"></textarea></div>
     <div class="hint">Comma separated; * matches anything (HINGE* = HINGE_110, HINGE_155...).</div>
@@ -327,8 +327,13 @@
   </fieldset>
   <fieldset><legend>Zebra GK420D</legend>
     <div class="f t"><span>Windows share name</span><input type="text" id="zebra_share" style="max-width:160px"></div>
-    <div class="hint">Layouts set to the Zebra print straight to it as ZPL, with no print dialog - so the first label after printing on the Brother isn't blank. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above. Other layouts use the print dialog.</div>
+    <div class="hint">Labels print straight to the Zebra as ZPL, with no print dialog. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above.</div>
     <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
+  </fieldset>
+  <fieldset><legend>PDF printer (workshop pack)</legend>
+    <div class="f t"><span>Printer name</span><input type="text" id="pdf_printer" style="max-width:260px"></div>
+    <div class="f t"><span>SumatraPDF path</span><input type="text" id="sumatra_path" placeholder="found automatically if installed"></div>
+    <div class="hint">The door order, parts list and Room Plan PDFs print here, with no dialog, when you send from the Workshop's HubSpot tab (labels only ever go to the Zebra). The name must match Windows exactly. Needs SumatraPDF (free, sumatrapdfreader.org) installed once.</div>
   </fieldset>
 </section>
 
@@ -523,7 +528,7 @@ var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrai
 var LOWER_LISTS = ['product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { zebra_share:'ZEBRA', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]

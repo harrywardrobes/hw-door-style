@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.61.0 — 2026-10-20
+Workshop:
+- Labels tab renamed **Check**: labels stacked down the left, a preview in the middle (click a label or a PDF), and this model's latest PDFs (door order, parts list, Room Plan) on the right.
+- **Save Workshop Pack** is only on the Check tab. It makes the PDFs and the labels (saved next to them as LABELS_vN_....zpl - exactly what prints). The HubSpot tab stays greyed out until the pack is saved (and again after the model is re-read).
+- HubSpot tab: one **Send to HubSpot + print** button - uploads the pack and updates the Room, prints the labels on the Zebra and the PDFs on "BROTHER - Harry Wardrobes" (no dialog; needs SumatraPDF, free). A printer that can't be reached doesn't stop the rest - it's reported. The Save buttons are gone from the other tabs.
+- Labels only ever go to the Zebra (A4 label layout removed; the Brother prints the PDFs only). Settings > Labels: PDF printer name and SumatraPDF path.
+- Customer and Room ID come from the HubSpot link and can't be edited (not linked: from the customer folder, as before). The room name is asked for when the Workshop opens and the file hasn't got one, and can be changed on the Check tab.
+- New label layout: T number and "1 of 2" small top left, part number big top right, part name, length x width, material / thickness, OpenCutList's outline picture (edged sides thick) with customer / room beside it, barcode along the bottom with no text under it. Grouped labels: name, H number, Qty, timber lengths, T numbers.
+
 ## 0.60.1 — 2026-10-20
 - Labels: long values (grouped labels' names such as "Bookcase shelf pegs") shrink to fit the label width, on screen and on the Zebra, instead of running off the edge / printing over themselves.
 

@@ -34,6 +34,55 @@ module HarryWardrobes
         "Edged: #{[long.positive? ? "#{long} long" : nil, short.positive? ? "#{short} short" : nil].compact.join(', ')}"
       end
 
+      # Width (mm) a text element has from its anchor point to the label edge(s).
+      def self.room(anchor, x, lw)
+        case anchor.split('-').first
+        when 'start' then (0.5 - x) * lw
+        when 'end' then (x + 0.5) * lw
+        else 2 * [0.5 - x, x + 0.5].min * lw
+        end.clamp(lw * 0.1, lw)
+      end
+
+      # OpenCutList's proportional thumbnail as ZPL boxes: the part's outline to its length /
+      # width ratio, edged sides drawn thick, the others as a thin dashed line.
+      def self.outline(el, e, cx, cy, area, min_unit, anchor)
+        pw = min_unit / 7.0
+        dw = min_unit / 20.0
+        prop = el['formula'].to_s.include?('proportional')
+        rw = (area - pw) * (prop ? e['l_ratio'].to_f : 1)
+        rh = (area - pw) * (prop ? e['w_ratio'].to_f : 1)
+        return [] if rw <= 0 || rh <= 0
+        tx = case anchor.split('-').first
+             when 'middle' then -area / 2
+             when 'end' then -area
+             else 0
+             end
+        ty = anchor.end_with?('top') ? 0 : -area
+        ox = cx + tx + (area - rw) / 2
+        oy = cy + ty + (area - rh) / 2
+        edges = e['edges'] || {}
+        thick = [dots(pw), 3].max
+        thin = [dots(dw), 1].max
+        dash = [dots(dw * 4), 4].max
+        out = []
+        # [x, y, length, horizontal?, edge key] - top = ymax, bottom = ymin, right = xmax, left = xmin
+        [[ox, oy, rw, true, 'ymax'], [ox, oy + rh, rw, true, 'ymin'], [ox + rw, oy, rh, false, 'xmax'], [ox, oy, rh, false, 'xmin']].each do |x, y, len, horiz, key|
+          if edges[key].to_s.empty?
+            n = dots(len)
+            pos = 0
+            while pos < n
+              seg = [dash, n - pos].min
+              out << (horiz ? "^FO#{dots(x) + pos},#{dots(y)}^GB#{seg},#{thin},#{thin}^FS" : "^FO#{dots(x)},#{dots(y) + pos}^GB#{thin},#{seg},#{thin}^FS")
+              pos += dash * 2
+            end
+          else
+            h0 = thick / 2
+            out << (horiz ? "^FO#{[dots(x) - h0, 0].max},#{[dots(y) - h0, 0].max}^GB#{dots(len) + thick},#{thick},#{thick}^FS" : "^FO#{[dots(x) - h0, 0].max},#{[dots(y) - h0, 0].max}^GB#{thick},#{dots(len) + thick},#{thick}^FS")
+          end
+        end
+        out
+      end
+
       def self.value(el, e, job, idx)
         terms = el['formula'].to_s.split('.')
         key = terms[1]
@@ -42,12 +91,13 @@ module HarryWardrobes
         when 'part'
           case key
           when 'number' then agg ? e['name'].to_s : [e['t'], e['number']].reject { |x| x.to_s.empty? }.join('  ')
-          when 'name' then agg ? "Qty #{e['count']}" : e['name'].to_s
+          when 'name' then e['name'].to_s
           when 't', 't_number' then e['t'].to_s
-          when 'no' then agg ? '' : e['number'].to_s
+          when 'no' then agg ? "H#{e['agg_index']}" : e['number'].to_s
+          when 't_of' then agg ? e['ts'].to_s : [e['t'], "#{e['position']} of #{e['count']}"].reject { |x| x.to_s.empty? }.join('   ')
           when 'ts', 't_numbers' then (e['ts'] || e['t']).to_s
           when 'note' then e['note'].to_s
-          when 'dims' then agg ? e['note'].to_s : "#{[mm_s(e['length']), mm_s(e['width']), mm_s(e['thickness'])].reject(&:empty?).join(' x ')} mm"
+          when 'dims' then agg ? "Qty #{e['count']}" : [mm_s(e['length']), mm_s(e['width'])].reject(&:empty?).join(' x ')
           when 'size', 'cutting_size', 'edge_cutting_size' then agg ? e['note'].to_s : "#{e['length']} x #{e['width']}"
           when 'of' then agg ? '' : "#{e['position']} of #{e['count']}"
           when 'batch' then agg ? '' : "#{e['position']}/#{e['count']}"
@@ -62,7 +112,7 @@ module HarryWardrobes
           end
         when 'group'
           if agg
-            e['ts'].to_s.empty? ? '' : "For #{e['ts']}"
+            e['note'].to_s
           else
             case key
             when 'material' then [e['material_name'], e['std_dimension']].reject { |x| x.to_s.empty? }.join(' / ')
@@ -95,7 +145,6 @@ module HarryWardrobes
         out = ['^XA', '^CI28', "^PW#{dots(o['page_width'])}", "^LL#{dots(o['page_height'])}", "^LH#{dots(o['margin_left'])},#{dots(o['margin_top'])}"]
         Array(o['layout']).each_with_index do |el, idx|
           f = el['formula'].to_s
-          next if f.start_with?('thumbnail')
           anchor = (el['anchor'] || 'middle').to_s
           cx = lw / 2.0 + el['x'].to_f * lw
           cy = lh / 2.0 + el['y'].to_f * lh
@@ -117,15 +166,17 @@ module HarryWardrobes
                 when 'end' then dots(cx) - bw
                 else dots(cx) - bw / 2
                 end
-            text_h = [dots(size * 0.35), 18].max
-            bar_h = [dots(h) - text_h - 4, 20].max
-            y = top ? dots(cy) : dots(cy) - dots(h)
-            out << "^BY#{mod}^FO#{[x, 0].max},#{[y, 0].max}^BCN,#{bar_h},Y,N,N^FD#{clean(payload)}^FS"
+            bar_h = [dots(h), 20].max
+            y = top ? dots(cy) : dots(cy) - bar_h
+            out << "^BY#{mod}^FO#{[x, 0].max},#{[y, 0].max}^BCN,#{bar_h},N,N,N^FD#{clean(payload)}^FS"
+          elsif f.start_with?('thumbnail')
+            next if e['kind'] == 'aggregate'
+            out.concat(outline(el, e, cx, cy, size, min_unit, anchor))
           else
             text = clean(value(el, e, job, idx))
             next if text.empty?
-            block = dots(lw)
-            # shrink long values to fit the label width (as the window does), not wrap over themselves
+            block = dots(room(anchor, el['x'].to_f, lw))
+            # shrink long values to fit the room they have (as the window does), not wrap over themselves
             hd = [[dots(size), (block / (text.length * 0.55)).floor].min, 10].max
             x0 = case anchor.split('-').first
                  when 'start' then dots(cx)
@@ -165,7 +216,8 @@ module HarryWardrobes
       def self.test_label(o = nil)
         o ||= Labels.normalise(Labels::ZEBRA_DEFAULT)
         e = { 'kind' => 'sheet', 't' => 'T3', 'number' => 12, 'name' => 'WRD_FL', 'length' => '788 mm', 'width' => '490 mm', 'thickness' => '18 mm',
-              'count' => 2, 'position' => 1, 'material_name' => 'Frost White', 'std_dimension' => '18 mm', 'edges' => {}, 'barcode' => 'HW-TEST-12', 'custom' => [] }
+              'count' => 2, 'position' => 1, 'material_name' => 'Frost White', 'std_dimension' => '18 mm', 'edges' => { 'ymax' => 'EDGE 0.8mm ABS' },
+              'l_ratio' => 1.0, 'w_ratio' => 0.62, 'barcode' => 'HW-TEST-12', 'custom' => [] }
         job = { 'customer' => 'SMITH JA', 'room_id' => 'SMI26102001', 'room_name' => 'Test label' }
         label(o, e, job)
       end

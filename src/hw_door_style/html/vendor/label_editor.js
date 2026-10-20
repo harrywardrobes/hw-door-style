@@ -27,8 +27,9 @@
     ['part.number', 'T number + part number (T3  12)'],
     ['part.t', 'T number'],
     ['part.no', 'Part number'],
+    ['part.t_of', 'T number + qty (T1  1 of 2)'],
     ['part.name', 'Part name'],
-    ['part.dims', 'Dimensions (L x W x T)'],
+    ['part.dims', 'Length x width (grouped: Qty)'],
     ['part.size', 'Length x width'],
     ['part.length', 'Length'],
     ['part.width', 'Width'],
@@ -251,10 +252,7 @@
     this.right.innerHTML = '<fieldset style="margin:0"><legend>Page</legend><div style="display:grid;grid-template-columns:auto auto auto auto;gap:4px 8px;align-items:center">' +
       num('page_width', 'Width (mm)') + num('page_height', 'Height (mm)') +
       num('margin_top', 'Margin top') + num('margin_bottom', 'Margin bottom') + num('margin_left', 'Margin left') + num('margin_right', 'Margin right') +
-      num('col_count', 'Columns', 1) + num('row_count', 'Rows', 1) + num('spacing_v', 'Gap across') + num('spacing_h', 'Gap down') +
-      '</div><div style="margin-top:6px">Printer <select data-k="printer"><option value="zebra"' + (o.printer === 'zebra' ? ' selected' : '') + '>Zebra GK420D (raw ZPL)</option><option value="dialog"' + (o.printer !== 'zebra' ? ' selected' : '') + '>System print dialog</option></select>' +
-      ' <label style="margin-left:8px"><input type="checkbox" data-k="cutting_marks"' + (o.cutting_marks ? ' checked' : '') + ' style="width:auto"> Cutting marks</label></div>' +
-      '<div class="hint">Zebra: one label per page (1 column, 1 row), printed straight to the printer. Other layouts go through the print dialog.</div></fieldset>';
+      '</div><div class="hint">Labels print on the Zebra GK420D, one label per page, straight to the printer (the Brother prints the PDFs).</div></fieldset>';
     Array.prototype.forEach.call(this.right.querySelectorAll('[data-k]'), function (i) {
       i.onchange = function () {
         var k = i.getAttribute('data-k');

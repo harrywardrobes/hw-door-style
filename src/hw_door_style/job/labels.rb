@@ -31,34 +31,32 @@ module HarryWardrobes
         ]
       }.freeze
 
-      # HW's own layouts (Settings "label_layouts", edited in the Labels tab); these two are
-      # the starting point. x / y: fraction of the label from its centre; size: twelfths of
-      # the label's short side (as OpenCutList).
+      # HW's Zebra layout (Settings "label_layouts" keeps edited copies). x / y: fraction of the
+      # label from its centre; size: twelfths of the label's short side (as OpenCutList).
       ZEBRA_DEFAULT = {
         'page_width' => '102mm', 'page_height' => '76mm', 'margin_top' => '5mm', 'margin_right' => '5mm', 'margin_bottom' => '5mm',
         'margin_left' => '5mm', 'spacing_h' => '0', 'spacing_v' => '0', 'col_count' => 1, 'row_count' => 1, 'offset' => 0, 'cutting_marks' => false,
         'part_order_strategy' => '', 'printer' => 'zebra',
+        # Top: T number + "1 of 2" (small, left), part number (big, right). Then the part name,
+        # length x width, material / thickness, the outline picture (edged sides thick, as
+        # OpenCutList's proportional thumbnail) with customer / room beside it, and the barcode
+        # along the bottom (bars only).
         'layout' => [
-          { 'formula' => 'part.number', 'x' => -0.5, 'y' => -0.5, 'size' => 2.4, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.of', 'x' => 0.5, 'y' => -0.5, 'size' => 0.9, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.name', 'x' => -0.5, 'y' => -0.23, 'size' => 0.95, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.dims', 'x' => -0.5, 'y' => -0.09, 'size' => 1.05, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'group.material', 'x' => -0.5, 'y' => 0.05, 'size' => 0.8, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.edging', 'x' => 0.5, 'y' => 0.05, 'size' => 0.7, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'customer_room', 'x' => -0.5, 'y' => 0.17, 'size' => 0.72, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'barcode', 'x' => 0, 'y' => 0.5, 'size' => 1.35, 'width' => 0.85, 'anchor' => 'middle', 'rotation' => 0, 'color' => '#000000' }
+          { 'formula' => 'part.t_of', 'x' => -0.5, 'y' => -0.5, 'size' => 0.9, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.no', 'x' => 0.5, 'y' => -0.5, 'size' => 2.4, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.name', 'x' => -0.5, 'y' => -0.27, 'size' => 0.95, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.dims', 'x' => -0.5, 'y' => -0.15, 'size' => 1.05, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'group.material', 'x' => -0.5, 'y' => -0.03, 'size' => 0.8, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'thumbnail.proportional', 'x' => -0.5, 'y' => 0.07, 'size' => 2.6, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'customer_room', 'x' => -0.31, 'y' => 0.15, 'size' => 0.72, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'barcode', 'x' => 0, 'y' => 0.5, 'size' => 1.2, 'width' => 0.85, 'anchor' => 'middle', 'rotation' => 0, 'color' => '#000000' }
         ]
       }.freeze
-
-      A4_DEFAULT = ZEBRA_DEFAULT.merge(
-        'page_width' => '210mm', 'page_height' => '297mm', 'margin_top' => '10mm', 'margin_right' => '7mm', 'margin_bottom' => '10mm',
-        'margin_left' => '7mm', 'spacing_h' => '0', 'spacing_v' => '2mm', 'col_count' => 2, 'row_count' => 6, 'printer' => 'dialog'
-      ).freeze
 
       def self.hw_layouts
         saved = Settings.get['label_layouts']
         saved = {} unless saved.is_a?(Hash)
-        base = { 'Zebra 102 x 76' => ZEBRA_DEFAULT, 'A4 sheet (Brother)' => A4_DEFAULT }
+        base = { 'Zebra 102 x 76' => ZEBRA_DEFAULT }
         base.merge(saved)
       end
 
@@ -89,7 +87,7 @@ module HarryWardrobes
         o['col_count'] = [o['col_count'].to_i, 1].max
         o['row_count'] = [o['row_count'].to_i, 1].max
         o['layout'] = Array(o['layout']).map { |e| e.merge('size' => e['size'].to_f, 'x' => e['x'].to_f, 'y' => e['y'].to_f, 'rotation' => e['rotation'].to_f) }
-        o['printer'] = o['printer'].to_s.empty? ? 'dialog' : o['printer'].to_s
+        o['printer'] = 'zebra' # labels only go to the Zebra (the Brother prints the PDFs)
         o
       end
 
@@ -104,7 +102,8 @@ module HarryWardrobes
         global = parse(Sketchup.read_default(OCL, PRESETS_KEY, {}))
         g = parse(parse(global[DICTIONARY])['0'])
         g.each { |name, o| presets[name == '_default' ? 'OpenCutList default' : name] = normalise(o) if o.is_a?(Hash) }
-        presets['Built-in'] = normalise({}) if presets.empty?
+        presets.select! { |_n, o| o['col_count'] == 1 && o['row_count'] == 1 }
+        presets['Zebra 102 x 76'] = normalise(ZEBRA_DEFAULT).merge('hw' => true) if presets.empty?
         active = Settings.get['label_layout_active'].to_s
         { 'presets' => presets, 'active' => presets.key?(active) ? active : presets.keys.first }
       rescue StandardError => e

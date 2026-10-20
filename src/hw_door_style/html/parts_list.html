@@ -29,8 +29,19 @@
   .swatch { display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:-1px; margin-right:3px; border:1px solid rgba(0,0,0,.2); }
   .lbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; font-size:11.5px; }
   .lbar select { font:inherit; padding:3px 6px; border:1px solid var(--line); border-radius:3px; }
-  .lpages { display:flex; flex-wrap:wrap; gap:14px; padding:4px; }
-  .lpage { background:#fff; box-shadow:2px 2px 8px #999; }
+  .lpages { display:flex; flex-direction:column; gap:10px; padding:6px; }
+  .lpage { background:#fff; box-shadow:1px 1px 5px #999; cursor:pointer; }
+  .lpage.sel, .pdfi.sel { outline:2px solid #1f6f4a; }
+  #p_labels.on { display:flex; flex-direction:column; }
+  .chk3 { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .ccol { min-height:0; overflow:auto; border:1px solid var(--line); border-radius:4px; background:#f7f8f8; }
+  .ccol h3 { margin:0; padding:5px 8px; font-size:12px; background:#eef0f1; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
+  #cPreview { display:flex; flex-direction:column; }
+  #cPreview .pv { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px; }
+  #cPreview iframe { width:100%; height:100%; border:0; background:#fff; }
+  .pdfi { display:block; width:calc(100% - 12px); margin:6px; text-align:left; background:#fff; border:1px solid var(--line); border-radius:4px; padding:6px 8px; cursor:pointer; }
+  .pdfi b { display:block; font-size:12px; } .pdfi span { font-size:11px; color:var(--muted); }
+  .tabs button.muted { opacity:.45; }
   .lpage svg { display:block; }
   .grid-line { stroke:#000; }
   .grid-line.no-print { stroke:#ddd; }
@@ -68,8 +79,8 @@
   <button data-t="sheets">Sheet goods</button>
   <button data-t="boxes">Drawer Boxes</button>
   <button data-t="hardware">Hardware</button>
-  <button data-t="labels">Labels</button>
-  <button data-t="hubspot">HubSpot</button>
+  <button data-t="labels">Check</button>
+  <button data-t="hubspot" class="muted" title="Save the Workshop Pack on the Check tab first">HubSpot</button>
 </div>
 <div class="pane on" id="p_products"></div>
 <div class="pane" id="p_plan"><div class="hint">Open this tab to make the plan picture.</div></div>
@@ -88,15 +99,14 @@
     <span style="flex:1"></span>
     <button onclick="editLayout()" title="Move, add and size the fields on the label (saved as an HW layout)">Edit layout</button>
     <button id="renumParts" onclick="renumberParts(this)" title="Part numbers are kept on the parts; this starts again from 1">Renumber parts</button>
-    <button class="primary" onclick="printLabels()">Print labels</button>
+    <button onclick="printLabels()" title="Reprint the labels shown (Print range) on the Zebra">Reprint on Zebra</button>
+    <button class="primary" id="packBtn" onclick="savePack()" title="Makes the PDFs (door order, parts list, Room Plan) and the labels, ready to check and send">Save Workshop Pack</button>
   </div>
   <div class="lbar" id="jobBar" style="flex-wrap:wrap">
     <span class="hint" style="margin:0">On every label:</span>
-    First name <input type="text" id="jiFirst" style="width:90px" onchange="saveJob()">
-    Surname <input type="text" id="jiLast" style="width:110px" onchange="saveJob()">
-    Room ID <input type="text" id="jiId" style="width:120px" onchange="saveJob()">
-    Room <input type="text" id="jiRoom" style="width:140px" onchange="saveJob()">
-    <b id="jiShow" style="margin-left:6px"></b>
+    <b id="jiShow"></b> <span class="hint" style="margin:0" id="jiSrc"></span>
+    <span style="flex:1"></span>
+    Room name <input type="text" id="jiRoom" style="width:160px" onchange="saveJob()">
   </div>
   <div id="lEditWrap" style="display:none;border:1px solid var(--line);border-radius:4px;padding:8px;margin:6px 0">
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap"><b>Layout</b> <input type="text" id="leName" style="width:200px">
@@ -109,7 +119,11 @@
       <span class="hint" style="margin:0">Hardware, timber and the names in Settings &gt; Labels get one label each with the total. Tick or untick to change it for this job.</span></div>
     <div id="aggList" style="max-height:220px;overflow:auto"></div>
   </details>
-  <div class="lpages" id="lPages"></div>
+  <div class="chk3">
+    <div class="ccol"><h3>Labels <span class="hint" style="margin:0;font-weight:400" id="lCount"></span></h3><div class="lpages" id="lPages"></div></div>
+    <div class="ccol" id="cPreview"><h3 id="pvTitle">Preview</h3><div class="pv" id="pvBody"><div class="hint">Click a label or a PDF to see it here.</div></div></div>
+    <div class="ccol"><h3>PDFs for this model</h3><div id="cPdfs"><div class="hint" style="padding:8px">None yet - press Save Workshop Pack.</div></div></div>
+  </div>
 </div>
 <div class="pane" id="p_hubspot"><div class="hint">Reading the HubSpot Room...</div></div>
 <div class="credit">Parts list and labels follow <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), GPL-3.0. Label layouts: HW's own (Edit layout - editor ported from OpenCutList) and the ones saved in OpenCutList. Barcodes: JsBarcode (MIT).</div>
@@ -117,17 +131,16 @@
   <button onclick="sketchup.refresh()">Refresh</button>
   <button onclick="sketchup.openFolder()">Open folder</button>
   <span id="status" style="align-self:center;flex:1;min-width:0;text-align:center;font-size:11.5px;color:var(--muted)"></span>
-  <button onclick="sketchup.save()">Save workshop pack</button>
-  <button class="primary" id="sendBtn" onclick="sendRoom()">Save + send to HubSpot</button>
 </div>
 <div id="printArea"></div>
 <!--VENDOR:JsBarcode.code128.min.js-->
 <!--VENDOR:label_editor.js-->
 <script>
-var D = null, ENTRIES = [], HS = null;
+var D = null, ENTRIES = [], HS = null, PACK = null, PDFS = [];
 function f(v){ v = +v; return Math.round(v) === v ? String(v) : v.toFixed(1); }
 Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(b){
   b.onclick = function(){
+    if (b.classList.contains('muted')) { $('status').textContent = 'Check the labels and PDFs, then press Save Workshop Pack (Check tab) - the HubSpot tab opens after that.'; return; }
     Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function(x){ x.classList.toggle('on', x === b); });
     Array.prototype.forEach.call(document.querySelectorAll('.pane'), function(p){ p.classList.toggle('on', p.id === 'p_' + b.getAttribute('data-t')); });
     if (b.getAttribute('data-t') === 'labels' && D) labels();
@@ -137,6 +150,7 @@ Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function
 document.addEventListener('click', function(e){ var b = e.target.closest && e.target.closest('#tabs button'); if (b && b.getAttribute('data-t') === 'plan') planOpen(); });
 function edgeCell(name, color){ return name ? '<span class="edge"><span class="swatch" style="background:' + esc(color || '#999') + '"></span>' + esc(name) + '</span>' : ''; }
 function render(d){
+  if (PACK) packStale(); // the model was read again - save the pack again before sending
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
   $('sub').textContent = d.job + ' - ' + d.date + '. Products (T numbers) on the Product List; doors, drawer fronts, 22mm (white back), bullnose and cornice on Doors / Vinyl; everything else comes from the parts.';
@@ -246,8 +260,9 @@ function labelParts(r){
   Array.prototype.forEach.call(document.querySelectorAll('#aggList input[type=checkbox]'), function(c){ c.onchange = function(){ var p = P[+c.getAttribute('data-i')]; sketchup.setLabelMode(JSON.stringify({ name: p.name, mode: c.checked ? 'aggregate' : 'part' })); labels(); }; });
   Array.prototype.forEach.call(document.querySelectorAll('#aggList a[data-reset]'), function(a){ a.onclick = function(){ var p = P[+a.getAttribute('data-reset')]; sketchup.setLabelMode(JSON.stringify({ name: p.name, mode: '' })); labels(); return false; }; });
 }
-function jobInfo(j){ if (!j) return; D.job_info = j; $('jiFirst').value = j.customer_first || ''; $('jiLast').value = j.customer_last || ''; $('jiId').value = j.room_id || ''; $('jiRoom').value = j.room_name || ''; $('jiShow').textContent = [j.customer, j.room_id, j.room_name].filter(Boolean).join('  |  '); if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
-function saveJob(){ sketchup.setJobInfo(JSON.stringify({ customer_first: $('jiFirst').value, customer_last: $('jiLast').value, room_id: $('jiId').value, room_name: $('jiRoom').value })); }
+function jobInfo(j){ if (!j) return; D.job_info = j; $('jiRoom').value = j.room_name || ''; $('jiShow').textContent = [j.customer, j.room_id, j.room_name].filter(Boolean).join('  |  ') || '(no customer)';
+  $('jiSrc').textContent = j.source === 'hubspot' ? '(customer and Room ID from HubSpot)' : '(not linked to HubSpot - customer from the folder name; link it: HubSpot > Link this file)'; if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
+function saveJob(){ sketchup.setJobInfo(JSON.stringify({ room_name: $('jiRoom').value })); }
 function renumberParts(b){ if (b.dataset.sure) { $('status').textContent = 'Renumbering parts...'; sketchup.renumberParts(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every part number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber parts'; } }, 4000); }
 function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
 function setHost(pid, host){ $('status').textContent = 'Updating the product list...'; sketchup.setHost(JSON.stringify({ pid: pid, host: host })); }
@@ -286,12 +301,63 @@ function renderLabels(d){
   $('lWhich').innerHTML = '<option value="">All parts</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
   if (wcur) $('lWhich').value = wcur;
   jobInfo(d.job_info);
+  renderPdfs(d.pdfs || []);
   labelParts({ parts: d.label_parts, stock: d.timber_stock });
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 function failed(msg){ $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
-function saved(r){ $('status').textContent = 'Saved door order v' + r.door_v + ', parts list v' + r.parts_v + (r.plan_v ? ', room plan v' + r.plan_v : '') + ' next to the file: ' + r.names.join(', ') + '.'; }
-function sent(r){ $('status').textContent = 'Sent: ' + r.n + ' file(s) in Order / Parts List, ' + r.fields + ' field(s) updated' + (r.stage ? ', moved to ' + r.stage : '') + '.'; HS = 'loading'; sketchup.hubspot(); }
+function savePack(){
+  var ms = missingSheets();
+  if (ms.length) {
+    document.querySelector('#tabs button[data-t=sheets]').click();
+    $('status').innerHTML = '<span class="bad">Enter the full sheets needed for: ' + esc(ms.map(function(g){ return g.material + ' ' + f(g.thickness) + 'mm'; }).join(', ')) + '</span>';
+    return;
+  }
+  sketchup.save(JSON.stringify(labelReq()));
+}
+// The pack is saved: PDFs listed, the HubSpot tab opens up (send + print from there).
+function saved(r){
+  PACK = r;
+  $('status').textContent = 'Workshop Pack saved: door order v' + r.door_v + ', parts list v' + r.parts_v + (r.plan_v ? ', room plan v' + r.plan_v : '') + ', ' + r.label_count + ' label(s). Check them, then open the HubSpot tab to send and print.';
+  renderPdfs(r.pdfs || []);
+  var hb = document.querySelector('#tabs button[data-t=hubspot]'); hb.classList.remove('muted'); hb.title = '';
+  HS = null; if (hb.classList.contains('on')) { HS = 'loading'; sketchup.hubspot(); }
+}
+function packStale(){ PACK = null; var hb = document.querySelector('#tabs button[data-t=hubspot]'); hb.classList.add('muted'); hb.title = 'Save the Workshop Pack on the Check tab first'; if (hb.classList.contains('on')) document.querySelector('#tabs button[data-t=labels]').click(); }
+function sent(r){
+  $('status').innerHTML = esc('Sent: ' + r.n + ' file(s) in Order / Parts List, ' + r.fields + ' field(s) updated' + (r.stage ? ', moved to ' + r.stage : '') + '. ' +
+    (r.zebra ? r.zebra + ' label(s) on the Zebra. ' : '') + (r.brother ? r.brother + ' PDF(s) on the Brother.' : '')) + (r.errors && r.errors.length ? ' <span class="bad">' + esc(r.errors.join(' ')) + '</span>' : '');
+  HS = 'loading'; sketchup.hubspot();
+}
+// ---------- Check tab: PDFs and the preview ----------
+function renderPdfs(list){
+  PDFS = list || [];
+  $('cPdfs').innerHTML = PDFS.length ? PDFS.map(function(p, i){ return '<button class="pdfi" data-p="' + i + '" onclick="previewPdf(' + i + ')"><b>' + esc(p.title) + '</b><span>' + esc(p.name) + ' - ' + esc(p.date) + '</span></button>'; }).join('') :
+    '<div class="hint" style="padding:8px">None yet - press Save Workshop Pack.</div>';
+}
+function pvSelect(sel){ Array.prototype.forEach.call(document.querySelectorAll('.lpage.sel, .pdfi.sel'), function(x){ x.classList.remove('sel'); }); if (sel) sel.classList.add('sel'); }
+function previewPdf(i){
+  var p = PDFS[i]; if (!p) return;
+  pvSelect(document.querySelector('.pdfi[data-p="' + i + '"]'));
+  $('pvTitle').textContent = p.title; $('pvBody').innerHTML = '<div class="hint">Opening ' + esc(p.name) + '...</div>';
+  sketchup.pdfData(p.path);
+}
+var PDF_URL = null;
+function pdfShow(r){
+  if (r.error) { $('pvBody').innerHTML = '<div class="warnbox">' + esc(r.error) + '</div>'; return; }
+  var bin = atob(r.b64), a = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+  if (PDF_URL) URL.revokeObjectURL(PDF_URL);
+  PDF_URL = URL.createObjectURL(new Blob([a], { type: 'application/pdf' }));
+  $('pvBody').innerHTML = '<iframe src="' + PDF_URL + '#view=FitH"></iframe>';
+}
+function previewLabel(i){
+  var o = D.labels.presets[$('lPreset').value], e = ENTRIES[i]; if (!o || !e) return;
+  pvSelect(document.querySelector('.lpage[data-l="' + i + '"]'));
+  $('pvTitle').textContent = 'Label ' + (i + 1) + ' of ' + ENTRIES.length;
+  var w = $('pvBody').clientWidth - 24;
+  $('pvBody').innerHTML = '<div class="lpage" style="cursor:default">' + pageSvg(o, [e], true, w + 'px', (w * o.page_height / o.page_width) + 'px') + '</div>';
+}
 
 // ---------- HubSpot tab ----------
 function hubspotPlan(p){
@@ -299,7 +365,10 @@ function hubspotPlan(p){
   if (p.error) { $('p_hubspot').innerHTML = '<div class="warnbox">' + esc(p.error) + '</div>'; return; }
   if (!p.linked) { $('p_hubspot').innerHTML = '<div class="warnbox">This file isn\'t linked to a HubSpot Room yet - HubSpot > Link this file.</div>'; return; }
   var flags = p.rows.filter(function(r){ return r.flag; });
-  var h = '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list' + (D.export_csv ? ', PDF and CSV' : ' PDFs') + ', into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
+  var h = '<div class="warnbox" style="background:#eef6f1;border-color:#9cc7ad;display:flex;gap:12px;align-items:center"><div style="flex:1"><b>Ready to send:</b> ' + esc((PACK.names || []).join(', ')) +
+    '<br>Prints ' + PACK.label_count + ' label(s) on the Zebra and ' + (PACK.pdfs || []).filter(function(x){ return x.pack; }).length + ' PDF(s) on "' + esc(PACK.pdf_printer) + '".</div>' +
+    '<button class="primary" style="font-size:13px;padding:8px 16px" onclick="sendRoom()">Send to HubSpot + print</button></div>';
+  h += '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list' + (D.export_csv ? ', PDF and CSV' : ' PDFs') + ', into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
   if (flags.length) h += '<div class="warnbox"><b>' + flags.length + ' order status(es) already set:</b> ' + flags.map(function(r){ return esc(r.label) + ' = ' + esc(r.hubspot); }).join(', ') + '. They are left as they are - check those orders still match the model.</div>';
   if (p.missing_colours.length) h += '<div class="warnbox">No MFC Sheets field in HubSpot for: ' + esc(p.missing_colours.join(', ')) + ' - they only count in MFC (Full Sheet) Quantity.</div>';
   var sec = null;
@@ -332,20 +401,12 @@ function stageCheck(){
 }
 function missingSheets(){ return (D ? D.groups : []).filter(function(g){ return g.ask && g.sheets == null; }); }
 function sendRoom(){
-  var ms = missingSheets();
-  if (ms.length) {
-    document.querySelector('#tabs button[data-t=sheets]').click();
-    $('status').innerHTML = '<span class="bad">Enter the full sheets needed for: ' + esc(ms.map(function(g){ return g.material + ' ' + f(g.thickness) + 'mm'; }).join(', ')) + '</span>';
-    return;
-  }
-  if (!HS || HS === 'loading' || HS.error || !HS.linked) {
-    document.querySelector('#tabs button[data-t=hubspot]').click();
-    $('status').textContent = 'Check the HubSpot tab, then press Save + send to HubSpot again.';
-    return;
-  }
+  if (!PACK) { packStale(); return; }
+  if (!HS || HS === 'loading' || HS.error || !HS.linked) { $('status').textContent = 'The HubSpot Room isn\'t ready - check the HubSpot tab.'; return; }
   var m = stageMissing();
   if (m.length) { $('status').innerHTML = '<span class="bad">Can\'t move the stage yet - fill: ' + esc(m.join(', ')) + '</span>'; return; }
   var move = $('moveStage') && $('moveStage').checked, sel = $('stageTo');
+  $('status').textContent = 'Sending to HubSpot and printing...';
   sketchup.send(JSON.stringify({ values: chosenValues(), stage: move ? sel.value : null, stage_label: move ? sel.options[sel.selectedIndex].text : null }));
 }
 document.addEventListener('change', function(e){ if (e.target && e.target.getAttribute && e.target.getAttribute('data-i') != null) stageCheck(); });
@@ -388,11 +449,11 @@ function labels(){ $('lInfo').textContent = 'Preparing labels...'; sketchup.labe
 function labelEntries(r){
   ENTRIES = r.entries || [];
   var o = D.labels.presets[$('lPreset').value];
-  var pages = paginate(o);
-  $('lInfo').textContent = ENTRIES.length + ' label(s) on ' + pages.length + ' page(s) of ' + f(o.page_width) + ' x ' + f(o.page_height) + ' mm' + (r.errors ? ' - ' + r.errors + ' formula error(s), shown in red' : '');
-  var scale = Math.min(1, 300 / o.page_width);
-  $('lPages').innerHTML = pages.slice(0, 60).map(function(p){ return '<div class="lpage">' + pageSvg(o, p, true, (o.page_width * scale * 3.78) + 'px', (o.page_height * scale * 3.78) + 'px') + '</div>'; }).join('') +
-    (pages.length > 60 ? '<div class="hint">... and ' + (pages.length - 60) + ' more page(s) (all are printed).</div>' : '');
+  $('lInfo').textContent = (r.errors ? r.errors + ' formula error(s), shown in red' : '');
+  $('lCount').textContent = '(' + ENTRIES.length + ', ' + f(o.page_width) + ' x ' + f(o.page_height) + ' mm)';
+  var w = Math.max(160, $('lPages').clientWidth - 16), h = w * o.page_height / o.page_width;
+  $('lPages').innerHTML = ENTRIES.slice(0, 300).map(function(e, i){ return '<div class="lpage" data-l="' + i + '" onclick="previewLabel(' + i + ')">' + pageSvg(o, [e], true, w + 'px', h + 'px') + '</div>'; }).join('') +
+    (ENTRIES.length > 300 ? '<div class="hint">... and ' + (ENTRIES.length - 300) + ' more (all are printed).</div>' : '');
 }
 function paginate(o){
   var per = o.col_count * o.row_count, pages = [], off = Math.min(o.offset || 0, per - 1), cur = [];
@@ -433,19 +494,21 @@ function edgingText(ed){
   if (!lg && !sh) return 'No edging';
   return 'Edged: ' + [lg ? lg + ' long' : '', sh ? sh + ' short' : ''].filter(Boolean).join(', ');
 }
+// Width (mm) a text element has from its anchor to the label edge(s) - as Zpl.room.
+function roomFor(anchor, x, lw){ var a = anchor.split('-')[0], r = a === 'start' ? (0.5 - x) * lw : (a === 'end' ? (x + 0.5) * lw : 2 * Math.min(0.5 - x, x + 0.5) * lw); return Math.min(lw, Math.max(lw * 0.1, r)); }
 function anchorX(anchor, size){ return anchor.indexOf('middle') === 0 ? size * -0.5 : (anchor.indexOf('end') === 0 ? -size : 0); }
 // Code 128 (JsBarcode, bundled) as an SVG fitted to w x h mm, anchored like a text element.
 function barcodeSvg(payload, w, h, anchor){
   if (!payload || typeof JsBarcode === 'undefined') return '';
   var b = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  try { JsBarcode(b, payload, { format: 'CODE128', displayValue: true, margin: 0, height: 60, width: 2, fontSize: 16, textMargin: 2, font: 'Helvetica' }); } catch (x) { return ''; }
+  try { JsBarcode(b, payload, { format: 'CODE128', displayValue: false, margin: 0, height: 60, width: 2 }); } catch (x) { return ''; }
   var bw = parseFloat(b.getAttribute('width')), bh = parseFloat(b.getAttribute('height'));
   var x = anchorX(anchor, w), y = /top$/.test(anchor) ? 0 : -h;
   return '<svg x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" viewBox="0 0 ' + bw + ' ' + bh + '" preserveAspectRatio="none">' + b.innerHTML + '</svg>';
 }
 function element(el, e, idx, minUnit, lw){
   var terms = el.formula.split('.'), anchor = el.anchor || 'middle', color = el.color || '#000000';
-  if (terms[0] === 'barcode') return barcodeSvg(e.barcode, (el.width || 0.8) * (lw || minUnit * 12), el.size * minUnit * 1.6, anchor);
+  if (terms[0] === 'barcode') return barcodeSvg(e.barcode, (el.width || 0.8) * (lw || minUnit * 12), el.size * minUnit * 1.6, anchor); // bars only
   if (terms[0] === 'thumbnail' && e.kind === 'aggregate') return '';
   if (terms[0] === 'thumbnail') {
     var area = el.size * minUnit, tx = anchorX(anchor, area), ty = /top$/.test(anchor) ? 0 : -area;
@@ -471,12 +534,13 @@ function element(el, e, idx, minUnit, lw){
   if (terms[0] === 'hr') { var hw = (el.width || 0.9) * (lw || minUnit * 12); return '<line x1="' + anchorX(anchor, hw) + '" y1="0" x2="' + (anchorX(anchor, hw) + hw) + '" y2="0" stroke="' + color + '" stroke-width="' + Math.max(0.2, el.size * 0.25) + '"/>'; }
   if (terms[0] === 'part') {
     if (key === 'number') value = agg ? e.name : (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
-    else if (key === 'name') value = agg ? 'Qty ' + e.count : e.name;
+    else if (key === 'name') value = e.name;
     else if (key === 't' || key === 't_number') value = e.t || '';
-    else if (key === 'no') value = agg ? '' : String(e.number);
+    else if (key === 'no') value = agg ? 'H' + e.agg_index : String(e.number);
+    else if (key === 't_of') value = agg ? (e.ts || '') : [e.t, e.position + ' of ' + e.count].filter(Boolean).join('\u2003');
     else if (key === 'ts' || key === 't_numbers') value = e.ts || e.t || '';
     else if (key === 'note') value = e.note || '';
-    else if (key === 'dims') value = agg ? (e.note || '') : [mmS(e.length), mmS(e.width), mmS(e.thickness)].filter(Boolean).join(' x ') + ' mm';
+    else if (key === 'dims') value = agg ? 'Qty ' + e.count : [mmS(e.length), mmS(e.width)].filter(Boolean).join(' x ');
     else if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = agg ? (e.note || '') : e.length + ' x ' + e.width;
     else if (key === 'of') value = agg ? '' : e.position + ' of ' + e.count;
     else if (key === 'batch') value = agg ? '' : e.position + '/' + e.count;
@@ -491,7 +555,7 @@ function element(el, e, idx, minUnit, lw){
     else if (key === 'bin' || key === 'description' || key === 'tags' || key === 'face') value = '';
     else value = e[key] == null ? '' : String(e[key]);
   } else if (terms[0] === 'group') {
-    if (agg) value = e.ts ? 'For ' + e.ts : '';
+    if (agg) value = e.note || '';
     else if (key === 'material') value = e.material_name + (e.std_dimension ? ' / ' + e.std_dimension : '');
     else if (key === 'material_name') value = e.material_name;
     else if (key === 'std_dimension') value = e.std_dimension;
@@ -516,7 +580,8 @@ function element(el, e, idx, minUnit, lw){
   var fs = error ? 0.5 * minUnit : el.size * minUnit;
   // long values (grouped labels' names) shrink to fit the label width rather than run off it
   var longest = Math.max.apply(null, lines.map(function(l){ return l.trim().length; }));
-  if (!error && lw && longest * fs * 0.55 > lw) fs = lw / (longest * 0.55);
+  var room = lw ? roomFor(anchor, el.x, lw) : 0;
+  if (!error && room && longest * fs * 0.55 > room) fs = room / (longest * 0.55);
   var body;
   if (error) body = esc(String(error).trim());
   else if (lines.length > 1) body = lines.map(function(l, i){ return '<tspan ' + (i === 0 ? 'dy="-' + (el.size * minUnit * (lines.length - 1)) + '"' : 'x="0" dy="' + (el.size * minUnit) + '"') + '>' + esc(l.trim()) + '</tspan>'; }).join('');
@@ -525,12 +590,8 @@ function element(el, e, idx, minUnit, lw){
 }
 function printLabels(){
   if (!ENTRIES.length) return;
-  var o = D.labels.presets[$('lPreset').value];
-  if (o.printer === 'zebra') { $('status').textContent = 'Sending ' + ENTRIES.length + ' label(s) to the Zebra...'; sketchup.printZpl(JSON.stringify(labelReq())); return; }
-  $('pageSize').textContent = '@page { size: ' + o.page_width + 'mm ' + o.page_height + 'mm; margin: 0; }';
-  $('printArea').innerHTML = paginate(o).map(function(p){ return '<div class="pp" style="width:' + o.page_width + 'mm;height:' + o.page_height + 'mm">' + pageSvg(o, p, false, o.page_width + 'mm', o.page_height + 'mm') + '</div>'; }).join('');
-  // print once the page size style is applied (two frames), not straight away
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){ setTimeout(function(){ window.print(); }, 30); }); });
+  $('status').textContent = 'Sending ' + ENTRIES.length + ' label(s) to the Zebra...';
+  sketchup.printZpl(JSON.stringify(labelReq()));
 }
 window.onload = function(){ sketchup.ready(); };
 </script>

@@ -1,14 +1,15 @@
 module HarryWardrobes
   module DoorStyle
-    # Customer and room for labels: one place, on the model (this plugin's dictionary):
-    # customer_first, customer_last, room_id, room_name.
+    # Customer and room for labels and the PDFs.
     #
-    #   Filled from the HubSpot link when the file is linked (Room ID = the HubSpot Room record
-    #   ID), else from the file path (...\1_CUSTOMERS\{Customer}\{Room}.skp): the customer
-    #   folder gives the name ("WILLIAMS Rebecca (Rossett - 830735284436)" - surname in capitals
-    #   first; otherwise the last word is the surname), the file name gives the room. The Room
-    #   ID is then made up once - {SUR}{YYMMDD}{NN} - and kept, so it never changes (barcodes
-    #   use it). The Labels tab shows the four fields to edit; they're saved back to the model.
+    #   Customer and Room ID come from the HubSpot link (Room ID = the HubSpot Room record ID)
+    #   and can't be edited here. A file that isn't linked falls back to the file path
+    #   (...\1_CUSTOMERS\{Customer}\{Room}.skp): the customer folder gives the name
+    #   ("WILLIAMS Rebecca (Rossett - 830735284436)" - surname in capitals first; otherwise the
+    #   last word is the surname) and a Room ID is made up once - {SUR}{YYMMDD}{NN} - and kept,
+    #   so its barcodes never change.
+    #   Room name: asked for when the Workshop window opens and the file hasn't got one yet
+    #   (pre-filled from HubSpot / the file name), kept on the model.
     module JobInfo
       KEYS = %w[customer_first customer_last room_id room_name].freeze
 
@@ -16,19 +17,33 @@ module HarryWardrobes
         KEYS.to_h { |k| [k, model.get_attribute(DICT, k).to_s] }
       end
 
-      # The four fields, filling any that are empty (and keeping a made-up Room ID).
+      def self.master?(model) = defined?(LibraryExport) && LibraryExport.master?(model)
+
+      # The four fields plus 'customer' (SURNAME INITIALS) and 'source' ('hubspot' / 'folder').
       def self.get(model)
         cur = read(model)
         guess = guessed(model)
-        out = cur.to_h { |k, v| [k, v.strip.empty? ? guess[k].to_s : v] }
-        save(model, 'room_id' => out['room_id']) if cur['room_id'].strip.empty? && !out['room_id'].empty? && !model.path.to_s.empty? &&
-                                                     !(defined?(LibraryExport) && LibraryExport.master?(model))
-        out.merge('customer' => customer_label(out['customer_first'], out['customer_last']))
+        linked = guess.delete('linked')
+        out = if linked
+                guess.merge('room_name' => cur['room_name'].strip.empty? ? guess['room_name'] : cur['room_name'])
+              else
+                cur.to_h { |k, v| [k, k == 'room_name' || k == 'room_id' ? (v.strip.empty? ? guess[k].to_s : v) : guess[k].to_s] }
+              end
+        if !linked && cur['room_id'].strip.empty? && !out['room_id'].empty? && !model.path.to_s.empty? && !master?(model)
+          save(model, 'room_id' => out['room_id'])
+        end
+        out.merge('customer' => customer_label(out['customer_first'], out['customer_last']), 'source' => linked ? 'hubspot' : 'folder')
       end
 
+      # The room name still to ask for (nil when the file already has one).
+      def self.room_name_needed?(model) = model.get_attribute(DICT, 'room_name').to_s.strip.empty? && !master?(model)
+
+      def self.room_name_guess(model) = guessed(model)['room_name'].to_s
+
+      # Only the room name (and the made-up Room ID) are kept here - the rest is HubSpot's.
       def self.save(model, values)
         Ops.run(model, 'Customer / room for labels', transparent: true) do
-          values.each { |k, v| model.set_attribute(DICT, k, v.to_s.strip) if KEYS.include?(k) }
+          values.each { |k, v| model.set_attribute(DICT, k, v.to_s.strip) if %w[room_name room_id].include?(k) }
         end
       end
 
@@ -38,7 +53,7 @@ module HarryWardrobes
           first = l['first_name'].to_s
           last = l['last_name'].to_s
           first, last = split_name(l['customer']) if first.empty? && last.empty?
-          return { 'customer_first' => first, 'customer_last' => last, 'room_id' => l['room_id'].to_s, 'room_name' => room_from_link(l['room_name']) }
+          return { 'customer_first' => first, 'customer_last' => last, 'room_id' => l['room_id'].to_s, 'room_name' => room_from_link(l['room_name']), 'linked' => true }
         end
         path = model.path.to_s
         return { 'customer_first' => '', 'customer_last' => '', 'room_id' => '', 'room_name' => '' } if path.empty?

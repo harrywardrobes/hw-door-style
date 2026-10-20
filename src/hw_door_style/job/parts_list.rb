@@ -768,6 +768,11 @@ module HarryWardrobes
       def self.show
         model = Sketchup.active_model
         TopOfUnit.upgrade(model)
+        # The room name goes on the labels and PDFs: asked for once per file (pre-filled).
+        if !model.path.to_s.empty? && JobInfo.room_name_needed?(model)
+          r = UI.inputbox(['Room name'], [JobInfo.room_name_guess(model)], 'Workshop - which room is this?')
+          JobInfo.save(model, 'room_name' => r[0]) if r && !r[0].to_s.strip.empty?
+        end
         data = nil
         tops_map = {}
         # Labels tab: every part name with whether it gets one grouped label, and the timber stock.
@@ -790,6 +795,7 @@ module HarryWardrobes
           data['product_prefix'] = Products.cfg['prefix']
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
           data['job_info'] = JobInfo.get(model)
+          data['pdfs'] = Workshop.pdfs(model)
           label_parts.call
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
@@ -946,22 +952,67 @@ module HarryWardrobes
                     done: ->(_r) { dlg.execute_script("hubspotPlan(#{JSON.generate(plan)})") },
                     fail: ->(e) { dlg.execute_script("hubspotPlan(#{JSON.generate('error' => e.message)})") }, count: false)
         end
-        dlg.add_action_callback('save') do |_c|
+        # Check tab > Save Workshop Pack: the PDFs and the labels (ZPL, as printed), kept as the
+        # pack the HubSpot tab sends and prints.
+        pack = nil
+        dlg.add_action_callback('save') do |_c, json|
+          req = (JSON.parse(json.to_s) rescue {}).merge('range' => '')
           out = nil
-          Steps.run(dlg, [['Saving the door order and parts list', -> { out = Workshop.save(model, data) }]],
-                    done: ->(_r) { dlg.execute_script("saved(#{JSON.generate(out.merge('names' => (out['files'] + [out['plan']].compact).map { |f| File.basename(f) }))})") },
-                    fail: fail_js, count: false)
+          steps = [['Saving the door order, parts list and Room Plan', -> { out = Workshop.save(model, data) }],
+                   ['Making the labels', lambda {
+                     preset, entries = label_entries.call(req)
+                     job = (data['job_info'] || {}).merge('filename' => data['filename'])
+                     out['labels'] = entries.empty? ? nil : Workshop.save_labels(model, Zpl.document(preset, entries, job), out['parts_v'])
+                     out['label_count'] = entries.size
+                   }]]
+          Steps.run(dlg, steps,
+                    done: lambda { |_r|
+                      pack = out
+                      pdfs = Workshop.pdfs(model)
+                      mine = (out['files'] + [out['plan']]).compact
+                      pdfs.each { |p| p['pack'] = mine.include?(p['path']) }
+                      data['pdfs'] = pdfs
+                      names = (out['files'] + [out['plan'], out['labels']]).compact.map { |f| File.basename(f) }
+                      dlg.execute_script("saved(#{JSON.generate(out.merge('names' => names, 'pdfs' => pdfs, 'pdf_printer' => PdfPrint.printer))})")
+                    },
+                    fail: fail_js)
         end
+        # A PDF for the preview (only ones listed for this model).
+        dlg.add_action_callback('pdfData') do |_c, path|
+          ok = Array(data && data['pdfs']).any? { |p| p['path'] == path } && File.exist?(path.to_s)
+          r = ok ? { 'b64' => [File.binread(path)].pack('m0') } : { 'error' => "Can't open #{File.basename(path.to_s)}." }
+          dlg.execute_script("pdfShow(#{JSON.generate(r)})")
+        end
+        # HubSpot tab > Send to HubSpot + print: uploads the saved pack and updates the Room, then
+        # the labels to the Zebra and the PDFs to the Brother. A printer that can't be reached
+        # doesn't stop the rest - it's reported at the end.
         dlg.add_action_callback('send') do |_c, json|
           req = JSON.parse(json)
           l = HubSpotRoom.link(model)
           next fail_js.call(StandardError.new('Link this file to a HubSpot room first (HubSpot > Link this file).')) unless l
-          out = nil
+          next fail_js.call(StandardError.new('Save the Workshop Pack on the Check tab first.')) unless pack
           n = 0
-          steps = [['Saving the door order and parts list', -> { out = Workshop.save(model, data) }],
-                   ['Uploading the files and updating the Room', -> { n = Workshop.send_room(model, l['room_id'], out['files'], req['values'] || {}, req['stage'], plan: out['plan']) }]]
+          zebra = 0
+          brother = 0
+          errors = []
+          pdfs = (pack['files'] + [pack['plan']]).compact.select { |f| f =~ /\.pdf\z/i }
+          steps = [['Uploading the files and updating the Room', -> { n = Workshop.send_room(model, l['room_id'], pack['files'], req['values'] || {}, req['stage'], plan: pack['plan']) }],
+                   ['Printing the labels on the Zebra', lambda do
+                     next unless pack['labels'] && File.exist?(pack['labels'])
+                     Zpl.transmit(File.binread(pack['labels']))
+                     zebra = pack['label_count']
+                   rescue StandardError => e
+                     Log.error('zebra', e)
+                     errors << "Labels: #{e.message}"
+                   end],
+                   ['Printing the PDFs on the Brother', lambda do
+                     brother = PdfPrint.print(pdfs)
+                   rescue StandardError => e
+                     Log.error('pdf print', e)
+                     errors << "PDFs: #{e.message}"
+                   end]]
           Steps.run(dlg, steps,
-                    done: ->(_r) { dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'names' => out['files'].map { |f| File.basename(f) })})") },
+                    done: ->(_r) { dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'zebra' => zebra, 'brother' => brother, 'errors' => errors)})") },
                     fail: fail_js)
         end
         dlg.show

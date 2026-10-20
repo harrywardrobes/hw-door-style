@@ -83,6 +83,31 @@ module HarryWardrobes
         { 'files' => [door[1], door[0], part[1], part[0]].compact, 'plan' => plan&.first, 'door_v' => door[2], 'parts_v' => part[2], 'plan_v' => plan&.last }
       end
 
+      PDF_KINDS = [['DOOR_ORDER', 'Door order'], ['PARTS_LIST', 'Parts list'], ['ROOM_PLAN', 'Room Plan']].freeze
+
+      # The latest PDF of each kind saved for this model (next to it): [{ title, name, path, v, date }].
+      def self.pdfs(model)
+        return [] if model.path.to_s.empty?
+        dir = File.dirname(model.path)
+        base = Report.safe_name(File.basename(model.path, '.skp'))
+        return [] unless Dir.exist?(dir)
+        names = Dir.children(dir)
+        PDF_KINDS.filter_map do |kind, title|
+          re = /\A#{kind}_v(\d+)_#{Regexp.escape(base)}\.pdf\z/i
+          best = names.filter_map { |n| (m = n.match(re)) && [m[1].to_i, n] }.max_by(&:first)
+          next unless best
+          path = File.join(dir, best[1])
+          { 'title' => "#{title} v#{best[0]}", 'name' => best[1], 'path' => path, 'v' => best[0], 'date' => File.mtime(path).strftime('%d/%m/%Y %H:%M') }
+        end
+      end
+
+      # The labels of a pack, saved next to the PDFs as the exact ZPL that will be printed.
+      def self.save_labels(model, zpl, version)
+        path = File.join(File.dirname(model.path), "LABELS_v#{version}_#{Report.safe_name(File.basename(model.path, '.skp'))}.zpl")
+        File.binwrite(path, zpl)
+        path
+      end
+
       # Uploads the four files into Order / Parts List (replacing the last ones), sends the
       # ticked values and, only if chosen, moves the stage.
       def self.send_room(model, room_id, files, values, stage, plan: nil)
