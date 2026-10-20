@@ -140,8 +140,21 @@ module HarryWardrobes
         y -= 16
         page.text(MARGIN, y, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
         y -= 12
-        meta = "Hinge type: #{data['hinge_type']}   |   Mid = mid-rail, Hng = hinges, TIP = TIP-ON, Hdl = handles"
+        meta = "Hinge type: #{data['hinge_type']}   |   Mid = mid-rail, SC = Soft Close, Hng = hinges, TIP = TIP-ON, Hdl = handles"
         page.text(MARGIN, y, meta, size: 9)
+        key = Array(data['hinge_key'])
+        unless key.empty?
+          y -= 12
+          page.text(MARGIN, y, 'Different hinges (shaded rows):', font: 'F2', size: 9)
+          x = MARGIN + Pdf.width('Different hinges (shaded rows):', 'F2', 9) + 8
+          key.each do |mark, type, shade|
+            label = "#{mark} #{type}"
+            wdt = Pdf.width(label, 'F2', 9) + 8
+            page.rect_fill(x - 3, y - 3, wdt, 12, shade)
+            page.text(x + 1, y, label, font: 'F2', size: 9)
+            x += wdt + 6
+          end
+        end
         y -= 8
         page.line(MARGIN, y, PAGE_W - MARGIN, y, 0.2, 1.2)
         y -= 16
@@ -186,12 +199,15 @@ module HarryWardrobes
             pages << page
             y = table_header(page, PAGE_H - MARGIN - 10)
           end
+          page.rect_fill(MARGIN, y - 4, PAGE_W - 2 * MARGIN, ROW_H, r['hinge_shade']) if r['hinge_shade']
           x = MARGIN
           columns.each do |key, _l, w, align|
             v = r[key]
+            v = v.to_s.sub('Soft Close', 'SC') if key == 'hinge_type'
+            v = "#{r['hinge_mark']} #{v}" if key == 'hinge_type' && r['hinge_mark']
             v = '' if v.nil? || (v.is_a?(Integer) && v.zero? && %w[hinges tip_on handles].include?(key))
             tx = align == :right ? x + w - 3 : x + 3
-            page.text(tx, y, v.to_s, align: align, max: w - 6)
+            page.text(tx, y, v.to_s, align: align, max: w - 6, **(key == 'hinge_type' && r['hinge_mark'] ? { font: 'F2' } : {}))
             x += w
           end
           page.line(MARGIN, y - 4, PAGE_W - MARGIN, y - 4)

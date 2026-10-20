@@ -220,7 +220,11 @@ Dir.mktmpdir do |dir|
   data = { 'job' => 'Smith Wardrobes', 'head' => { 'customer' => 'SMITH, John', 'room' => 'Master Bedroom', 'drawing' => 'X830735284436', 'account' => 'HW123456789' }, 'hinge_type' => 'Soft Close 110', 'date' => '15/10/2026 11:00',
            'version' => '0.2.0', 'export_version' => 4,
            'rows' => Array.new(75) { |i| rows[0].merge('n' => i + 1, 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
+  data['rows'].each_with_index { |r, i| r['hinge_type'] = i % 9 == 0 ? 'Soft Close 155' : (i % 13 == 0 ? 'PTO 110' : 'Soft Close 110') }
   data['totals'] = Report.totals(data['rows'])
+  data['hinge_key'] = Report.mark_hinges(data['rows'], 'Soft Close 110')
+  check 'odd hinges: usual one plain, others marked * / ** with grey shades', data['hinge_key'].map { |m, t, _s| [m, t] } == [['*', 'Soft Close 155'], ['**', 'PTO 110']] &&
+        data['rows'][0]['hinge_mark'] == '*' && data['rows'][1]['hinge_mark'].nil? && Report.mark_hinges([{ 'hinge_type' => 'A' }, { 'hinge_type' => 'A' }]).empty?
   pdf = File.join(dir, 'DOOR_ORDER_v4_Smith Wardrobes.pdf')
   Pdf.write(pdf, data)
   bytes = File.binread(pdf)

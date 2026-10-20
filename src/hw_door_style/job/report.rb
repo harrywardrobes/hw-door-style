@@ -155,6 +155,25 @@ module HarryWardrobes
         nil
       end
 
+      SHADES = [0.88, 0.76, 0.64].freeze # grey levels (1 = white) - print in black and white
+
+      # More than one hinge type: the usual one (most doors; a tie goes to the job's) stays
+      # plain, each other type gets a grey shade and a mark (*, **, ***...) so it reads in
+      # black and white too. Sets 'hinge_mark' / 'hinge_shade' on the rows; returns the key
+      # [[mark, type, shade]] (empty when every door has the same hinges).
+      def self.mark_hinges(rows, job_label = nil)
+        counts = rows.reject { |r| r['hinge_type'].to_s.empty? }.group_by { |r| r['hinge_type'] }.transform_values(&:size)
+        return [] if counts.size < 2
+        usual = counts.max_by { |t, n| [n, t == job_label ? 1 : 0] }.first
+        odd = (counts.keys - [usual]).sort_by { |t| [-counts[t], t] }
+        key = odd.each_with_index.map { |t, i| ['*' * (i + 1), t, SHADES[i % SHADES.size]] }
+        rows.each do |r|
+          k = key.find { |_m, t, _s| t == r['hinge_type'] }
+          r['hinge_mark'], r['hinge_shade'] = k ? [k[0], k[2]] : [nil, nil]
+        end
+        key
+      end
+
       def self.payload(model = Sketchup.active_model)
         r = rows(model)
         # Unit = the product's Pod number (Product List); the component path stays as 'unit_path'.
@@ -172,6 +191,7 @@ module HarryWardrobes
           'version' => VERSION,
           'last_export' => model.get_attribute(DICT, 'export_version', 0).to_i,
           'rows' => r, 'totals' => totals(r),
+          'hinge_key' => mark_hinges(r, Settings::HINGE_TYPES[Settings.job_hinge_type(model)]),
           'key' => (Products.key_text(r.map { |x| x['t'].to_s[/\A[A-Z]+/] }.compact) rescue ''),
           'runouts' => { 'on' => Pencil.on?(model), 'changed' => Runouts.report(model) }
         }

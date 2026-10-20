@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.67.2 — 2026-10-20
+- Doors / Vinyl tab and the door order PDF: when doors have different hinges, the usual type stays plain and each other type is shaded grey with a mark (* lightest, ** darker, *** darker again) and bold, with a key at the top - readable in black and white. PDF hinge column: SC = Soft Close.
+
 ## 0.67.1 — 2026-10-20
 - Workshop "Before you start": doors drawn with hinges that aren't the ones they should have now (their own, the stable wardrobe big door's 155, or the job's) are listed and redrawn in one click (style kept). Save Workshop Pack waits until they're right.
 
