@@ -131,6 +131,15 @@ module HarryWardrobes
           close.call
           Updater.install(f)
         end
+        dlg.add_action_callback('pdfTest') do |_c|
+          msg = begin
+            PdfPrint.test_page
+            "Test page sent to #{PdfPrint.resolve}."
+          rescue StandardError => e
+            e.message
+          end
+          dlg.execute_script("$('pdfMsg').textContent = #{JSON.generate(msg)}")
+        end
         dlg.add_action_callback('zebraTest') do |_c|
           msg = begin
             Zpl.transmit(Zpl.test_label)

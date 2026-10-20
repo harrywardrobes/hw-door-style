@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.67.4 — 2026-10-20
+- PDF printing: the printer is found in Windows by name (case / spacing forgiven) - a wrong name says which printers there are; SumatraPDF is called with Windows paths and its result is logged. Settings > Labels > PDF printer > **Test print** (one A4 page).
+- Send to HubSpot + print: the prints go even if the HubSpot upload fails, and a box at the end says what was sent and printed (and what went wrong).
+
 ## 0.67.3 — 2026-10-20
 - HubSpot: archived (hidden) dropdown answers are no longer offered - Survey tab, Send to HubSpot, Settings. A Room whose current answer has since been archived still shows it, marked "(archived)", so it isn't lost by accident. Hidden Room fields aren't offered under Settings > Survey questions > Add a Room field.
 

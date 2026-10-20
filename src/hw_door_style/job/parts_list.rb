@@ -1106,7 +1106,13 @@ module HarryWardrobes
           brother = 0
           errors = []
           pdfs = (pack['files'] + [pack['plan']]).compact.select { |f| f =~ /\.pdf\z/i }
-          steps = [['Uploading the files and updating the Room', -> { n = Workshop.send_room(model, l['room_id'], pack['files'], req['values'] || {}, req['stage'], plan: pack['plan']) }],
+          # printing doesn't wait on HubSpot: a failed upload is reported, the prints still go
+          steps = [['Uploading the files and updating the Room', lambda do
+                     n = Workshop.send_room(model, l['room_id'], pack['files'], req['values'] || {}, req['stage'], plan: pack['plan'])
+                   rescue StandardError => e
+                     Log.error('workshop send', e) unless e.is_a?(HubSpot::Error)
+                     errors << "HubSpot: #{e.message}"
+                   end],
                    ['Printing the labels on the Zebra', lambda do
                      next unless pack['labels'] && File.exist?(pack['labels'])
                      Zpl.transmit(File.binread(pack['labels']))
@@ -1122,7 +1128,12 @@ module HarryWardrobes
                      errors << "PDFs: #{e.message}"
                    end]]
           Steps.run(dlg, steps,
-                    done: ->(_r) { dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'zebra' => zebra, 'brother' => brother, 'errors' => errors)})") },
+                    done: lambda { |_r|
+                      dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'zebra' => zebra, 'brother' => brother, 'errors' => errors)})")
+                      lines = ["HubSpot: #{errors.any? { |x| x.start_with?('HubSpot') } ? 'NOT sent' : "#{n} file(s) sent"}",
+                               "Zebra: #{zebra} label(s)", "#{PdfPrint.printer}: #{brother} PDF(s)"]
+                      UI.messagebox((errors.empty? ? "Sent and printed.\n\n" : "Done, with problems:\n\n#{errors.join("\n\n")}\n\n") + lines.join("\n"))
+                    },
                     fail: fail_js)
         end
         dlg.show
