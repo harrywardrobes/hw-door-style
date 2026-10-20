@@ -265,6 +265,7 @@ module HarryWardrobes
       end
 
       def self.update_room(id, props)
+        props = HubSpotRoom.to_values(props) if defined?(HubSpotRoom)
         patch("/crm/v3/objects/listings/#{id}", { properties: props })
       end
 

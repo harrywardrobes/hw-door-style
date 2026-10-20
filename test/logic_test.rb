@@ -495,6 +495,14 @@ check 'no key: clear error, no request', err.is_a?(HubSpot::Error) && err.messag
 
 # --- HubSpot rooms (0.22) ---
 require 'hw_door_style/export/hubspot_room'
+HSR_M = { 'sheets_order_status' => { 'type' => 'enumeration', 'field' => 'select', 'options' => [['Needs Ordering', 'pending'], ['Not Applicable', 'not_required']] },
+           'carpet' => { 'type' => 'bool', 'field' => 'booleancheckbox', 'options' => [['Yes', 'true'], ['No', 'false']] },
+           'sides' => { 'type' => 'enumeration', 'field' => 'checkbox', 'options' => [['Left', 'left'], ['Right', 'right']] },
+           'notes' => { 'type' => 'string', 'field' => 'text', 'options' => [] } }
+check 'HubSpot: labels sent as option values (Needs Ordering -> pending, Yes -> true, checkboxes), others kept',
+      HarryWardrobes::DoorStyle::HubSpotRoom.to_values({ 'sheets_order_status' => 'Needs Ordering', 'carpet' => 'Yes', 'sides' => 'Left;right', 'notes' => 'Needs Ordering', 'x' => 'y' }, HSR_M) ==
+      { 'sheets_order_status' => 'pending', 'carpet' => 'true', 'sides' => 'left;right', 'notes' => 'Needs Ordering', 'x' => 'y' } &&
+      HarryWardrobes::DoorStyle::HubSpotRoom.to_values({ 'sheets_order_status' => 'not_required' }, HSR_M) == { 'sheets_order_status' => 'not_required' }
 R = HubSpotRoom
 check 'room part of a Room name', R.room_part("Kenny Hasprey - Connah's Quay - Master Bedroom") == 'Master Bedroom' && R.room_part('Front Room') == 'Front Room'
 check 'survey file name like the existing ones', R.file_name('Rebecca Williams - Rossett - Felix', 'Rebecca Williams') == 'SURVEY - felix - rebecca williams.skp'

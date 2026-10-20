@@ -122,6 +122,23 @@ module HarryWardrobes
         prev.last
       end
 
+      # Dropdown / yes-no / checkbox fields take HubSpot's internal option values ("pending"),
+      # not the labels shown ("Needs Ordering"): any label is swapped for its value before
+      # sending (checkboxes: each of the ;-separated answers). Values already right are kept.
+      def self.to_values(props, m = (meta rescue {}))
+        props.to_h do |p, v|
+          opts = m.dig(p, 'options')
+          next [p, v] if opts.nil? || opts.empty? || v.nil? || v.to_s.empty? || !%w[enumeration bool].include?(m[p]['type'])
+          fix = lambda do |x|
+            x = x.to_s.strip
+            next x if opts.any? { |_l, val| val.to_s == x }
+            hit = opts.find { |l, _val| l.to_s.casecmp?(x) }
+            hit ? hit[1].to_s : x
+          end
+          [p, m[p]['field'] == 'checkbox' ? v.to_s.split(';').map(&fix).join(';') : fix.call(v)]
+        end
+      end
+
       def self.label_of(value, options)
         hit = options.find { |_l, v| v.to_s == value.to_s }
         hit ? hit[0] : value

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.66.1 — 2026-10-20
+- HubSpot: dropdown, yes / no and checkbox fields are sent as HubSpot's internal option values ("pending"), not the labels ("Needs Ordering") - every send to the Room (Workshop, Send to HubSpot, pictures, Survey) goes through the same check. Fixes "Needs Ordering was not one of the allowed options".
+- Workshop HubSpot tab: order statuses are read and compared by label ("Ordered" stays locked), and dropdown fields show their labels.
+
 ## 0.66.0 — 2026-10-20
 - Workshop **Survey** tab (left of Check): the Room's survey questions, read from HubSpot each time and saved back with **Save to HubSpot** (only what you changed). Dropdowns, checkboxes, yes / no, numbers, dates and text as in HubSpot. **Reload from HubSpot** and **Open in HubSpot** buttons. Not linked / design visit: a Link / Connect button.
 - Settings > HubSpot > Survey questions: the list (Room field names, in order); **Add a Room field...** picks any existing Room field; **New question in HubSpot** makes a new Room field (text, paragraph, number, dropdown, checkboxes, yes / no, date - you confirm first) and adds it.
