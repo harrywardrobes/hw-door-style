@@ -171,6 +171,7 @@ module HarryWardrobes
           'version' => VERSION,
           'last_export' => model.get_attribute(DICT, 'export_version', 0).to_i,
           'rows' => r, 'totals' => totals(r),
+          'key' => (Products.key_text(r.map { |x| x['t'].to_s[/\A[A-Z]+/] }.compact) rescue ''),
           'runouts' => { 'on' => Pencil.on?(model), 'changed' => Runouts.report(model) }
         }
       end

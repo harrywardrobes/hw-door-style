@@ -303,8 +303,10 @@ module HarryWardrobes
         door_pages(doc, model)
         pod_page(doc, rows, info)
         panel_page(doc, parts, tops)
+        key = Products.key_text(rows.map { |r| r['ref'] })
         doc.pages.each_with_index do |p, i|
           p.text(M, M - 14, "HW Door Style v#{VERSION}", size: 7)
+          p.text(M + 80, M - 14, key, size: 7, max: W - 2 * M - 160) unless key.empty?
           p.text(W - M, M - 14, "Page #{i + 1} of #{doc.pages.size}", size: 7.5, font: 'F2', align: :right)
         end
         [doc.pages.map(&:to_s), images]

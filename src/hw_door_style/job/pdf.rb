@@ -188,6 +188,7 @@ module HarryWardrobes
 
         pages.each_with_index do |p, i|
           p.text(MARGIN, MARGIN - 14, "HW Door Style v#{data['version']}", size: 7)
+          p.text(MARGIN + 80, MARGIN - 14, data['key'].to_s, size: 7, max: PAGE_W - 2 * MARGIN - 160) unless data['key'].to_s.empty?
           p.text(PAGE_W - MARGIN, MARGIN - 14, "Page #{i + 1} of #{pages.size}", size: 7, align: :right)
         end
         pages.map(&:to_s)

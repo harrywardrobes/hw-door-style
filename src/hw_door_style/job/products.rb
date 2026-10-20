@@ -56,6 +56,21 @@ module HarryWardrobes
         k && !c['refs'][k].empty? ? c['refs'][k] : c['prefix']
       end
 
+      # The key for the reference letters: [[letter, meaning]] for the letters given (or all),
+      # in list order. Settings "product_ref_names".
+      def self.key(letters = nil)
+        names = (Settings.get['product_ref_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
+        order = %w[T W B L F M]
+        list = (letters ? letters.map(&:to_s).uniq : names.keys).sort_by { |l| [order.index(l) || 9, l] }
+        list.map { |l| [l, names[l] || (l == cfg['prefix'] ? 'Tall units' : '')] }
+      end
+
+      # "Key: T = Tall units, W = Wall / bridge units..." for a PDF footer.
+      def self.key_text(letters = nil)
+        k = key(letters)
+        k.empty? ? '' : "Key: #{k.map { |l, n| n.empty? ? l : "#{l} = #{n}" }.join(',  ')}"
+      end
+
       def self.joiner?(name, c = cfg)
         c['joiners'].any? { |j| named?(name, j) }
       end

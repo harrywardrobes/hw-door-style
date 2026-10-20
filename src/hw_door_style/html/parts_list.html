@@ -195,7 +195,7 @@ function renderProducts(d){
   var P = d.products || [];
   var opts = function(cur, self, here){ return '<option value=""' + (cur === '' ? ' selected' : '') + '>Automatic' + (cur === '' ? ' (' + esc(here) + ')' : '') + '</option><option value="own"' + (cur === 'own' ? ' selected' : '') + '>Its own product</option>' +
     P.filter(function(p){ return p.pid !== self; }).map(function(p){ return '<option value="' + esc(p.pid) + '"' + (cur === p.pid ? ' selected' : '') + '>Part of ' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join(''); };
-  var h = '<div class="lbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="hint" style="margin:0;flex:1">' + P.length + ' products. T numbers are kept on each product; new ones get the next number. Facings, bullnose and end panels aren\'t products (Settings &gt; Product list).</span>' +
+  var h = '<div class="lbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="hint" style="margin:0;flex:1">' + P.length + ' products. T numbers are kept on each product; new ones get the next number. Bullnose and end panels aren\'t products (Settings &gt; Product list).</span>' +
     '<button onclick="sketchup.labelPlan()" title="Puts T1, T2... (with depth / finished depth) over each product, shown in the plan scenes only">Show T numbers on the plan</button><button id="renumBtn" onclick="renumber(this)">Renumber left to right</button></div>';
   h += P.length ? '<table><tr><th>T</th><th>Product</th><th>Component</th><th class="n">W x D x H (mm)</th><th class="n">Depth / finished</th><th>Includes</th></tr>' + P.map(function(p){
     var inc = p.members.map(function(m){
@@ -203,6 +203,8 @@ function renderProducts(d){
     }).join('');
     return '<tr><td><b><a href="#" onclick="sketchup.selectProduct(\'' + esc(p.pid) + '\');return false" title="Select it in the model">' + esc(p.t) + '</a></b></td><td>' + esc(p.name) + '</td><td style="color:var(--muted)">' + esc(p.component) + '</td><td class="n">' + p.size.join(' x ') + '</td><td class="n">' + (p.depth ? '<b>' + p.depth + (p.finished ? ' / ' + p.finished : '') + '</b>' : '-') + '</td><td>' + (inc || '<span style="color:var(--muted)">-</span>') + '</td></tr>';
   }).join('') + '</table><div class="hint">Includes: parts that belong to the product (internal drawers in a wardrobe, a box end under a worktop, box shelves next to each other...). Change one to split it off as its own product or move it to another.</div>' : '<div class="hint">No products found - check the names in Settings &gt; Product list.</div>';
+  var K = d.product_key || [];
+  if (K.length) h = '<div class="hint" style="margin:0 0 6px"><b>Key:</b> ' + K.map(function(k){ return '<b>' + esc(k[0]) + '</b> ' + esc(k[1]); }).join(' &middot; ') + '</div>' + h;
   $('p_products').innerHTML = h;
 }
 function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }

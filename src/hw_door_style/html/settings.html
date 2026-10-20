@@ -287,6 +287,7 @@
     <div class="f" style="grid-template-columns:150px 80px"><span>Front (door / facing) mm</span><input type="number" id="product_front_mm"></div>
     <div class="hint" style="margin-bottom:6px">Depth / finished depth (e.g. 580/598): the first of these component options found (back wall to the back of the facing); finished = its "_finished" option if it has one, else depth + the front thickness.</div>
     <div class="f t"><span>Reference letters</span><input type="text" id="product_refs"></div>
+    <div class="f t"><span>Letter key</span><input type="text" id="product_ref_names"></div>
     <div class="hint" style="margin-bottom:6px">T tall (robes, bookcases), W wall / bridge, B base (worktops, box ends), L drawer units, F facings, M misc - e.g. <code>BRIDGE: W, EXT_DRAWER: B, BOX_SHELF: M</code>. Each letter is numbered on its own (T1, T2... W1...).</div>
     <div class="f t"><span>Anything else</span><input type="text" id="product_prefix" style="max-width:80px"></div>
     <div class="f t"><span>Plan label tag</span><input type="text" id="product_label_tag"></div>
@@ -529,6 +530,8 @@ function load(s){
   var rd = s.runout_defaults_mm || {};
   SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
   $('plan_messages').value = (s.plan_messages || []).join('\n');
+  var prn = s.product_ref_names || {};
+  $('product_ref_names').value = Object.keys(prn).map(function(k){ return k + ': ' + prn[k]; }).join(', ');
   var prf = s.product_refs || {};
   $('product_refs').value = Object.keys(prf).map(function(k){ return k + ': ' + prf[k]; }).join(', ');
   var dbc = s.depth_by_component || {};
@@ -596,6 +599,8 @@ function collect(){
   SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
   o.plan_messages = $('plan_messages').value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
+  o.product_ref_names = {};
+  $('product_ref_names').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim(); if (k && v) o.product_ref_names[k] = v; });
   o.product_refs = {};
   $('product_refs').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim().toUpperCase(); if (k && v) o.product_refs[k] = v; });
   o.depth_by_component = {};

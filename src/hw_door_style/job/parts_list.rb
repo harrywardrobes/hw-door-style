@@ -700,6 +700,7 @@ module HarryWardrobes
           prods, _tops = Products.list(model)
           data['products'] = prods
           data['product_prefix'] = Products.cfg['prefix']
+          data['product_key'] = Products.key(prods.map { |p| p['ref'] })
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
         fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }

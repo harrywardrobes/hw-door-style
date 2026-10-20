@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.57.0 — 2026-10-20
+- Key for the reference letters (T Tall units, W Wall / bridge units, B Base units, L Drawer units, F Facings, M Miscellaneous) at the top of the Product List and along the bottom of every Room Plan and door order page - only the letters used in the job. Wording in Settings > Product list > Letter key.
+
+## 0.57.0 — 2026-10-20
+- 
+
 ## 0.56.0 — 2026-10-20
 - Product List: facing blocks are listed as products, F1, F2, F3... (no longer skipped), and external drawer units are L1, L2, L3... (were B). Settings > Product list > Reference letters; saved settings are brought up to date.
 - Product names match components with more after a space or bracket too ("EXT_DRAWER (Fitted)" is a Drawer unit).

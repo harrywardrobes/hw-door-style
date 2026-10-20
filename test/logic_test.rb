@@ -790,5 +790,7 @@ require 'hw_door_style/job/midrail'
 MR = HarryWardrobes::DoorStyle::Midrail
 check 'mid-rail option names (stable wardrobe and linen press)', %w[b06_midrail_centre b07_midrail_width h07_midrail_centre h08_midrail_width].all? { |k| k =~ MR::KEY_RE } && !('midrail_centre_mm' =~ MR::KEY_RE)
 
+check 'reference letter key in list order, only the letters used', PR.key(%w[F T L]).map(&:first) == %w[T L F] && PR.key_text(%w[T]).start_with?('Key: T = ')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
