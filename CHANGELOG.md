@@ -2,6 +2,7 @@
 
 ## 0.68.1 — 2026-10-20
 - PDF printer: the setting is the Brother's network share name again, "BROTHER - Harry Wardrobes"; the plugin finds the printer it belongs to in Windows by its share name (or its Windows name, or \\computer\share). No guessing - a name that matches nothing lists the printers and their share names.
+- Settings > Labels: **Find printers** fills a dropdown of this computer's printers (with their share names) for the PDF printer, and of the shared ones for the Zebra - pick instead of typing.
 
 ## 0.68.0 — 2026-10-20
 - Workshop HubSpot tab: tick what to do - **Send to HubSpot**, **Print labels (Zebra)**, **Print PDFs** - all ticked to start; the button says what it'll do (e.g. "Print PDFs"). The summary box lists only what was done.

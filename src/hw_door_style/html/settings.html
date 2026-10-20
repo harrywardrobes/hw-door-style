@@ -330,11 +330,13 @@
     <div class="hint">One per line: <code>L_BRACKET: L Brackets</code>. Anything not listed is printed tidied up (OVAL_SH_BRACKET = Oval Sh Bracket).</div>
   </fieldset>
   <fieldset><legend>Zebra GK420D</legend>
+    <div class="f t"><span>Shared printer</span><span style="display:flex;gap:6px;align-items:center"><select id="zebraPick" style="max-width:320px" onchange="if (this.value) $('zebra_share').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
     <div class="f t"><span>Windows share name</span><input type="text" id="zebra_share" style="max-width:160px"></div>
     <div class="hint">Labels print straight to the Zebra as ZPL, with no print dialog. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above.</div>
     <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
   </fieldset>
   <fieldset><legend>PDF printer (workshop pack)</legend>
+    <div class="f t"><span>Printer</span><span style="display:flex;gap:6px;align-items:center"><select id="pdfPick" style="max-width:320px" onchange="if (this.value) $('pdf_printer').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
     <div class="f t"><span>Printer name</span><input type="text" id="pdf_printer" style="max-width:260px"></div>
     <div class="f t"><span>Sides</span><select id="pdf_sides" style="max-width:260px"><option value="simplex">Single sided</option><option value="duplexlong">Double sided (long edge)</option><option value="duplexshort">Double sided (short edge)</option></select></div>
     <div class="f t"><span>SumatraPDF path</span><input type="text" id="sumatra_path" placeholder="found automatically if installed"></div>
@@ -1036,6 +1038,15 @@ var DDS = {};
 function hsHint(h){ $('hsKeyHint').textContent = h ? 'Saved key: ' + h + ' (paste a new one to replace it).' : 'No key saved yet.'; $('hsKey').value = ''; }
 function hsSaveKey(){ var k = $('hsKey').value.trim(); if (!k) { $('hsKeyHint').textContent = 'Paste the key first.'; return; } sketchup.hsSaveKey(k); }
 function hsTest(){ $('hsOut').textContent = 'Testing...'; sketchup.hsTest(); }
+function findPrinters(){ $('pdfMsg').textContent = 'Looking for printers...'; sketchup.findPrinters(); }
+function printerList(r){
+  if (r.error) { $('pdfMsg').textContent = r.error; return; }
+  var cur = $('pdf_printer').value.trim().toLowerCase(), zc = $('zebra_share').value.trim().toLowerCase();
+  $('pdfPick').innerHTML = '<option value="">Choose a printer...</option>' + r.printers.map(function(p){ var v = p[1] || p[0], sel = (p[1] && p[1].toLowerCase() === cur) || p[0].toLowerCase() === cur; return '<option value="' + esc(v) + '"' + (sel ? ' selected' : '') + '>' + esc(p[0]) + (p[1] ? ' (shared as ' + esc(p[1]) + ')' : '') + '</option>'; }).join('');
+  var shared = r.printers.filter(function(p){ return p[1]; });
+  $('zebraPick').innerHTML = shared.length ? '<option value="">Choose a shared printer...</option>' + shared.map(function(p){ return '<option value="' + esc(p[1]) + '"' + (p[1].toLowerCase() === zc ? ' selected' : '') + '>' + esc(p[0]) + ' (shared as ' + esc(p[1]) + ')</option>'; }).join('') : '<option value="">No shared printers - share the Zebra in Windows first</option>';
+  $('pdfMsg').textContent = r.printers.length + ' printer(s) found - pick one, then Save.'; $('zebraMsg').textContent = shared.length + ' shared printer(s) found.';
+}
 function lsplit(v){ return v.split(',').map(function(x){ return x.trim().toLowerCase(); }).filter(Boolean); }
 function surveyFields(){ $('svMsg').textContent = 'Reading the Room fields...'; sketchup.surveyFields(); }
 function surveyFieldList(r){

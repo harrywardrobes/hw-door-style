@@ -134,6 +134,11 @@ module HarryWardrobes
           close.call
           Updater.install(f)
         end
+        dlg.add_action_callback('findPrinters') do |_c|
+          list = PdfPrint.printers
+          r = list ? { 'printers' => list.sort_by { |n, _s| n.downcase } } : { 'error' => "Couldn't read the printers from Windows - type the name instead." }
+          dlg.execute_script("printerList(#{JSON.generate(r)})")
+        end
         dlg.add_action_callback('pdfTest') do |_c|
           msg = begin
             PdfPrint.test_page
