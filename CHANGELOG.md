@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.53.0 — 2026-10-20
+- Doors view clearer: no overall height at the ends; each front's height is written in it (in the top panel of a door with a mid-rail, so the rail stays clear); widths under the bottom row and over every other front (the linen press doors above the drawers, top box doors); the mid-rail centre reads "815 (mid-rail)"; each product's T number under its doors.
+- Linen press drawer fronts are framed like the doors above them (the door frame all round, e.g. 100) - Settings > Doors > Drawers framed like doors (LINEN_PRESS). Shown that way in the doors view too.
+- Fix for library V30: the top box's lower door subtracted the shelf depth instead of the top door height, so the top doors ran 80mm into the top facing (fixed in the component; lower door 1558, top 460).
+
+## 0.53.0 — 2026-10-20
+- 
+
 ## 0.52.0 — 2026-10-20
 - **Doors view** (Workshop > Floor Plan > Doors view): the doors and drawer fronts on each wall drawn flat, front on, with their sizes - widths along the bottom (and along the top for doors above drawers), the overall height at each end, the height of any door that isn't full height, each drawer front's height, the mid-rail width on each door and the mid-rail centre (from the bottom of the door) on the first. A drawing per wall on the "Door elevation" tag, below the floor, and a front-on flat scene for each ("Doors", or "Doors - back wall" / "- left wall"... for more than one wall) - the tag shows only in those scenes. Made again each time, like the T numbers.
 - The door elevation is also a page per wall in the Room Plan (after the Installation Plan) and on the door order PDF.

@@ -16,6 +16,9 @@
   "no_midrail_names": [
     "WST_DOOR_UPPER"
   ],
+  "framed_drawer_units": [
+    "LINEN_PRESS"
+  ],
   "ext_drawer_names": [
     "DRW_FRONT"
   ],

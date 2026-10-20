@@ -31,20 +31,20 @@ module HarryWardrobes
       # Every visible door / external drawer front with its world transformation.
       def self.occurrences(model)
         out = []
-        walk = lambda do |ents, tr, depth|
+        walk = lambda do |ents, tr, depth, top|
           ents.each do |e|
             next unless Finder.instance?(e)
             next if e.hidden?
             t = tr * e.transformation
             k = Finder.kind_of(e)
             if k
-              out << [e, k, t] if KINDS.include?(k)
+              out << [e, k, t, top || e] if KINDS.include?(k)
             elsif depth < 12
-              walk.call(e.definition.entities, t, depth + 1)
+              walk.call(e.definition.entities, t, depth + 1, top || e)
             end
           end
         end
-        walk.call(model.entities, Geom::Transformation.new, 0)
+        walk.call(model.entities, Geom::Transformation.new, 0, nil)
         out
       end
 
@@ -62,7 +62,12 @@ module HarryWardrobes
       # in mm, from the left / bottom of the run as seen from the front.
       def self.walls(model)
         raw = Hash.new { |h, k| h[k] = [] }
-        occurrences(model).each do |e, k, t|
+        tops = begin
+          Products.list(model).last
+        rescue StandardError
+          {}
+        end
+        occurrences(model).each do |e, k, t, top|
           key, n = wall_of(t)
           next unless key
           r = Z_AXIS * n # viewer's right
@@ -73,8 +78,9 @@ module HarryWardrobes
           w, _th, h = Finder.real_size(e)
           d = e.definition
           style = d.get_attribute(DICT, 'style') || 'flat'
-          pn = Styles.panels(style, w, h, k, no_midrail: Finder.no_midrail?(e))
-          raw[key] << { 'kind' => k.to_s, 'u0' => us.min, 'u1' => us.max, 'z0' => zs.min, 'z1' => zs.max,
+          framed = k == :ext_drawer && Finder.framed?(e)
+          pn = Styles.panels(style, w, h, framed ? :door : k, no_midrail: Finder.no_midrail?(e) || k != :door)
+          raw[key] << { 'kind' => k.to_s, 't' => tops[top.entityID], 'u0' => us.min, 'u1' => us.max, 'z0' => zs.min, 'z1' => zs.max,
                         'w' => mm(w).round, 'h' => mm(h).round, 'style' => style, 'fixed' => Finder.fixed?(e),
                         'panels' => pn[:panels].map { |a| a.map { |v| mm(v) } },
                         'midrail' => pn[:midrail] && mm(pn[:midrail]).round, 'midrail_width' => pn[:midrail_width] && mm(pn[:midrail_width]).round }
@@ -91,33 +97,41 @@ module HarryWardrobes
       end
 
       # Dimensions and texts for a wall (mm). A dimension: { 'a' => [u, z], 'b' => [u, z],
-      # 'side' => :left / :right / :top / :bottom / :inside / :mid, 'text' }.
+      # 'side' => 'top' / 'bottom' / 'mid', 'text' }. Widths go under the bottom row and over
+      # the top of every other front (unless the same width sits right above it); heights are
+      # written in the front (in the top panel of a door with a mid-rail, so the rail stays
+      # clear); the mid-rail width is written on the rail, and the first door's mid-rail centre
+      # is dimensioned from the bottom of the door.
       def self.measure(wall)
         fs = wall['fronts']
-        hh = wall['height']
-        ww = wall['width']
         tol = 5
         dims = []
         texts = []
-        dims << { 'a' => [0, 0], 'b' => [0, hh], 'side' => 'left', 'text' => hh.round.to_s }
-        dims << { 'a' => [ww, 0], 'b' => [ww, hh], 'side' => 'right', 'text' => hh.round.to_s }
+        same_col = ->(a, b) { (a['u0'] - b['u0']).abs < tol && (a['u1'] - b['u1']).abs < tol }
         fs.each do |f|
           uc = (f['u0'] + f['u1']) / 2.0
+          below = fs.find { |o| o != f && same_col.(o, f) && (f['z0'] - o['z1']).between?(-tol, 20) }
+          above = fs.find { |o| o != f && same_col.(o, f) && (o['z0'] - f['z1']).between?(-tol, 20) }
           if f['z0'] < tol
             dims << { 'a' => [f['u0'], 0], 'b' => [f['u1'], 0], 'side' => 'bottom', 'text' => f['w'].to_s }
-          elsif f['z1'] > hh - tol
-            dims << { 'a' => [f['u0'], hh], 'b' => [f['u1'], hh], 'side' => 'top', 'text' => f['w'].to_s }
+          elsif !above && !(below && below['w'] == f['w'] && f['kind'] == 'ext_drawer')
+            dims << { 'a' => [f['u0'], f['z1']], 'b' => [f['u1'], f['z1']], 'side' => 'top', 'text' => f['w'].to_s }
           end
-          if f['kind'] == 'ext_drawer'
-            texts << { 'at' => [uc, (f['z0'] + f['z1']) / 2.0], 'text' => f['h'].to_s }
-          elsif (f['z1'] - f['z0'] - hh).abs > 3
-            dims << { 'a' => [uc, f['z0']], 'b' => [uc, f['z1']], 'side' => 'inside', 'text' => f['h'].to_s }
-          end
-          texts << { 'at' => [uc, f['z0'] + f['midrail']], 'text' => f['midrail_width'].to_s } if f['midrail']
+          hz = if f['midrail']
+                 f['z0'] + (f['midrail'] + f['h']) / 2.0
+               else
+                 (f['z0'] + f['z1']) / 2.0
+               end
+          texts << { 'at' => [uc, hz], 'text' => f['h'].to_s, 'size' => 'h' }
+          texts << { 'at' => [uc, f['z0'] + f['midrail']], 'text' => f['midrail_width'].to_s, 'size' => 'rail' } if f['midrail']
+        end
+        # T numbers under each product's widths.
+        labels = fs.select { |f| f['t'] }.group_by { |f| f['t'] }.map do |t, list|
+          { 'text' => t, 'u' => (list.map { |f| f['u0'] }.min + list.map { |f| f['u1'] }.max) / 2.0 }
         end
         first = fs.select { |f| f['midrail'] }.min_by { |f| f['u0'] }
-        dims << { 'a' => [first['u0'], first['z0']], 'b' => [first['u0'], first['z0'] + first['midrail']], 'side' => 'mid', 'text' => first['midrail'].to_s } if first
-        { 'dims' => dims, 'texts' => texts }
+        dims << { 'a' => [first['u0'], first['z0']], 'b' => [first['u0'], first['z0'] + first['midrail']], 'side' => 'mid', 'text' => first['midrail'].to_s, 'note' => '(mid-rail)' } if first
+        { 'dims' => dims, 'texts' => texts, 'labels' => labels }
       end
 
       # --- in the model ----------------------------------------------------------------
@@ -180,15 +194,20 @@ module HarryWardrobes
             ents.add_face(pt.(f['u0'] + x0, f['z0'] + z0), pt.(f['u0'] + x1, f['z0'] + z0), pt.(f['u0'] + x1, f['z0'] + z1), pt.(f['u0'] + x0, f['z0'] + z1))
           end
         end
-        off = { 'left' => [-160, 0], 'right' => [160, 0], 'top' => [0, 90], 'bottom' => [0, -90], 'inside' => [0, 0], 'mid' => [-70, 0] }
+        off = { 'left' => [-160, 0], 'right' => [160, 0], 'top' => [0, 80], 'bottom' => [0, -90], 'inside' => [0, 0], 'mid' => [-90, 0] }
         wall['dims'].each do |d|
           o = off[d['side']] || [0, 0]
           v = Geom::Vector3d.new(o[0].mm, 0, o[1].mm)
           v = Geom::Vector3d.new(0.01.mm, 0, 0) if v.length.zero?
-          ents.add_dimension_linear(pt.(*d['a']), pt.(*d['b']), v)
+          dim = ents.add_dimension_linear(pt.(*d['a']), pt.(*d['b']), v)
+          dim.text = "#{d['text']}\n#{d['note']}" if d['note'] && dim.respond_to?(:text=)
         end
         wall['texts'].each do |t|
           x = ents.add_text(t['text'], pt.(*t['at']))
+          x.display_leader = false
+        end
+        Array(wall['labels']).each do |l|
+          x = ents.add_text(l['text'], pt.(l['u'], -380))
           x.display_leader = false
         end
         g
@@ -201,9 +220,9 @@ module HarryWardrobes
         ww = wall['width'].to_f
         hh = wall['height'].to_f
         return if ww <= 0 || hh <= 0
-        s = [(bw - 110) / ww, (bh - 50) / hh].min
-        ox = bx + 60 + ((bw - 110) - ww * s) / 2
-        oy = by + 25 + ((bh - 50) - hh * s) / 2
+        s = [(bw - 90) / ww, (bh - 70) / hh].min
+        ox = bx + 70 + ((bw - 90) - ww * s) / 2
+        oy = by + 50 + ((bh - 70) - hh * s) / 2
         p = ->(u, z) { [ox + u * s, oy + z * s] }
         wall['fronts'].each do |f|
           x, y = p.(f['u0'], f['z0'])
@@ -212,7 +231,7 @@ module HarryWardrobes
             page.rect(x + x0 * s, y + z0 * s, (x1 - x0) * s, (z1 - z0) * s, 0.35, 0.5)
           end
         end
-        off = { 'left' => [-34, 0], 'right' => [34, 0], 'top' => [0, 12], 'bottom' => [0, -12], 'inside' => [0, 0], 'mid' => [-16, 0] }
+        off = { 'left' => [-34, 0], 'right' => [34, 0], 'top' => [0, 10], 'bottom' => [0, -12], 'inside' => [0, 0], 'mid' => [-14, 0] }
         wall['dims'].each do |d|
           dx, dy = off[d['side']] || [0, 0]
           ax, ay = p.(*d['a'])
@@ -238,15 +257,24 @@ module HarryWardrobes
                  when 'right' then x1 + 3
                  else x1 - tw / 2
                  end
-            page.rect_fill(tx - 1, my - 2, tw + 2, 10, 1) if d['side'] == 'inside'
             page.text(tx, my, d['text'], size: 8)
+            if d['note']
+              nw = Pdf.width(d['note'], 'F1', 7)
+              page.text(d['side'] == 'mid' ? x1 - nw - 3 : tx, my - 9, d['note'], size: 7)
+            end
           end
+        end
+        Array(wall['labels']).each do |l|
+          x, y = p.(l['u'], 0)
+          tw = Pdf.width(l['text'], 'F2', 10)
+          page.text(x - tw / 2, y - 40, l['text'], font: 'F2', size: 10)
         end
         wall['texts'].each do |t|
           x, y = p.(*t['at'])
-          tw = Pdf.width(t['text'], 'F1', 8)
-          page.rect_fill(x - tw / 2 - 1, y - 4, tw + 2, 9, 1)
-          page.text(x - tw / 2, y - 2.5, t['text'], size: 8)
+          sz = t['size'] == 'rail' ? 6.5 : 7.5
+          tw = Pdf.width(t['text'], 'F1', sz)
+          page.rect_fill(x - tw / 2 - 1, y - sz / 2 - 1, tw + 2, sz + 1.5, 1) unless t['size'] == 'rail'
+          page.text(x - tw / 2, y - sz / 3, t['text'], size: sz)
         end
       end
 

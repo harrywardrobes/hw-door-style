@@ -60,13 +60,14 @@ module HarryWardrobes
         jobs = pairs.map do |inst, kind|
           # Fixed panels (the stable panel) are always flat.
           s = Finder.fixed?(inst) ? 'flat' : (style || current_style(inst))
-          { inst: inst, kind: kind, style: s, plain: Finder.no_midrail?(inst), defn: inst.definition, size: Finder.real_size(inst),
+          { inst: inst, kind: kind, style: s, plain: Finder.no_midrail?(inst) || kind != :door,
+            draw_kind: kind == :ext_drawer && Finder.framed?(inst) ? :door : kind, defn: inst.definition, size: Finder.real_size(inst),
             formulas: wrapper_formulas(inst), override: override.nil? ? override?(inst) : override,
             right: kind == :door ? Hardware.right?(inst) : false }
         end
 
         groups = jobs.group_by do |j|
-          [j[:defn].entityID, j[:style], j[:kind], j[:plain], j[:override], j[:right], j[:size].map { |v| (v * 25.4 * 2).round }]
+          [j[:defn].entityID, j[:style], j[:kind], j[:draw_kind], j[:plain], j[:override], j[:right], j[:size].map { |v| (v * 25.4 * 2).round }]
         end
 
         style_cache = {}
@@ -136,7 +137,7 @@ module HarryWardrobes
         end
         ents.erase_entities(doomed) unless doomed.empty?
 
-        sdef, info = slab_definition(model, job[:style], job[:kind], w, t, h, cache, no_midrail: job[:plain])
+        sdef, info = slab_definition(model, job[:style], job[:draw_kind] || job[:kind], w, t, h, cache, no_midrail: job[:plain])
         si = ents.add_instance(sdef, Geom::Transformation.new)
         si.layer = tag
         si.set_attribute(DICT, 'role', 'style')

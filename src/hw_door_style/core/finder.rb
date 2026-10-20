@@ -43,6 +43,22 @@ module HarryWardrobes
         inst.respond_to?(:definition) && (names_for(inst) & Settings.names('fixed_panel_names')).any?
       end
 
+      # Drawer fronts framed like a door (Settings "framed_drawer_units", e.g. the linen press):
+      # the same frame all round as the doors above them.
+      def self.framed?(inst)
+        names = Settings.names('framed_drawer_units')
+        return false if names.empty?
+        e = inst
+        8.times do
+          d = e.parent
+          break unless d.is_a?(Sketchup::ComponentDefinition)
+          base = d.name.sub(/#\d+\z/, '').strip.upcase
+          return true if names.any? { |n| base == n || base.start_with?("#{n}_") }
+          e = d.instances.first or break
+        end
+        false
+      end
+
       # Doors that never get a mid-rail (Settings "no_midrail_names").
       def self.no_midrail?(inst)
         inst.respond_to?(:definition) && (names_for(inst) & Settings.names('no_midrail_names')).any?
