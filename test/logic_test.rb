@@ -219,7 +219,7 @@ Dir.mktmpdir do |dir|
 
   data = { 'job' => 'Smith Wardrobes', 'hinge_type' => 'Soft Close 110', 'date' => '15/10/2026 11:00',
            'version' => '0.2.0', 'export_version' => 4,
-           'rows' => Array.new(45) { |i| rows[0].merge('n' => i + 1, 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
+           'rows' => Array.new(75) { |i| rows[0].merge('n' => i + 1, 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
   data['totals'] = Report.totals(data['rows'])
   pdf = File.join(dir, 'DOOR_ORDER_v4_Smith Wardrobes.pdf')
   Pdf.write(pdf, data)

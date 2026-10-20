@@ -59,10 +59,10 @@ module HarryWardrobes
           right = [["Customer", hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']],
                    ['Account', hd['account']], ['Fit week', hd['fit_week']], ['Date', hd['date']]]
           right.each_slice(3).with_index do |col, ci|
-            x = W - M - 300 + ci * 150
+            x = W - M - 270 + ci * 135
             col.each_with_index do |(k, v), i|
               page.text(x, top - i * 10, "#{k}:", font: 'F2', size: 7.5)
-              page.text(x + 42, top - i * 10, v.to_s.empty? ? '-' : v.to_s, size: 7.5, max: 104)
+              page.text(x + 42, top - i * 10, v.to_s.empty? ? '-' : v.to_s, size: 7.5, max: 90)
             end
           end
           @y = top - 32
@@ -85,7 +85,7 @@ module HarryWardrobes
       end
 
       def self.head(model, fit = :fetch)
-        l = HubSpotRoom.link(model) || {}
+        l = HubSpotRoom.customer_link(model) || {}
         customer = l['customer'].to_s
         customer = [l['first_name'], l['last_name']].compact.join(' ') if customer.strip.empty?
         { 'customer' => customer.strip.empty? ? File.basename(model.path.to_s, '.skp') : customer,
@@ -208,7 +208,7 @@ module HarryWardrobes
       def self.product_page(doc, rows, info)
         doc.section('Product List')
         list = rows.sort_by { |r| [LOOSE_FIRST.index(r['ref']) || 9, r['num']] }
-        doc.table([['Ref', 34, :left], ['Unit', 210, :left], ['Doors', nil, :left], ['Interior', 190, :left]],
+        doc.table([['Ref', 26, :left], ['Unit', 150, :left], ['Doors', nil, :left], ['Interior', 150, :left]],
                   list.map { |r| [r['t'], describe(r), door_text(info[r['t']]['doors']), interior_text(info[r['t']])] })
       end
 
@@ -234,9 +234,9 @@ module HarryWardrobes
                  ['Main ceiling', c.positive? ? "#{c.round} mm" : '-'], ['Scribe set', scribes(model)], ['Cornice', @cornice]]
         pg.line(M, foot + 2, W - M, foot + 2, 0.2, 1)
         x = M
-        widths = [130, 80, 80, 80, 230, nil]
+        widths = Pdf.fit_widths([130, 80, 80, 80, 230, nil], W - 2 * M, 60)
         items.each_with_index do |(k, v), i|
-          w = widths[i] || (W - M - x)
+          w = widths[i]
           pg.text(x, foot - 10, k, font: 'F2', size: 7.5)
           pg.text(x, foot - 21, v.to_s.empty? ? '-' : v.to_s, size: 8, max: w - 6)
           x += w

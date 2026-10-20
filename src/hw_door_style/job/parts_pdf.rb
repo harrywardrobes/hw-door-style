@@ -1,6 +1,6 @@
 module HarryWardrobes
   module DoorStyle
-    # Parts list PDF (A4 landscape) on the same small PDF writer as the door order.
+    # Parts list PDF (A4 portrait) on the same small PDF writer as the door order.
     module PartsPdf
       W = Pdf::PAGE_W
       H = Pdf::PAGE_H
@@ -48,8 +48,8 @@ module HarryWardrobes
 
         # cols: [[label, width or nil, :left/:right]]
         def table(cols, rows)
-          free = W - 2 * M - cols.sum { |c| c[1].to_f }
-          cols = cols.map { |l, w, a| [l, w || free, a] }
+          ws = Pdf.fit_widths(cols.map { |c| c[1] }, W - 2 * M)
+          cols = cols.each_with_index.map { |(l, _w, a), i| [l, ws[i], a] }
           head = lambda do
             page.rect_fill(M, @y - 4, W - 2 * M, ROW, 0.92)
             x = M

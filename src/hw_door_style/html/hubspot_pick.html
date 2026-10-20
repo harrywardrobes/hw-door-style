@@ -42,12 +42,15 @@
 <script>
 var D = /*DATA*/null;
 var P = null, room = null;
-var isNew = D.mode === 'new';
-$('h').textContent = isNew ? 'New room from HubSpot' : 'Link this file to a HubSpot room';
+var isNew = D.mode === 'new', isConnect = D.mode === 'connect';
+var OK = isNew ? 'Create survey file' : (isConnect ? 'Connect + save as the survey file' : 'Link this file');
+$('h').textContent = isNew ? 'New room from HubSpot' : (isConnect ? 'Connect this design visit to a Room' : 'Link this file to a HubSpot room');
 $('sub').textContent = isNew
-  ? 'Makes the survey file in the customer\'s folder (1_CUSTOMERS), named after the room, and links it.'
-  : (D.file + (D.linked ? ' - now linked to ' + D.linked : ' - not linked yet'));
-$('ok').textContent = isNew ? 'Create survey file' : 'Link this file';
+  ? 'Makes the survey file in the customer\'s folder (1_CUSTOMERS), named after the room, and links it. A project with no Rooms yet can be a Design Visit.'
+  : (isConnect ? (D.customer || 'This customer') + '\'s project now has a Room. Pick it: this file is saved as that room\'s survey file and linked to it (the design visit file stays as it is).'
+               : D.file + (D.linked ? ' - now linked to ' + D.linked : ' - not linked yet'));
+$('ok').textContent = OK;
+if (isConnect) { document.querySelector('.row').style.display = 'none'; $('projects').style.display = 'none'; document.querySelector('.bar button').textContent = 'Not now'; }
 
 function go(){ $('projects').innerHTML = '<div class="msg">Searching...</div>'; sketchup.search($('q').value); }
 function projects(r){
@@ -70,7 +73,14 @@ function rooms(r){
   if (isNew) c += r.folder ? '<div class="hint">Folder: '+esc(r.folder_name)+'</div>'
                            : '<div class="warnline">Customer folder not found in 1_CUSTOMERS (contact '+esc(r.contact_id || '-')+') - you\'ll be asked to choose it.</div>';
   $('cust').innerHTML = c;
-  if (!r.rooms.length) { $('rooms').innerHTML = '<div class="empty">This project has no Rooms yet - add one in HubSpot first.</div>'; return; }
+  if (!r.rooms.length) {
+    if (isConnect) { $('rooms').innerHTML = '<div class="empty">This project has no Rooms yet.</div>'; return; }
+    $('rooms').innerHTML = '<div class="empty">This project has no Rooms yet.</div><div class="it" id="dv"><b>Design Visit</b><span class="tag">' +
+      (isNew ? esc(r.design_file || 'DESIGN VISIT') + ' - linked to the customer only; ' : 'linked to the customer only; ') + 'when a Room is added, opening the file asks to connect it</span></div>';
+    $('dv').onclick = function(){ $('dv').classList.add('on'); room = { design_visit: true }; $('ok').disabled = false; $('ok').textContent = isNew ? 'Create design visit file' : 'Link as a design visit'; };
+    return;
+  }
+  $('ok').textContent = OK;
   $('rooms').innerHTML = r.rooms.map(function(x, i){
     return '<div class="it" data-i="'+i+'">'+esc(x.name)+(isNew ? '<span class="tag">'+esc(x.file)+(x.exists ? ' - already exists, opens it' : '')+'</span>' : '')+'</div>';
   }).join('');
@@ -83,10 +93,10 @@ function rooms(r){
 }
 function choose(){
   if (!room || !P) return;
-  sketchup.choose(JSON.stringify({ room_id: room.id, room_name: room.name, project_id: P.project_id, contact_id: P.contact_id,
+  sketchup.choose(JSON.stringify({ design_visit: !!room.design_visit, room_id: room.id || null, room_name: room.name || null, project_id: P.project_id, contact_id: P.contact_id,
     customer: P.customer, first_name: P.first_name, last_name: P.last_name, address: P.address, folder: P.folder }));
 }
-go();
+if (isConnect) { $('rooms').innerHTML = '<div class="msg">Loading rooms...</div>'; sketchup.project(D.project_id); } else go();
 </script>
 </body>
 </html>

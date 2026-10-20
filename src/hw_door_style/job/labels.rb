@@ -37,19 +37,19 @@ module HarryWardrobes
         'page_width' => '102mm', 'page_height' => '76mm', 'margin_top' => '5mm', 'margin_right' => '5mm', 'margin_bottom' => '5mm',
         'margin_left' => '5mm', 'spacing_h' => '0', 'spacing_v' => '0', 'col_count' => 1, 'row_count' => 1, 'offset' => 0, 'cutting_marks' => false,
         'part_order_strategy' => '', 'printer' => 'zebra',
-        # Top: T number + "1 of 2" (small, left), part number (big, right). Then the part name,
-        # length x width, material / thickness, the outline picture (edged sides thick, as
-        # OpenCutList's proportional thumbnail) with customer / room beside it, and the barcode
-        # along the bottom (bars only).
+        # Left: T number + "1 of 2" (small), part name, length x width, material / thickness,
+        # customer / room. Top right: the part's outline (its own shape, edged sides thick, as
+        # OpenCutList's thumbnail). Bottom right: the part number (big), then the barcode
+        # (bars only), both right-aligned.
         'layout' => [
           { 'formula' => 'part.t_of', 'x' => -0.5, 'y' => -0.5, 'size' => 0.9, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.no', 'x' => 0.5, 'y' => -0.5, 'size' => 2.4, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.name', 'x' => -0.5, 'y' => -0.27, 'size' => 0.95, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'part.dims', 'x' => -0.5, 'y' => -0.15, 'size' => 1.05, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'group.material', 'x' => -0.5, 'y' => -0.03, 'size' => 0.8, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'thumbnail.proportional', 'x' => -0.5, 'y' => 0.07, 'size' => 2.6, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'customer_room', 'x' => -0.31, 'y' => 0.15, 'size' => 0.72, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
-          { 'formula' => 'barcode', 'x' => 0, 'y' => 0.5, 'size' => 1.2, 'width' => 0.85, 'anchor' => 'middle', 'rotation' => 0, 'color' => '#000000' }
+          { 'formula' => 'thumbnail.shape', 'x' => 0.5, 'y' => -0.5, 'size' => 4.2, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.name', 'x' => -0.5, 'y' => -0.3, 'size' => 0.95, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.dims', 'x' => -0.5, 'y' => -0.17, 'size' => 1.05, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'group.material', 'x' => -0.5, 'y' => -0.04, 'size' => 0.8, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'customer_room', 'x' => -0.5, 'y' => 0.08, 'size' => 0.72, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.no', 'x' => -0.09, 'y' => 0.5, 'size' => 2.4, 'anchor' => 'end', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'barcode', 'x' => 0.5, 'y' => 0.5, 'size' => 1.3, 'width' => 0.57, 'anchor' => 'end', 'rotation' => 0, 'color' => '#000000' }
         ]
       }.freeze
 

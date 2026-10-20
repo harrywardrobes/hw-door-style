@@ -45,7 +45,8 @@
     ['barcode', 'Barcode (Code 128)'],
     ['text', 'Free text'],
     ['hr', 'Horizontal line'],
-    ['thumbnail.proportional.drawing', 'Part drawing with edging'],
+    ['thumbnail.shape', 'Part outline with edging (own shape)'],
+    ['thumbnail.proportional.drawing', 'Part drawing with edging (OpenCutList, to scale)'],
     ['part.edge.ymin', 'Edge - long 1'], ['part.edge.ymax', 'Edge - long 2'], ['part.edge.xmin', 'Edge - short 1'], ['part.edge.xmax', 'Edge - short 2'],
     ['generated_at', 'Date'],
     ['custom', 'Custom formula (OpenCutList)']

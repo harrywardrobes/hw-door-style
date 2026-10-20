@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.62.0 — 2026-10-20
+- HubSpot **Design Visit**: a project with no Rooms can be linked as a design visit (customer only) - "DESIGN VISIT - <customer>.skp". Opening it again checks the project: once a Room exists it asks which one ("Not now" asks again next time) and saves the file as that room's SURVEY file, linked to it (the design visit file is left as it was). If HubSpot can't be reached it says so - try again. Labels / Room Plan take the customer from HubSpot (Room ID made up until there's a Room).
+- All PDFs (door order, parts list, Room Plan) are A4 portrait; table columns fit the page (door order: Mid / Hng / TIP / Hdl, explained in the header).
+- Check tab: labels on the left third, the PDFs (list on top, viewer below) across the other two thirds; labels aren't previewed again. The first PDF opens after Save Workshop Pack.
+- Label: the part's outline (its own shape, larger) top right; the part number (same size) bottom right, right-aligned to the left of the barcode, both right-aligned. Barcodes use Code 128 automatic code sets (digit runs packed), so long HubSpot Room IDs keep 2-dot bars.
+
 ## 0.61.0 — 2026-10-20
 Workshop:
 - Labels tab renamed **Check**: labels stacked down the left, a preview in the middle (click a label or a PDF), and this model's latest PDFs (door order, parts list, Room Plan) on the right.

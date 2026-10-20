@@ -8,6 +8,11 @@ module HarryWardrobes
     #                          made in the customer's folder (1_CUSTOMERS\... (<contact id>))
     #                          as "SURVEY - <room> - <customer>.skp", linked to the Room.
     #   Link this file         the same, for a file that already exists.
+    #   Design Visit           a project with no Rooms yet: the file is linked to the project
+    #                          and customer only ("DESIGN VISIT - <customer>.skp"). Opening it
+    #                          again checks the project: once a Room exists it asks which one
+    #                          and saves the file as the usual SURVEY file linked to it (the
+    #                          design visit file is left as it was).
     #   Send to HubSpot        every agreed field, SketchUp next to HubSpot; nothing is
     #                          written until Send is pressed. Some fields can also be
     #                          taken from HubSpot into the file (ceiling, runouts, colours).
@@ -45,12 +50,24 @@ module HarryWardrobes
 
       # --- the link -------------------------------------------------------------------
 
-      LINK_KEYS = %w[hs_room_id hs_project_id hs_contact_id hs_room_name hs_customer hs_first_name hs_last_name hs_address hs_info].freeze
+      LINK_KEYS = %w[hs_room_id hs_project_id hs_contact_id hs_room_name hs_customer hs_first_name hs_last_name hs_address hs_info hs_design_visit].freeze
 
       def self.link(model = Sketchup.active_model)
         h = LINK_KEYS.to_h { |k| [k.sub('hs_', ''), model.get_attribute(DICT, k, nil)] }
         h['info'] = (JSON.parse(h['info'].to_s) rescue {})
         h['room_id'] ? h : nil
+      end
+
+      # The link to the customer, with or without a Room (a design visit has none).
+      def self.customer_link(model = Sketchup.active_model)
+        h = LINK_KEYS.to_h { |k| [k.sub('hs_', ''), model.get_attribute(DICT, k, nil)] }
+        h['info'] = (JSON.parse(h['info'].to_s) rescue {})
+        h['room_id'] || h['project_id'] ? h : nil
+      end
+
+      def self.design_visit?(model = Sketchup.active_model)
+        h = customer_link(model)
+        !!(h && !h['room_id'] && h['design_visit'])
       end
 
       def self.store_link(model, l)
@@ -71,6 +88,10 @@ module HarryWardrobes
 
       def self.file_name(room_name, customer)
         Report.safe_name("SURVEY - #{room_part(room_name).downcase} - #{customer.to_s.downcase}") + '.skp'
+      end
+
+      def self.design_file_name(customer)
+        Report.safe_name("DESIGN VISIT - #{customer.to_s.downcase}") + '.skp'
       end
 
       # The customer's folder: "WILLIAMS Rebecca (Rossett - 830735284436)" or "... (830735284436)".
@@ -408,8 +429,11 @@ module HarryWardrobes
         if mode == :link && model.path.to_s.empty?
           return UI.messagebox('Save this file first, or use "New room from HubSpot" to make it in the customer folder.')
         end
-        data = { 'mode' => mode.to_s, 'linked' => cur && cur['room_name'], 'file' => File.basename(model.path.to_s) }
-        dlg = Dialog.open('hubspot_pick', title: mode == :new ? 'HW - New room from HubSpot' : 'HW - Link to a HubSpot room',
+        dv = customer_link(model) if mode == :connect
+        data = { 'mode' => mode.to_s, 'linked' => cur ? cur['room_name'] : (design_visit?(model) ? 'a design visit (no Room)' : nil),
+                 'file' => File.basename(model.path.to_s), 'project_id' => dv && dv['project_id'], 'customer' => dv && dv['customer'] }
+        title = { new: 'HW - New room from HubSpot', link: 'HW - Link to a HubSpot room', connect: 'HW - Connect this design visit to a Room' }[mode]
+        dlg = Dialog.open('hubspot_pick', title: title,
                                           key: 'hw_hubspot_pick', width: 560, height: 520, data: data)
         dlg.add_action_callback('search') do |_c, q|
           Steps.one(dlg, q.to_s.strip.empty? ? 'Reading recent projects' : "Searching HubSpot for \"#{q.to_s.strip}\"",
@@ -424,7 +448,11 @@ module HarryWardrobes
         dlg.add_action_callback('choose') do |_c, json|
           pick = JSON.parse(json)
           dlg.close
-          mode == :new ? create_file(pick) : link_open_file(model, pick)
+          case mode
+          when :new then create_file(pick)
+          when :connect then connect_design_visit(model, pick)
+          else link_open_file(model, pick)
+          end
         end
         dlg.show
       end
@@ -441,16 +469,18 @@ module HarryWardrobes
           r['file'] = file_name(r['name'], customer)
           r['exists'] = folder ? File.exist?(File.join(folder, r['file'])) : false
         end
+        design = design_file_name(customer)
         { 'project_id' => pid, 'rooms' => rooms.sort_by { |r| r['name'] }, 'contact_id' => contact_id, 'customer' => customer,
           'first_name' => c['firstname'].to_s.strip, 'last_name' => c['lastname'].to_s.strip,
           'address' => [c['address'], c['city'], c['zip']].compact.map { |x| x.gsub(/[\s,]*\n\s*/, ', ').strip }.reject(&:empty?).join(', '),
-          'folder' => folder, 'folder_name' => folder && File.basename(folder) }
+          'folder' => folder, 'folder_name' => folder && File.basename(folder), 'design_file' => design }
       end
 
       def self.link_from(pick)
-        { 'room_id' => pick['room_id'], 'project_id' => pick['project_id'], 'contact_id' => pick['contact_id'],
-          'room_name' => pick['room_name'], 'customer' => pick['customer'], 'first_name' => pick['first_name'],
-          'last_name' => pick['last_name'], 'address' => pick['address'], 'info' => {} }
+        dv = pick['design_visit'] ? true : false
+        { 'room_id' => dv ? nil : pick['room_id'], 'project_id' => pick['project_id'], 'contact_id' => pick['contact_id'],
+          'room_name' => dv ? nil : pick['room_name'], 'customer' => pick['customer'], 'first_name' => pick['first_name'],
+          'last_name' => pick['last_name'], 'address' => pick['address'], 'info' => {}, 'design_visit' => dv ? '1' : nil }
       end
 
       # "WILLIAMS Rebecca" (last name in capitals, first names capitalised). Files linked
@@ -474,7 +504,7 @@ module HarryWardrobes
                                        directory: Dir.exist?(CUSTOMERS_DIR) ? CUSTOMERS_DIR : nil)
           return unless folder
         end
-        path = File.join(folder, file_name(pick['room_name'], pick['customer']))
+        path = File.join(folder, pick['design_visit'] ? design_file_name(pick['customer']) : file_name(pick['room_name'], pick['customer']))
         if File.exist?(path)
           return unless UI.messagebox("#{File.basename(path)} already exists.\n\nOpen it?", MB_YESNO) == IDYES
           return Sketchup.open_file(path)
@@ -490,6 +520,7 @@ module HarryWardrobes
         model = Sketchup.active_model
         Ops.run(model, 'Link to HubSpot room') { store_link(model, link_from(pick)) }
         model.save(path)
+        return UI.messagebox("Saved as #{File.basename(path)}\nin #{File.basename(folder)}, linked to #{pick['customer']} as a design visit (no Room).\n\nWhen a Room is added to the project in HubSpot, opening this file asks to connect it.") if pick['design_visit']
         after_link(model, pick, "Saved as #{File.basename(path)}\nin #{File.basename(folder)}.")
       rescue StandardError => e
         fail('new room', e)
@@ -497,13 +528,57 @@ module HarryWardrobes
 
       def self.link_open_file(model, pick)
         cur = link(model)
+        target = pick['design_visit'] ? "a design visit for #{pick['customer']}" : pick['room_name']
         if cur && cur['room_id'] != pick['room_id']
-          return unless UI.messagebox("This file is linked to #{cur['room_name']}.\n\nLink it to #{pick['room_name']} instead?", MB_YESNO) == IDYES
+          return unless UI.messagebox("This file is linked to #{cur['room_name']}.\n\nLink it to #{target} instead?", MB_YESNO) == IDYES
         end
         Ops.run(model, 'Link to HubSpot room') { store_link(model, link_from(pick)) }
-        after_link(model, pick, "#{File.basename(model.path)} is linked to #{pick['room_name']}.")
+        return UI.messagebox("#{File.basename(model.path)} is linked to #{pick['customer']} as a design visit (no Room).\n\nWhen a Room is added to the project in HubSpot, opening this file asks to connect it.") if pick['design_visit']
+        after_link(model, pick, "#{File.basename(model.path)} is linked to #{target}.")
       rescue StandardError => e
         fail('link', e)
+      end
+
+      # A design visit gets its Room: saved as the room's SURVEY file next to it (the design
+      # visit file stays as it was last saved) and linked to the Room.
+      def self.connect_design_visit(model, pick)
+        dir = File.dirname(model.path.to_s)
+        path = File.join(dir, file_name(pick['room_name'], pick['customer']))
+        if File.exist?(path)
+          return unless UI.messagebox("#{File.basename(path)} already exists.\n\nLink this file to #{pick['room_name']} and save over it?", MB_YESNO) == IDYES
+        end
+        Ops.run(model, 'Link to HubSpot room') do
+          store_link(model, link_from(pick.merge('design_visit' => nil)))
+          model.set_attribute(DICT, 'room_name', JobInfo.room_from_link(pick['room_name'])) if defined?(JobInfo)
+        end
+        model.save(path)
+        after_link(model, pick, "Saved as #{File.basename(path)} and linked to #{pick['room_name']}.\nThe design visit file is left as it was.")
+      rescue StandardError => e
+        fail('connect design visit', e)
+      end
+
+      # Opening a design visit file: once its project has a Room, ask to connect it. A HubSpot
+      # that can't be reached is said so (try again), never silently skipped.
+      def self.check_design_visit(model)
+        return unless model.valid? && model == Sketchup.active_model && design_visit?(model) && HubSpot.key?
+        pid = customer_link(model)['project_id']
+        ids = HubSpot.linked_ids('projects', pid, 'listings')
+        return if ids.empty?
+        show_pick(:connect)
+      rescue StandardError => e
+        Log.error('design visit check', e) unless e.is_a?(HubSpot::Error)
+        UI.messagebox("This is a design visit file. Couldn't check HubSpot for a Room to connect it to - the connection isn't good.\n\n#{e.message}\n\nTry again: reopen the file, or HubSpot > Link this file.")
+      end
+
+      class AppWatch < Sketchup::AppObserver
+        def expectsStartupModelNotifications; true; end
+        def onOpenModel(model); UI.start_timer(1.5, false) { HubSpotRoom.check_design_visit(model) }; end
+      end
+
+      def self.start
+        return if @started
+        @started = true
+        Sketchup.add_observer(AppWatch.new)
       end
 
       # Read HubSpot's values once linked; offer the ones the file can take.

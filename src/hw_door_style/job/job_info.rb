@@ -24,6 +24,7 @@ module HarryWardrobes
         cur = read(model)
         guess = guessed(model)
         linked = guess.delete('linked')
+        from_hs = guess.delete('hubspot')
         out = if linked
                 guess.merge('room_name' => cur['room_name'].strip.empty? ? guess['room_name'] : cur['room_name'])
               else
@@ -32,7 +33,7 @@ module HarryWardrobes
         if !linked && cur['room_id'].strip.empty? && !out['room_id'].empty? && !model.path.to_s.empty? && !master?(model)
           save(model, 'room_id' => out['room_id'])
         end
-        out.merge('customer' => customer_label(out['customer_first'], out['customer_last']), 'source' => linked ? 'hubspot' : 'folder')
+        out.merge('customer' => customer_label(out['customer_first'], out['customer_last']), 'source' => from_hs ? 'hubspot' : 'folder', 'design_visit' => from_hs && !linked)
       end
 
       # The room name still to ask for (nil when the file already has one).
@@ -48,14 +49,17 @@ module HarryWardrobes
       end
 
       def self.guessed(model)
-        l = (HubSpotRoom.link(model) rescue nil)
+        l = (HubSpotRoom.customer_link(model) rescue nil)
+        path = model.path.to_s
         if l
           first = l['first_name'].to_s
           last = l['last_name'].to_s
           first, last = split_name(l['customer']) if first.empty? && last.empty?
-          return { 'customer_first' => first, 'customer_last' => last, 'room_id' => l['room_id'].to_s, 'room_name' => room_from_link(l['room_name']), 'linked' => true }
+          # a design visit has the customer but no Room yet: Room ID made up (and kept) as for an unlinked file
+          room = l['room_id'] ? l['room_id'].to_s : new_room_id(last, path.empty? ? nil : File.dirname(path))
+          name = l['room_id'] ? room_from_link(l['room_name']) : 'Design visit'
+          return { 'customer_first' => first, 'customer_last' => last, 'room_id' => room, 'room_name' => name, 'linked' => !l['room_id'].nil?, 'hubspot' => true }
         end
-        path = model.path.to_s
         return { 'customer_first' => '', 'customer_last' => '', 'room_id' => '', 'room_name' => '' } if path.empty?
         folder = File.basename(File.dirname(path))
         first, last = split_name(folder)

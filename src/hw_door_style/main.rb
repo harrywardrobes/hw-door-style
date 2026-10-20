@@ -36,6 +36,7 @@ module HarryWardrobes
       Scenes.start # renamed scenes are renamed in Settings too
       TopOfUnit.start # one 'Top of unit' dropdown in place of Topped off? / Up to ceiling
       Room.start # a file without a room asks for it (and where to save a new job)
+      HubSpotRoom.start # a design visit file asks to connect to its Room once there is one
       TemplateExport.start # latest job template from the library into Welcome to SketchUp
       Updater.check_at_startup # newer version in the updates folder? offer it
       file_loaded(__FILE__)

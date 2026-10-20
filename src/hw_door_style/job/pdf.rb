@@ -1,6 +1,6 @@
 module HarryWardrobes
   module DoorStyle
-    # Minimal PDF writer for the door order (A4 landscape, Helvetica, multi-page table).
+    # Minimal PDF writer for the door order (A4 portrait, Helvetica, multi-page table).
     # No external libraries, so it runs inside SketchUp's Ruby.
     module Pdf
       WIDTHS = {
@@ -8,19 +8,20 @@ module HarryWardrobes
         'F2' => [278, 333, 474, 556, 556, 889, 722, 238, 333, 333, 389, 584, 278, 333, 278, 278, 556, 556, 556, 556, 556, 556, 556, 556, 556, 556, 333, 333, 584, 584, 584, 611, 975, 722, 722, 722, 722, 667, 611, 778, 722, 278, 556, 722, 611, 833, 722, 778, 667, 778, 722, 667, 611, 722, 667, 944, 667, 667, 611, 333, 278, 333, 584, 556, 333, 556, 611, 556, 611, 556, 333, 611, 611, 278, 278, 556, 278, 889, 611, 611, 611, 611, 389, 556, 333, 611, 556, 778, 556, 556, 500, 389, 280, 389, 584]
       }.freeze
 
-      PAGE_W = 842.0
-      PAGE_H = 595.0
-      MARGIN = 32.0
+      # A4 portrait - every HW PDF (door order, parts list, Room Plan) is upright.
+      PAGE_W = 595.0
+      PAGE_H = 842.0
+      MARGIN = 28.0
       SIZE   = 8.0
       ROW_H  = 13.0
 
       # key, label, width (pt), align
       COLUMNS = [
-        ['n', '#', 22, :right], ['unit', 'Unit', 128, :left], ['item', 'Item', 105, :left],
-        ['kind', 'Kind', 78, :left], ['width', 'W', 34, :right], ['height', 'H', 34, :right],
-        ['style', 'Style', 46, :left], ['midrail', 'Mid-rail', 40, :left],
-        ['hinge_type', 'Hinge type', 74, :left], ['hinges', 'Hinges', 34, :right],
-        ['tip_on', 'TIP-ON', 34, :right], ['handles', 'Handles', 38, :right], ['notes', 'Notes', nil, :left]
+        ['n', '#', 18, :right], ['unit', 'Unit', 96, :left], ['item', 'Item', 70, :left],
+        ['kind', 'Kind', 46, :left], ['width', 'W', 26, :right], ['height', 'H', 26, :right],
+        ['style', 'Style', 38, :left], ['midrail', 'Mid', 26, :left],
+        ['hinge_type', 'Hinge type', 62, :left], ['hinges', 'Hng', 24, :right],
+        ['tip_on', 'TIP', 22, :right], ['handles', 'Hdl', 24, :right], ['notes', 'Notes', nil, :left]
       ].freeze
 
       def self.clean(s)
@@ -97,9 +98,21 @@ module HarryWardrobes
         raise "#{File.basename(path)}: not a JPEG"
       end
 
+      # Column widths fitted to the page: fixed widths shrink together when they don't leave
+      # the flexible (nil) columns at least min_flex each.
+      def self.fit_widths(widths, total, min_flex = 90)
+        fixed = widths.compact.sum.to_f
+        flex = widths.count(nil)
+        room = total - min_flex * flex
+        k = fixed > room && fixed.positive? ? room / fixed : 1.0
+        ws = widths.map { |w| w && w * k }
+        free = (total - ws.compact.sum) / [flex, 1].max
+        ws.map { |w| w || free }
+      end
+
       def self.columns
-        used = COLUMNS.sum { |c| c[2].to_f }
-        COLUMNS.map { |k, l, w, a| [k, l, w || (PAGE_W - 2 * MARGIN - used), a] }
+        ws = fit_widths(COLUMNS.map { |c| c[2] }, PAGE_W - 2 * MARGIN, 70)
+        COLUMNS.each_with_index.map { |(k, l, _w, a), i| [k, l, ws[i], a] }
       end
 
       def self.table_header(page, y)
@@ -118,7 +131,7 @@ module HarryWardrobes
         page.text(MARGIN, y, 'Harry Wardrobes - Door order', font: 'F2', size: 15)
         page.text(PAGE_W - MARGIN, y, "Version v#{data['export_version']}", font: 'F2', size: 12, align: :right)
         y -= 16
-        meta = "Job: #{data['job']}   |   Hinge type: #{data['hinge_type']}   |   #{data['date']}"
+        meta = "Job: #{data['job']}   |   Hinge type: #{data['hinge_type']}   |   #{data['date']}   |   Mid = mid-rail, Hng = hinges, TIP = TIP-ON, Hdl = handles"
         page.text(MARGIN, y, meta, size: 9)
         y -= 8
         page.line(MARGIN, y, PAGE_W - MARGIN, y, 0.2, 1.2)

@@ -30,16 +30,17 @@
   .lbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:8px; font-size:11.5px; }
   .lbar select { font:inherit; padding:3px 6px; border:1px solid var(--line); border-radius:3px; }
   .lpages { display:flex; flex-direction:column; gap:10px; padding:6px; }
-  .lpage { background:#fff; box-shadow:1px 1px 5px #999; cursor:pointer; }
+  .lpage { background:#fff; box-shadow:1px 1px 5px #999; }
   .lpage.sel, .pdfi.sel { outline:2px solid #1f6f4a; }
   #p_labels.on { display:flex; flex-direction:column; }
-  .chk3 { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .chk3 { flex:1; min-height:0; display:grid; grid-template-columns:1fr 2fr; gap:8px; }
   .ccol { min-height:0; overflow:auto; border:1px solid var(--line); border-radius:4px; background:#f7f8f8; }
   .ccol h3 { margin:0; padding:5px 8px; font-size:12px; background:#eef0f1; border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; }
   #cPreview { display:flex; flex-direction:column; }
   #cPreview .pv { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; padding:8px; }
   #cPreview iframe { width:100%; height:100%; border:0; background:#fff; }
-  .pdfi { display:block; width:calc(100% - 12px); margin:6px; text-align:left; background:#fff; border:1px solid var(--line); border-radius:4px; padding:6px 8px; cursor:pointer; }
+  #cPdfs { display:flex; flex-wrap:wrap; gap:6px; padding:6px; border-bottom:1px solid var(--line); }
+  .pdfi { display:block; flex:1 1 0; min-width:120px; text-align:left; background:#fff; border:1px solid var(--line); border-radius:4px; padding:6px 8px; cursor:pointer; }
   .pdfi b { display:block; font-size:12px; } .pdfi span { font-size:11px; color:var(--muted); }
   .tabs button.muted { opacity:.45; }
   .lpage svg { display:block; }
@@ -121,8 +122,7 @@
   </details>
   <div class="chk3">
     <div class="ccol"><h3>Labels <span class="hint" style="margin:0;font-weight:400" id="lCount"></span></h3><div class="lpages" id="lPages"></div></div>
-    <div class="ccol" id="cPreview"><h3 id="pvTitle">Preview</h3><div class="pv" id="pvBody"><div class="hint">Click a label or a PDF to see it here.</div></div></div>
-    <div class="ccol"><h3>PDFs for this model</h3><div id="cPdfs"><div class="hint" style="padding:8px">None yet - press Save Workshop Pack.</div></div></div>
+    <div class="ccol" id="cPreview"><h3 id="pvTitle">PDFs for this model</h3><div id="cPdfs"><div class="hint" style="padding:8px">None yet - press Save Workshop Pack.</div></div><div class="pv" id="pvBody"><div class="hint">Click a PDF above to read it here.</div></div></div>
   </div>
 </div>
 <div class="pane" id="p_hubspot"><div class="hint">Reading the HubSpot Room...</div></div>
@@ -261,7 +261,7 @@ function labelParts(r){
   Array.prototype.forEach.call(document.querySelectorAll('#aggList a[data-reset]'), function(a){ a.onclick = function(){ var p = P[+a.getAttribute('data-reset')]; sketchup.setLabelMode(JSON.stringify({ name: p.name, mode: '' })); labels(); return false; }; });
 }
 function jobInfo(j){ if (!j) return; D.job_info = j; $('jiRoom').value = j.room_name || ''; $('jiShow').textContent = [j.customer, j.room_id, j.room_name].filter(Boolean).join('  |  ') || '(no customer)';
-  $('jiSrc').textContent = j.source === 'hubspot' ? '(customer and Room ID from HubSpot)' : '(not linked to HubSpot - customer from the folder name; link it: HubSpot > Link this file)'; if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
+  $('jiSrc').textContent = j.design_visit ? '(customer from HubSpot - design visit, no Room yet)' : j.source === 'hubspot' ? '(customer and Room ID from HubSpot)' : '(not linked to HubSpot - customer from the folder name; link it: HubSpot > Link this file)'; if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
 function saveJob(){ sketchup.setJobInfo(JSON.stringify({ room_name: $('jiRoom').value })); }
 function renumberParts(b){ if (b.dataset.sure) { $('status').textContent = 'Renumbering parts...'; sketchup.renumberParts(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every part number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber parts'; } }, 4000); }
 function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
@@ -319,7 +319,7 @@ function savePack(){
 function saved(r){
   PACK = r;
   $('status').textContent = 'Workshop Pack saved: door order v' + r.door_v + ', parts list v' + r.parts_v + (r.plan_v ? ', room plan v' + r.plan_v : '') + ', ' + r.label_count + ' label(s). Check them, then open the HubSpot tab to send and print.';
-  renderPdfs(r.pdfs || []);
+  renderPdfs(r.pdfs || []); if (PDFS.length) previewPdf(0);
   var hb = document.querySelector('#tabs button[data-t=hubspot]'); hb.classList.remove('muted'); hb.title = '';
   HS = null; if (hb.classList.contains('on')) { HS = 'loading'; sketchup.hubspot(); }
 }
@@ -339,7 +339,7 @@ function pvSelect(sel){ Array.prototype.forEach.call(document.querySelectorAll('
 function previewPdf(i){
   var p = PDFS[i]; if (!p) return;
   pvSelect(document.querySelector('.pdfi[data-p="' + i + '"]'));
-  $('pvTitle').textContent = p.title; $('pvBody').innerHTML = '<div class="hint">Opening ' + esc(p.name) + '...</div>';
+  $('pvTitle').textContent = 'PDFs for this model - ' + p.title; $('pvBody').innerHTML = '<div class="hint">Opening ' + esc(p.name) + '...</div>';
   sketchup.pdfData(p.path);
 }
 var PDF_URL = null;
@@ -350,13 +350,6 @@ function pdfShow(r){
   if (PDF_URL) URL.revokeObjectURL(PDF_URL);
   PDF_URL = URL.createObjectURL(new Blob([a], { type: 'application/pdf' }));
   $('pvBody').innerHTML = '<iframe src="' + PDF_URL + '#view=FitH"></iframe>';
-}
-function previewLabel(i){
-  var o = D.labels.presets[$('lPreset').value], e = ENTRIES[i]; if (!o || !e) return;
-  pvSelect(document.querySelector('.lpage[data-l="' + i + '"]'));
-  $('pvTitle').textContent = 'Label ' + (i + 1) + ' of ' + ENTRIES.length;
-  var w = $('pvBody').clientWidth - 24;
-  $('pvBody').innerHTML = '<div class="lpage" style="cursor:default">' + pageSvg(o, [e], true, w + 'px', (w * o.page_height / o.page_width) + 'px') + '</div>';
 }
 
 // ---------- HubSpot tab ----------
@@ -452,7 +445,7 @@ function labelEntries(r){
   $('lInfo').textContent = (r.errors ? r.errors + ' formula error(s), shown in red' : '');
   $('lCount').textContent = '(' + ENTRIES.length + ', ' + f(o.page_width) + ' x ' + f(o.page_height) + ' mm)';
   var w = Math.max(160, $('lPages').clientWidth - 16), h = w * o.page_height / o.page_width;
-  $('lPages').innerHTML = ENTRIES.slice(0, 300).map(function(e, i){ return '<div class="lpage" data-l="' + i + '" onclick="previewLabel(' + i + ')">' + pageSvg(o, [e], true, w + 'px', h + 'px') + '</div>'; }).join('') +
+  $('lPages').innerHTML = ENTRIES.slice(0, 300).map(function(e, i){ return '<div class="lpage" data-l="' + i + '">' + pageSvg(o, [e], true, w + 'px', h + 'px') + '</div>'; }).join('') +
     (ENTRIES.length > 300 ? '<div class="hint">... and ' + (ENTRIES.length - 300) + ' more (all are printed).</div>' : '');
 }
 function paginate(o){
@@ -496,6 +489,12 @@ function edgingText(ed){
 }
 // Width (mm) a text element has from its anchor to the label edge(s) - as Zpl.room.
 function roomFor(anchor, x, lw){ var a = anchor.split('-')[0], r = a === 'start' ? (0.5 - x) * lw : (a === 'end' ? (x + 0.5) * lw : 2 * Math.min(0.5 - x, x + 0.5) * lw); return Math.min(lw, Math.max(lw * 0.1, r)); }
+// Outline size as fractions of its box - as Zpl.ratios ('shape': the part's own length : width).
+function shapeRatios(kind, e){
+  if (kind === 'shape') { var l = parseFloat(e.length) || 0, w = parseFloat(e.width) || 0, m = Math.max(l, w); return m > 0 ? [Math.max(l / m, 0.14), Math.max(w / m, 0.14)] : [1, 1]; }
+  if (kind === 'proportional') return [e.l_ratio, e.w_ratio];
+  return [1, 1];
+}
 function anchorX(anchor, size){ return anchor.indexOf('middle') === 0 ? size * -0.5 : (anchor.indexOf('end') === 0 ? -size : 0); }
 // Code 128 (JsBarcode, bundled) as an SVG fitted to w x h mm, anchored like a text element.
 function barcodeSvg(payload, w, h, anchor){
@@ -512,8 +511,8 @@ function element(el, e, idx, minUnit, lw){
   if (terms[0] === 'thumbnail' && e.kind === 'aggregate') return '';
   if (terms[0] === 'thumbnail') {
     var area = el.size * minUnit, tx = anchorX(anchor, area), ty = /top$/.test(anchor) ? 0 : -area;
-    var prop = terms[1] === 'proportional', pw = minUnit / 7;
-    var rw = (area - pw) * (prop ? e.l_ratio : 1), rh = (area - pw) * (prop ? e.w_ratio : 1), dw = minUnit / 20;
+    var pw = Math.max(minUnit / 7, area / 18), r = shapeRatios(terms[1], e);
+    var rw = (area - pw) * r[0], rh = (area - pw) * r[1], dw = minUnit / 20;
     var s = '<g transform="translate(' + (tx + (area - rw) / 2) + ' ' + (ty + (area - rh) / 2) + ')">';
     s += '<rect x="0" y="0" width="' + Math.max(0, rw) + '" height="' + Math.max(0, rh) + '" fill="#ffffff" stroke="none"/>';
     if (e.grained) {

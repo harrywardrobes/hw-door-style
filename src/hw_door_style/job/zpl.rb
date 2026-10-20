@@ -46,11 +46,11 @@ module HarryWardrobes
       # OpenCutList's proportional thumbnail as ZPL boxes: the part's outline to its length /
       # width ratio, edged sides drawn thick, the others as a thin dashed line.
       def self.outline(el, e, cx, cy, area, min_unit, anchor)
-        pw = min_unit / 7.0
+        pw = [min_unit / 7.0, area / 18.0].max
         dw = min_unit / 20.0
-        prop = el['formula'].to_s.include?('proportional')
-        rw = (area - pw) * (prop ? e['l_ratio'].to_f : 1)
-        rh = (area - pw) * (prop ? e['w_ratio'].to_f : 1)
+        lr, wr = ratios(el['formula'], e)
+        rw = (area - pw) * lr
+        rh = (area - pw) * wr
         return [] if rw <= 0 || rh <= 0
         tx = case anchor.split('-').first
              when 'middle' then -area / 2
@@ -81,6 +81,49 @@ module HarryWardrobes
           end
         end
         out
+      end
+
+      # Width / height of the outline as fractions of its box: 'thumbnail.shape' = the part's
+      # own length : width (thin strips kept visible), 'proportional' = OpenCutList's (to the
+      # biggest part of its material), else a square.
+      def self.ratios(formula, e)
+        f = formula.to_s
+        if f.include?('shape')
+          l = mm_s(e['length']).to_f
+          w = mm_s(e['width']).to_f
+          m = [l, w].max
+          return [1.0, 1.0] unless m.positive?
+          [[l / m, 0.14].max, [w / m, 0.14].max]
+        elsif f.include?('proportional')
+          [e['l_ratio'].to_f, e['w_ratio'].to_f]
+        else
+          [1.0, 1.0]
+        end
+      end
+
+      # Code 128 width in modules with automatic code sets (as ^BC mode A / JsBarcode): runs of
+      # 4+ digits go in code C (two digits per symbol).
+      def self.code128_modules(payload)
+        symbols = 0
+        set = nil
+        s = payload.to_s
+        i = 0
+        while i < s.length
+          run = s[i..][/\A\d+/].to_s.length
+          if run >= 4
+            pairs = run / 2
+            symbols += 1 if set # switch to C
+            set = :c
+            symbols += pairs
+            i += pairs * 2
+          else
+            symbols += 1 if set == :c
+            set = :b
+            symbols += 1
+            i += 1
+          end
+        end
+        11 * (symbols + 2) + 13 # start + data + check, stop
       end
 
       def self.value(el, e, job, idx)
@@ -158,7 +201,7 @@ module HarryWardrobes
             next if payload.empty?
             w = (el['width'] || 0.8).to_f * lw
             h = size * 1.6
-            modules = 11 * (payload.length + 2) + 13 # Code 128 B: start, data, check, stop
+            modules = code128_modules(payload)
             mod = [[(dots(w) / modules.to_f).floor, 1].max, 4].min
             bw = modules * mod
             x = case anchor.split('-').first
@@ -168,7 +211,7 @@ module HarryWardrobes
                 end
             bar_h = [dots(h), 20].max
             y = top ? dots(cy) : dots(cy) - bar_h
-            out << "^BY#{mod}^FO#{[x, 0].max},#{[y, 0].max}^BCN,#{bar_h},N,N,N^FD#{clean(payload)}^FS"
+            out << "^BY#{mod}^FO#{[x, 0].max},#{[y, 0].max}^BCN,#{bar_h},N,N,N,A^FD#{clean(payload)}^FS"
           elsif f.start_with?('thumbnail')
             next if e['kind'] == 'aggregate'
             out.concat(outline(el, e, cx, cy, size, min_unit, anchor))
