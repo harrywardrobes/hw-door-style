@@ -514,6 +514,9 @@ function element(el, e, idx, minUnit, lw){
   var lines = String(value).split('\n');
   var textAnchor = /top$/.test(anchor) ? anchor.split('-')[0] : anchor, ty2 = /top$/.test(anchor) ? el.size * minUnit * lines.length : 0;
   var fs = error ? 0.5 * minUnit : el.size * minUnit;
+  // long values (grouped labels' names) shrink to fit the label width rather than run off it
+  var longest = Math.max.apply(null, lines.map(function(l){ return l.trim().length; }));
+  if (!error && lw && longest * fs * 0.55 > lw) fs = lw / (longest * 0.55);
   var body;
   if (error) body = esc(String(error).trim());
   else if (lines.length > 1) body = lines.map(function(l, i){ return '<tspan ' + (i === 0 ? 'dy="-' + (el.size * minUnit * (lines.length - 1)) + '"' : 'x="0" dy="' + (el.size * minUnit) + '"') + '>' + esc(l.trim()) + '</tspan>'; }).join('');

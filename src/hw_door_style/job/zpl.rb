@@ -124,8 +124,9 @@ module HarryWardrobes
           else
             text = clean(value(el, e, job, idx))
             next if text.empty?
-            hd = [dots(size), 10].max
             block = dots(lw)
+            # shrink long values to fit the label width (as the window does), not wrap over themselves
+            hd = [[dots(size), (block / (text.length * 0.55)).floor].min, 10].max
             x0 = case anchor.split('-').first
                  when 'start' then dots(cx)
                  when 'end' then dots(cx) - block
