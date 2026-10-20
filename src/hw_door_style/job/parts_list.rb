@@ -167,6 +167,7 @@ module HarryWardrobes
         ents.each do |e|
           next if e.is_a?(Sketchup::Edge)
           next unless e.visible?
+          next if e.is_a?(Sketchup::Group) && e.get_attribute(DICT, 'door_view') # the doors view drawing
           if e.is_a?(Sketchup::Group)
             count += collect(e.entities, path + [e], out, cache)
           elsif e.is_a?(Sketchup::ComponentInstance)
@@ -735,6 +736,9 @@ module HarryWardrobes
           Steps.one(dlg, 'Saving the room plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { RoomPlan.write(model, data) }
         end
         dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
+        dlg.add_action_callback('doorView') do |_c|
+          Steps.one(dlg, 'Drawing the doors view', done: ->(r) { dlg.execute_script("doorViewMade(#{JSON.generate(r)})") }, fail: fail_js) { DoorView.build(model) }
+        end
         dlg.add_action_callback('labelPlan') do |_c|
           n = Products.label(model)
           dlg.execute_script("planLabelled(#{n})")

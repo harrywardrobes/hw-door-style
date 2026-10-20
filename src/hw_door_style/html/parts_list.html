@@ -207,6 +207,7 @@ function renderProducts(d){
 }
 function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
 function setHost(pid, host){ $('status').textContent = 'Updating the product list...'; sketchup.setHost(JSON.stringify({ pid: pid, host: host })); }
+function doorViewMade(w){ $('status').textContent = w.length ? 'Doors view drawn: ' + (w.length === 1 ? 'scene "Doors"' : w.length + ' scenes "Doors - ' + w.join('", "Doors - ') + '"') + ' (tag "Door elevation"). It is also in the Room Plan and on the door order.' : 'No doors or drawer fronts found.'; }
 function planLabelled(n){ $('status').textContent = n + ' T number(s) put on the plan (tag "T numbers", shown in the plan scenes).'; }
 // ---------- Floor Plan ----------
 var PLAN = null;
@@ -216,7 +217,7 @@ function planData(p){
   var h = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
     '<span class="hint" style="margin:0;flex:1">' + (p.scene ? 'Plan scene: <b>' + esc(p.scene) + '</b>' : '<span class="bad">No plan scene - add a scene named e.g. "S top"</span>') +
     (p.ceiling ? ' &middot; CEILING ' + p.ceiling + 'mm' : '') + (p.fascia ? ' &middot; TOP FASCIA ' + p.fascia + 'mm' : '') + (p.last ? ' &middot; last saved v' + p.last : '') + '</span>' +
-    '<button onclick="planBusy(\'planTs\')">T numbers on the plan</button><button onclick="planBusy(\'planDims\')" title="Room and each product\'s width, made again each time">' + (p.dims ? 'Re-dimension' : 'Dimension the plan') + '</button>' +
+    '<button onclick="planBusy(\'planTs\')">T numbers on the plan</button><button onclick="planBusy(\'doorView\')" title="Doors and drawer fronts on each wall, flat with their sizes, in a Doors scene (made again each time)">Doors view</button><button onclick="planBusy(\'planDims\')" title="Room and each product\'s width, made again each time">' + (p.dims ? 'Re-dimension' : 'Dimension the plan') + '</button>' +
     '<button onclick="planBusy(\'planLoad\')">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
   if (p.error) h += '<div class="warnbox">' + esc(p.error) + '</div>';
   h += '<div style="display:flex;gap:12px;align-items:flex-start">';

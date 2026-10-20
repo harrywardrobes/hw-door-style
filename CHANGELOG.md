@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.52.0 — 2026-10-20
+- **Doors view** (Workshop > Floor Plan > Doors view): the doors and drawer fronts on each wall drawn flat, front on, with their sizes - widths along the bottom (and along the top for doors above drawers), the overall height at each end, the height of any door that isn't full height, each drawer front's height, the mid-rail width on each door and the mid-rail centre (from the bottom of the door) on the first. A drawing per wall on the "Door elevation" tag, below the floor, and a front-on flat scene for each ("Doors", or "Doors - back wall" / "- left wall"... for more than one wall) - the tag shows only in those scenes. Made again each time, like the T numbers.
+- The door elevation is also a page per wall in the Room Plan (after the Installation Plan) and on the door order PDF.
+
+## 0.52.0 — 2026-10-20
+- 
+
 ## 0.51.0 — 2026-10-20
 - Stable panel and linen press drawers line up with the door style's mid-rail: stable panel = mid-rail centre - half its width - margin (Shaker 815 / 100: 763), and the linen press drawer fronts share the same height between them ((763 - gaps) / 3 = 253). The door above starts level with the bottom of the mid-rail on the doors beside it. Needs Components V30+ (Mid-rail centre / width in Component Options; "Stable panel height" still overrides, 0 = auto).
 - The mid-rail centre and width are copied from Settings > Door styles (the job's door style, or Shaker when the doors are flat) when a unit is placed from the + window and when the Door style window is applied; units that change are redrawn and their doors / fronts restyled at the new size.

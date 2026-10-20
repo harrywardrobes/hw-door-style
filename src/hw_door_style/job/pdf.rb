@@ -65,6 +65,10 @@ module HarryWardrobes
           @ops << format('%.2f G %.2f w %.2f %.2f m %.2f %.2f l S 0 G', gray, w, x1, y1, x2, y2)
         end
 
+        def rect(x, y, w, h, gray = 0, lw = 0.6)
+          @ops << format('%.2f G %.2f w %.2f %.2f %.2f %.2f re S 0 G', gray, lw, x, y, w, h)
+        end
+
         # A JPEG (Pdf.jpeg) drawn at x, y (bottom-left), w x h points.
         def image(name, x, y, w, h)
           @ops << format('q %.2f 0 0 %.2f %.2f %.2f cm /%s Do Q', w, h, x, y, name)
@@ -170,6 +174,16 @@ module HarryWardrobes
           end
           page.line(MARGIN, y - 4, PAGE_W - MARGIN, y - 4)
           y -= ROW_H
+        end
+
+        # Door elevation, a page per wall (DoorView).
+        walls = Array(data['elevation'])
+        walls.each do |w|
+          pg = Page.new
+          pg.text(MARGIN, PAGE_H - MARGIN - 12, "Harry Wardrobes - #{DoorView.title(w, walls.size > 1)}", font: 'F2', size: 15)
+          pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "Job: #{data['job']}   |   v#{data['export_version']}", size: 9, align: :right)
+          DoorView.draw_pdf(pg, w, MARGIN, MARGIN + 6, PAGE_W - 2 * MARGIN, PAGE_H - 2 * MARGIN - 34)
+          pages << pg
         end
 
         pages.each_with_index do |p, i|

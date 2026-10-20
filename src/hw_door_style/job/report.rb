@@ -117,6 +117,12 @@ module HarryWardrobes
         v    = next_version(dir, base, model.get_attribute(DICT, 'export_version', 0))
         stem = File.join(dir, order_stem(v, base))
         data = payload(model).merge('export_version' => v)
+        data['elevation'] = begin
+          DoorView.walls(model)
+        rescue StandardError => e
+          Log.error('door order elevation', e)
+          []
+        end
         File.write("#{stem}.csv", "\uFEFF" + csv(data['rows']), mode: 'w:UTF-8') if csv?
         Pdf.write("#{stem}.pdf", data)
         Ops.run(model, 'Record door order export', transparent: true) { model.set_attribute(DICT, 'export_version', v) }

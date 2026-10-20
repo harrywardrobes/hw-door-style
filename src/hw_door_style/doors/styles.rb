@@ -77,6 +77,27 @@ module HarryWardrobes
         { midrail: midrail, note: '' }
       end
 
+      # The recessed panels a style draws on a front, for drawings (door elevation):
+      # { panels: [[x0, z0, x1, z1]...] from the front's bottom-left (inches), midrail: centre or nil }.
+      def self.panels(id, w, h, kind, no_midrail: false)
+        pr = profile(id)
+        return { panels: [], midrail: nil } unless id.to_s == 'shaker' && pr && ready?(id)
+        mm = ->(k) { pr[k].to_f / 25.4 }
+        stile = kind == :door ? mm.call('door_frame_mm') : mm.call('drawer_stile_mm')
+        rail = kind == :door ? mm.call('door_frame_mm') : mm.call('drawer_frame_mm')
+        mid = kind == :door && !no_midrail && h > mm.call('midrail_min_door_height_mm')
+        list = if mid
+                 c = mm.call('midrail_centre_mm')
+                 mw = mm.call('midrail_width_mm')
+                 [[stile, rail, w - stile, c - mw / 2.0], [stile, c + mw / 2.0, w - stile, h - rail]]
+               else
+                 [[stile, rail, w - stile, h - rail]]
+               end
+        min_p = mm.call('min_panel_mm')
+        return { panels: [], midrail: nil } if list.any? { |x0, z0, x1, z1| (x1 - x0) < min_p || (z1 - z0) < min_p }
+        { panels: list, midrail: mid ? mm.call('midrail_centre_mm') : nil, midrail_width: mid ? mm.call('midrail_width_mm') : nil }
+      end
+
       DRAWINGS = {
         'flat'   => { builder: FLAT,   sizes: [] },
         'shaker' => { builder: SHAKER, sizes: SHAKER_SIZES }

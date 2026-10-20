@@ -7,6 +7,7 @@ module HarryWardrobes
     #   1 Cover / Specification  customer, colours, doors, hinges, handles, ceiling, depths, scribes
     #   2 Product List           every ref (T / W / B / M) - loose items first - with doors and interior
     #   3 Installation Plan      the plan scene, notes, T numbers, and the fitting footer
+    #   3b Door elevation        the doors and drawer fronts on each wall, with sizes (DoorView)
     #   4 Pod Sheet              the parts in each ref
     #   5 Panel list             MDF / Timber / Cut / Worktop / Facing
     #
@@ -242,6 +243,17 @@ module HarryWardrobes
         end
       end
 
+      # Door elevation, a page per wall.
+      def self.door_pages(doc, model)
+        walls = DoorView.walls(model)
+        walls.each do |w|
+          doc.section(DoorView.title(w, walls.size > 1))
+          DoorView.draw_pdf(doc.page, w, M, M + 6, W - 2 * M, doc.y - M - 6)
+        end
+      rescue StandardError => e
+        Log.error('room plan door elevation', e)
+      end
+
       def self.pod_page(doc, rows, info)
         doc.section('Pod Sheet')
         rows.sort_by { |r| [LOOSE_FIRST.index(r['ref']) || 9, r['num']] }.each do |r|
@@ -288,6 +300,7 @@ module HarryWardrobes
         spec_page(doc, model, hd, rows, doors, parts)
         product_page(doc, rows, info)
         plan_page(doc, model, hd, images)
+        door_pages(doc, model)
         pod_page(doc, rows, info)
         panel_page(doc, parts, tops)
         doc.pages.each_with_index do |p, i|
