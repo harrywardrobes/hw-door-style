@@ -95,6 +95,11 @@
     Room <input type="text" id="jiRoom" style="width:140px" onchange="saveJob()">
     <b id="jiShow" style="margin-left:6px"></b>
   </div>
+  <details id="aggBox" style="margin:4px 0 8px"><summary style="cursor:pointer"><b>Grouped labels</b> <span class="hint" style="margin:0" id="aggSum"></span></summary>
+    <div style="display:flex;gap:10px;align-items:center;margin:6px 0">Timber stock length <select id="tStock" onchange="sketchup.setTimberStock(this.value)"><option>2400</option><option>2100</option></select>
+      <span class="hint" style="margin:0">Hardware, timber and the names in Settings &gt; Labels get one label each with the total. Tick or untick to change it for this job.</span></div>
+    <div id="aggList" style="max-height:220px;overflow:auto"></div>
+  </details>
   <div class="lpages" id="lPages"></div>
 </div>
 <div class="pane" id="p_hubspot"><div class="hint">Reading the HubSpot Room...</div></div>
@@ -176,6 +181,9 @@ function render(d){
   $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
   var hw = hws.length ? '<div class="grp"><h3>From the model</h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
     hws.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  var tb = d.timber || [];
+  hw += tb.length ? '<div class="grp"><h3>Timber <span>from the model, one grouped label (stock length in the Labels tab)</span></h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Section</th><th class="n">Length</th><th class="n">Qty</th></tr>' +
+    tb.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + esc(x.section) + '</td><td class="n">' + f(x.length) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
   hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
     d.handles.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
   $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
@@ -216,6 +224,17 @@ function renderProducts(d){
   if (K.length) h = '<div class="hint" style="margin:0 0 6px"><b>Key:</b> ' + K.map(function(k){ return '<b>' + esc(k[0]) + '</b> ' + esc(k[1]); }).join(' &middot; ') + '</div>' + h;
   $('p_products').innerHTML = h;
 }
+function labelParts(r){
+  var P = r.parts || [];
+  $('tStock').value = String(r.stock || 2400);
+  var n = P.filter(function(p){ return p.aggregate; }).length;
+  $('aggSum').textContent = n + ' part name(s) on grouped labels';
+  $('aggList').innerHTML = '<table><tr><th>Grouped</th><th>Part</th><th>Label name</th><th class="n">Qty</th><th></th></tr>' + P.map(function(p, i){
+    return '<tr><td><input type="checkbox" data-i="' + i + '"' + (p.aggregate ? ' checked' : '') + '></td><td>' + esc(p.name) + '</td><td>' + esc(p.display) + '</td><td class="n">' + p.qty + '</td><td class="hint" style="margin:0">' + (p.set ? 'set for this job <a href="#" data-reset="' + i + '">(back to automatic)</a>' : (p.rule ? 'automatic' : '')) + '</td></tr>';
+  }).join('') + '</table>';
+  Array.prototype.forEach.call(document.querySelectorAll('#aggList input[type=checkbox]'), function(c){ c.onchange = function(){ var p = P[+c.getAttribute('data-i')]; sketchup.setLabelMode(JSON.stringify({ name: p.name, mode: c.checked ? 'aggregate' : 'part' })); labels(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('#aggList a[data-reset]'), function(a){ a.onclick = function(){ var p = P[+a.getAttribute('data-reset')]; sketchup.setLabelMode(JSON.stringify({ name: p.name, mode: '' })); labels(); return false; }; });
+}
 function jobInfo(j){ if (!j) return; D.job_info = j; $('jiFirst').value = j.customer_first || ''; $('jiLast').value = j.customer_last || ''; $('jiId').value = j.room_id || ''; $('jiRoom').value = j.room_name || ''; $('jiShow').textContent = [j.customer, j.room_id, j.room_name].filter(Boolean).join('  |  '); if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
 function saveJob(){ sketchup.setJobInfo(JSON.stringify({ customer_first: $('jiFirst').value, customer_last: $('jiLast').value, room_id: $('jiId').value, room_name: $('jiRoom').value })); }
 function renumberParts(b){ if (b.dataset.sure) { $('status').textContent = 'Renumbering parts...'; sketchup.renumberParts(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every part number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber parts'; } }, 4000); }
@@ -250,9 +269,10 @@ function renderLabels(d){
   var names = Object.keys(d.labels.presets), cur = $('lPreset').value;
   $('lPreset').innerHTML = names.map(function(n){ return '<option' + (n === (cur || d.labels.active) ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('');
   var wcur = $('lWhich').value;
-  $('lWhich').innerHTML = '<option value="">All parts</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
+  $('lWhich').innerHTML = '<option value="">All parts</option><option value="agg">Grouped labels only</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
   if (wcur) $('lWhich').value = wcur;
   jobInfo(d.job_info);
+  labelParts({ parts: d.label_parts, stock: d.timber_stock });
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 function failed(msg){ $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
@@ -364,6 +384,7 @@ function pageSvg(o, entries, preview, w, h){
 function anchorX(anchor, size){ return anchor.indexOf('middle') === 0 ? size * -0.5 : (anchor.indexOf('end') === 0 ? -size : 0); }
 function element(el, e, idx, minUnit){
   var terms = el.formula.split('.'), anchor = el.anchor || 'middle', color = el.color || '#000000';
+  if (terms[0] === 'thumbnail' && e.kind === 'aggregate') return '';
   if (terms[0] === 'thumbnail') {
     var area = el.size * minUnit, tx = anchorX(anchor, area), ty = /top$/.test(anchor) ? 0 : -area;
     var prop = terms[1] === 'proportional', pw = minUnit / 7;
@@ -385,9 +406,13 @@ function element(el, e, idx, minUnit){
   }
   var value = '', error = null, key = terms[1];
   if (terms[0] === 'part') {
-    if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = e.length + ' x ' + e.width;
+    if (e.kind === 'aggregate' && (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size')) value = e.note || '';
+    else if (e.kind === 'aggregate' && key === 'batch') value = 'Qty ' + e.count;
+    else if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = e.length + ' x ' + e.width;
     else if (key === 'batch') value = e.position + '/' + e.count;
-    else if (key === 'number') value = (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
+    else if (key === 'number') value = e.kind === 'aggregate' ? '' : (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
+    else if (key === 'ts' || key === 't_numbers') value = e.ts || e.t || '';
+    else if (key === 'note') value = e.note || '';
     else if (key === 't' || key === 't_number') value = e.t || '';
     else if (key === 'count') value = String(e.count);
     else if (key === 'entity_named_path') value = e.entity_named_path;

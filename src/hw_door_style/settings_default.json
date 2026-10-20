@@ -408,5 +408,32 @@
     "L": "Drawer units",
     "F": "Facings",
     "M": "Miscellaneous"
+  },
+  "label_aggregate_names": [
+    "L_BRACKET",
+    "HINGE*",
+    "OVAL_BRACKET",
+    "OVAL_SH_BRACKET",
+    "2X1*",
+    "TIMBER*",
+    "RUNNER*",
+    "DRAWER_BOX*"
+  ],
+  "label_display_names": {
+    "L_BRACKET": "L Brackets",
+    "HINGE_110": "Hinges 110°",
+    "SOFT_CLOSE_110": "Hinges 110° soft close",
+    "SOFT_CLOSE_155": "Hinges 155° soft close",
+    "PTO_110": "Hinges 110° push to open",
+    "PTO_155": "Hinges 155° push to open",
+    "OVAL_BRACKET": "Oval rail brackets",
+    "OVAL_SH_BRACKET": "Oval shelf brackets",
+    "SHELF_BRACKET": "Shelf pegs",
+    "BKS_SHELF_BRACKET": "Bookcase shelf pegs",
+    "DRW_RUNNER_410": "Drawer runners 410mm",
+    "DRW_BOX": "Drawer boxes",
+    "CABLE_OUTLET_80": "Cable outlets 80mm",
+    "RAIL_TOP": "Hanging rail (top)",
+    "RAIL_BTM": "Hanging rail (lower)"
   }
 }

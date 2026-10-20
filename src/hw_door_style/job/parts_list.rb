@@ -284,6 +284,7 @@ module HarryWardrobes
         collect(model.entities, [], found, {})
         groups = {}
         hardware = {}
+        @timber = {}
         skipped = Hash.new(0)
         found.each do |path, bounds|
           if bought_in?(path)
@@ -335,6 +336,14 @@ module HarryWardrobes
                                'edge_pattern' => '', 'edge_count' => 0, 'tags' => tags_of(defn), 'instances' => [] })
             h['qty'] += 1
             h['instances'] << instance_info(path)
+          when TYPE_DIMENSIONAL
+            # Timber (e.g. the 2x1 battens): its length is the longest side; the section is the other two.
+            dims = [l_mm, w_mm, th_mm].sort.reverse
+            tp = (@timber[pid] ||= { 'name' => name, 'material' => mat.name, 'length' => dims[0], 'section' => "#{fmt(dims[2])} x #{fmt(dims[1])}",
+                                     'width' => dims[1], 'thickness' => dims[2], 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
+                                     'edge_pattern' => '', 'edge_count' => 0, 'tags' => tags_of(defn), 'instances' => [] })
+            tp['qty'] += 1
+            tp['instances'] << instance_info(path)
           else
             skipped[type == TYPE_UNKNOWN ? 'no_type' : 'other'] += 1
           end
@@ -559,7 +568,8 @@ module HarryWardrobes
         ordered = groups.values.sort_by { |g| [g['material'].downcase, -g['thickness']] }
         ordered.each { |g| g['parts'] = g['parts'].values.sort { |a, b| part_order(a, b, strategy) } }
         hw_parts = hardware.keys.sort_by(&:downcase).flat_map { |mname| hardware[mname].values.sort { |a, b| part_order(a, b, strategy) } }
-        number_parts(model, ordered.flat_map { |g| g['parts'] } + hw_parts)
+        timber = (@timber || {}).values.sort_by { |t| [t['material'].to_s.downcase, -t['length']] }
+        number_parts(model, ordered.flat_map { |g| g['parts'] } + hw_parts + timber)
         sheet_groups = ordered.map do |g|
           parts = g['parts']
           parts.each do |p|
@@ -595,9 +605,10 @@ module HarryWardrobes
         end
         edge_list = edging.values.map { |e| e.merge('metres' => e['metres'].round(1)) }.sort_by { |e| [e['material'], e['height']] }
         hw = hw_parts.each { |h| add_strings(h) }
+        timber.each { |t| add_strings(t) }
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
-          'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
+          'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'timber' => timber, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
           'skipped' => skipped, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,
           'labels' => Labels.options(model), 'cutlist_options' => opts
@@ -756,6 +767,17 @@ module HarryWardrobes
         TopOfUnit.upgrade(model)
         data = nil
         tops_map = {}
+        # Labels tab: every part name with whether it gets one grouped label, and the timber stock.
+        label_parts = lambda do
+          modes = Labels.modes(model)
+          rows = data['groups'].flat_map { |g| g['parts'].map { |p| [p, 'sheet'] } } + data['hardware'].map { |h| [h, 'hardware'] } + Array(data['timber']).map { |t| [t, 'timber'] }
+          data['label_parts'] = rows.group_by { |p, _k| p['name'] }.map do |name, list|
+            kind = list.first[1]
+            { 'name' => name, 'kind' => kind, 'qty' => list.sum { |p, _k| p['qty'].to_i }, 'display' => Labels.display_name(name, kind),
+              'aggregate' => Labels.aggregate?(name, kind, modes), 'rule' => Labels.rule_aggregate?(name, kind), 'set' => modes.key?(name.to_s.upcase) }
+          end.sort_by { |r| [r['aggregate'] ? 0 : 1, r['name'].downcase] }
+          data['timber_stock'] = Labels.stock_mm(model)
+        end
         build = lambda do
           data = generate(model)
           data['door'] = Report.payload(model)
@@ -765,6 +787,7 @@ module HarryWardrobes
           data['product_prefix'] = Products.cfg['prefix']
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
           data['job_info'] = JobInfo.get(model)
+          label_parts.call
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
         fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }
@@ -801,6 +824,20 @@ module HarryWardrobes
           Steps.one(dlg, 'Saving the room plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { RoomPlan.write(model, data) }
         end
         dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
+        dlg.add_action_callback('setLabelMode') do |_c, json|
+          req = JSON.parse(json)
+          m = Labels.modes(model)
+          k = req['name'].to_s.upcase
+          req['mode'].to_s.empty? ? m.delete(k) : m[k] = req['mode'].to_s
+          Ops.run(model, 'Label mode', transparent: true) { model.set_attribute(DICT, Labels::MODES, JSON.generate(m)) }
+          label_parts.call
+          dlg.execute_script("labelParts(#{JSON.generate('parts' => data['label_parts'], 'stock' => data['timber_stock'])})")
+        end
+        dlg.add_action_callback('setTimberStock') do |_c, v|
+          Ops.run(model, 'Timber stock length', transparent: true) { model.set_attribute(DICT, Labels::STOCK, v.to_i) }
+          label_parts.call
+          dlg.execute_script("labelParts(#{JSON.generate('parts' => data['label_parts'], 'stock' => data['timber_stock'])})")
+        end
         dlg.add_action_callback('setJobInfo') do |_c, json|
           JobInfo.save(model, JSON.parse(json))
           data['job_info'] = JobInfo.get(model) if data
@@ -833,7 +870,10 @@ module HarryWardrobes
             elsif w.start_with?('g')
               list = data.merge('groups' => [data['groups'][w[1..].to_i]].compact, 'hardware' => [])
             end
-            entries = Labels.entries(list, preset, tops_map)
+            if w == 'agg'
+              list = data
+            end
+            entries = Labels.entries(list, preset, tops_map, modes: Labels.modes(model), stock: Labels.stock_mm(model), which: w)
             errors = entries.count { |e| e['custom'].any? { |c| c.is_a?(Hash) } }
             dlg.execute_script("labelEntries(#{JSON.generate('entries' => entries, 'errors' => errors)})")
           rescue StandardError => e

@@ -155,16 +155,113 @@ module HarryWardrobes
       # --- entries (OpenCutList CutlistLabelsWorker) ---------------------------------------
 
       # One entry per piece: sheet goods then hardware, each part's pieces sorted by name.
+      # --- grouped labels (hardware and consumables) ---------------------------------------
+      # A part gets one label per piece ("part") or one label per name with the total
+      # ("aggregate"). Aggregate when: its material is a Hardware type; or its name matches
+      # Settings "label_aggregate_names" (L_BRACKET, HINGE*...); or it's timber (dimensional,
+      # e.g. the 2x1 battens). The Labels tab can switch any part name either way for the job
+      # (kept on the model, "label_modes").
+      MODES = 'label_modes'.freeze
+      STOCK = 'timber_stock_mm'.freeze
+
+      def self.glob?(name, pattern)
+        re = Regexp.new("\\A#{Regexp.escape(pattern.to_s.strip.upcase).gsub('\\*', '.*')}\\z")
+        name.to_s.upcase.match?(re)
+      end
+
+      def self.rule_aggregate?(name, kind)
+        return true if %w[hardware timber].include?(kind)
+        Settings.names('label_aggregate_names').any? { |pat| glob?(name, pat) }
+      end
+
+      def self.modes(model) = (JSON.parse(model.get_attribute(DICT, MODES, '{}')) rescue {})
+
+      def self.aggregate?(name, kind, modes)
+        m = modes[name.to_s.upcase]
+        m ? m == 'aggregate' : rule_aggregate?(name, kind)
+      end
+
+      def self.stock_mm(model)
+        v = model.get_attribute(DICT, STOCK).to_i
+        [2100, 2400].include?(v) ? v : 2400
+      end
+
+      # Settings "label_display_names" (L_BRACKET -> L Brackets), else the name tidied
+      # (OVAL_SH_BRACKET -> Oval Sh Bracket).
+      def self.display_name(name, kind = nil)
+        return '2x1 Timber' if kind == 'timber' && name.to_s.upcase =~ /2X1|TIMBER/
+        map = (Settings.get['label_display_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
+        base = name.to_s.sub(/#\d+\z/, '').strip
+        map[base.upcase] || base.split(/[_\s]+/).map { |w| w =~ /\d/ ? w : w.capitalize }.join(' ')
+      end
+
+      # First fit (longest first) of the cut lengths into stock lengths. Returns
+      # { 'stock' => lengths needed, 'cuts' => "4 x 2400, 2 x 1850" }. A cut longer than the
+      # stock takes whole lengths of its own.
+      def self.timber_bins(lengths, stock)
+        stock = stock.to_f
+        bins = []
+        extra = 0
+        lengths.map(&:to_f).sort.reverse.each do |len|
+          next if len <= 0
+          if len > stock
+            extra += (len / stock).ceil
+            next
+          end
+          b = bins.index { |left| left >= len }
+          b ? bins[b] -= len : bins << stock - len
+        end
+        cuts = lengths.map { |l| l.to_f.round }.tally.sort_by { |l, _| -l }.map { |l, n| "#{n} x #{l}" }.join(', ')
+        { 'stock' => bins.size + extra, 'cuts' => cuts }
+      end
+
+      # One label per name for the aggregate parts: name, total (timber: stock lengths), the
+      # T numbers it belongs to, and the running index n (barcode HW-{room}-H{n}).
+      def self.aggregates(parts, tops, stock)
+        by = {}
+        parts.each do |p, kind|
+          key = display_name(p['name'], kind)
+          a = (by[key] ||= { 'kind' => 'aggregate', 'source' => kind, 'name' => key, 'count' => 0, 'ts' => [], 'lengths' => [], 'parts' => [] })
+          a['count'] += p['qty'].to_i
+          a['parts'] << p['name']
+          Array(p['instances']).each do |i|
+            t = tops[i['top']].to_s
+            a['ts'] << t unless t.empty?
+            a['lengths'] << p['length'].to_f if kind == 'timber'
+          end
+        end
+        list = by.values.sort_by { |a| [a['source'] == 'timber' ? 1 : 0, a['name'].downcase] }
+        list.each_with_index do |a, i|
+          a['agg_index'] = i + 1
+          a['ts'] = a['ts'].uniq.sort_by { |t| t_key(t) }.join(', ')
+          a['parts'] = a['parts'].uniq
+          if a['source'] == 'timber'
+            b = timber_bins(a.delete('lengths'), stock)
+            a['count'] = b['stock']
+            a['stock'] = stock
+            a['cuts'] = b['cuts']
+            a['note'] = "#{b['stock']} x #{stock}  (cuts: #{b['cuts']})"
+          else
+            a.delete('lengths')
+          end
+        end
+        list
+      end
+
       # tops: Products.list's top-level entity id -> T number, so each piece carries its
-      # product's T number (blank when it isn't in one). Printed T number, then part number.
-      def self.entries(list, preset, tops = {})
+      # product's T number (blank when it isn't in one). Printed T number, then part number;
+      # the grouped labels come after the part labels.
+      def self.entries(list, preset, tops = {}, modes: {}, stock: 2400, which: '')
         layout = Array(preset['layout'])
         out = []
-        parts = list['groups'].flat_map { |g| g['parts'].map { |p| [p, g, 'sheet'] } } + list['hardware'].map { |h| [h, nil, 'hardware'] }
+        all = list['groups'].flat_map { |g| g['parts'].map { |p| [p, g, 'sheet'] } } + list['hardware'].map { |h| [h, nil, 'hardware'] } +
+              Array(list['timber']).map { |t| [t, nil, 'timber'] }
+        agg, parts = all.partition { |p, _g, kind| aggregate?(p['name'], kind, modes) }
+        parts = [] if which == 'agg'
         parts.each do |p, g, kind|
           insts = Array(p['instances']).sort_by { |i| i['entity_name'].to_s }
           insts.each_with_index do |inst, i|
-            mat = g ? Material.new(g['material'], 'sheet_good', nil, g['grained'], PartsList.length_s(g['thickness'])) : Material.new(p['material'], 'hardware', nil, false, '')
+            mat = g ? Material.new(g['material'], 'sheet_good', nil, g['grained'], PartsList.length_s(g['thickness'])) : Material.new(p['material'], kind == 'timber' ? 'dimensional' : 'hardware', nil, false, '')
             edges = (p['edges'] || {}).to_h { |k, v| [k, Edge.new(v, (p['edge_colors'] || {})[k])] }
             e = {
               'kind' => kind, 'number' => p['number'], 't' => tops[inst['top']].to_s, 'name' => p['name'], 'length' => p['length_s'], 'width' => p['width_s'],
@@ -192,7 +289,10 @@ module HarryWardrobes
             out << e
           end
         end
-        by_t(out)
+        by_t(out) + aggregates(agg.map { |p, _g, kind| [p, kind] }, tops, stock).map do |a|
+          a.merge('number' => '', 't' => '', 'position' => 1, 'length' => '', 'width' => '', 'thickness' => '', 'material_name' => '',
+                  'edges' => {}, 'edge_colors' => {}, 'custom' => layout.map { nil })
+        end
       end
 
       T_ORDER = %w[T W B L F M].freeze

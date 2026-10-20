@@ -140,6 +140,12 @@ module HarryWardrobes
           doc.table([['#', 26, :left], ['Name', nil, :left], ['Material', 150, :left], ['Size (mm)', 120, :right], ['Qty', 40, :right]],
                     hws.map { |h| [h['number'], h['name'], h['material'], "#{f(h['length'])} x #{f(h['width'])} x #{f(h['thickness'])}", h['qty']] })
         end
+        tb = Array(d['timber'])
+        unless tb.empty?
+          doc.heading('Timber', 'from the model (cut lengths)')
+          doc.table([['#', 26, :left], ['Name', nil, :left], ['Material', 150, :left], ['Section', 80, :right], ['Length', 60, :right], ['Qty', 40, :right]],
+                    tb.map { |t| [t['number'], t['name'], t['material'], t['section'], f(t['length']), t['qty']] })
+        end
         unless d['handles'].empty?
           doc.heading('Handles', 'from the Door style window')
           doc.table([['Kind', 100, :left], ['Handle', nil, :left], ['SKU', 110, :left], ['Supplier', 90, :left], ['Qty', 40, :right]],

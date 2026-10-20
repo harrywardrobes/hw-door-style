@@ -809,7 +809,6 @@ PLX.number_parts(FakeModel.new, fresh)
 check 'part numbers start at 1', fresh.map { |x| x['number'] } == [1, 2]
 
 require 'hw_door_style/job/labels'
-LB = HarryWardrobes::DoorStyle::Labels
 ord = LB.by_t([{ 't' => '', 'number' => 1, 'position' => 1 }, { 't' => 'W1', 'number' => 2, 'position' => 1 }, { 't' => 'T2', 'number' => 1, 'position' => 1 }, { 't' => 'T10', 'number' => 3, 'position' => 1 }, { 't' => 'T2', 'number' => 10, 'position' => 1 }, { 't' => 'T2', 'number' => 9, 'position' => 1 }])
 check 'labels print T number then part number (T2 9 before T2 10, T10 after T2, no T last)', ord.map { |e| "#{e['t']}#{e['t'].empty? ? '' : ':'}#{e['number']}" } == %w[T2:1 T2:9 T2:10 T10:3 W1:2 1]
 
@@ -822,6 +821,17 @@ check 'customer folder -> first / surname', JI.split_name('WILLIAMS Rebecca (Ros
       JI.split_name('SMITH-JONES Mary Ann (123)') == ['Mary Ann', 'Smith-Jones'] && JI.split_name('SMITH') == ['', 'Smith']
 check 'room from the file name', JI.room_from_file('SURVEY - master bedroom - williams rebecca') == 'Master Bedroom' && JI.room_from_file('Bedroom 2') == 'Bedroom 2'
 check 'made-up Room ID {SUR}{YYMMDD}{NN}', JI.new_room_id('Williams', nil, Time.new(2026, 10, 20)) == 'WIL26102001' && JI.new_room_id("O'Neill", nil, Time.new(2026, 1, 2)) == 'ONE26010201' && JI.new_room_id('Ng', nil, Time.new(2026, 1, 2)) == 'NGX26010201'
+
+b = LB.timber_bins([1850, 1850, 2400, 2400, 2400, 2400, 500, 500], 2400)
+check 'timber: first fit into 2400 stock (4 x 2400, 2 x 1850 + 2 x 500 -> 6 lengths) and cut list', b['stock'] == 6 && b['cuts'] == '4 x 2400, 2 x 1850, 2 x 500'
+check 'timber: a cut longer than the stock takes whole lengths', LB.timber_bins([3000], 2100)['stock'] == 2
+check 'grouped label rules: hardware / timber always, name patterns (HINGE*, L_BRACKET), job override',
+      LB.rule_aggregate?('BACK', 'hardware') && LB.rule_aggregate?('X', 'timber') && LB.rule_aggregate?('HINGE_110', 'sheet') && LB.rule_aggregate?('l_bracket', 'sheet') &&
+      !LB.rule_aggregate?('WRD_FL', 'sheet') && !LB.aggregate?('HINGE_110', 'sheet', { 'HINGE_110' => 'part' }) && LB.aggregate?('WRD_FL', 'sheet', { 'WRD_FL' => 'aggregate' })
+check 'label display names', LB.display_name('L_BRACKET') == 'L Brackets' && LB.display_name('OVAL_SH_BRACKET#2') == 'Oval shelf brackets' && LB.display_name('MY_NEW_PART') == 'My New Part' && LB.display_name('WRKTP_2x1_SUPPORT', 'timber') == '2x1 Timber'
+ag = LB.aggregates([[{ 'name' => 'L_BRACKET', 'qty' => 4, 'instances' => [{ 'top' => 1 }, { 'top' => 2 }, { 'top' => 2 }, { 'top' => 9 }] }, 'hardware'],
+                    [{ 'name' => 'WRKTP_2x1_SUPPORT', 'qty' => 2, 'length' => 800, 'instances' => [{ 'top' => 1 }, { 'top' => 1 }] }, 'timber']], { 1 => 'T3', 2 => 'T1' }, 2400)
+check 'grouped labels: total, T numbers in order, timber as stock lengths, running index', ag.map { |a| [a['name'], a['count'], a['ts'], a['agg_index']] } == [['L Brackets', 4, 'T1, T3', 1], ['2x1 Timber', 1, 'T3', 2]]
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)
