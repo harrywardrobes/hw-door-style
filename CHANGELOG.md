@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.67.5 — 2026-10-20
+- PDF printing is single sided by default, whatever the Brother's own default is - Settings > Labels > PDF printer > Sides (single / double long edge / double short edge).
+
 ## 0.67.4 — 2026-10-20
 - PDF printing: the printer is found in Windows by name (case / spacing forgiven) - a wrong name says which printers there are; SumatraPDF is called with Windows paths and its result is logged. Settings > Labels > PDF printer > **Test print** (one A4 page).
 - Send to HubSpot + print: the prints go even if the HubSpot upload fails, and a box at the end says what was sent and printed (and what went wrong).

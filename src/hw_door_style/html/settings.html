@@ -336,6 +336,7 @@
   </fieldset>
   <fieldset><legend>PDF printer (workshop pack)</legend>
     <div class="f t"><span>Printer name</span><input type="text" id="pdf_printer" style="max-width:260px"></div>
+    <div class="f t"><span>Sides</span><select id="pdf_sides" style="max-width:260px"><option value="simplex">Single sided</option><option value="duplexlong">Double sided (long edge)</option><option value="duplexshort">Double sided (short edge)</option></select></div>
     <div class="f t"><span>SumatraPDF path</span><input type="text" id="sumatra_path" placeholder="found automatically if installed"></div>
     <div class="hint">The door order, parts list and Room Plan PDFs print here, with no dialog, when you send from the Workshop's HubSpot tab (labels only ever go to the Zebra). The name must match Windows exactly. Needs SumatraPDF (free, sumatrapdfreader.org) installed once.</div>
     <div style="margin-top:6px"><button onclick="sketchup.pdfTest()">Test print</button> <span id="pdfMsg" class="hint" style="margin:0">Save the settings first if you changed the name.</span></div>
@@ -615,6 +616,7 @@ function load(s){
   styDraw();
   $('hubspot_picture_size').value = s.hubspot_picture_size || '1920x1080';
   $('hubspot_picture_format').value = s.hubspot_picture_format === 'png' ? 'png' : 'jpg';
+  $('pdf_sides').value = ['duplexlong', 'duplexshort'].indexOf(s.pdf_sides) >= 0 ? s.pdf_sides : 'simplex';
   $('hubspot_picture_folder').value = s.hubspot_picture_folder == null ? 'SURVEY RENDERS' : s.hubspot_picture_folder;
   $('hubspot_picture_mode').value = s.hubspot_picture_mode === 'add' ? 'add' : 'replace';
   $('hubspot_files_folder').value = s.hubspot_files_folder || '/crm-properties-file-values';
@@ -677,6 +679,7 @@ function collect(){
   o.hubspot_pictures = PICS.map(function(r, i){ return { field: r.field, label: r.label, scenes: $('pic_' + i).value.split(',').map(function(x){ return x.trim(); }).filter(Boolean) }; });
   o.hubspot_picture_size = $('hubspot_picture_size').value.replace(/\s/g, '').toLowerCase() || '1920x1080';
   o.hubspot_picture_format = $('hubspot_picture_format').value;
+  o.pdf_sides = $('pdf_sides').value;
   o.hubspot_picture_folder = $('hubspot_picture_folder').value.trim();
   o.hubspot_picture_mode = $('hubspot_picture_mode').value;
   o.hubspot_files_folder = $('hubspot_files_folder').value.trim() || '/crm-properties-file-values';

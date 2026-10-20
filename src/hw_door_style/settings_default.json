@@ -439,6 +439,7 @@
   },
   "zebra_share": "ZEBRA",
   "pdf_printer": "BROTHER - Harry Wardrobes",
+  "pdf_sides": "simplex",
   "sumatra_path": "",
   "label_layouts": {},
   "label_layout_active": "",

@@ -18,6 +18,14 @@ module HarryWardrobes
         p.empty? ? DEFAULT : p
       end
 
+      SIDES = { 'simplex' => 'Single sided', 'duplexlong' => 'Double sided (long edge)', 'duplexshort' => 'Double sided (short edge)' }.freeze
+
+      # Single sided unless Settings > Labels > PDF printer says otherwise.
+      def self.sides
+        v = Settings.get['pdf_sides'].to_s
+        SIDES.key?(v) ? v : 'simplex'
+      end
+
       def self.sumatra
         s = Settings.get['sumatra_path'].to_s.strip
         return s if !s.empty? && File.exist?(s)
@@ -54,7 +62,7 @@ module HarryWardrobes
         raise 'SumatraPDF isn\'t installed (free, sumatrapdfreader.org) - it prints the PDFs without a dialog. Or set its path in Settings > Labels.' unless exe
         name = resolve
         files.each do |f|
-          args = [exe.tr('/', '\\'), '-print-to', name, '-print-settings', 'fit,paper=A4', '-silent', f.tr('/', '\\')]
+          args = [exe.tr('/', '\\'), '-print-to', name, '-print-settings', "fit,paper=A4,#{sides}", '-silent', f.tr('/', '\\')]
           ok = system(*args)
           Log.info("pdf print #{File.basename(f)} on #{name}: #{ok.inspect} (#{$?.inspect})")
           next if ok
