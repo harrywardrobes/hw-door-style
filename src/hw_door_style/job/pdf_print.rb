@@ -44,8 +44,7 @@ module HarryWardrobes
 
       # The configured printer as Windows names it (case / spacing forgiven); raises with the
       # printers there are when it isn't found.
-      def self.resolve
-        want = printer
+      def self.resolve(want = printer)
         list = printers
         return want if list.nil?
         # the setting can be the printer's Windows name, its network share name ("BROTHER - Harry
@@ -72,6 +71,35 @@ module HarryWardrobes
           raise "Couldn't print #{File.basename(f)} on \"#{name}\" (SumatraPDF exit #{$?&.exitstatus.inspect}). Check the printer is on and the name in Settings > Labels matches Windows."
         end
         files.size
+      end
+
+      # --- the print queue (Settings > Labels: View / clear queue) ------------------------------
+
+      # Windows' own queue window for the printer.
+      def self.view_queue(want)
+        name = resolve(want)
+        system('rundll32', 'printui.dll,PrintUIEntry', '/o', '/n', name) || raise("Couldn't open the queue for #{name}.")
+        name
+      end
+
+      # The jobs waiting on the printer: [[id, document]].
+      def self.jobs(name)
+        require 'win32ole'
+        WIN32OLE.connect('winmgmts://').ExecQuery('SELECT * FROM Win32_PrintJob').each.select { |j| j.Name.to_s.split(',').first.to_s.casecmp?(name) }
+      end
+
+      # Cancels every job waiting on the printer. Returns [cleared, left] - jobs Windows won't
+      # let this user cancel (someone else's) are left.
+      def self.clear_queue(want)
+        name = resolve(want)
+        list = jobs(name)
+        done = list.count do |j|
+          j.Delete_
+          true
+        rescue StandardError
+          false
+        end
+        [name, done, list.size - done]
       end
 
       # Settings > Labels > PDF printer > Test print: one A4 page.
