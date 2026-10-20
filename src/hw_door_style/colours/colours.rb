@@ -185,7 +185,7 @@ module HarryWardrobes
       def self.skip?(inst)
         Finder.hardware?(inst) || Hardware.ours?(inst.definition) ||
           !Tagger.hardware_tag_name(inst.definition).nil? ||
-          Settings.hardware_tags.key?(inst.layer.name) || inst.layer.name.casecmp?(Tagger::OLD_HARDWARE_TAG)
+          Settings.hardware_tags.key?(inst.layer.name)
       end
 
       # Paints every matching instance with the group's material (nil = Default).

@@ -59,15 +59,13 @@ module HarryWardrobes
 
       # Pressed -> every runout 0 straight away. Released -> the window.
       def self.toggle(model = Sketchup.active_model)
-        return if busy? || !Standardise.ready?(model)
+        return if busy?
         on?(model) ? Runouts.all_off(model) : show(model, nil)
       end
 
       # Window: every unit (targets nil) or just the selected units. Runouts,
       # bottom facing and (every unit only) the ceiling height.
       def self.show(model, targets)
-        return unless Standardise.ready?(model)
-        TopOfUnit.upgrade(model)
         sel = targets && !targets.empty?
         units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities) | Depth.units(model.entities))
         job = Runouts.job_values(model)

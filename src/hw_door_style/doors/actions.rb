@@ -61,14 +61,8 @@ module HarryWardrobes
         model = Sketchup.active_model
         n = Ops.run(model, 'Apply door, drawer front and hardware tags') { Tagger.tag_all(model) }
         Sketchup.status_text = "Tags applied: #{n} items updated"
-        left = Tagger.hardware_leftovers(model)
         msg = "#{n} faces, edges and hardware components re-tagged."
         msg += "\n\nHardware tags:\n" + Settings.hardware_tags.map { |t, ns| "#{t}: #{ns.join(', ')}" }.join("\n")
-        msg += if left.empty?
-                 "\n\nNothing is on the HARDWARE tag."
-               else
-                 "\n\nStill on HARDWARE (add these to Settings > Hardware tags):\n" + left.map { |k, c| "#{k} x#{c}" }.join("\n")
-               end
         UI.messagebox(msg)
       rescue StandardError => e
         UI.messagebox("Tagging failed and was undone.\n\n#{e.message}")

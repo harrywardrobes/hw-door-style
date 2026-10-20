@@ -505,16 +505,10 @@ module HarryWardrobes
           'last_name' => pick['last_name'], 'address' => pick['address'], 'info' => {}, 'design_visit' => dv ? '1' : nil }
       end
 
-      # "WILLIAMS Rebecca" (last name in capitals, first names capitalised). Files linked
-      # before the names were kept separately: the last word of the customer is the surname.
+      # "WILLIAMS Rebecca" (last name in capitals, first names capitalised).
       def self.customer_tag(l)
         first = l['first_name'].to_s.strip
         last = l['last_name'].to_s.strip
-        if first.empty? && last.empty?
-          words = l['customer'].to_s.split
-          last = words.pop.to_s
-          first = words.join(' ')
-        end
         first = first.split(/(\s+|-)/).map { |w| w =~ /\A[\s-]+\z/ ? w : w[0].to_s.upcase + w[1..].to_s.downcase }.join
         [last.upcase, first].reject(&:empty?).join(' ')
       end

@@ -27,12 +27,9 @@ module HarryWardrobes
         nil
       end
 
-      # Only units that have the switch.
+      # Top of unit = Scribed To Ceiling.
       def self.up_to_ceiling?(inst)
-        c = TopOfUnit.choice(inst) if defined?(TopOfUnit)
-        return c == TopOfUnit::SCRIBED unless c.nil?
-        v = DC.value(inst, 'up_to_ceiling')
-        !v.nil? && v.to_s.upcase != 'FALSE'
+        TopOfUnit.choice(inst) == TopOfUnit::SCRIBED
       end
 
       def self.height_mm(inst)
@@ -57,14 +54,10 @@ module HarryWardrobes
         true
       end
 
-      # Target height for this unit (nil = leave it). A BRIDGE_FRAME from before
-      # 0.14 still has "Height below bridge": its height is the ceiling minus that.
+      # Target height for this unit (nil = leave it).
       def self.target_mm(inst, ceiling)
         return nil unless ceiling.to_f.positive? && height_key(inst) && up_to_ceiling?(inst)
-        below = DC.value(inst, 'height_below')
-        return ceiling.to_f unless below
-        b = below.to_f * 25.4
-        b.positive? ? ceiling.to_f - b : nil
+        ceiling.to_f
       end
 
       # Sets the height. Heights worked out from the stretched size
@@ -168,7 +161,6 @@ module HarryWardrobes
 
       # Ceiling height button: any time, scribes on or off. Runouts untouched.
       def self.show(model = Sketchup.active_model)
-        return unless Standardise.ready?(model)
         units = Runouts.units(model.entities)
         data = { 'ceiling' => mm(model), 'count' => units.count { |u| target_mm(u, 1.0) }, 'top_door' => top_door_mm }
         dlg = Dialog.open('ceiling', title: 'HW - Ceiling height', key: 'hw_ceiling', width: 360, height: 230,

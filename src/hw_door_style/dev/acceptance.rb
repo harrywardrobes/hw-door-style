@@ -72,12 +72,13 @@ module HarryWardrobes
 
       # --- doors: DOOR_W/T/H contract, slab, hinges ------------------------------
 
+      # Every unit has the Doors dropdown (b01_doors: D / L / R).
       DOOR_UNITS = {
-        'WARDROBE'     => { width: 'frame_width', double: 'door_double', margin: 2 },
-        'WALK-IN'      => { width: 'frame_width', double: 'door_double', margin: 2 },
-        'LINEN_PRESS'  => { width: 'frame_width', double: 'door_double', margin: 2 },
-        'TOPBOX'       => { width: 'frame_width', double: 'door_double', margin: 2 },
-        'BRIDGE_FRAME' => { width: 'frame_size',  double: 'double',      margin: 2 }
+        'WARDROBE'     => { width: 'frame_width', margin: 2 },
+        'WALK-IN'      => { width: 'frame_width', margin: 2 },
+        'LINEN_PRESS'  => { width: 'frame_width', margin: 2 },
+        'TOPBOX'       => { width: 'frame_width', margin: 2 },
+        'BRIDGE_FRAME' => { width: 'frame_size',  margin: 2 }
       }.freeze
       DOOR_SIZES = [[300, 400], [450, 1300], [600, 2300]].freeze
 
@@ -112,7 +113,8 @@ module HarryWardrobes
         hinges = kids.select { |k| k.get_attribute(DICT, 'role') == 'hinge' }
         inset = [mm(DC.read(wrapper, 'zz_hinge_inset')), h / 4.0].min
         half = mm(DC.read(wrapper, 'zz_hinge_half'))
-        hx = mm(DC.read(wrapper, 'zz_hinge_x'))
+        # left-hand doors hinge at ZZ_HINGE_X, right-hand at DOOR_W - ZZ_HINGE_XR
+        hx = Hardware.right?(wrapper) ? w - mm(DC.read(wrapper, 'zz_hinge_xr')) : mm(DC.read(wrapper, 'zz_hinge_x'))
         n = hinges.size
         hinges.each do |hg|
           fails << 'hinge scale' unless scale1?(hg)
@@ -136,10 +138,10 @@ module HarryWardrobes
             unit = top_unit(model, uname)
             next rows << row('doors', uname, '-', true, 'not in this model - skipped') unless unit
             th = mm(DC.read(unit, 'thickness'))
-            [%w[single 0], %w[double 1]].each do |label, dbl|
+            [['single left', 'L'], ['single right', 'R'], ['double', 'D']].each do |label, doors|
               DOOR_SIZES.each do |w, h|
-                frame = dbl == '1' ? 2 * w + 3 * cfg[:margin] : w + 2 * cfg[:margin]
-                set_attr([unit, unit.definition], DC.key(unit, cfg[:double]) || cfg[:double], dbl)
+                frame = doors == 'D' ? 2 * w + 3 * cfg[:margin] : w + 2 * cfg[:margin]
+                set_attr([unit, unit.definition], Hardware::DOORS_KEY, doors)
                 set_attr([unit, unit.definition], DC.key(unit, cfg[:width]) || cfg[:width], frame / MM)
                 wrappers_in(unit).each { |wr| set_attr([wr, wr.definition], 'door_h', h / MM, format('%g', h / 10.0)) }
                 DC.redraw(unit)

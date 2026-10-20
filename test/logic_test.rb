@@ -67,27 +67,14 @@ def mm(v); (v * 25.4).round(1); end
 
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
-check 'legacy file in plugin folder', Settings::LEGACY_FILE == File.join(PATH, 'settings.json')
-Dir.mktmpdir do |plug|
-  legacy = File.join(plug, 'settings.json')
-  File.write(legacy, '{"door_frame_mm": 90}')
-  Settings.send(:remove_const, :LEGACY_FILE); Settings.const_set(:LEGACY_FILE, legacy)
-  Settings.migrate_location
-  check 'old settings copied to AppData once', File.exist?(Settings::USER_FILE) && File.read(Settings::USER_FILE).include?('90')
-  File.write(legacy, '{"door_frame_mm": 80}')
-  Settings.migrate_location
-  check 'AppData copy never overwritten', File.read(Settings::USER_FILE).include?('90')
-  check 'loaded from AppData, old frame size moved onto Shaker', Settings.load['door_styles'].find { |x| x['id'] == 'shaker' }['door_frame_mm'] == 90 && !Settings.load.key?('door_frame_mm')
-  File.delete(Settings::USER_FILE)
-end
 check 'no team file yet', Settings.team_file.nil?
 Settings.team_file = 'G:/My Drive/team.json'
 check 'team file remembered', Settings.team_file == 'G:/My Drive/team.json'
 Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')
-  File.write(f, '{"hw_door_style_settings":"0.12","door_frame_mm":95,"junk":1}')
+  File.write(f, '{"hw_door_style_settings":"0.12","zebra_share":"Z1","junk":1}')
   t = Settings.read_backup(f)
-  check 'team file read (known keys only), old sizes onto Shaker', t['door_styles'].find { |x| x['id'] == 'shaker' }['door_frame_mm'] == 95 && !t.key?('junk') && !t.key?('door_frame_mm')
+  check 'team file read (known keys only)', !t.key?('junk') && t['zebra_share'] == 'Z1'
 end
 
 # --- settings
@@ -95,13 +82,7 @@ check 'Shaker door frame 100mm', (Settings.get['door_styles'].find { |x| x['id']
 check 'Shaker drawer rails 50mm, mid-rail 815', (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['drawer_frame_mm'] == 50 && (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['midrail_centre_mm'] == 815
 check 'INT_DRW_FRONT is internal', Settings.names('int_drawer_names') == ['INT_DRW_FRONT']
 check 'DRW_FRONT is external', Settings.names('ext_drawer_names') == ['DRW_FRONT']
-old = { 'ext_drawer_names' => ['XDRW_FRONT'], 'hinge_tag' => 'DOOR', 'colour_groups' => { 'exterior' => ['FACING', 'MY_TAG'] } }
-mig = Settings.migrate(old, Settings.defaults)
-check 'old settings migrated: drawer names', mig['ext_drawer_names'] == ['DRW_FRONT']
-check 'old settings migrated: hinge tag', mig['hinge_tag'] == 'hinges'
-check 'old settings migrated: EXT_SH + BOOKCASE added, own tags kept', (%w[EXT_SH BOOKCASE MY_TAG] - mig['colour_groups']['exterior']).empty?
-check 'migration runs once', Settings.migrate({ 'settings_version' => 2, 'hinge_tag' => 'X' }, Settings.defaults)['hinge_tag'] == 'X'
-check 'hardware tags list', Settings.hardware_tags['shelf_brackets'] == %w[SHELF_BRACKET BKS_SHELF_BRACKET] && Settings.hardware_tags['drawer_rails'] == ['DRW_RUNNER_410']
+check 'hardware tags list', Settings.hardware_tags['shelf_brackets'] == %w[SHELF_BRACKET] && Settings.hardware_tags['drawer_rails'] == ['DRW_RUNNER_410']
 check 'hinges 2024mm door = 5', Settings.hinge_count(2024.mm) == 5
 check 'hinges 1327mm door = 3', Settings.hinge_count(1327.mm) == 3
 check 'hinges 396mm door = 2', Settings.hinge_count(396.mm) == 2
@@ -239,10 +220,10 @@ require 'hw_door_style/export/library_export'
 LE = LibraryExport
 Dir.mktmpdir do |root|
   %w[_old WARDROBES DRAWERS BRIDGE BOOKCASE SHELVING _HW\ Door\ Style].each { |d| FileUtils.mkdir_p(File.join(root, d)) }
-  { 'WARDROBES' => %w[WRD_V1.skp TOPBOX_V5.skp LINEN_PRESS_V1.skp],
-    'DRAWERS' => ['INT_DRAWER_228_V3.skp', 'INT_DRAWER_228_PLUS_V2.skp', 'SHOE_UNIT V2.skp'],
+  { 'WARDROBES' => %w[WARDROBE_V1.skp TOPBOX_V5.skp LINEN_PRESS_V1.skp],
+    'DRAWERS' => ['INT_DRAWER_V3.skp', 'INT_DRAWER_PLUS_V2.skp', 'SHOE_PULL_OUT V2.skp'],
     'BRIDGE' => %w[BRIDGE_FRAME_V5.skp], 'BOOKCASE' => %w[BOOKCASE_4.skp],
-    '_old' => %w[BRIDGE_FRAME_V2.skp BRIDGE_FRAME_V4.skp BRIDGE_FRAME.skp INT_DRAWER_228.skp],
+    '_old' => %w[BRIDGE_FRAME_V2.skp BRIDGE_FRAME_V4.skp BRIDGE_FRAME.skp INT_DRAWER.skp],
     '.' => ['END_PAN.skp', 'Components V16.skp', 'Components V16.skb', 'Components V17.skp'] }.each do |d, fs|
     fs.each { |f| File.write(File.join(root, d, f), 'x') }
   end
@@ -250,19 +231,17 @@ Dir.mktmpdir do |root|
   check 'export: only in a "Components" file', LE.master?(model) && !LE.master?(Struct.new(:path).new(File.join(root, 'Smith job.skp')))
   check 'export: folders skip _old and _HW Door Style, add MAIN COMPONENTS', LE.folders(model) == ['BOOKCASE', 'BRIDGE', 'DRAWERS', 'MAIN COMPONENTS', 'SHELVING', 'WARDROBES']
   w = LE.scan(model, 'WARDROBE')
-  check 'export: WARDROBE finds WRD_V1 -> next V2', w[:version] == 1 && w[:current].map { |p| File.basename(p) } == ['WRD_V1.skp']
+  check 'export: WARDROBE finds WARDROBE_V1 -> next V2', w[:version] == 1 && w[:current].map { |p| File.basename(p) } == ['WARDROBE_V1.skp']
   check 'export: BRIDGE_FRAME next V6 (V5 current, older in _old)', LE.scan(model, 'BRIDGE_FRAME')[:version] == 5
   i = LE.scan(model, 'INT_DRAWER')
-  check 'export: INT_DRAWER does not pick up INT_DRAWER_228_PLUS', i[:current].map { |p| File.basename(p) } == ['INT_DRAWER_228_V3.skp']
-  check 'export: SHOE_PULL_OUT finds "SHOE_UNIT V2"', LE.scan(model, 'SHOE_PULL_OUT')[:version] == 2
-  File.write(File.join(root, 'DRAWERS', 'EXT_DRAWER_228.skp'), 'x')
-  check 'export: EXT_DRAWER_228.skp is the old name (V1), not version 228', LE.scan(model, 'EXT_DRAWER')[:version] == 1
+  check 'export: INT_DRAWER does not pick up INT_DRAWER_PLUS', i[:current].map { |p| File.basename(p) } == ['INT_DRAWER_V3.skp']
+  check 'export: SHOE_PULL_OUT finds "SHOE_PULL_OUT V2"', LE.scan(model, 'SHOE_PULL_OUT')[:version] == 2
   check 'export: BOOKCASE_4 counts as V4', LE.scan(model, 'BOOKCASE')[:version] == 4
   check 'export: loose END_PAN in main folder found (V1)', LE.scan(model, 'END_PAN')[:current].size == 1
   check 'export: brand new component starts at V1', LE.scan(model, 'NEW_THING')[:version].zero?
   check 'export: folder guesses', LE.guess_folder('WALK-IN', LE.folders(model)) == 'WARDROBES' && LE.guess_folder('EXT_DRAWER', LE.folders(model)) == 'DRAWERS' && LE.guess_folder('BULLNOSE', LE.folders(model)) == 'MAIN COMPONENTS'
-  moved = LE.move_to_old(model, File.join(root, 'WARDROBES', 'WRD_V1.skp'))
-  check 'export: old file moved to _old', File.exist?(moved) && File.dirname(moved) == File.join(root, '_old') && !File.exist?(File.join(root, 'WARDROBES', 'WRD_V1.skp'))
+  moved = LE.move_to_old(model, File.join(root, 'WARDROBES', 'WARDROBE_V1.skp'))
+  check 'export: old file moved to _old', File.exist?(moved) && File.dirname(moved) == File.join(root, '_old') && !File.exist?(File.join(root, 'WARDROBES', 'WARDROBE_V1.skp'))
   File.write(File.join(root, 'BRIDGE', 'BRIDGE_FRAME_V2.skp'), 'y')
   m2 = LE.move_to_old(model, File.join(root, 'BRIDGE', 'BRIDGE_FRAME_V2.skp'))
   check 'export: name clash in _old never overwrites', File.basename(m2) =~ /\ABRIDGE_FRAME_V2_moved_\d+_\d+\.skp\z/ && File.read(File.join(root, '_old', 'BRIDGE_FRAME_V2.skp')) == 'x'
@@ -274,18 +253,10 @@ end
 require 'hw_door_style/core/drawers'
 require 'hw_door_style/job/runouts'
 require 'hw_door_style/job/ceiling'
-require 'hw_door_style/job/standardise'
 require 'hw_door_style/job/pencil'
 RO = Runouts
-ST = Standardise
 PN = Pencil
-check 'runout dropdown 0/25/50/75/100/150', ST.options_string == '&0mm=0.0' + [25, 50, 75, 100, 150].map { |v| "&#{v}mm=#{v / 25.4}" }.join + '&'
 check 'runout defaults 25 all sides', RO.defaults.values.uniq == [25.0] && RO.defaults.keys == %w[floor ceiling left right back]
-check 'rename SCRIBE_L key', ST.rename_key('scribe_l') == 'runout_l' && ST.rename_key('_scribe_r_label') == '_runout_r_label' && ST.rename_key('_inst__scribe_l_formula') == '_inst__runout_l_formula'
-check 'rename leaves others', ST.rename_key('zz_scribe_l') == 'zz_scribe_l' && ST.rename_key('scribe_1_label') == 'scribe_1_label' && ST.rename_key('_scribe_l_options') == '_runout_l_options'
-check 'rename formulas', ST.rename_formula('IF(WALL_LEFT="TRUE", SCRIBE_L, 0)') == 'IF(WALL_LEFT="TRUE", RUNOUT_L, 0)' &&
-                         ST.rename_formula('(THICKNESS / 2) + parent!SCRIBE_R') == '(THICKNESS / 2) + parent!RUNOUT_R' &&
-                         ST.rename_formula('parent!ZZ_SCRIBE_L') == 'parent!ZZ_SCRIBE_L'
 h = { 'j01_runout_floor' => '1', 'runout_ceiling' => '2', 'a01_frame_width' => 3, 'zz_runout_back' => 4 }
 check 'prefixed key found', DC.key_in(h, 'runout_floor') == 'j01_runout_floor' && DC.key_in(h, 'frame_width') == 'a01_frame_width'
 check 'plain key still found', DC.key_in(h, 'runout_ceiling') == 'runout_ceiling'
@@ -477,17 +448,6 @@ fb = FDcInst.new({ 'facing_btm' => 79 / 25.4 }, {})
 check 'facing set keeps number (unprefixed key)', Facing.set(fb, 90) && fb.attrs['facing_btm'].is_a?(Float) && Facing.of(fb) == 90.0
 check 'no facing option: untouched', !Facing.set(FDcInst.new({ 'a01_frame_width' => 1.0 }, {}), 90)
 
-# --- folders moved into "_HW Door Style" (0.20) ---
-old = { 'settings_version' => 2, 'update_folder' => 'G:\\X\\Harry Wardrobes\\_plugin_updates' }
-check 'old updates folder setting moved', Settings.migrate(old, Settings.defaults)['update_folder'].end_with?('_HW Door Style\\Updates')
-mine = { 'settings_version' => 2, 'update_folder' => 'D:\\My updates' }
-check 'own updates folder kept', Settings.migrate(mine, Settings.defaults)['update_folder'] == 'D:\\My updates'
-Dir.mktmpdir do |d|
-  FileUtils.mkdir_p(File.join(d, '_HW Door Style', 'Updates'))
-  Settings.get['update_folder'] = File.join(d, '_plugin_updates')
-  check 'missing _plugin_updates falls back to the new folder', Updater.folder == File.join(d, '_HW Door Style', 'Updates')
-  Settings.reload!
-end
 check 'export skips _HW Door Style', '_HW Door Style' =~ LibraryExport::SKIP_DIRS && 'WARDROBES' !~ LibraryExport::SKIP_DIRS
 
 # --- HubSpot (0.21) ---
@@ -537,7 +497,6 @@ fm2 = Struct.new(:path).new('H:/x/WILLIAMS Rebecca (Rossett - 1)/SURVEY - felix 
 lk = { 'room_name' => "Rebecca Williams - Rossett - Felix's Room", 'first_name' => 'rebecca anne', 'last_name' => 'Williams' }
 check 'pictures: file name', P.file_for(lk, 3, 'jpg') == "Felix's Room - view 3, WILLIAMS Rebecca Anne.jpg"
 check 'customer tag: double-barrelled', R.customer_tag('first_name' => 'mary-jane', 'last_name' => 'Muir-Buckley') == 'MUIR-BUCKLEY Mary-Jane'
-check 'customer tag: older links (one name)', R.customer_tag('customer' => 'Kenny Hasprey') == 'HASPREY Kenny'
 Dir.mktmpdir do |d|
   ["Felix's Room - view 1, WILLIAMS Rebecca Anne.jpg", "Felix's Room - view 4, WILLIAMS Rebecca Anne.png", "Beatrice's Room - view 9, WILLIAMS Rebecca.jpg"].each { |f| File.write(File.join(d, f), '') }
   check 'views carry on from the highest in the folder (this room only)', P.last_view(d, lk) == 4 && P.last_view(File.join(d, 'none'), lk) == 0
@@ -642,58 +601,13 @@ puts "\n== Top of unit"
 require 'hw_door_style/core/top_of_unit'
 TU = HarryWardrobes::DoorStyle::TopOfUnit
 class TUFake
-  def initialize(h); @h = h; end
-  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
+  def initialize(h, d = {}); @h = h; @d = d; end
+  def definition; self; end
+  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : (@d.key?(k) ? @d[k] : default); end
 end
-check 'old switches -> Top of unit', TU.from_old(TUFake.new('i04_topped' => '0', 'i05_up_to_ceiling' => 'TRUE'), 'i04_topped', 'i05_up_to_ceiling') == TU::SCRIBED &&
-  TU.from_old(TUFake.new('i04_topped' => '0', 'i05_up_to_ceiling' => 'FALSE'), 'i04_topped', 'i05_up_to_ceiling') == TU::CUSTOM &&
-  TU.from_old(TUFake.new('i04_topped' => '1', 'i05_up_to_ceiling' => 'TRUE'), 'i04_topped', 'i05_up_to_ceiling') == TU::NO_FACING
-check 'Top of unit options encoded for the DC list', TU.options_s == '&Scribed%20To%20Ceiling=1&Custom%20Scribe%20Height%20%28Lower%20Section%29=2&No%20Upper%20Facing=3&'
-class TUDict
-  def initialize(keys); @keys = keys; end
-  attr_reader :keys
-end
-check 'Top of unit keys: both switches, one switch, unprefixed', TU.keys_of(TUDict.new(%w[i04_topped i05_up_to_ceiling])) == ['i04_topped', 'i05_up_to_ceiling', 'i04_top_of_unit'] &&
-  TU.keys_of(TUDict.new(%w[b02_up_to_ceiling lenx])) == [nil, 'b02_up_to_ceiling', 'b02_top_of_unit'] &&
-  TU.keys_of(TUDict.new(%w[topped_off])) == ['topped_off', nil, 'top_of_unit'] && TU.keys_of(TUDict.new(%w[lenx])).nil?
-check 'one switch only: two options (no option that does nothing)', TU.choices(nil, 'u').map(&:last) == [1, 2] && TU.choices('t', nil).map(&:last) == [2, 3] && TU.choices('t', 'u').size == 3
-check 'one switch only: setting read from it', TU.from_old(TUFake.new('b02_up_to_ceiling' => 'TRUE'), nil, 'b02_up_to_ceiling') == TU::SCRIBED &&
-  TU.from_old(TUFake.new('topped' => '1'), 'topped', nil) == TU::NO_FACING && TU.from_old(TUFake.new('topped' => '0'), 'topped', nil) == TU::CUSTOM
-class TUDefn
-  def initialize(h); @h = h; end
-  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
-end
-check 'only switches still showing are upgraded (hidden copies in parts left alone)', TU.shown?(TUDefn.new('_a_access' => 'LIST'), 'a') && !TU.shown?(TUDefn.new('_a_access' => 'NONE'), 'a') && !TU.shown?(TUDefn.new({}), 'a') && !TU.shown?(TUDefn.new({}), nil)
-class TUObj
-  attr_reader :h, :instances
-  def initialize(h, instances = []); @h = h; @instances = instances; end
-  def get_attribute(_d, k, default = nil); @h.key?(k) ? @h[k] : default; end
-  def set_attribute(_d, k, v); @h[k] = v; end
-  def attribute_dictionary(_d); TUDict.new(@h.keys); end
-  attr_writer :defn
-  def definition; @defn || self; end
-end
-done_def = { 'i04_topped' => '0', 'i05_up_to_ceiling' => 'TRUE', 'i04_top_of_unit' => '1', '_i04_top_of_unit_access' => 'LIST',
-             '_i04_topped_access' => 'NONE', '_i05_up_to_ceiling_access' => 'NONE', '_i04_topped_formula' => 'IF(I04_TOP_OF_UNIT=3, 1, 0)', '_i05_up_to_ceiling_formula' => 'x' }
-clean = TUObj.new(done_def.dup, [TUObj.new({})])
-check 'upgraded component with clean copies: nothing to do', !TU.needs_upgrade?(clean)
-ov_inst = TUObj.new('_i04_topped_access' => 'LIST', '_i05_up_to_ceiling_access' => 'LIST')
-ov = TUObj.new(done_def.dup, [ov_inst])
-ov_inst.defn = ov
-check 'placed copy still showing the old switches (its own _access) is found', TU.needs_upgrade?(ov)
-TU.upgrade_definition(ov)
-check '... and hidden on the copy', ov_inst.h['_i04_topped_access'] == 'NONE' && ov_inst.h['_i05_up_to_ceiling_access'] == 'NONE' && ov_inst.h['i04_top_of_unit'] == '1'
-lost_inst = TUObj.new('i04_top_of_unit' => '2', 'i04_topped' => '1', 'i05_up_to_ceiling' => 'FALSE')
-lost = TUObj.new(done_def.merge('_i04_topped_formula' => '', '_i05_up_to_ceiling_formula' => ''), [lost_inst])
-TU.upgrade_definition(lost)
-check 'old switches that lost their formulas: relinked, dropdown set from how it is drawn', lost.h['_i04_topped_formula'] =~ /I04_TOP_OF_UNIT=3/ && lost_inst.h['i04_top_of_unit'] == '3'
+check 'Top of unit read from the dropdown (instance, else definition; none = nil)', TU.choice(TUFake.new('i04_top_of_unit' => '3')) == TU::NO_FACING &&
+  TU.choice(TUFake.new({}, 'i04_top_of_unit' => 1.0)) == TU::SCRIBED && TU.choice(TUFake.new({})).nil? && TU.label(TU::CUSTOM) == 'Custom Scribe Height (Lower Section)'
 check 'scribe window sends ceiling height apart from the ceiling runout', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.ceiling_height = c')
-
-puts "\n== Component fixes"
-require 'hw_door_style/core/component_fixes'
-CFX = HarryWardrobes::DoorStyle::ComponentFixes
-check 'old formulas matched however they are spaced / quoted', CFX.norm('A02_FRAME_HEIGHT_CEILING - D02_FACING_TOP-ZZ_FLOOR_HEIGHT') == CFX.norm(CFX::FIXES[0][:old]) && CFX.norm('parent!G06_RAIL_DROP ') == CFX.norm('parent!G06_RAIL_DROP')
-check 'new formulas differ from old (so a fixed file is left alone)', CFX::FIXES.all? { |f| CFX.norm(f[:new]) != CFX.norm(f[:old]) }
 
 puts "\n== Library cache (Add component)"
 require 'hw_door_style/core/library_cache'
@@ -847,7 +761,7 @@ check 'timber: a cut longer than the stock takes whole lengths', LB.timber_bins(
 check 'grouped label rules: hardware / timber always, name patterns (HINGE*, L_BRACKET), job override',
       LB.rule_aggregate?('BACK', 'hardware') && LB.rule_aggregate?('X', 'timber') && LB.rule_aggregate?('HINGE_110', 'sheet') && LB.rule_aggregate?('l_bracket', 'sheet') &&
       !LB.rule_aggregate?('WRD_FL', 'sheet') && !LB.aggregate?('HINGE_110', 'sheet', { 'HINGE_110' => 'part' }) && LB.aggregate?('WRD_FL', 'sheet', { 'WRD_FL' => 'aggregate' })
-check 'label display names', LB.display_name('L_BRACKET') == 'L Brackets' && LB.display_name('OVAL_SH_BRACKET#2') == 'Oval shelf brackets' && LB.display_name('MY_NEW_PART') == 'My New Part' && LB.display_name('WRKTP_2x1_SUPPORT', 'timber') == '2x1 Timber'
+check 'label display names', LB.display_name('L_BRACKET') == 'L Brackets' && LB.display_name('OVAL_BRACKET_TOP#2') == 'Oval rail brackets (top)' && LB.display_name('MY_NEW_PART') == 'My New Part' && LB.display_name('WRKTP_2x1_SUPPORT', 'timber') == '2x1 Timber'
 ag = LB.aggregates([[{ 'name' => 'L_BRACKET', 'qty' => 4, 'instances' => [{ 'top' => 1 }, { 'top' => 2 }, { 'top' => 2 }, { 'top' => 9 }] }, 'hardware'],
                     [{ 'name' => 'WRKTP_2x1_SUPPORT', 'qty' => 2, 'length' => 800, 'instances' => [{ 'top' => 1 }, { 'top' => 1 }] }, 'timber']], { 1 => 'T3', 2 => 'T1' }, 2400)
 check 'grouped labels: total, T numbers in order, timber as stock lengths, running index', ag.map { |a| [a['name'], a['count'], a['ts'], a['agg_index']] } == [['L Brackets', 4, 'T1, T3', 1], ['2x1 Timber', 1, 'T3', 2]]

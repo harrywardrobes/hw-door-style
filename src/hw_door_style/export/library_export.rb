@@ -77,22 +77,13 @@ module HarryWardrobes
         end.sort_by(&:first)
       end
 
-      # Older file names that hold the same component, e.g. WARDROBE <- WRD.
-      def self.aliases(name)
-        a = Settings.get['export_aliases']
-        list = a.is_a?(Hash) ? Array(a.find { |k, _| k.to_s.casecmp?(name) }&.last) : []
-        ([name] + list.map(&:to_s)).map(&:strip).reject(&:empty?).uniq
-      end
-
-      def self.file_re(names)
-        # Longest first, so EXT_DRAWER_228.skp is the old name (V1), not EXT_DRAWER version 228.
-        alt = names.sort_by { |n| -n.size }.map { |n| Regexp.escape(n) }.join('|')
-        /\A(?:#{alt})(?:[_ ]V?(\d+))?\.skp\z/i
+      def self.file_re(name)
+        /\A#{Regexp.escape(name)}(?:[_ ]V?(\d+))?\.skp\z/i
       end
 
       # Every .skp for the component: { current: [paths outside _old], version: highest }.
       def self.scan(model, name)
-        re = file_re(aliases(name))
+        re = file_re(name)
         current = []
         top = 0
         dirs = [root(model)] + folders(model).map { |f| File.join(root(model), f) }

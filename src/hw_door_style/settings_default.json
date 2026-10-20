@@ -139,15 +139,14 @@
   "hardware_material": "HARDWARE",
   "hardware_tags": {
     "hinges": [
-      "SOFT_CLOSE_110",
-      "SOFT_CLOSE_155",
-      "PTO_110",
-      "PTO_155",
-      "TIP_ON"
+      "HINGE_SOFT_CLOSE_110",
+      "HINGE_SOFT_CLOSE_155",
+      "HINGE_PTO_110",
+      "HINGE_PTO_155",
+      "HINGE_TIP_ON"
     ],
     "shelf_brackets": [
-      "SHELF_BRACKET",
-      "BKS_SHELF_BRACKET"
+      "SHELF_BRACKET"
     ],
     "drawer_rails": [
       "DRW_RUNNER_410"
@@ -198,29 +197,6 @@
   "panel_22_mm": 22,
   "export_old_folder": "_old",
   "library_folder": "G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes",
-  "export_aliases": {
-    "WARDROBE": [
-      "WRD"
-    ],
-    "WALK-IN": [
-      "WLK"
-    ],
-    "INT_DRAWER": [
-      "INT_DRAWER_228"
-    ],
-    "INT_DRAWER_PLUS": [
-      "INT_DRAWER_228_PLUS"
-    ],
-    "EXT_DRAWER": [
-      "EXT_DRAWER_228"
-    ],
-    "SHOE_PULL_OUT": [
-      "SHOE_UNIT"
-    ],
-    "TOPBOX": [
-      "TOPBOX_FRAME"
-    ]
-  },
   "product_types": {
     "WARDROBE": "Wardrobe",
     "WARDROBE_STABLE": "Stable wardrobe",
@@ -292,7 +268,6 @@
   "product_depth_keys": [
     "wall_depth",
     "depth",
-    "size_depth",
     "cab_depth",
     "depth_fl_div"
   ],
@@ -414,8 +389,7 @@
   "label_aggregate_names": [
     "L_BRACKET",
     "HINGE*",
-    "OVAL_BRACKET",
-    "OVAL_SH_BRACKET",
+    "OVAL_BRACKET*",
     "2X1*",
     "TIMBER*",
     "RUNNER*",
@@ -423,20 +397,19 @@
   ],
   "label_display_names": {
     "L_BRACKET": "L Brackets",
-    "HINGE_110": "Hinges 110°",
-    "SOFT_CLOSE_110": "Hinges 110° soft close",
-    "SOFT_CLOSE_155": "Hinges 155° soft close",
-    "PTO_110": "Hinges 110° push to open",
-    "PTO_155": "Hinges 155° push to open",
+    "HINGE_SOFT_CLOSE_110": "Hinges 110° soft close",
+    "HINGE_SOFT_CLOSE_155": "Hinges 155° soft close",
+    "HINGE_PTO_110": "Hinges 110° push to open",
+    "HINGE_PTO_155": "Hinges 155° push to open",
+    "HINGE_TIP_ON": "TIP-ON",
     "OVAL_BRACKET": "Oval rail brackets",
-    "OVAL_SH_BRACKET": "Oval shelf brackets",
+    "OVAL_BRACKET_TOP": "Oval rail brackets (top)",
     "SHELF_BRACKET": "Shelf pegs",
-    "BKS_SHELF_BRACKET": "Bookcase shelf pegs",
     "DRW_RUNNER_410": "Drawer runners 410mm",
     "DRW_BOX": "Drawer boxes",
     "CABLE_OUTLET_80": "Cable outlets 80mm",
-    "RAIL_TOP": "Hanging rail (top)",
-    "RAIL_BTM": "Hanging rail (lower)"
+    "HANGING_RAIL_TOP": "Hanging rail",
+    "HANGING_RAIL_BTM": "Hanging rail"
   },
   "zebra_share": "ZEBRA",
   "pdf_printer": "BROTHER - Harry Wardrobes",

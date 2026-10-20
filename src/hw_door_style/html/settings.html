@@ -352,8 +352,6 @@
   <div class="lead">Export components (rocket) - library file only.</div>
   <fieldset><legend>Export components</legend>
     <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
-    <div class="f t"><span>Older file names</span><textarea id="export_aliases" rows="5"></textarea></div>
-    <div class="hint" style="margin-bottom:6px">One line per component, e.g. <code>WARDROBE: WRD</code>. Files with an older name are moved to the old folder and counted for the next version number.</div>
     <div class="f t"><span>Never export</span><input type="text" id="export_skip"></div>
     <div class="hint">Top-level components left out of the export list.</div>
     <div class="f t"><span>Template keeps</span><input type="text" id="template_keep"></div>
@@ -586,8 +584,6 @@ function load(s){
   $('depth_by_component').value = Object.keys(dbc).map(function(k){ return k + ': ' + dbc[k]; }).join(', ');
   var pt = s.product_types || {};
   $('product_types').value = Object.keys(pt).map(function(k){ return k + ': ' + pt[k]; }).join('\n');
-  var ea = s.export_aliases || {};
-  $('export_aliases').value = Object.keys(ea).map(function(t){ return t + ': ' + (ea[t]||[]).join(', '); }).join('\n');
   var cg = s.colour_groups || {};
   GROUPS.forEach(function(g){ $('cg_'+g).value = (cg[g]||[]).join(', '); });
   // default colours
@@ -661,11 +657,6 @@ function collect(){
   $('product_types').value.split('\n').forEach(function(line){
     var i = line.indexOf(':'); if (i < 1) return;
     var k = line.slice(0, i).trim().toUpperCase(), v = line.slice(i + 1).trim(); if (k && v) o.product_types[k] = v;
-  });
-  o.export_aliases = {};
-  $('export_aliases').value.split('\n').forEach(function(line){
-    var i = line.indexOf(':'); if (i < 1) return;
-    var t = line.slice(0, i).trim().toUpperCase(); if (t) o.export_aliases[t] = split(line.slice(i + 1));
   });
   o.hardware_tags = {};
   $('hardware_tags').value.split('\n').forEach(function(line){

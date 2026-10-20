@@ -6,10 +6,8 @@ module HarryWardrobes
     #   doors                         -> DOOR
     #   drawer fronts (ext. and int.) -> DRAWER_FRONT
     # and puts every hardware component on its own tag (Settings "hardware_tags":
-    # hinges, shelf_brackets, drawer_rails ...) so nothing is left on HARDWARE.
+    # hinges, shelf_brackets, drawer_rails ...).
     module Tagger
-      OLD_HARDWARE_TAG = 'HARDWARE'.freeze
-
       def self.base_name(defn)
         defn.name.sub(/#\d+\z/, '').strip.upcase
       end
@@ -40,24 +38,6 @@ module HarryWardrobes
         n
       end
 
-      # Anything still on the old HARDWARE tag: { "name (instance|geometry)" => count }.
-      def self.hardware_leftovers(model)
-        old = model.layers[OLD_HARDWARE_TAG] or return {}
-        left = Hash.new(0)
-        model.definitions.each do |d|
-          next if d.image?
-          d.entities.each do |e|
-            next unless e.layer == old
-            if e.respond_to?(:definition)
-              left["#{base_name(e.definition)} (component)"] += 1
-            elsif e.is_a?(Sketchup::Face) || e.is_a?(Sketchup::Edge)
-              left["#{base_name(d)} (faces/edges)"] += 1
-            end
-          end
-        end
-        model.entities.each { |e| left["#{e.respond_to?(:definition) ? base_name(e.definition) : e.typename} (top level)"] += 1 if e.layer == old }
-        left
-      end
       def self.layer(model, name)
         model.layers[name] || model.layers.add(name)
       end

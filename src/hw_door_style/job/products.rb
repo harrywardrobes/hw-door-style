@@ -136,7 +136,7 @@ module HarryWardrobes
           v.nil? || v.to_s.strip.empty? ? nil : (v.to_f * Ceiling.mm_per(inst, k)).round
         end
         keys = Array(Settings.get['product_depth_keys']).map(&:to_s)
-        keys = %w[wall_depth depth size_depth cab_depth depth_fl_div] if keys.empty?
+        keys = %w[wall_depth depth cab_depth depth_fl_div] if keys.empty?
         base = keys.find { |k| val.call(k) }
         return [nil, nil] unless base
         d = val.call(base)

@@ -187,7 +187,6 @@ module HarryWardrobes
       # Returns what was done, in words.
       def self.setup(model, inst, job)
         done = []
-        TopOfUnit.upgrade_definition(inst.definition) if TopOfUnit.keys(inst)
 
         # 1. sizes: runouts, bottom facing, ceiling - then one redraw (ceiling redraws itself)
         units = Runouts.unit?(inst) || Facing.has?(inst) || Depth.has?(inst) || Midrail.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities) | Depth.units(inst.definition.entities) | Midrail.units(inst.definition.entities))

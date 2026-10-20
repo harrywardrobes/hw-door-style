@@ -54,7 +54,6 @@ module HarryWardrobes
         if l
           first = l['first_name'].to_s
           last = l['last_name'].to_s
-          first, last = split_name(l['customer']) if first.empty? && last.empty?
           # a design visit has the customer but no Room yet: Room ID made up (and kept) as for an unlinked file
           room = l['room_id'] ? l['room_id'].to_s : new_room_id(last, path.empty? ? nil : File.dirname(path))
           name = l['room_id'] ? room_from_link(l['room_name']) : 'Design visit'

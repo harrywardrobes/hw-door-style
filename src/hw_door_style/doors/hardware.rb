@@ -11,7 +11,7 @@ module HarryWardrobes
     # the colour tool never repaints them.
     #
     # If a definition with the same name already exists and was not made by this
-    # plugin (e.g. a real Blum model named "soft_close_110"), it is reused as-is.
+    # plugin (e.g. a real Blum model named "HINGE_SOFT_CLOSE_110"), it is reused as-is.
     module Hardware
       HINGE_CUP  = [35, 12].freeze     # mm: cup diameter, depth behind the door
       CUP_SEGMENTS = 24
@@ -65,6 +65,10 @@ module HarryWardrobes
       end
 
       # size_mm: [w, t, h] box, or :cup for the round hinge cup.
+      # Hardware component names: HINGE_SOFT_CLOSE_110, HINGE_PTO_155, HINGE_TIP_ON (the
+      # settings / HubSpot keys stay soft_close_110, pto_155, tip_on).
+      def self.def_name(type) = "HINGE_#{type.to_s.upcase}"
+
       def self.definition(model, name, size_mm)
         d = model.definitions[name]
         return d if d && !ours?(d)
@@ -131,39 +135,20 @@ module HarryWardrobes
         inst.parent.is_a?(Sketchup::ComponentDefinition) ? inst.parent : nil
       end
 
+      # The unit's Doors dropdown (b01_doors: D double / L left single / R right single), read
+      # by the hinge formulas through the hidden derived values ZZ_DOOR_DOUBLE and ZZ_DOOR_RIGHT.
+      DOORS_KEY = 'b01_doors'.freeze
+      DOUBLE = 'zz_door_double'.freeze
+      RIGHT = 'zz_door_right'.freeze
+
       def self.double_key(unit)
         dd = unit && DC.dict(unit) or return nil
-        DC.key_in(dd, 'door_double') || DC.key_in(dd, 'double')
+        dd.keys.include?(DOUBLE) ? DOUBLE : nil
       end
 
       def self.side_key(unit)
         dd = unit && DC.dict(unit) or return nil
-        DC.key_in(dd, 'hinge_side')
-      end
-
-      # Adds the unit option if it's missing; returns its key.
-      def self.ensure_side_option(unit)
-        return nil unless unit
-        k = side_key(unit)
-        return k if k
-        dbl = double_key(unit)
-        letter = dbl.to_s[/\A([a-z])\d{1,2}_/, 1]
-        if letter
-          used = DC.dict(unit).keys.filter_map { |x| x[/\A_?#{letter}(\d{1,2})_/, 1]&.to_i }.max.to_i
-          k = format('%s%02d_hinge_side', letter, used + 1)
-        else
-          k = 'hinge_side'
-        end
-        ([unit] + unit.instances).each do |o|
-          o.set_attribute(DC::DICT_NAME, k, 0.0) if o == unit || DC.get(o, k).nil?
-          o.set_attribute(DC::DICT_NAME, "_#{k}_label", k.upcase)
-          o.set_attribute(DC::DICT_NAME, "_#{k}_formlabel", 'Hinge side (single door)')
-          o.set_attribute(DC::DICT_NAME, "_#{k}_access", 'LIST')
-          o.set_attribute(DC::DICT_NAME, "_#{k}_options", '&Left=0&Right=1&')
-          o.set_attribute(DC::DICT_NAME, "_#{k}_units", 'FLOAT')
-          o.set_attribute(DC::DICT_NAME, "_#{k}_formulaunits", 'FLOAT')
-        end
-        k
+        dd.keys.include?(RIGHT) ? RIGHT : nil
       end
 
       def self.truthy?(v)
@@ -226,7 +211,7 @@ module HarryWardrobes
         ents = door_def.entities
         gap = EDGE_GAP.mm
 
-        hd = definition(model, hinge_type, :cup)
+        hd = definition(model, def_name(hinge_type), :cup)
         hb = hd.bounds
         n = Settings.hinge_count(h)
         heights = hinge_heights(h, n)
@@ -235,7 +220,6 @@ module HarryWardrobes
         DC.length_attr(wrappers, 'ZZ_HINGE_XR', nil, gap + hb.width + hb.min.x)
         insts = wrappers.grep(Sketchup::ComponentInstance)
         unit = insts.map { |i| unit_def(i) }.compact.first
-        ensure_side_option(unit)
         right = insts.first ? right?(insts.first) : false
         side_f = side_formula(unit, insts.first)
         wrappers.each do |o|
@@ -247,14 +231,14 @@ module HarryWardrobes
         DC.length_attr(wrappers, 'ZZ_HINGE_W', nil, hb.width)
         DC.length_attr(wrappers, 'ZZ_HINGE_D', nil, hb.height)
         DC.length_attr(wrappers, 'ZZ_HINGE_HT', nil, hb.depth)
-        DC.child(hd, hinge_type)
+        DC.child(hd, def_name(hinge_type))
 
         inset_f = 'SMALLEST(parent!ZZ_HINGE_INSET, parent!DOOR_H/4)'
         heights.each_with_index do |zc, i|
           x = right ? w - (gap + hb.width + hb.min.x) : gap - hb.min.x
           p = Geom::Point3d.new(x, t - hb.min.y, zc - hb.depth / 2.0 - hb.min.z)
           inst = place(ents, hd, p, model, 'hinge', hinge_type)
-          DC.child(inst, hinge_type)
+          DC.child(inst, def_name(hinge_type))
           DC.number_attr(inst, 'ZZ_HINGE_I', nil, i)
           z_f = if n <= 1
                   'parent!DOOR_H/2 - parent!ZZ_HINGE_HALF'
@@ -269,7 +253,7 @@ module HarryWardrobes
 
         tips = 0
         if Settings.pto?(hinge_type)
-          td = definition(model, 'tip_on', TIP_ON_BOX)
+          td = definition(model, def_name('tip_on'), TIP_ON_BOX)
           tb = td.bounds
           tip_x = tb.width + gap + tb.min.x
           tip_z = tb.depth + 20.mm + tb.min.z
@@ -279,10 +263,10 @@ module HarryWardrobes
           DC.length_attr(wrappers, 'ZZ_TIP_W', nil, tb.width)
           DC.length_attr(wrappers, 'ZZ_TIP_D', nil, tb.height)
           DC.length_attr(wrappers, 'ZZ_TIP_HT', nil, tb.depth)
-          DC.child(td, 'tip_on')
+          DC.child(td, def_name('tip_on'))
           p = Geom::Point3d.new(right ? gap - tb.min.x : w - tip_x, t - tb.min.y, h - tip_z)
           inst = place(ents, td, p, model, 'tip_on', 'tip_on')
-          DC.child(inst, 'tip_on')
+          DC.child(inst, def_name('tip_on'))
           DC.formula(inst, 'x', 'IF(parent!ZZ_HINGE_RIGHT, parent!ZZ_TIP_XL, parent!DOOR_W - parent!ZZ_TIP_X)', p.x)
           DC.formula(inst, 'y', 'parent!DOOR_T', p.y)
           DC.formula(inst, 'z', 'parent!DOOR_H - parent!ZZ_TIP_Z', p.z)

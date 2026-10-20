@@ -17,15 +17,8 @@ module HarryWardrobes
     module Updater
       PATTERN = /\Ahw_door_style_v(\d+)\.(\d+)\.(\d+)\.rbz\z/i.freeze
 
-      # The updates folder. An old "_plugin_updates" path that no longer exists falls
-      # back to its new home, "_HW Door Style\Updates" beside it.
       def self.folder
-        f = Settings.get['update_folder'].to_s.strip
-        if !f.empty? && !Dir.exist?(f) && f =~ /_plugin_updates\z/i
-          moved = File.join(File.dirname(f), '_HW Door Style', 'Updates')
-          return moved if Dir.exist?(moved)
-        end
-        f
+        Settings.get['update_folder'].to_s.strip
       end
 
       def self.parse(version)
@@ -197,7 +190,6 @@ module HarryWardrobes
         Dialog.reset!
         Pencil.invalidate
         Scenes.start if defined?(Scenes) # watchers added by a newer version start straight away
-        TopOfUnit.start if defined?(TopOfUnit) # upgrades the open model's units to the Top of unit dropdown
         Room.start if defined?(Room)
         HubSpotRoom.start if defined?(HubSpotRoom)
         TemplateExport.start if defined?(TemplateExport) # job template into Welcome to SketchUp

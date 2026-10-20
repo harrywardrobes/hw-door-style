@@ -8,13 +8,10 @@ module HarryWardrobes
     #   %APPDATA%/HW Door Style/settings.json  this computer's changes (kept on update)
     #   team file (optional)                 a settings backup on Google Drive that
     #                                        anyone can load with "Load team settings"
-    # Versions up to 0.11 kept settings.json in the plugin folder, where a
-    # reinstall wiped it; it is copied to AppData once (see migrate_location).
     module Settings
       DEFAULT_FILE = File.join(PATH, 'settings_default.json')
       USER_DIR     = File.join(ENV['APPDATA'] || Dir.home, 'HW Door Style')
       USER_FILE    = File.join(USER_DIR, 'settings.json')
-      LEGACY_FILE  = File.join(PATH, 'settings.json')
       PREFS        = 'HW Door Style'.freeze # Sketchup.read_default section
 
       HINGE_TYPES = {
@@ -28,87 +25,19 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 10
+      # Settings files carry this; a file from an older plugin isn't converted - unknown keys
+      # are dropped and the shipped defaults fill the rest.
+      SETTINGS_VERSION = 11
 
-      # Brings settings saved by an older version up to date (names and tags
-      # that changed in the model). Never removes the user's own extra tags.
-      def self.migrate(user, d)
-        v = user['settings_version'].to_i
-        if v < 2
-          %w[ext_drawer_names int_drawer_names hinge_tag hardware_tags].each { |k| user[k] = d[k] }
-          cg = user['colour_groups']
-          if cg.is_a?(Hash)
-            ext = Array(cg['exterior'])
-            cg['exterior'] = ext + (d['colour_groups']['exterior'] - ext)
-          end
-        end
-        # 0.20: the plugin's Drive folders moved into "_HW Door Style".
-        if v < 3 && user['update_folder'].to_s =~ /_plugin_updates\z/i
-          user['update_folder'] = d['update_folder']
-        end
-        # 0.26: frame / recess / mid-rail sizes belong to each door style (Shaker had them).
-        if v < 4
-          old = OLD_SIZE_KEYS.to_h { |k| [k, user.delete(k)] }.compact
-          unless old.empty?
-            list = (user['door_styles'].is_a?(Array) ? user['door_styles'] : JSON.parse(JSON.generate(d['door_styles'])))
-            sh = list.find { |st| st['id'] == 'shaker' }
-            sh&.merge!(old)
-            user['door_styles'] = list
-          end
-        end
-        # 0.49: the stable wardrobe's doors and stable panel.
-        if v < 5
-          if user['door_names'].is_a?(Array)
-            user['door_names'] = user['door_names'] + (%w[WST_DOOR WST_DOOR_UPPER WST_STABLE_PANEL] - user['door_names'])
-          end
-          user['product_types']['WARDROBE_STABLE'] ||= 'Stable wardrobe' if user['product_types'].is_a?(Hash)
-        end
-        # 0.54: plan tags moved into the "dimensions / labels" folder with its names.
-        if v < 6
-          { 'plan_notes_tag' => 'Plan notes', 'plan_dims_tag' => 'Plan dimensions', 'product_label_tag' => 'T numbers', 'door_view_tag' => 'Door elevation' }.each do |k, old|
-            user[k] = d[k] if user[k].to_s.strip.empty? || user[k] == old
-          end
-        end
-        # 0.56: facings on the product list (F1, F2...), drawer units L1, L2...
-        if v < 7
-          user['product_skip'] = Array(user['product_skip']) - %w[FACING_BLOCK FACING] if user['product_skip']
-          user['product_types']['FACING_BLOCK'] ||= 'Facing' if user['product_types'].is_a?(Hash)
-          if user['product_refs'].is_a?(Hash)
-            user['product_refs']['EXT_DRAWER'] = 'L' if [nil, 'B'].include?(user['product_refs']['EXT_DRAWER'])
-            user['product_refs']['FACING_BLOCK'] ||= 'F'
-          end
-        end
-        # 0.64: "T numbers" are Pod numbers (the tag too).
-        if v < 8
-          user['product_label_tag'] = d['product_label_tag'] if %w[T_numbers T\ numbers].include?(user['product_label_tag'].to_s) || user['product_label_tag'].to_s.strip.empty?
-        end
-        # 0.68.1: back to the Brother's network share name (found by its share name in Windows)
-        if v < 10
-          user['pdf_printer'] = d['pdf_printer'] if user['pdf_printer'].to_s.strip.empty? || user['pdf_printer'] == 'Brother HL-L5000D series'
-        end
-        user['settings_version'] = SETTINGS_VERSION
-        user
-      end
-
-      OLD_SIZE_KEYS = %w[door_frame_mm drawer_stile_mm drawer_frame_mm recess_mm min_panel_mm
-                         midrail_min_door_height_mm midrail_centre_mm midrail_width_mm].freeze
-
-      # One-time copy of a pre-0.12 settings.json from the plugin folder.
-      def self.migrate_location
-        return if File.exist?(USER_FILE) || !File.exist?(LEGACY_FILE)
-        FileUtils.mkdir_p(USER_DIR)
-        FileUtils.cp(LEGACY_FILE, USER_FILE)
-        Log.info("settings moved to #{USER_FILE}")
-      rescue StandardError => e
-        Log.info("could not move old settings (#{e.message}).")
+      def self.clean(user, d)
+        user.select { |k, _| d.key?(k) }
       end
 
       def self.load
-        migrate_location
         s = defaults
         if File.exist?(USER_FILE)
           begin
-            s.merge!(migrate(JSON.parse(File.read(USER_FILE)), s))
+            s.merge!(clean(JSON.parse(File.read(USER_FILE)), s))
           rescue StandardError => e
             Log.info("could not read settings.json (#{e.message}); using defaults.")
           end
@@ -173,8 +102,7 @@ module HarryWardrobes
       def self.read_backup(file)
         raw = JSON.parse(File.read(file))
         raise 'not an HW Door Style settings backup' unless raw.is_a?(Hash) && raw.key?(BACKUP_MARK)
-        known = defaults.keys
-        data = migrate(raw.select { |k, _| known.include?(k) || OLD_SIZE_KEYS.include?(k) }, defaults)
+        data = clean(raw, defaults)
         raise 'no settings found in the file' if data.empty?
         data
       end

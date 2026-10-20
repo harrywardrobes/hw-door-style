@@ -816,7 +816,6 @@ module HarryWardrobes
 
       def self.show
         model = Sketchup.active_model
-        TopOfUnit.upgrade(model)
         # The room name goes on the labels and PDFs: asked for once per file (pre-filled).
         if !model.path.to_s.empty? && JobInfo.room_name_needed?(model)
           r = UI.inputbox(['Room name'], [JobInfo.room_name_guess(model)], 'Workshop - which room is this?')
