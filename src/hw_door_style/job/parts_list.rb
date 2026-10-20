@@ -167,7 +167,8 @@ module HarryWardrobes
         Colours.group_tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
         choices = Colours.job_choices(model).transform_values { |v| v || Colours::DEFAULT }
         mats = Colours.resolved(model, choices).to_h { |gid, name| [gid, name == Colours::DEFAULT ? nil : model.materials[name]] }
-        { lookup: lookup, mats: mats }
+        hw = model.materials[Settings.get['hardware_material'].to_s]
+        { lookup: lookup, mats: mats, hardware: hw && mat_type(hw) == TYPE_HARDWARE ? hw : nil }
       rescue StandardError => e
         Log.error('parts list job colours', e)
         nil
@@ -175,13 +176,21 @@ module HarryWardrobes
 
       def self.job_colour(path)
         ctx = @colour_ctx or return nil
+        g = colour_group(path)
+        return ctx[:hardware] if g == :hardware
+        return nil if g.nil? || %w[door drawer_box].include?(g)
+        ctx[:mats][g]
+      end
+
+      # :hardware (hinges, cable outlets... - Settings hardware tags), a colour group id, or nil
+      # when nothing in the path is in a colour group (not joinery: switches, sockets, room items).
+      def self.colour_group(path)
+        ctx = @colour_ctx or return nil
         path.reverse_each do |inst|
-          return nil if Colours.skip?(inst)
+          return :hardware if Colours.skip?(inst)
           tag = inst == path.last ? Colours.effective_tag(inst) : (inst.layer == inst.model.layers[0] ? nil : inst.layer.name.upcase)
           gid = tag && ctx[:lookup][tag]
-          next unless gid
-          return nil if %w[door drawer_box].include?(gid)
-          return ctx[:mats][gid]
+          return gid if gid
         end
         nil
       end
@@ -376,6 +385,12 @@ module HarryWardrobes
             tp['qty'] += 1
             tp['instances'] << instance_info(path)
           else
+            # no colour and not in any colour group: not joinery (a switch or socket on the
+            # wall, a room item) - not a part, so not "left out" either
+            if type == TYPE_UNKNOWN && mat.nil? && @colour_ctx && colour_group(path).nil?
+              skipped['not_joinery'] += 1
+              next
+            end
             skipped[type == TYPE_UNKNOWN ? 'no_type' : 'other'] += 1
             @untyped[mat ? mat.name : ''] += 1 if type == TYPE_UNKNOWN
             @nocolour[name] += 1 if type == TYPE_UNKNOWN && mat.nil?

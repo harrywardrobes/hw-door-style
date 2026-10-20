@@ -115,7 +115,7 @@ module HarryWardrobes
             { 'id' => id, 'label' => label, 'value' => pick, 'options' => [[Colours::DEFAULT, dlabel]] + Colours.names_for(id).map { |n| [n, n] } }
           end
           which = Array(parts['nocolour'])
-          out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour and aren't in a colour group, so they're left out: #{which.first(8).join(', ')}#{which.size > 8 ? '...' : ''}.",
+          out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour (no job colour chosen for their group yet), so they're left out: #{which.first(8).join(', ')}#{which.size > 8 ? '...' : ''}.",
                    'fix' => 'Apply the job colours (as the Colours window) - pick them below. Default on Exterior / Interior / Worktop = the door colour.', 'groups' => groups }
         end
         out

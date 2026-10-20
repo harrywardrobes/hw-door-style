@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.64.3 — 2026-10-20
+- Parts list: hardware-tagged items with no colour (cable outlets, hinges...) count as hardware (the HARDWARE material), and things outside every colour group - switches, sockets, room items - aren't parts at all, so neither is reported as "no colour".
+
 ## 0.64.2 — 2026-10-20
 - Parts list: a part with no colour of its own now takes the job colour of its colour group - its own tag, else the nearest tagged unit above it (e.g. an untagged shelf inside a BOOKCASE) - resolved as the Colours window does (Default exterior / interior / worktop = the door colour). So with the door colour Mussel and the rest Default, those parts count as Mussel instead of being left out.
 - Checks box: names the parts that still have no colour, and shows "Default (Mussel)" so it's clear what Default means.
