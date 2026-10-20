@@ -18,7 +18,7 @@ module HarryWardrobes
       H = Pdf::PAGE_H
       M = Pdf::MARGIN
       ROW = Pdf::ROW_H
-      LOOSE_FIRST = %w[M T W B].freeze
+      LOOSE_FIRST = %w[M T W B L F].freeze
       PANEL_TYPES = %w[MDF Timber Cut Worktop Facing].freeze
 
       # Pages with the Room Plan header.

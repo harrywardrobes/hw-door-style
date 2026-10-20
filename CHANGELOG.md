@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.56.0 — 2026-10-20
+- Product List: facing blocks are listed as products, F1, F2, F3... (no longer skipped), and external drawer units are L1, L2, L3... (were B). Settings > Product list > Reference letters; saved settings are brought up to date.
+- Product names match components with more after a space or bracket too ("EXT_DRAWER (Fitted)" is a Drawer unit).
+
+## 0.56.0 — 2026-10-20
+- 
+
 ## 0.55.0 — 2026-10-20
 - Fix: a door or drawer front that was already styled kept its old drawing when its unit changed size (wider drawer unit, new height, runouts, ceiling, depth) - the drawing was stretched to fit, so Shaker frames and mid-rails came out wrong, and applying the Door style window didn't redraw it because the style hadn't changed. Now any styled front whose size has changed is drawn again: by the Door style window, and straight after the pencil / Scribe window, the ceiling height and Depth resize a unit (colours put back too).
 

@@ -40,12 +40,16 @@ module HarryWardrobes
       end
 
       # Friendly type for a component name (longest matching name first), or nil.
+      # name is the component, or the component with more after "_", " " or "(" -
+      # EXT_DRAWER, EXT_DRAWER_2, "EXT_DRAWER (Fitted)".
+      def self.named?(name, x) = name == x || name.start_with?("#{x}_", "#{x} ", "#{x}(")
+
       def self.type_of(name, c = cfg)
-        k = c['types'].keys.sort_by { |x| -x.size }.find { |x| name == x || name.start_with?("#{x}_") }
+        k = c['types'].keys.sort_by { |x| -x.size }.find { |x| named?(name, x) }
         k && c['types'][k]
       end
 
-      # Reference letter: T tall, W wall / bridge, B base, M misc (Settings "product_refs"),
+      # Reference letter: T tall, W wall / bridge, B base, L drawer units, F facings, M misc (Settings "product_refs"),
       # else the number prefix (T).
       def self.ref_of(name, c = cfg)
         k = c['refs'].keys.sort_by { |x| -x.size }.find { |x| name == x || name.start_with?(x) }
@@ -53,7 +57,7 @@ module HarryWardrobes
       end
 
       def self.joiner?(name, c = cfg)
-        c['joiners'].any? { |j| name == j || name.start_with?("#{j}_") }
+        c['joiners'].any? { |j| named?(name, j) }
       end
 
       def self.skip?(name, c = cfg)
@@ -163,7 +167,7 @@ module HarryWardrobes
         prods.each { |p| p['ref'] = ref_of(p['name'], c) }
         number(model, prods)
         tops = {}
-        order = %w[T W B M]
+        order = %w[T W B L F M]
         rows = prods.sort_by { |p| [order.index(p['ref']) || 9, p['ref'], p['num']] }.map do |p|
           h = p['host']
           bb = Geom::BoundingBox.new
