@@ -836,5 +836,12 @@ check 'grouped labels: total, T numbers in order, timber as stock lengths, runni
 check 'barcode payloads HW-{ROOM}-{PART} / HW-{ROOM}-H{n}', LB.barcode('WIL26102001', 12) == 'HW-WIL26102001-12' && LB.barcode('830 735', 'H3') == 'HW-830735-H3' && LB.barcode('', 1) == 'HW-ROOM-1'
 check 'JsBarcode bundled (no CDN) and put inline in the window', File.exist?(File.join(HarryWardrobes::DoorStyle::PATH, 'html/vendor/JsBarcode.code128.min.js')) && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')).include?('<!--VENDOR:JsBarcode.code128.min.js-->')
 
+require 'hw_door_style/job/zpl'
+ZP = HarryWardrobes::DoorStyle::Zpl
+zt = ZP.test_label
+File.write(File.join(Dir.tmpdir, 'hw_test_label.zpl'), zt)
+check 'ZPL label: 102 x 76 at 203 dpi (^PW816 ^LL608), 5mm home, T + part number, Code 128 barcode, UTF-8',
+      zt.start_with?('^XA') && zt.include?('^PW816') && zt.include?('^LL608') && zt.include?('^LH40,40') && zt.include?('^FDT3  12^FS') && zt.include?('^BCN,') && zt.include?('^FDHW-TEST-12^FS') && zt.include?('^CI28') && zt.end_with?('^XZ')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

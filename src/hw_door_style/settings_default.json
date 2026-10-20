@@ -435,5 +435,8 @@
     "CABLE_OUTLET_80": "Cable outlets 80mm",
     "RAIL_TOP": "Hanging rail (top)",
     "RAIL_BTM": "Hanging rail (lower)"
-  }
+  },
+  "zebra_share": "ZEBRA",
+  "label_layouts": {},
+  "label_layout_active": ""
 }

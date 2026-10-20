@@ -131,6 +131,15 @@ module HarryWardrobes
           close.call
           Updater.install(f)
         end
+        dlg.add_action_callback('zebraTest') do |_c|
+          msg = begin
+            Zpl.transmit(Zpl.test_label)
+            "Test label sent to \\\\localhost\\#{Zpl.share}."
+          rescue StandardError => e
+            e.message
+          end
+          dlg.execute_script("$('zebraMsg').textContent = #{JSON.generate(msg)}")
+        end
         dlg.add_action_callback('hsSaveKey') do |_c, k|
           HubSpot.key = k
           dlg.execute_script("hsHint(#{JSON.generate(HubSpot.key_hint)})")

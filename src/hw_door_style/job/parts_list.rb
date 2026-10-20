@@ -862,28 +862,43 @@ module HarryWardrobes
           end
         end
         dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{File.dirname(model.path).tr('\\', '/')}") unless model.path.to_s.empty? }
+        # The labels for a request (layout, which parts), barcodes kept on the pieces.
+        label_entries = lambda do |req|
+          preset = data['labels']['presets'][req['preset']] || data['labels']['presets'].values.first
+          list = data
+          w = req['which'].to_s
+          if w == 'hw'
+            list = data.merge('groups' => [])
+          elsif w.start_with?('g')
+            list = data.merge('groups' => [data['groups'][w[1..].to_i]].compact, 'hardware' => [], 'timber' => [])
+          end
+          entries = Labels.entries(list, preset, tops_map, modes: Labels.modes(model), stock: Labels.stock_mm(model), which: w,
+                                                        room_id: (data['job_info'] || {})['room_id'])
+          entries = Labels.range(entries, req['range'])
+          Labels.store_barcodes(model, entries, PartsList.pieces)
+          entries.each { |e| e.delete('eids') }
+          [preset, entries]
+        end
         dlg.add_action_callback('labels') do |_c, json|
-          req = JSON.parse(json)
           begin
-            preset = data['labels']['presets'][req['preset']] || data['labels']['presets'].values.first
-            list = data
-            w = req['which'].to_s
-            if w == 'hw'
-              list = data.merge('groups' => [])
-            elsif w.start_with?('g')
-              list = data.merge('groups' => [data['groups'][w[1..].to_i]].compact, 'hardware' => [])
-            end
-            if w == 'agg'
-              list = data
-            end
-            entries = Labels.entries(list, preset, tops_map, modes: Labels.modes(model), stock: Labels.stock_mm(model), which: w,
-                                                          room_id: (data['job_info'] || {})['room_id'])
-            Labels.store_barcodes(model, entries, PartsList.pieces)
-            entries.each { |e| e.delete('eids') }
-            errors = entries.count { |e| e['custom'].any? { |c| c.is_a?(Hash) } }
+            _preset, entries = label_entries.call(JSON.parse(json))
+            errors = entries.count { |e| Array(e['custom']).any? { |c| c.is_a?(Hash) } }
             dlg.execute_script("labelEntries(#{JSON.generate('entries' => entries, 'errors' => errors)})")
           rescue StandardError => e
             Log.error('labels', e)
+            fail_js.call(e)
+          end
+        end
+        # Zebra layouts: straight to the printer as ZPL (no print dialog).
+        dlg.add_action_callback('printZpl') do |_c, json|
+          begin
+            preset, entries = label_entries.call(JSON.parse(json))
+            raise 'No labels to print.' if entries.empty?
+            job = (data['job_info'] || {}).merge('filename' => data['filename'])
+            Zpl.transmit(Zpl.document(preset, entries, job))
+            dlg.execute_script("$('status').textContent = #{JSON.generate("#{entries.size} label(s) sent to the Zebra (\\\\localhost\\#{Zpl.share}).")}")
+          rescue StandardError => e
+            Log.error('zebra', e)
             fail_js.call(e)
           end
         end

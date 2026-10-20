@@ -325,6 +325,11 @@
     <div class="f t"><span>Label names</span><textarea id="label_display_names" rows="8"></textarea></div>
     <div class="hint">One per line: <code>L_BRACKET: L Brackets</code>. Anything not listed is printed tidied up (OVAL_SH_BRACKET = Oval Sh Bracket).</div>
   </fieldset>
+  <fieldset><legend>Zebra GK420D</legend>
+    <div class="f t"><span>Windows share name</span><input type="text" id="zebra_share" style="max-width:160px"></div>
+    <div class="hint">Layouts set to the Zebra print straight to it as ZPL, with no print dialog - so the first label after printing on the Brother isn't blank. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above. Other layouts use the print dialog.</div>
+    <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
+  </fieldset>
 </section>
 
 <section id="s_export">
@@ -518,7 +523,7 @@ var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrai
 var LOWER_LISTS = ['product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { zebra_share:'ZEBRA', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]

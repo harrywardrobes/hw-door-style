@@ -82,6 +82,8 @@
   <div class="lbar">
     Layout <select id="lPreset" onchange="labels()"></select>
     Labels for <select id="lWhich" onchange="labels()"></select>
+    Print <select id="lRange" onchange="$('lNums').style.display = this.value === 'sel' ? '' : 'none'; labels()"><option value="">all</option><option value="agg">grouped only</option><option value="sel">part numbers...</option></select>
+    <input type="text" id="lNums" placeholder="e.g. 3, 7, H1" style="width:90px;display:none" onchange="labels()">
     <span id="lInfo" style="color:var(--muted)"></span>
     <span style="flex:1"></span>
     <button id="renumParts" onclick="renumberParts(this)" title="Part numbers are kept on the parts; this starts again from 1">Renumber parts</button>
@@ -270,7 +272,10 @@ function renderLabels(d){
   var names = Object.keys(d.labels.presets), cur = $('lPreset').value;
   $('lPreset').innerHTML = names.map(function(n){ return '<option' + (n === (cur || d.labels.active) ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('');
   var wcur = $('lWhich').value;
-  $('lWhich').innerHTML = '<option value="">All parts</option><option value="agg">Grouped labels only</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
+  var rcur = $('lRange').value;
+  $('lRange').innerHTML = '<option value="">all</option><option value="agg">grouped only</option><option value="sel">part numbers...</option>' + (d.products || []).map(function(p){ return '<option value="' + esc(p.t) + '">' + esc(p.t) + ' only</option>'; }).join('');
+  if (rcur) $('lRange').value = rcur;
+  $('lWhich').innerHTML = '<option value="">All parts</option>' + d.groups.map(function(g, i){ return '<option value="g' + i + '">' + esc(g.material + ' ' + f(g.thickness) + ' mm') + '</option>'; }).join('') + (d.hardware.length ? '<option value="hw">Hardware</option>' : '');
   if (wcur) $('lWhich').value = wcur;
   jobInfo(d.job_info);
   labelParts({ parts: d.label_parts, stock: d.timber_stock });
@@ -338,7 +343,9 @@ function sendRoom(){
 document.addEventListener('change', function(e){ if (e.target && e.target.getAttribute && e.target.getAttribute('data-i') != null) stageCheck(); });
 
 // ---------- labels (OpenCutList _slide-labels.twig / _label-element.twig) ----------
-function labels(){ $('lInfo').textContent = 'Preparing labels...'; sketchup.labels(JSON.stringify({ preset: $('lPreset').value, which: $('lWhich').value })); }
+function labelReq(){ return { preset: $('lPreset').value, which: $('lWhich').value, range: $('lRange') ? rangeValue() : '' }; }
+function rangeValue(){ var v = $('lRange').value; if (v === 'sel') return ($('lNums').value || '').split(/[\s,]+/).filter(Boolean); return v; }
+function labels(){ $('lInfo').textContent = 'Preparing labels...'; sketchup.labels(JSON.stringify(labelReq())); }
 function labelEntries(r){
   ENTRIES = r.entries || [];
   var o = D.labels.presets[$('lPreset').value];
@@ -382,6 +389,11 @@ function pageSvg(o, entries, preview, w, h){
   }
   return s + '</g></svg>';
 }
+function edgingText(ed){
+  var lg = ['ymin', 'ymax'].filter(function(k){ return ed[k]; }).length, sh = ['xmin', 'xmax'].filter(function(k){ return ed[k]; }).length;
+  if (!lg && !sh) return 'No edging';
+  return 'Edged: ' + [lg ? lg + ' long' : '', sh ? sh + ' short' : ''].filter(Boolean).join(', ');
+}
 function anchorX(anchor, size){ return anchor.indexOf('middle') === 0 ? size * -0.5 : (anchor.indexOf('end') === 0 ? -size : 0); }
 // Code 128 (JsBarcode, bundled) as an SVG fitted to w x h mm, anchored like a text element.
 function barcodeSvg(payload, w, h, anchor){
@@ -415,34 +427,41 @@ function element(el, e, idx, minUnit, lw){
     s += line(0, 0, rw, 0, 'ymax') + line(rw, rh, 0, rh, 'ymin') + line(rw, 0, rw, rh, 'xmax') + line(0, rh, 0, 0, 'xmin');
     return s + '</g>';
   }
-  var value = '', error = null, key = terms[1];
+  var value = '', error = null, key = terms[1], agg = e.kind === 'aggregate', J = D.job_info || {};
+  var mmS = function(v){ return String(v == null ? '' : v).replace(/\s*mm$/, ''); };
+  if (terms[0] === 'hr') { var hw = (el.width || 0.9) * (lw || minUnit * 12); return '<line x1="' + anchorX(anchor, hw) + '" y1="0" x2="' + (anchorX(anchor, hw) + hw) + '" y2="0" stroke="' + color + '" stroke-width="' + Math.max(0.2, el.size * 0.25) + '"/>'; }
   if (terms[0] === 'part') {
-    if (e.kind === 'aggregate' && (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size')) value = e.note || '';
-    else if (e.kind === 'aggregate' && key === 'batch') value = 'Qty ' + e.count;
-    else if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = e.length + ' x ' + e.width;
-    else if (key === 'batch') value = e.position + '/' + e.count;
-    else if (key === 'number') value = e.kind === 'aggregate' ? '' : (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
+    if (key === 'number') value = agg ? e.name : (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
+    else if (key === 'name') value = agg ? 'Qty ' + e.count : e.name;
+    else if (key === 't' || key === 't_number') value = e.t || '';
     else if (key === 'ts' || key === 't_numbers') value = e.ts || e.t || '';
     else if (key === 'note') value = e.note || '';
-    else if (key === 't' || key === 't_number') value = e.t || '';
+    else if (key === 'dims') value = agg ? (e.note || '') : [mmS(e.length), mmS(e.width), mmS(e.thickness)].filter(Boolean).join(' x ') + ' mm';
+    else if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = agg ? (e.note || '') : e.length + ' x ' + e.width;
+    else if (key === 'of') value = agg ? '' : e.position + ' of ' + e.count;
+    else if (key === 'batch') value = agg ? '' : e.position + '/' + e.count;
+    else if (key === 'edging') value = agg ? '' : edgingText(e.edges || {});
     else if (key === 'count') value = String(e.count);
     else if (key === 'entity_named_path') value = e.entity_named_path;
     else if (key === 'entity_name') value = e.entity_name;
     else if (key === 'length' || key === 'cutting_length') value = e.length;
     else if (key === 'width' || key === 'cutting_width') value = e.width;
     else if (key === 'thickness' || key === 'cutting_thickness') value = e.thickness;
-    else if (key === 'edge') value = e.edges[terms[2]] || '';
+    else if (key === 'edge') value = (e.edges || {})[terms[2]] || '';
     else if (key === 'bin' || key === 'description' || key === 'tags' || key === 'face') value = '';
     else value = e[key] == null ? '' : String(e[key]);
   } else if (terms[0] === 'group') {
-    if (key === 'material') value = e.material_name + (e.std_dimension ? ' / ' + e.std_dimension : '');
+    if (agg) value = e.ts ? 'For ' + e.ts : '';
+    else if (key === 'material') value = e.material_name + (e.std_dimension ? ' / ' + e.std_dimension : '');
     else if (key === 'material_name') value = e.material_name;
     else if (key === 'std_dimension') value = e.std_dimension;
     else value = '';
-  } else if (terms[0] === 'customer') value = (D.job_info || {}).customer || '';
-  else if (terms[0] === 'room_id') value = (D.job_info || {}).room_id || '';
-  else if (terms[0] === 'room_name') value = (D.job_info || {}).room_name || '';
-  else if (terms[0] === 'room') value = [(D.job_info || {}).room_id, (D.job_info || {}).room_name].filter(Boolean).join('  ');
+  } else if (terms[0] === 'customer') value = J.customer || '';
+  else if (terms[0] === 'room_id') value = J.room_id || '';
+  else if (terms[0] === 'room_name') value = J.room_name || '';
+  else if (terms[0] === 'room') value = [J.room_id, J.room_name].filter(Boolean).join('  ');
+  else if (terms[0] === 'customer_room') value = [J.customer, J.room_id, J.room_name].filter(Boolean).join('  |  ');
+  else if (terms[0] === 'text') value = el.text || '';
   else if (terms[0] === 'filename') value = D.filename;
   else if (terms[0] === 'model_name') value = D.model_name;
   else if (terms[0] === 'page_name') value = D.page_name;
@@ -464,9 +483,11 @@ function element(el, e, idx, minUnit, lw){
 function printLabels(){
   if (!ENTRIES.length) return;
   var o = D.labels.presets[$('lPreset').value];
+  if (o.printer === 'zebra') { $('status').textContent = 'Sending ' + ENTRIES.length + ' label(s) to the Zebra...'; sketchup.printZpl(JSON.stringify(labelReq())); return; }
   $('pageSize').textContent = '@page { size: ' + o.page_width + 'mm ' + o.page_height + 'mm; margin: 0; }';
   $('printArea').innerHTML = paginate(o).map(function(p){ return '<div class="pp" style="width:' + o.page_width + 'mm;height:' + o.page_height + 'mm">' + pageSvg(o, p, false, o.page_width + 'mm', o.page_height + 'mm') + '</div>'; }).join('');
-  setTimeout(function(){ window.print(); }, 50);
+  // print once the page size style is applied (two frames), not straight away
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ setTimeout(function(){ window.print(); }, 30); }); });
 }
 window.onload = function(){ sketchup.ready(); };
 </script>

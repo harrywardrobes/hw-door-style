@@ -31,6 +31,37 @@ module HarryWardrobes
         ]
       }.freeze
 
+      # HW's own layouts (Settings "label_layouts", edited in the Labels tab); these two are
+      # the starting point. x / y: fraction of the label from its centre; size: twelfths of
+      # the label's short side (as OpenCutList).
+      ZEBRA_DEFAULT = {
+        'page_width' => '102mm', 'page_height' => '76mm', 'margin_top' => '5mm', 'margin_right' => '5mm', 'margin_bottom' => '5mm',
+        'margin_left' => '5mm', 'spacing_h' => '0', 'spacing_v' => '0', 'col_count' => 1, 'row_count' => 1, 'offset' => 0, 'cutting_marks' => false,
+        'part_order_strategy' => '', 'printer' => 'zebra',
+        'layout' => [
+          { 'formula' => 'part.number', 'x' => -0.5, 'y' => -0.5, 'size' => 2.4, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.of', 'x' => 0.5, 'y' => -0.5, 'size' => 0.9, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.name', 'x' => -0.5, 'y' => -0.23, 'size' => 0.95, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.dims', 'x' => -0.5, 'y' => -0.09, 'size' => 1.05, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'group.material', 'x' => -0.5, 'y' => 0.05, 'size' => 0.8, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'part.edging', 'x' => 0.5, 'y' => 0.05, 'size' => 0.7, 'anchor' => 'end-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'customer_room', 'x' => -0.5, 'y' => 0.17, 'size' => 0.72, 'anchor' => 'start-top', 'rotation' => 0, 'color' => '#000000' },
+          { 'formula' => 'barcode', 'x' => 0, 'y' => 0.5, 'size' => 1.35, 'width' => 0.85, 'anchor' => 'middle', 'rotation' => 0, 'color' => '#000000' }
+        ]
+      }.freeze
+
+      A4_DEFAULT = ZEBRA_DEFAULT.merge(
+        'page_width' => '210mm', 'page_height' => '297mm', 'margin_top' => '10mm', 'margin_right' => '7mm', 'margin_bottom' => '10mm',
+        'margin_left' => '7mm', 'spacing_h' => '0', 'spacing_v' => '2mm', 'col_count' => 2, 'row_count' => 6, 'printer' => 'dialog'
+      ).freeze
+
+      def self.hw_layouts
+        saved = Settings.get['label_layouts']
+        saved = {} unless saved.is_a?(Hash)
+        base = { 'Zebra 102 x 76' => ZEBRA_DEFAULT, 'A4 sheet (Brother)' => A4_DEFAULT }
+        base.merge(saved)
+      end
+
       def self.parse(v)
         v = JSON.parse(v) if v.is_a?(String)
         v.is_a?(Hash) ? v : {}
@@ -58,6 +89,7 @@ module HarryWardrobes
         o['col_count'] = [o['col_count'].to_i, 1].max
         o['row_count'] = [o['row_count'].to_i, 1].max
         o['layout'] = Array(o['layout']).map { |e| e.merge('size' => e['size'].to_f, 'x' => e['x'].to_f, 'y' => e['y'].to_f, 'rotation' => e['rotation'].to_f) }
+        o['printer'] = o['printer'].to_s.empty? ? 'dialog' : o['printer'].to_s
         o
       end
 
@@ -65,6 +97,7 @@ module HarryWardrobes
       # settings come first ("This model"), then the presets saved in OpenCutList, then its default.
       def self.options(model = Sketchup.active_model)
         presets = {}
+        hw_layouts.each { |name, o| presets[name] = normalise(o).merge('hw' => true) }
         mine = parse(model.get_attribute(OCL, PRESETS_KEY, {}))[DICTIONARY]
         mine = parse(mine)['0'] if mine
         presets['This model (OpenCutList)'] = normalise(mine) if mine.is_a?(Hash) && !mine.empty?
@@ -72,7 +105,8 @@ module HarryWardrobes
         g = parse(parse(global[DICTIONARY])['0'])
         g.each { |name, o| presets[name == '_default' ? 'OpenCutList default' : name] = normalise(o) if o.is_a?(Hash) }
         presets['Built-in'] = normalise({}) if presets.empty?
-        { 'presets' => presets, 'active' => presets.keys.first }
+        active = Settings.get['label_layout_active'].to_s
+        { 'presets' => presets, 'active' => presets.key?(active) ? active : presets.keys.first }
       rescue StandardError => e
         Log.error('label presets', e)
         { 'presets' => { 'Built-in' => normalise({}) }, 'active' => 'Built-in' }
@@ -317,6 +351,15 @@ module HarryWardrobes
           a.merge('barcode' => barcode(room_id, "H#{a['agg_index']}"), 'number' => '', 't' => '', 'position' => 1, 'length' => '', 'width' => '', 'thickness' => '', 'material_name' => '',
                   'edges' => {}, 'edge_colors' => {}, 'custom' => layout.map { nil })
         end
+      end
+
+      # Print range: '' all, 'agg' grouped labels only, 'T3' one T number, [numbers] chosen parts.
+      def self.range(entries, r)
+        return entries if r.nil? || r == '' || r == 'all'
+        return entries.select { |e| e['kind'] == 'aggregate' } if r == 'agg'
+        return entries.select { |e| e['t'] == r || e['ts'].to_s.split(', ').include?(r) } if r.is_a?(String)
+        nums = Array(r).map(&:to_s)
+        entries.select { |e| nums.include?(e['number'].to_s) || nums.include?("H#{e['agg_index']}") }
       end
 
       T_ORDER = %w[T W B L F M].freeze
