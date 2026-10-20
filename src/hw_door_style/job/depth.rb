@@ -89,6 +89,7 @@ module HarryWardrobes
           next unless want && set(u, want)
           Drawers.close(u.definition.entities)
           DC.redraw(u)
+          Doors.refit(model, u)
         end
       end
 

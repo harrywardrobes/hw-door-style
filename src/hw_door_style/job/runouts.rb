@@ -175,6 +175,7 @@ module HarryWardrobes
           if changed
             Drawers.close(inst.definition.entities)
             DC.redraw(inst)
+            Doors.refit(model, inst)
           end
         end
       end

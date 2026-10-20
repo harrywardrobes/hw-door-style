@@ -140,7 +140,8 @@ module HarryWardrobes
             cur = i.definition.get_attribute(DICT, 'requested_style')
             # Internal drawers never converted stay as they are while their row is Flat.
             next true if kind == 'int_drawer' && cur.nil? && style == 'flat'
-            cur == style && !(reset && Converter.override?(i)) && !(kind == 'door' && hinge != old_hinge)
+            # (a front drawn at an old size - its unit was resized - is drawn again too)
+            cur == style && !(reset && Converter.override?(i)) && !(kind == 'door' && hinge != old_hinge) && !Doors.stale?(i)
           end
           next if pairs.empty?
           pairs.each { |i, _| touched[i.entityID] = true }

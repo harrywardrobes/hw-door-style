@@ -75,6 +75,35 @@ module HarryWardrobes
         Log.error('tags', e)
       end
 
+      STALE_MM = 0.6
+
+      # A styled front whose size has changed since its style was drawn (a unit was resized:
+      # runouts, ceiling, depth, height...). Its drawing would be stretched to fit, so the
+      # frame / mid-rail come out wrong - it needs drawing again.
+      def self.stale?(inst)
+        d = inst.definition
+        return false unless d.get_attribute(DICT, 'style')
+        w, _t, h = Finder.real_size(inst)
+        (w * 25.4 - d.get_attribute(DICT, 'width_mm').to_f).abs > STALE_MM ||
+          (h * 25.4 - d.get_attribute(DICT, 'height_mm').to_f).abs > STALE_MM
+      end
+
+      # After a unit is redrawn (inside the caller's operation): any of its styled fronts
+      # that changed size are drawn again in their own style, then the job's colours put back
+      # on the unit. Returns how many were redrawn.
+      def self.refit(model, roots)
+        roots = Array(roots)
+        pairs = Finder.targets(roots, STYLED_KINDS).select { |i, _k| stale?(i) }
+        return 0 if pairs.empty?
+        Converter.rebuild(model, pairs, nil, override: false, finish: false)
+        choices = Colours.job_choices(model).reject { |_k, v| v.nil? }
+        roots.each { |r| Colours.apply(model, choices, root: r, record: false) } unless choices.empty?
+        pairs.size
+      rescue StandardError => e
+        Log.error('refit fronts', e)
+        0
+      end
+
       # Doors / drawer fronts the plugin has converted at least once.
       def self.processed(model, kinds = STYLED_KINDS)
         Finder.all_targets(model, kinds).select { |i, _k| i.definition.get_attribute(DICT, 'style') }

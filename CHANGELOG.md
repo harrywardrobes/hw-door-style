@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.55.0 — 2026-10-20
+- Fix: a door or drawer front that was already styled kept its old drawing when its unit changed size (wider drawer unit, new height, runouts, ceiling, depth) - the drawing was stretched to fit, so Shaker frames and mid-rails came out wrong, and applying the Door style window didn't redraw it because the style hadn't changed. Now any styled front whose size has changed is drawn again: by the Door style window, and straight after the pencil / Scribe window, the ceiling height and Depth resize a unit (colours put back too).
+
+## 0.55.0 — 2026-10-20
+- 
+
 ## 0.54.0 — 2026-10-20
 - Plan tags in the "dimensions / labels" tag folder: plan dimensions on room_dims, plan notes on plan_notes, T numbers on T_numbers, the doors view on door_elevation (Settings > Floor plan / Product list; folder in Settings > Floor plan). The old "Plan notes", "Plan dimensions", "T numbers" and "Door elevation" tags are renamed, or their items moved onto the tag that's already there, the next time they're used.
 - Only tags the plugin made are switched to show in the plan / doors scenes only - room_dims, which has your own room dimensions too, keeps your scene settings.

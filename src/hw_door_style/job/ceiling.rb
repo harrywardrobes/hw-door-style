@@ -149,6 +149,7 @@ module HarryWardrobes
           Drawers.close(inst.definition.entities)
           DC.redraw(inst)
         end
+        Doors.refit(inst.model, inst) if door || fitted
         door || fitted
       end
 
