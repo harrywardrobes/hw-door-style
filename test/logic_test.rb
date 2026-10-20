@@ -785,5 +785,10 @@ pdf = HarryWardrobes::DoorStyle::Pdf.document(doc.pages.map(&:to_s))
 File.binwrite(File.join(Dir.tmpdir, 'room_plan_test.pdf'), pdf)
 check 'room plan: pages render (product list, pod sheet, panel list)', doc.pages.size == 3 && pdf.start_with?('%PDF')
 
+puts "\n== Mid-rail line"
+require 'hw_door_style/job/midrail'
+MR = HarryWardrobes::DoorStyle::Midrail
+check 'mid-rail option names (stable wardrobe and linen press)', %w[b06_midrail_centre b07_midrail_width h07_midrail_centre h08_midrail_width].all? { |k| k =~ MR::KEY_RE } && !('midrail_centre_mm' =~ MR::KEY_RE)
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

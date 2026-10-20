@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.51.0 — 2026-10-20
+- Stable panel and linen press drawers line up with the door style's mid-rail: stable panel = mid-rail centre - half its width - margin (Shaker 815 / 100: 763), and the linen press drawer fronts share the same height between them ((763 - gaps) / 3 = 253). The door above starts level with the bottom of the mid-rail on the doors beside it. Needs Components V30+ (Mid-rail centre / width in Component Options; "Stable panel height" still overrides, 0 = auto).
+- The mid-rail centre and width are copied from Settings > Door styles (the job's door style, or Shaker when the doors are flat) when a unit is placed from the + window and when the Door style window is applied; units that change are redrawn and their doors / fronts restyled at the new size.
+
+## 0.51.0 — 2026-10-20
+- 
+
 ## 0.50.0 — 2026-10-20
 - The stable panel (fixed panels) is always flat, whatever style the job's doors are.
 - No mid-rail on the door above the stable panel (WST_DOOR_UPPER), however tall. Settings > Doors > No mid-rail lists the doors that never get one.

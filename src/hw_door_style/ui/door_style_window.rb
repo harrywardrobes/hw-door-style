@@ -198,6 +198,8 @@ module HarryWardrobes
               Settings.set_job_hinge_type(hinge, model)
             end
           }]]
+          # Stable panels / linen press drawers line up with the door style's mid-rail.
+          steps << ['Mid-rail line (stable wardrobe, linen press)', -> { step.call { Midrail.sync(model, styles['door']) } }]
           work.each do |label, pairs, style, override|
             steps << ["Redrawing #{label}", lambda {
               r = step.call { Converter.rebuild(model, pairs, style, hinge_type: hinge, override: override, finish: false) }
