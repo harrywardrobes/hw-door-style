@@ -706,17 +706,17 @@ tops = { 1 => 'T1', 2 => 'B1' }
 info = RP.by_ref(parts, doors, tops)
 check 'room plan: doors per ref with hands and 155 flagged', RP.door_text(info['T1']['doors']) == '2 x Shaker 2300 high (LH + RH) - 155 HINGES'
 check 'room plan: interior summary', RP.interior_text(info['T1']) == '3 shelves, 1 hanging rail, 1 internal drawer'
-check 'room plan: panel types', %w[Cut Facing MDF Worktop] == parts['groups'].flat_map { |g| g['parts'].map { |p| RP.panel_type(g, p) } }.sort
+check 'room plan: panel types', ['Cut', 'Facing', 'Timber / MDF', 'Worktop'] == parts['groups'].flat_map { |g| g['parts'].map { |p| RP.panel_type(g, p) } }.sort
 rows = [{ 't' => 'T1', 'ref' => 'T', 'num' => 1, 'type' => 'Wardrobe', 'size' => [1000, 598, 2400], 'depth' => 580, 'finished' => 598 },
         { 't' => 'B1', 'ref' => 'B', 'num' => 1, 'type' => 'Worktop', 'size' => [1200, 518, 771], 'depth' => 500, 'finished' => 518 }]
 check 'PDF customer: SURNAME, First names', RP.customer_name('Rebecca Jane', 'Williams') == 'WILLIAMS, Rebecca Jane' && RP.customer_name('', 'Smith') == 'SMITH'
 check 'room plan: unit description', RP.describe(rows[0]) == '1000 Wardrobe (580 deep / 598 overall)'
 hd = { 'customer' => 'WILLIAMS, Rebecca', 'room' => 'Master Bedroom', 'drawing' => 'X830735284436', 'account' => 'HW123456789', 'fit_week' => 'Week 44' }
 doc = RP::Doc.new(hd); doc.start
-RP.product_page(doc, rows, info); RP.pod_page(doc, rows, info); RP.panel_page(doc, parts, tops)
+RP.product_page(doc, rows, info); RP.panel_page(doc, parts, tops, doors)
 pdf = HarryWardrobes::DoorStyle::Pdf.document(doc.pages.map(&:to_s))
 File.binwrite(File.join(Dir.tmpdir, 'room_plan_test.pdf'), pdf)
-check 'room plan: pages render (product list, pod sheet, panel list)', doc.pages.size == 3 && pdf.start_with?('%PDF')
+check 'room plan: pages render (product list, panel list with pods)', doc.pages.size == 2 && pdf.start_with?('%PDF')
 
 puts "\n== Mid-rail line"
 require 'hw_door_style/job/midrail'
