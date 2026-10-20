@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.65.1 — 2026-10-20
+- Workshop, HubSpot tab: a file that isn't linked (or a design visit with no Room yet) gets a **Link to HubSpot... / Connect to a Room...** button - the customer's project, then its Room (or Design Visit). The Workshop opens again once it's linked.
+- The "Before you start" box also offers linking when the file has no HubSpot customer (done last, in its own window).
+
 ## 0.65.0 — 2026-10-20
 - PDFs (door order, parts list, Room Plan): Customer as "WILLIAMS, Rebecca" (the HubSpot contact), Room (the Workshop room name), Drawing X<Room ID> and Account HW<HubSpot contact ID> on every one; the date is gone from the top. Door order / parts list: one "Customer | Room | Drawing | Account" line under the title.
 - Save Workshop Pack needs the file linked to its HubSpot customer (a Room or a design visit).

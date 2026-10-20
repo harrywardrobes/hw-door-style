@@ -370,7 +370,7 @@ function fixChecks(){
   if (on('colours')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-col]'), function(s){ cols[s.getAttribute('data-col')] = s.value; });
   var jc = {};
   if (on('nocolour')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-grp]'), function(s){ jc[s.getAttribute('data-grp')] = s.value; });
-  var req = JSON.stringify({ scribes: !!on('scribes'), colours: cols, job_colours: jc });
+  var req = JSON.stringify({ scribes: !!on('scribes'), hubspot: !!on('hubspot'), colours: cols, job_colours: jc });
   $('fixBox').innerHTML = '<h3>Fixing...</h3><div class="hint">The Workshop window opens again when it\'s done.</div>';
   sketchup.fixChecks(req);
 }
@@ -401,7 +401,13 @@ function pdfShow(r){
 function hubspotPlan(p){
   HS = p;
   if (p.error) { $('p_hubspot').innerHTML = '<div class="warnbox">' + esc(p.error) + '</div>'; return; }
-  if (!p.linked) { $('p_hubspot').innerHTML = '<div class="warnbox">This file isn\'t linked to a HubSpot Room yet - HubSpot > Link this file.</div>'; return; }
+  if (!p.linked) {
+    $('p_hubspot').innerHTML = '<div class="warnbox" style="display:flex;gap:12px;align-items:center"><div style="flex:1">' +
+      (p.design_visit ? 'This file is a <b>design visit</b> - linked to the customer, but not to a Room yet. Connect it to the Room to send.' : 'This file isn\'t linked to a HubSpot Room yet.') +
+      '<br><span class="hint" style="margin:0">Pick the customer\'s project, then its Room (or Design Visit if it has none). The Workshop opens again once it\'s linked.</span></div>' +
+      '<button class="primary" onclick="sketchup.linkHubspot()">' + (p.design_visit ? 'Connect to a Room...' : 'Link to HubSpot...') + '</button></div>';
+    return;
+  }
   var flags = p.rows.filter(function(r){ return r.flag; });
   var h = '<div class="warnbox" style="background:#eef6f1;border-color:#9cc7ad;display:flex;gap:12px;align-items:center"><div style="flex:1"><b>Ready to send:</b> ' + esc((PACK.names || []).join(', ')) +
     '<br>Prints ' + PACK.label_count + ' label(s) on the Zebra and ' + (PACK.pdfs || []).filter(function(x){ return x.pack; }).length + ' PDF(s) on "' + esc(PACK.pdf_printer) + '".</div>' +

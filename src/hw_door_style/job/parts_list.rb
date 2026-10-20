@@ -860,10 +860,22 @@ module HarryWardrobes
         # The checks prompt: fix what was ticked in one go, then open the window again.
         dlg.add_action_callback('fixChecks') do |_c, json|
           req = JSON.parse(json)
-          reopen = lambda do
+          reopen0 = lambda do
             dlg.close
             UI.start_timer(0.3, false) { PartsList.show }
           end
+          # linking to HubSpot last (its own window); the Workshop reopens after it either way
+          reopen = if req['hubspot']
+                     lambda do
+                       dlg.close
+                       UI.start_timer(0.3, false) do
+                         PartsList.show
+                         HubSpotRoom.show_pick(:link, after: -> { PartsList.show })
+                       end
+                     end
+                   else
+                     reopen0
+                   end
           begin
             Workshop.set_job_colours(model, req['job_colours']) unless (req['job_colours'] || {}).empty?
             Workshop.set_colours(model, req['colours'] || {}) unless (req['colours'] || {}).empty?
@@ -938,6 +950,10 @@ module HarryWardrobes
             model.selection.clear
             model.selection.add(e)
           end
+        end
+        # HubSpot tab, file not linked: the Link window; the Workshop reopens once it's linked.
+        dlg.add_action_callback('linkHubspot') do |_c|
+          HubSpotRoom.show_pick(:link, after: -> { UI.start_timer(0.3, false) { PartsList.show } })
         end
         dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{File.dirname(model.path).tr('\\', '/')}") unless model.path.to_s.empty? }
         # The labels for a request (layout, which parts), barcodes kept on the pieces.

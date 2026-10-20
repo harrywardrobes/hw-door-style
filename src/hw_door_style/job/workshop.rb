@@ -31,7 +31,7 @@ module HarryWardrobes
 
       # Rows for the HubSpot tab: [{ prop, label, section, hubspot, value, shown, send, flag }].
       def self.plan(model, parts)
-        l = HubSpotRoom.link(model) or return { 'linked' => false }
+        l = HubSpotRoom.link(model) or return { 'linked' => false, 'design_visit' => HubSpotRoom.design_visit?(model), 'saved' => !model.path.to_s.empty? }
         m = HubSpotRoom.meta
         calc = HubSpotRoom.calculated(model, m)
         mine = {}
@@ -89,6 +89,10 @@ module HarryWardrobes
       # colours not set up in OpenCutList (parts left out of the lists). [{ id, text, ... }]
       def self.checks(model, parts)
         out = []
+        if !HubSpotRoom.customer_link(model) && !model.path.to_s.empty? && !(defined?(LibraryExport) && LibraryExport.master?(model))
+          out << { 'id' => 'hubspot', 'text' => 'This file isn\'t linked to its HubSpot customer - the PDFs and labels need the customer, account and drawing number.',
+                   'fix' => 'Link it: pick the customer\'s project, then its Room (or Design Visit if it has none).' }
+        end
         units = Runouts.units(model.entities)
         if !parts['scribes_on'] && !units.empty?
           v = Runouts.job_values(model)

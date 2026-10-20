@@ -422,7 +422,8 @@ module HarryWardrobes
       end
 
       # mode :new (make the survey file) or :link (link the open file).
-      def self.show_pick(mode)
+      # after: called once the file has been linked (the Workshop reopens with the new link).
+      def self.show_pick(mode, after: nil)
         return unless ready?
         model = Sketchup.active_model
         cur = link(model)
@@ -448,11 +449,13 @@ module HarryWardrobes
         dlg.add_action_callback('choose') do |_c, json|
           pick = JSON.parse(json)
           dlg.close
+          before = customer_link(model)
           case mode
           when :new then create_file(pick)
           when :connect then connect_design_visit(model, pick)
           else link_open_file(model, pick)
           end
+          after.call if after && model.valid? && customer_link(model) != before
         end
         dlg.show
       end
