@@ -10,7 +10,7 @@
 -->
 <style>
   body { display:flex; flex-direction:column; height:100vh; }
-  .tabs { display:flex; gap:2px; border-bottom:1px solid var(--line); margin:6px 0 8px; }
+  .tabs { display:flex; gap:2px; border-bottom:1px solid var(--line); margin:0 0 8px; }
   .tabs button { border:1px solid var(--line); border-bottom:none; border-radius:4px 4px 0 0; background:#f4f6f5; padding:5px 12px; }
   .tabs button.on { background:#fff; font-weight:600; position:relative; top:1px; }
   .pane { flex:1; overflow:auto; display:none; }
@@ -76,8 +76,6 @@
 <style id="pageSize"></style>
 </head>
 <body>
-<h1>Workshop</h1>
-<div class="sub" id="sub">Reading the model...</div>
 <div id="warns"></div>
 <div class="tabs" id="tabs">
   <button data-t="products" class="on">Product List</button>
@@ -161,7 +159,6 @@ function render(d){
   if (PACK) packStale(); // the model was read again - save the pack again before sending
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
-  $('sub').textContent = d.job + ' - ' + d.date + '. Products (Pod numbers) on the Product List; doors, drawer fronts, 22mm (white back), bullnose and cornice on Doors / Vinyl; everything else comes from the parts.';
   var w = [];
   if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
   if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');

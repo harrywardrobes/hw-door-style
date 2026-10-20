@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.64.1 — 2026-10-20
+- Workshop: the title and the line under it are gone - the tabs start at the top of the window.
+
 ## 0.64.0 — 2026-10-20
 - **Pod numbers**: "T numbers" are called Pod numbers everywhere (Workshop, Settings, labels, Room Plan, label editor). The plan tag is now Pod_numbers (the old T_numbers tag is renamed when it's next used). The codes themselves (T1, W1, B1...) are unchanged.
 - Workshop checks box: parts with no colour can be fixed too - pick the job colours (door, exterior, interior, worktop) and they're applied as in the Colours window, then the Workshop reopens. Not offered on the library master (it has no colours on purpose).
