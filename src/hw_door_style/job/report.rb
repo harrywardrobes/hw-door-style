@@ -157,7 +157,7 @@ module HarryWardrobes
 
       def self.payload(model = Sketchup.active_model)
         r = rows(model)
-        # Unit = the product's T number (Product List); the component path stays as 'unit_path'.
+        # Unit = the product's Pod number (Product List); the component path stays as 'unit_path'.
         tops = (Products.list(model)[1] rescue {})
         r.each do |x|
           x['unit_path'] = x['unit']

@@ -23,7 +23,7 @@ module HarryWardrobes
 
       # The value of a layout element for a label - the same as the window's element()
       # (html/parts_list.html). Grouped labels: the big number is the item's name, the name
-      # line is the total, the material line the T numbers it's for.
+      # line is the total, the material line the Pod numbers it's for.
       def self.mm_s(s) = s.to_s.sub(/\s*mm\z/, '')
 
       def self.edging(e)

@@ -1,6 +1,6 @@
 module HarryWardrobes
   module DoorStyle
-    # The plugin's own tags for plan dimensions, plan notes, T numbers and the doors view: named in Settings
+    # The plugin's own tags for plan dimensions, plan notes, Pod numbers and the doors view: named in Settings
     # and kept in the "dimensions / labels" tag folder (Settings "label_tag_folder").
     #
     # A tag the plugin makes is marked; only those are switched to show in the plan scenes
@@ -12,7 +12,7 @@ module HarryWardrobes
       KEYS = {
         'plan_dims_tag' => ['room_dims', ['Plan dimensions']],
         'plan_notes_tag' => ['plan_notes', ['Plan notes']],
-        'product_label_tag' => ['T_numbers', ['T numbers']],
+        'product_label_tag' => ['Pod_numbers', ['T_numbers', 'T numbers']],
         'door_view_tag' => ['door_elevation', ['Door elevation']]
       }.freeze
 

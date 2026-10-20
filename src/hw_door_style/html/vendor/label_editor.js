@@ -8,7 +8,7 @@
  *
  * Modified by Gautier Design Ltd, 20 October 2026: rewritten without jQuery, Twig, i18next and
  * bootstrap-select for SketchUp's HtmlDialog; element bindings rewired to HW Door Style's label
- * fields (T number, part number, customer, room, barcode...); page / printer settings and named
+ * fields (Pod number, part number, customer, room, barcode...); page / printer settings and named
  * layouts added. Kept: the label canvas centred on the label, the grid of twelfths of the
  * label's short side, drag with snap to the grid, arrow-key nudge, add / duplicate / remove /
  * rotate, and the element form (field, size, anchor, colour, custom formula).
@@ -24,10 +24,10 @@
 
   // The fields a label element can show (value code -> label in the list).
   var FIELDS = [
-    ['part.number', 'T number + part number (T3  12)'],
-    ['part.t', 'T number'],
+    ['part.number', 'Pod number + part number (T3  12)'],
+    ['part.t', 'Pod number'],
     ['part.no', 'Part number'],
-    ['part.t_of', 'T number + qty (T1  1 of 2)'],
+    ['part.t_of', 'Pod number + qty (T1  1 of 2)'],
     ['part.name', 'Part name'],
     ['part.dims', 'Length x width (grouped: Qty)'],
     ['part.size', 'Length x width'],
@@ -37,7 +37,7 @@
     ['group.material', 'Material / colour'],
     ['part.edging', 'Edging summary'],
     ['part.of', 'Qty (1 of 2)'],
-    ['part.ts', 'T numbers (grouped labels)'],
+    ['part.ts', 'Pod numbers (grouped labels)'],
     ['customer', 'Customer (SMITH JA)'],
     ['room_id', 'Room ID'],
     ['room_name', 'Room name'],

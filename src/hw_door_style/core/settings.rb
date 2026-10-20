@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 7
+      SETTINGS_VERSION = 8
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -77,6 +77,10 @@ module HarryWardrobes
             user['product_refs']['EXT_DRAWER'] = 'L' if [nil, 'B'].include?(user['product_refs']['EXT_DRAWER'])
             user['product_refs']['FACING_BLOCK'] ||= 'F'
           end
+        end
+        # 0.64: "T numbers" are Pod numbers (the tag too).
+        if v < 8
+          user['product_label_tag'] = d['product_label_tag'] if %w[T_numbers T\ numbers].include?(user['product_label_tag'].to_s) || user['product_label_tag'].to_s.strip.empty?
         end
         user['settings_version'] = SETTINGS_VERSION
         user

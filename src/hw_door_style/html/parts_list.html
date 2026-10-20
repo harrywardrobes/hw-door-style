@@ -161,7 +161,7 @@ function render(d){
   if (PACK) packStale(); // the model was read again - save the pack again before sending
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
-  $('sub').textContent = d.job + ' - ' + d.date + '. Products (T numbers) on the Product List; doors, drawer fronts, 22mm (white back), bullnose and cornice on Doors / Vinyl; everything else comes from the parts.';
+  $('sub').textContent = d.job + ' - ' + d.date + '. Products (Pod numbers) on the Product List; doors, drawer fronts, 22mm (white back), bullnose and cornice on Doors / Vinyl; everything else comes from the parts.';
   var w = [];
   if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
   if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
@@ -245,9 +245,9 @@ function renderProducts(d){
   var P = d.products || [];
   var opts = function(cur, self, here){ return '<option value=""' + (cur === '' ? ' selected' : '') + '>Automatic' + (cur === '' ? ' (' + esc(here) + ')' : '') + '</option><option value="own"' + (cur === 'own' ? ' selected' : '') + '>Its own product</option>' +
     P.filter(function(p){ return p.pid !== self; }).map(function(p){ return '<option value="' + esc(p.pid) + '"' + (cur === p.pid ? ' selected' : '') + '>Part of ' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join(''); };
-  var h = '<div class="lbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="hint" style="margin:0;flex:1">' + P.length + ' products. T numbers are kept on each product; new ones get the next number. Bullnose and end panels aren\'t products (Settings &gt; Product list).</span>' +
-    '<button onclick="sketchup.labelPlan()" title="Puts T1, T2... (with depth / finished depth) over each product, shown in the plan scenes only">Show T numbers on the plan</button><button id="renumBtn" onclick="renumber(this)">Renumber left to right</button></div>';
-  h += P.length ? '<table><tr><th>T</th><th>Product</th><th>Component</th><th class="n">W x D x H (mm)</th><th class="n">Depth / finished</th><th>Includes</th></tr>' + P.map(function(p){
+  var h = '<div class="lbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="hint" style="margin:0;flex:1">' + P.length + ' products. Pod numbers are kept on each product; new ones get the next number. Bullnose and end panels aren\'t products (Settings &gt; Product list).</span>' +
+    '<button onclick="sketchup.labelPlan()" title="Puts T1, T2... (with depth / finished depth) over each product, shown in the plan scenes only">Show Pod numbers on the plan</button><button id="renumBtn" onclick="renumber(this)">Renumber left to right</button></div>';
+  h += P.length ? '<table><tr><th>Pod</th><th>Product</th><th>Component</th><th class="n">W x D x H (mm)</th><th class="n">Depth / finished</th><th>Includes</th></tr>' + P.map(function(p){
     var inc = p.members.map(function(m){
       return '<div style="display:flex;gap:6px;align-items:center;margin:1px 0"><span style="flex:1">' + esc(m.name) + ' <span style="color:var(--muted)">' + m.size.join(' x ') + '</span></span><select style="font-size:11px" onchange="setHost(\'' + esc(m.pid) + '\', this.value)">' + opts(m.auto ? '' : p.pid, m.pid, p.t) + '</select></div>';
     }).join('');
@@ -272,10 +272,10 @@ function jobInfo(j){ if (!j) return; D.job_info = j; $('jiRoom').value = j.room_
   $('jiSrc').textContent = j.design_visit ? '(customer from HubSpot - design visit, no Room yet)' : j.source === 'hubspot' ? '(customer and Room ID from HubSpot)' : '(not linked to HubSpot - customer from the folder name; link it: HubSpot > Link this file)'; if (ENTRIES.length) labelEntries({ entries: ENTRIES }); }
 function saveJob(){ sketchup.setJobInfo(JSON.stringify({ room_name: $('jiRoom').value })); }
 function renumberParts(b){ if (b.dataset.sure) { $('status').textContent = 'Renumbering parts...'; sketchup.renumberParts(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every part number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber parts'; } }, 4000); }
-function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every T number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
+function renumber(b){ if (b.dataset.sure) { sketchup.renumber(); return; } b.dataset.sure = '1'; b.textContent = 'Click again - every Pod number changes'; setTimeout(function(){ if (b) { delete b.dataset.sure; b.textContent = 'Renumber left to right'; } }, 4000); }
 function setHost(pid, host){ $('status').textContent = 'Updating the product list...'; sketchup.setHost(JSON.stringify({ pid: pid, host: host })); }
 function doorViewMade(w){ $('status').textContent = w.length ? 'Doors view drawn: ' + (w.length === 1 ? 'scene "Doors"' : w.length + ' scenes "Doors - ' + w.join('", "Doors - ') + '"') + ' (tag "door_elevation"). It is also in the Room Plan and on the door order.' : 'No doors or drawer fronts found.'; }
-function planLabelled(n){ $('status').textContent = n + ' T number(s) put on the plan (tag "T numbers", shown in the plan scenes).'; }
+function planLabelled(n){ $('status').textContent = n + ' Pod number(s) put on the plan (tag "Pod_numbers", shown in the plan scenes).'; }
 // ---------- Floor Plan ----------
 var PLAN = null;
 function planOpen(){ if (PLAN === null) { PLAN = 'loading'; $('p_plan').innerHTML = '<div class="hint">Making the plan picture...</div>'; sketchup.planLoad(); } }
@@ -284,7 +284,7 @@ function planData(p){
   var h = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
     '<span class="hint" style="margin:0;flex:1">' + (p.scene ? 'Plan scene: <b>' + esc(p.scene) + '</b>' : '<span class="bad">No plan scene - add a scene named e.g. "S top"</span>') +
     (p.ceiling ? ' &middot; CEILING ' + p.ceiling + 'mm' : '') + (p.fascia ? ' &middot; TOP FASCIA ' + p.fascia + 'mm' : '') + (p.last ? ' &middot; last saved v' + p.last : '') + '</span>' +
-    '<button onclick="planBusy(\'planTs\')">T numbers on the plan</button><button onclick="planBusy(\'doorView\')" title="Doors and drawer fronts on each wall, flat with their sizes, in a Doors scene (made again each time)">Doors view</button><button onclick="planBusy(\'planDims\')" title="Room and each product\'s width, made again each time">' + (p.dims ? 'Re-dimension' : 'Dimension the plan') + '</button>' +
+    '<button onclick="planBusy(\'planTs\')">Pod numbers on the plan</button><button onclick="planBusy(\'doorView\')" title="Doors and drawer fronts on each wall, flat with their sizes, in a Doors scene (made again each time)">Doors view</button><button onclick="planBusy(\'planDims\')" title="Room and each product\'s width, made again each time">' + (p.dims ? 'Re-dimension' : 'Dimension the plan') + '</button>' +
     '<button onclick="planBusy(\'planLoad\')">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
   if (p.error) h += '<div class="warnbox">' + esc(p.error) + '</div>';
   h += '<div style="display:flex;gap:12px;align-items:flex-start">';
@@ -311,11 +311,18 @@ function renderLabels(d){
   jobInfo(d.job_info);
   renderPdfs(d.pdfs || []);
   showChecks(d.checks || []);
+  var bl = d.blockers || []; $('packBtn').style.opacity = bl.length ? '.5' : ''; $('packBtn').title = bl.length ? 'Fix first: ' + bl.join(' ') : 'Makes the PDFs (door order, parts list, Room Plan) and the labels, ready to check and send';
   labelParts({ parts: d.label_parts, stock: d.timber_stock });
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 function failed(msg){ if ($('fixBack')) $('fixBack').style.display = 'none'; $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
 function savePack(){
+  var b = (D && D.blockers) || [];
+  if (b.length) {
+    $('status').innerHTML = '<span class="bad">Can\'t save the Workshop Pack yet - ' + esc(b.join(' ')) + '</span>';
+    if (missingSheets().length) document.querySelector('#tabs button[data-t=sheets]').click();
+    return;
+  }
   var ms = missingSheets();
   if (ms.length) {
     document.querySelector('#tabs button[data-t=sheets]').click();
@@ -352,6 +359,9 @@ function showChecks(list){
       return '<tr><td>' + esc(m.name) + (m.known ? ' <span class="hint" style="margin:0">(' + esc(m.known) + ')</span>' : '') + '</td><td class="n">' + m.count + '</td><td><select data-col="' + esc(m.name) + '">' +
         [['sheet', 'Sheet good (board)'], ['hardware', 'Hardware'], ['', 'Leave out']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === m.default ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></td></tr>';
     }).join('') + '</table>';
+    if (c.groups) h += '<table><tr><th>Colour</th><th>Job colour</th></tr>' + c.groups.map(function(g){
+      return '<tr><td>' + esc(g.label) + '</td><td><select data-grp="' + esc(g.id) + '">' + g.options.map(function(o){ return '<option' + (o === g.value ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select></td></tr>';
+    }).join('') + '</table>';
     h += '</div>';
   });
   h += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button onclick="$(\'fixBack\').style.display=\'none\'">Not now</button><button class="primary" onclick="fixChecks()">Fix and reopen</button></div>';
@@ -361,7 +371,9 @@ function fixChecks(){
   var on = function(id){ var c = document.querySelector('#fixBox input[data-fix="' + id + '"]'); return c && c.checked; };
   var cols = {};
   if (on('colours')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-col]'), function(s){ cols[s.getAttribute('data-col')] = s.value; });
-  var req = JSON.stringify({ scribes: !!on('scribes'), colours: cols });
+  var jc = {};
+  if (on('nocolour')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-grp]'), function(s){ jc[s.getAttribute('data-grp')] = s.value; });
+  var req = JSON.stringify({ scribes: !!on('scribes'), colours: cols, job_colours: jc });
   $('fixBox').innerHTML = '<h3>Fixing...</h3><div class="hint">The Workshop window opens again when it\'s done.</div>';
   sketchup.fixChecks(req);
 }
@@ -568,7 +580,7 @@ function element(el, e, idx, minUnit, lw){
   var mmS = function(v){ return String(v == null ? '' : v).replace(/\s*mm$/, ''); };
   if (terms[0] === 'hr') { var hw = (el.width || 0.9) * (lw || minUnit * 12); return '<line x1="' + anchorX(anchor, hw) + '" y1="0" x2="' + (anchorX(anchor, hw) + hw) + '" y2="0" stroke="' + color + '" stroke-width="' + Math.max(0.2, el.size * 0.25) + '"/>'; }
   if (terms[0] === 'part') {
-    if (key === 'number') value = agg ? e.name : (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
+    if (key === 'number') value = agg ? e.name : (e.t ? e.t + '\u2003' : '') + e.number; // HW: Pod number left of the part number
     else if (key === 'name') value = e.name;
     else if (key === 't' || key === 't_number') value = e.t || '';
     else if (key === 'no') value = agg ? 'H' + e.agg_index : String(e.number);

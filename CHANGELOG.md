@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.64.0 — 2026-10-20
+- **Pod numbers**: "T numbers" are called Pod numbers everywhere (Workshop, Settings, labels, Room Plan, label editor). The plan tag is now Pod_numbers (the old T_numbers tag is renamed when it's next used). The codes themselves (T1, W1, B1...) are unchanged.
+- Workshop checks box: parts with no colour can be fixed too - pick the job colours (door, exterior, interior, worktop) and they're applied as in the Colours window, then the Workshop reopens. Not offered on the library master (it has no colours on purpose).
+- **Save Workshop Pack is blocked** until the lists are complete: scribes off, parts left out (no colour / colour not set up), full sheets not entered, parts bigger than the sheet, or a board with no sheet size. The button is greyed with the reasons; a thickness outside the standard list is still only a warning.
+
 ## 0.63.0 — 2026-10-20
 - Workshop opens with a **Before you start** box when something can be put right straight away: scribes off (turned on for every unit with the job's runouts) and colours not set up as a sheet good or hardware (pick Sheet good / Hardware / Leave out for each - known board colours are pre-set). **Fix and reopen** does them in one go and opens the Workshop again; parts with no colour at all are listed to paint. "Not now" carries on.
 - Floor plan: hardware is left off the plan picture (Floor Plan tab and the Room Plan PDF) - Settings > Floor plan > Hidden on the plan (hinges, shelf brackets, drawer runners, cable outlets, hanging rails by default). Scenes aren't changed.

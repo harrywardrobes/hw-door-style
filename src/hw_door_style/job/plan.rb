@@ -12,7 +12,7 @@ module HarryWardrobes
     #   Dimensions  "Dimension the plan": the room (floor) and each product's width along the
     #               wall, on the "Plan dimensions" tag (made again each time).
     #   PDF         INSTALLATION_PLAN_v<N>_<file>.pdf: the plan scene with its notes, dimensions
-    #               and T numbers, the ceiling height and top fascia. Saved with the workshop
+    #               and Pod numbers, the ceiling height and top fascia. Saved with the workshop
     #               pack and sent to the Room's Floor Plan field.
     module Plan
       NOTE = 'plan_note'.freeze

@@ -3,7 +3,7 @@ require 'json'
 module HarryWardrobes
   module DoorStyle
     # Product list: the big things in a job (wardrobes, bridge units, worktops, drawer
-    # units, box shelf sections...), each with a T number - T1, T2... - that the Workshop
+    # units, box shelf sections...), each with a Pod number - T1, T2... - that the Workshop
     # tabs and the floor plan refer to.
     #
     #   products   components named in Settings "product_types" (name -> friendly type)
@@ -14,7 +14,7 @@ module HarryWardrobes
     #              each other with no product to join make one section.
     #
     # Joins are automatic, and can be changed in the Workshop's Product List (stored on the
-    # part: "own" or the product it belongs to). T numbers are given left to right the first
+    # part: "own" or the product it belongs to). Pod numbers are given left to right the first
     # time and then kept on each product, so a new unit gets the next number; Renumber gives
     # them out left to right again.
     module Products
@@ -206,7 +206,7 @@ module HarryWardrobes
         [rows, tops]
       end
 
-      # T numbers: kept on each product; new ones get the next numbers, left to right.
+      # Pod numbers: kept on each product; new ones get the next numbers, left to right.
       # Numbers per letter (T1, T2... W1...): kept on each product (with its letter, so a
       # product that changes letter gets a new number); new ones get the next, left to right.
       def self.number(model, prods, renumber: false)
@@ -261,7 +261,7 @@ module HarryWardrobes
         pattern = Regexp.new(Settings.get['product_label_scenes'].to_s.strip.then { |s| s.empty? ? 'top|plan' : s }, Regexp::IGNORECASE)
         by_pid = candidates(model.entities).to_h { |e, _| [e.persistent_id.to_s, e] }
         n = 0
-        Ops.run(model, 'T numbers on the plan') do
+        Ops.run(model, 'Pod numbers on the plan') do
           old = model.entities.grep(Sketchup::Text).select { |t| t.get_attribute(DICT, 'product_label') }
           model.entities.erase_entities(old) unless old.empty?
           rows.each do |r|

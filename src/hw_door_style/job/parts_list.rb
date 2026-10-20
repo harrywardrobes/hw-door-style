@@ -799,6 +799,7 @@ module HarryWardrobes
           data['job_info'] = JobInfo.get(model)
           data['pdfs'] = Workshop.pdfs(model)
           data['checks'] = (Workshop.checks(model, data) rescue (Log.error('workshop checks', $!); []))
+          data['blockers'] = Workshop.blockers(model, data)
           label_parts.call
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
@@ -817,6 +818,7 @@ module HarryWardrobes
             UI.start_timer(0.3, false) { PartsList.show }
           end
           begin
+            Workshop.set_job_colours(model, req['job_colours']) unless (req['job_colours'] || {}).empty?
             Workshop.set_colours(model, req['colours'] || {}) unless (req['colours'] || {}).empty?
             if req['scribes']
               dlg.execute_script("$('status').textContent = 'Turning scribes on...'")
@@ -845,7 +847,7 @@ module HarryWardrobes
           Steps.one(dlg, 'Dimensioning the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.dimension(model); Plan.data(model) }
         end
         dlg.add_action_callback('planTs') do |_c|
-          Steps.one(dlg, 'T numbers on the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Products.label(model); Plan.data(model) }
+          Steps.one(dlg, 'Pod numbers on the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Products.label(model); Plan.data(model) }
         end
         dlg.add_action_callback('planNote') do |_c, json|
           req = JSON.parse(json)
@@ -980,6 +982,8 @@ module HarryWardrobes
         pack = nil
         dlg.add_action_callback('save') do |_c, json|
           req = (JSON.parse(json.to_s) rescue {}).merge('range' => '')
+          blocked = Workshop.blockers(model, data)
+          next fail_js.call(StandardError.new("The Workshop Pack can't be saved yet: #{blocked.join(' ')}")) unless blocked.empty?
           out = nil
           steps = [['Saving the door order, parts list and Room Plan', -> { out = Workshop.save(model, data) }],
                    ['Making the labels', lambda {

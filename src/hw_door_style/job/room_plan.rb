@@ -6,7 +6,7 @@ module HarryWardrobes
     #
     #   1 Cover / Specification  customer, colours, doors, hinges, handles, ceiling, depths, scribes
     #   2 Product List           every ref (T / W / B / M) - loose items first - with doors and interior
-    #   3 Installation Plan      the plan scene, notes, T numbers, and the fitting footer
+    #   3 Installation Plan      the plan scene, notes, Pod numbers, and the fitting footer
     #   3b Door elevation        the doors and drawer fronts on each wall, with sizes (DoorView)
     #   4 Pod Sheet              the parts in each ref
     #   5 Panel list             MDF / Timber / Cut / Worktop / Facing
@@ -208,7 +208,7 @@ module HarryWardrobes
       def self.product_page(doc, rows, info)
         doc.section('Product List')
         list = rows.sort_by { |r| [LOOSE_FIRST.index(r['ref']) || 9, r['num']] }
-        doc.table([['Ref', 26, :left], ['Unit', 150, :left], ['Doors', nil, :left], ['Interior', 150, :left]],
+        doc.table([['Pod', 26, :left], ['Unit', 150, :left], ['Doors', nil, :left], ['Interior', 150, :left]],
                   list.map { |r| [r['t'], describe(r), door_text(info[r['t']]['doors']), interior_text(info[r['t']])] })
       end
 

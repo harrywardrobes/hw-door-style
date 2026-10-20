@@ -37,7 +37,7 @@ module HarryWardrobes
         'page_width' => '102mm', 'page_height' => '76mm', 'margin_top' => '5mm', 'margin_right' => '5mm', 'margin_bottom' => '5mm',
         'margin_left' => '5mm', 'spacing_h' => '0', 'spacing_v' => '0', 'col_count' => 1, 'row_count' => 1, 'offset' => 0, 'cutting_marks' => false,
         'part_order_strategy' => '', 'printer' => 'zebra',
-        # Left: T number + "1 of 2" (small), part name, length x width, material / thickness,
+        # Left: Pod number + "1 of 2" (small), part name, length x width, material / thickness,
         # customer / room. Top right: the part's outline (its own shape, edged sides thick, as
         # OpenCutList's thumbnail). Bottom right: the part number (big), then the barcode
         # (bars only), both right-aligned.
@@ -270,7 +270,7 @@ module HarryWardrobes
       end
 
       # One label per name for the aggregate parts: name, total (timber: stock lengths), the
-      # T numbers it belongs to, and the running index n (barcode HW-{room}-H{n}).
+      # Pod numbers it belongs to, and the running index n (barcode HW-{room}-H{n}).
       def self.aggregates(parts, tops, stock)
         by = {}
         parts.each do |p, kind|
@@ -304,8 +304,8 @@ module HarryWardrobes
         list
       end
 
-      # tops: Products.list's top-level entity id -> T number, so each piece carries its
-      # product's T number (blank when it isn't in one). Printed T number, then part number;
+      # tops: Products.list's top-level entity id -> Pod number, so each piece carries its
+      # product's Pod number (blank when it isn't in one). Printed Pod number, then part number;
       # the grouped labels come after the part labels.
       def self.entries(list, preset, tops = {}, modes: {}, stock: 2400, which: '', room_id: '')
         layout = Array(preset['layout'])
@@ -352,7 +352,7 @@ module HarryWardrobes
         end
       end
 
-      # Print range: '' all, 'agg' grouped labels only, 'T3' one T number, [numbers] chosen parts.
+      # Print range: '' all, 'agg' grouped labels only, 'T3' one Pod number, [numbers] chosen parts.
       def self.range(entries, r)
         return entries if r.nil? || r == '' || r == 'all'
         return entries.select { |e| e['kind'] == 'aggregate' } if r == 'agg'
@@ -363,7 +363,7 @@ module HarryWardrobes
 
       T_ORDER = %w[T W B L F M].freeze
 
-      # T number (T1, T2... W1... in list order; none last), then part number, then piece.
+      # Pod number (T1, T2... W1... in list order; none last), then part number, then piece.
       def self.t_key(t)
         return [1, 99, 0, ''] if t.to_s.empty?
         l = t[/\A[A-Z]+/].to_s

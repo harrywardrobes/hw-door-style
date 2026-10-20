@@ -308,7 +308,7 @@
     "BOOKCASE": 475
   },
   "product_front_mm": 18,
-  "product_label_tag": "T_numbers",
+  "product_label_tag": "Pod_numbers",
   "product_label_scenes": "top|plan",
   "export_skip": [
     "FLOOR"

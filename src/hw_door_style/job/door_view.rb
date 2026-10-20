@@ -8,7 +8,7 @@ module HarryWardrobes
     #   Model   Workshop > Floor Plan > "Doors view": a drawing per wall on the "door_elevation"
     #           tag (in the "dimensions / labels" folder) (below the floor, out of the way) and a scene for each - "Doors", or
     #           "Doors - back wall" / "- left wall"... when there is more than one wall. The tag
-    #           shows only in those scenes. Made again each time, like the T numbers.
+    #           shows only in those scenes. Made again each time, like the Pod numbers.
     #   PDFs    a Door elevation page per wall in the Room Plan and on the door order.
     module DoorView
       ATTR = 'door_view'.freeze
@@ -121,7 +121,7 @@ module HarryWardrobes
           texts << { 'at' => [uc, hz], 'text' => f['h'].to_s, 'size' => 'h' }
           texts << { 'at' => [uc, f['z0'] + f['midrail']], 'text' => f['midrail_width'].to_s, 'size' => 'rail' } if f['midrail']
         end
-        # T numbers under each product's widths.
+        # Pod numbers under each product's widths.
         labels = fs.select { |f| f['t'] }.group_by { |f| f['t'] }.map do |t, list|
           { 'text' => t, 'u' => (list.map { |f| f['u0'] }.min + list.map { |f| f['u1'] }.max) / 2.0 }
         end

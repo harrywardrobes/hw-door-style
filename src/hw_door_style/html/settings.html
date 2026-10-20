@@ -274,7 +274,7 @@
 <!-- ======================= PRODUCT LIST ======================= -->
 <section id="s_productlist">
   <h2>Product list</h2>
-  <div class="lead">The products in a job (Workshop &gt; Product List) - each with a T number used on the other tabs, the door order and the floor plan.</div>
+  <div class="lead">The products in a job (Workshop &gt; Product List) - each with a Pod number used on the other tabs, the door order and the floor plan.</div>
   <fieldset><legend>Products</legend>
     <div class="f t"><span>Component : product name</span><textarea id="product_types" rows="10"></textarea></div>
     <div class="hint" style="margin-bottom:6px">One per line, e.g. <code>WARDROBE: Wardrobe</code>. A component named here is a product, shown as its name + width (e.g. "Wardrobe 824"). Copies (WARDROBE#2) and longer names (WARDROBE_LEFT) count too.</div>
@@ -283,7 +283,7 @@
     <div class="f t"><span>Never products</span><input type="text" id="product_skip"></div>
     <div class="hint">Left out of the Product List (facings, bullnose, end panels, floor, ceiling...). A name here also covers names starting with it.</div>
   </fieldset>
-  <fieldset><legend>T numbers</legend>
+  <fieldset><legend>Pod numbers</legend>
     <div class="f t"><span>Depth options</span><input type="text" id="product_depth_keys"></div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Front (door / facing) mm</span><input type="number" id="product_front_mm"></div>
     <div class="hint" style="margin-bottom:6px">Depth / finished depth (e.g. 580/598): the first of these component options found (back wall to the back of the facing); finished = its "_finished" option if it has one, else depth + the front thickness.</div>
@@ -293,13 +293,13 @@
     <div class="f t"><span>Anything else</span><input type="text" id="product_prefix" style="max-width:80px"></div>
     <div class="f t"><span>Plan label tag</span><input type="text" id="product_label_tag"></div>
     <div class="f t"><span>Plan scenes</span><input type="text" id="product_label_scenes"></div>
-    <div class="hint">"Show T numbers on the plan" puts T1 (580/598) - the number with depth / finished depth - over each product on its own tag, shown only in scenes whose name matches (e.g. <code>top|plan</code> for "S top").</div>
+    <div class="hint">"Show Pod numbers on the plan" puts T1 (580/598) - the number with depth / finished depth - over each product on its own tag, shown only in scenes whose name matches (e.g. <code>top|plan</code> for "S top").</div>
   </fieldset>
 </section>
 
 <section id="s_floorplan">
   <h2>Floor plan</h2>
-  <div class="lead">The Installation Plan (Workshop &gt; Floor Plan): notes with arrows, dimensions and T numbers on the plan scene, saved as a PDF with the workshop pack and sent to the Room's Floor Plan.</div>
+  <div class="lead">The Installation Plan (Workshop &gt; Floor Plan): notes with arrows, dimensions and Pod numbers on the plan scene, saved as a PDF with the workshop pack and sent to the Room's Floor Plan.</div>
   <fieldset><legend>Standard messages</legend>
     <div class="f t"><span>Messages</span><textarea id="plan_messages" rows="12"></textarea></div>
     <div class="hint">One per line - offered when you right-click a part &gt; HW Door Style &gt; Plan note (there's also "Other text..."). {size} = the part's size (the narrower of its width / depth, e.g. a filler), {width}, {depth}, {height} - in mm.</div>
@@ -309,10 +309,10 @@
     <div class="f t"><span>Notes tag</span><input type="text" id="plan_notes_tag"></div>
     <div class="f t"><span>Dimensions tag</span><input type="text" id="plan_dims_tag"></div>
     <div class="f t"><span>Tag folder</span><input type="text" id="label_tag_folder"></div>
-    <div class="hint">The notes, dimensions and T number tags go in this tag folder. A tag the plugin makes shows in the plan scenes only; one that's already yours (e.g. room_dims) keeps your scene settings.</div>
+    <div class="hint">The notes, dimensions and Pod number tags go in this tag folder. A tag the plugin makes shows in the plan scenes only; one that's already yours (e.g. room_dims) keeps your scene settings.</div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Note distance (mm)</span><input type="number" id="plan_note_offset_mm"></div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Dimension distance (mm)</span><input type="number" id="plan_dim_offset_mm"></div>
-    <div class="hint">Notes, dimensions and T numbers show only in scenes whose name matches (e.g. <code>top|plan</code> for "S top"). Distances: how far a note sits from its part, and the dimensions from the wall.</div>
+    <div class="hint">Notes, dimensions and Pod numbers show only in scenes whose name matches (e.g. <code>top|plan</code> for "S top"). Distances: how far a note sits from its part, and the dimensions from the wall.</div>
   </fieldset>
   <fieldset><legend>Hidden on the plan</legend>
     <div class="f t"><span>Tags</span><input type="text" id="plan_hidden_tags"></div>
@@ -532,7 +532,7 @@ var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrai
 var LOWER_LISTS = ['product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'Pod_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]

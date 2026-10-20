@@ -105,7 +105,41 @@ module HarryWardrobes
           out << { 'id' => 'colours', 'text' => "#{cols.sum { |c| c['count'] }} part(s) have a colour that isn't set up as a sheet good or hardware, so they're left out.", 'colours' => cols }
         end
         none = Array(parts['untyped']).find { |u| u['name'].empty? }
-        out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour at all - paint them (or their unit) and Refresh.", 'info' => true } if none
+        if none && !(defined?(LibraryExport) && LibraryExport.master?(model))
+          cur = Colours.job_choices(model)
+          dft = Colours.defaults
+          groups = Colours::GROUPS.reject { |id, _| %w[panels_22 drawer_box].include?(id) }.map do |id, label|
+            pick = [cur[id], dft[id]].find { |v| v && v != Colours::DEFAULT } || Colours::DEFAULT
+            { 'id' => id, 'label' => label, 'value' => pick, 'options' => [Colours::DEFAULT] + Colours.names_for(id) }
+          end
+          out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour, so they're left out of the parts list.",
+                   'fix' => 'Apply the job colours (as the Colours window) - pick them below. Default on Exterior / Interior / Worktop = the door colour.', 'groups' => groups }
+        end
+        out
+      end
+
+      # Applies the job colours chosen in the checks box (the rest stay as they are).
+      def self.set_job_colours(model, picks)
+        choices = Colours.job_choices(model).transform_values { |v| v || Colours::DEFAULT }
+        choices['drawer_box'] = DrawerBox::DEFAULT if choices['drawer_box'] == Colours::DEFAULT
+        choices.merge!(picks.select { |k, _| choices.key?(k) })
+        ColoursWindow.apply(model, choices)
+      end
+
+      # What stops the Workshop Pack being saved: anything that makes the lists wrong or
+      # unfinished. A thickness outside the standard list is only a warning.
+      def self.blockers(model, parts)
+        out = []
+        out << 'Scribes are OFF - turn them on (every runout is 0).' if !parts['scribes_on'] && !Runouts.units(model.entities).empty?
+        n = Array(parts['untyped']).sum { |u| u['count'].to_i }
+        out << "#{n} part(s) are left out (no colour, or a colour not set up as a sheet good or hardware)." if n.positive?
+        parts['groups'].each do |g|
+          next if %w[vinyl white_back].include?(g['section'])
+          name = "#{g['material']} #{PartsList.fmt(g['thickness'])} mm"
+          out << "#{name}: enter the full sheets needed (Sheet goods tab)." if g['ask'] && g['sheets'].nil?
+          out << "#{name}: part(s) #{Array(g['too_big']).join(', ')} are bigger than the sheet." unless Array(g['too_big']).empty?
+          out << "#{g['material']}: no sheet size set - no board count." if !g['sheet'] && !g['strip_group']
+        end
         out
       end
 
