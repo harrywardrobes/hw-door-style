@@ -29,6 +29,7 @@ module HarryWardrobes
       TYPES = { 0 => 'Unknown', 1 => 'Solid wood', 2 => 'Sheet good', 3 => 'Dimensional', 4 => 'Edge',
                 5 => 'Hardware', 6 => 'Veneer' }.freeze
       SHEET = 2
+      DIMENSIONAL = 3
       HARDWARE = 5
 
       def self.extension
@@ -83,6 +84,8 @@ module HarryWardrobes
           out[b['material'] || b['name']] = { 'type' => HARDWARE, 'why' => 'Interfit drawer box (bought-in)' }
         end
         out[Settings.get['hardware_material'].to_s] = { 'type' => HARDWARE, 'why' => 'hinges / TIP-ON' }
+        # Timber and MDF are ordered as lengths (Settings > Cut list > Length materials).
+        Array(Settings.get['ocl_length_materials']).each { |n| out[n.to_s] = { 'type' => DIMENSIONAL, 'why' => 'ordered as lengths (Timber / MDF)' } }
         out
       end
 

@@ -610,6 +610,31 @@ module HarryWardrobes
 
       def self.first_number(_opts) = 1
 
+      # Hardware consolidated by its label name (Settings > Labels > Label names: SHELF_BRACKET
+      # -> "Shelf pegs"): one line per name, with the part numbers and components it covers.
+      # Items that share a name but not a length (the hanging rails) get the length in the
+      # name - "Hanging rail 775" - so they stay apart.
+      def self.hardware_lines(hardware)
+        by = Hash.new { |h, k| h[k] = [] }
+        hardware.each { |h| by[Labels.display_name(h['name'], 'hardware')] << h }
+        by.flat_map do |name, list|
+          lengths = list.map { |h| h['length'].to_f.round }.uniq
+          list.group_by { |h| lengths.size > 1 ? h['length'].to_f.round : nil }.map do |len, part|
+            { 'name' => len ? "#{name} #{len}" : name, 'qty' => part.sum { |h| h['qty'].to_i },
+              'numbers' => part.map { |h| h['number'] }.uniq.sort, 'parts' => part.map { |h| h['name'] }.uniq,
+              'material' => part.first['material'], 'drawer_box' => part.all? { |h| h['drawer_box'] } }
+          end
+        end.sort_by { |r| r['name'].downcase }
+      end
+
+      # Timber and MDF together (both ordered as lengths): one line per name, section and length.
+      def self.timber_lines(timber)
+        timber.group_by { |t| [t['name'], t['section'], t['length'].to_f.round] }.map do |(name, section, len), list|
+          { 'name' => name, 'material' => list.first['material'], 'section' => section, 'length' => len,
+            'qty' => list.sum { |t| t['qty'].to_i }, 'numbers' => list.map { |t| t['number'] }.uniq.sort }
+        end.sort_by { |r| [r['material'].to_s.downcase, r['section'].to_s, -r['length']] }
+      end
+
       # OpenCutList phase 2: groups by material type > name > thickness; parts sorted by the
       # part order strategy and numbered A, B ... (again from A in each group, as set in OpenCutList).
       def self.finish(model, groups, hardware, skipped, opts = CUTLIST_DEFAULTS)
@@ -660,7 +685,8 @@ module HarryWardrobes
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
           'head' => (RoomPlan.head(model, nil) rescue {}),
-          'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'timber' => timber, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
+          'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'hardware_lines' => hardware_lines(hw.reject { |h| h['drawer_box'] }),
+          'timber' => timber, 'timber_lines' => timber_lines(timber), 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
           'skipped' => skipped, 'untyped' => (@untyped || {}).map { |n, c| { 'name' => n, 'count' => c } }.sort_by { |u| u['name'] }, 'nocolour' => (@nocolour || {}).map { |n, c| c > 1 ? "#{n} x#{c}" : n }.sort, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,
           'labels' => Labels.options(model), 'cutlist_options' => opts

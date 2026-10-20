@@ -391,6 +391,8 @@
     <div class="hint">Length x width, comma separated - full sheets and pre-cut strips, e.g. <code>2800x2070, 2800x610</code>.</div>
     <div class="f" style="grid-template-columns:1fr 70px;margin-top:6px"><span>Parts list: waste allowed when counting sheets (%)</span><input type="number" id="parts_sheet_waste_pct" min="0" max="80" step="1"></div>
     <div class="hint">For boards that aren't ordered as strips (22mm panels, 25mm worktops): part area + this much, over the largest stock size.</div>
+    <div class="f t" style="margin-top:6px"><span>Length materials</span><input type="text" id="ocl_length_materials"></div>
+    <div class="hint">Materials ordered as lengths, not sheets (Timber / MDF on the parts list), comma separated. Set up OpenCutList marks them Dimensional.</div>
   </fieldset>
   <fieldset><legend>Cut and edged strips (18mm)</legend>
     <div class="f t"><span>Strip widths (mm)</span><input type="text" id="strip_widths_mm"></div>
@@ -604,6 +606,7 @@ function load(s){
   $('update_test_builds').checked = s.update_test_builds !== false;
   $('ocl_thicknesses_mm').value = (s.ocl_thicknesses_mm || []).join(', ');
   $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
+  $('ocl_length_materials').value = (s.ocl_length_materials || []).join(', ');
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
   $('strip_widths_mm').value = (s.strip_widths_mm || []).join(', ');
@@ -668,6 +671,7 @@ function collect(){
   o.update_test_builds = $('update_test_builds').checked;
   o.ocl_thicknesses_mm = $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
+  o.ocl_length_materials = $('ocl_length_materials').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
   o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';
   o.strip_widths_mm = $('strip_widths_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).sort(function(a, b){ return a - b; });

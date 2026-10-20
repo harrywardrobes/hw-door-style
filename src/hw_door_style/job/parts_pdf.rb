@@ -86,40 +86,33 @@ module HarryWardrobes
           doc.page.text(M, doc.y, 'Scribes are OFF (every runout 0) - panel sizes may be wrong.', font: 'F2', size: 9)
           doc.instance_variable_set(:@y, doc.y - ROW - 4)
         end
-        doc.heading('Boards', "18mm in cut and edged strips (next width up); full sheets for the rest. Other thicknesses: area + #{f(d['waste_pct'])}% waste")
-        doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Parts', 45, :right], ['Strips', 150, :left], ['Full sheets for', 130, :left], ['Sheet', 90, :right], ['Full sheets', 60, :right]],
-                  d['groups'].select { |g| sheets?(g) }.map do |g|
-                    strips = Array(g['strips']).map { |st| "#{st['count']} x #{st['width']}" }.join(', ')
-                    why = g['strip_group'] ? Array(g['manual']).join(', ') : "#{format('%.2f', g['area_m2'])} m2"
-                    [g['material'], "#{f(g['thickness'])} mm", g['count'], strips.empty? ? '-' : strips, why.empty? ? '-' : why,
-                     g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : '-', g['sheets'].nil? ? 'ENTER' : g['sheets']]
-                  end)
+        # Boards: the sheet goods (18mm in strips, full sheets for the rest). Worktops, 22mm
+        # panels, bullnose and MDF / timber lengths are ordered elsewhere.
+        boards = d['groups'].select { |g| sheets?(g) }
+        unless boards.empty?
+          doc.heading('Boards', "18mm in cut and edged strips (next width up); full sheets for the rest. Other thicknesses: area + #{f(d['waste_pct'])}% waste")
+          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Full sheets for', 130, :left], ['Sheet', 90, :right], ['Full sheets', 60, :right]],
+                    boards.map do |g|
+                      why = g['strip_group'] ? Array(g['manual']).join(', ') : "#{format('%.2f', g['area_m2'])} m2"
+                      [g['material'], "#{f(g['thickness'])} mm", why.empty? ? '-' : why,
+                       g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : '-', g['sheets'].nil? ? 'ENTER' : g['sheets']]
+                    end)
+        end
+        strips = d['groups'].flat_map { |g| Array(g['strips']).map { |st| [g, st] } }
+        unless strips.empty?
+          doc.heading('Cut + Edged', 'each part uses the next width up, packed end to end along the strip')
+          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Strip', 110, :right], ['Qty', 45, :right]],
+                    strips.map { |g, st| [g['material'], "#{f(g['thickness'])} mm", "#{st['width']} x #{f(st['length'])}", st['count']] })
+        end
         wt = d['groups'].select { |g| g['section'] == 'worktops' }
         unless wt.empty?
           doc.heading('Worktops', '22 / 25 mm worktops - ordered on their own, not in the MFC sheet count')
           doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Parts', 45, :right], ['Sheet', 90, :right], ['Sheets', 60, :right]],
                     wt.map { |g| [g['material'], "#{f(g['thickness'])} mm", g['count'], g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : '-', g['sheets'].nil? ? 'ENTER' : g['sheets']] })
         end
-        vin = d['groups'].select { |g| g['section'] == 'vinyl' }
-        unless vin.empty?
-          doc.heading('Bullnose / cornice', 'ordered with the doors (vinyl)')
-          doc.table([['#', 26, :left], ['Name', nil, :left], ['Colour', 120, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
-                    vin.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], "#{f(g['thickness'])} mm", f(p['length']), f(p['width']), p['qty']] } })
-        end
-        wb = d['groups'].select { |g| g['section'] == 'white_back' }
-        unless wb.empty?
-          doc.heading('22mm (White Back)', 'ordered with the doors (vinyl)')
-          doc.table([['#', 26, :left], ['Name', nil, :left], ['Colour', 120, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
-                    wb.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], f(p['length']), f(p['width']), p['qty']] } })
-        end
-        strips = d['groups'].flat_map { |g| Array(g['strips']).map { |st| [g, st] } }
-        unless strips.empty?
-          doc.heading('Cut and edged strips', 'each part uses the next width up, packed end to end along the strip')
-          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Strip', 90, :right], ['Parts', 200, :left], ['Pieces', 45, :right], ['Strips', 45, :right]],
-                    strips.map { |g, st| [g['material'], "#{f(g['thickness'])} mm", "#{st['width']} x #{f(st['length'])}", st['numbers'].join(', '), st['pieces'], st['count']] })
-        end
         d['groups'].each do |g|
-          doc.heading("#{g['material']} - #{f(g['thickness'])} mm#{{ 'worktops' => ' (worktop)', 'vinyl' => ' (bullnose / cornice)', 'white_back' => ' (white back)' }[g['section']]}", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['std_ok'] ? '' : ', thickness not in the standard list'}")
+          next if %w[vinyl white_back].include?(g['section']) # on the Door / Vinyl order
+          doc.heading("#{g['material']} - #{f(g['thickness'])} mm#{g['section'] == 'worktops' ? ' (worktop)' : ''}", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['std_ok'] ? '' : ', thickness not in the standard list'}")
           doc.table([['#', 26, :left], ['Name', nil, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right],
                      ['Edge L1', 92, :left], ['Edge L2', 92, :left], ['Edge W1', 92, :left], ['Edge W2', 92, :left]],
                     g['parts'].map { |p| [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], p['edges']['ymin'], p['edges']['ymax'], p['edges']['xmin'], p['edges']['xmax']] })
@@ -129,23 +122,23 @@ module HarryWardrobes
           doc.table([['Edge', nil, :left], ['Board thickness', 90, :right], ['Edges', 50, :right], ['Metres', 60, :right]],
                     d['edging'].map { |e| [e['material'], "#{f(e['height'])} mm", e['parts'], format('%.1f', e['metres'])] })
         end
+        tb = Array(d['timber_lines'])
+        unless tb.empty?
+          doc.heading('Timber / MDF', 'ordered as lengths (cut lengths from the model)')
+          doc.table([['#', 40, :left], ['Name', nil, :left], ['Material', 120, :left], ['Section', 80, :right], ['Length', 60, :right], ['Qty', 40, :right]],
+                    tb.map { |t| [t['numbers'].join(', '), t['name'], t['material'], t['section'], f(t['length']), t['qty']] })
+        end
         boxes = Array(d['drawer_boxes'])
         unless boxes.empty?
           doc.heading('Drawer boxes', 'internal cabinet width; runners in pairs, one pair per box')
           doc.table([['#', 26, :left], ['Parent', 120, :left], ['Material', nil, :left], ['Int. cab width', 75, :right], ['Height', 50, :right], ['Runners', 170, :left], ['Qty', 30, :right]],
                     boxes.map { |b| [b['number'], b['parent'], b['material'], b['width'] ? "#{b['width']} mm" : '-', b['height'] ? "#{b['height']} mm#{b['warn'] ? ' (!)' : ''}" : '-', b['runner'], b['qty']] })
         end
-        hws = d['hardware'].reject { |h| h['drawer_box'] }
+        hws = Array(d['hardware_lines'])
         unless hws.empty?
-          doc.heading('Hardware', 'counted from the model')
-          doc.table([['#', 26, :left], ['Name', nil, :left], ['Material', 150, :left], ['Size (mm)', 120, :right], ['Qty', 40, :right]],
-                    hws.map { |h| [h['number'], h['name'], h['material'], "#{f(h['length'])} x #{f(h['width'])} x #{f(h['thickness'])}", h['qty']] })
-        end
-        tb = Array(d['timber'])
-        unless tb.empty?
-          doc.heading('Timber', 'from the model (cut lengths)')
-          doc.table([['#', 26, :left], ['Name', nil, :left], ['Material', 150, :left], ['Section', 80, :right], ['Length', 60, :right], ['Qty', 40, :right]],
-                    tb.map { |t| [t['number'], t['name'], t['material'], t['section'], f(t['length']), t['qty']] })
+          doc.heading('Hardware', 'counted from the model, one line per item')
+          doc.table([['#', 60, :left], ['Name', nil, :left], ['Qty', 40, :right]],
+                    hws.map { |h| [h['numbers'].join(', '), h['name'], h['qty']] })
         end
         unless d['handles'].empty?
           doc.heading('Handles', 'from the Door style window')

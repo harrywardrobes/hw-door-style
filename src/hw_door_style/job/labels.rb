@@ -244,6 +244,7 @@ module HarryWardrobes
       # (OVAL_SH_BRACKET -> Oval Sh Bracket).
       def self.display_name(name, kind = nil)
         return '2x1 Timber' if kind == 'timber' && name.to_s.upcase =~ /2X1|TIMBER/
+        return 'MDF lengths' if kind == 'timber' && name.to_s.upcase =~ /MDF/
         map = (Settings.get['label_display_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
         base = name.to_s.sub(/#\d+\z/, '').strip
         map[base.upcase] || base.split(/[_\s]+/).map { |w| w =~ /\d/ ? w : w.capitalize }.join(' ')
@@ -273,8 +274,12 @@ module HarryWardrobes
       # Pod numbers it belongs to, and the running index n (barcode HW-{room}-H{n}).
       def self.aggregates(parts, tops, stock)
         by = {}
+        # hardware that shares a label name but not a length (hanging rails) is kept apart by length
+        names = parts.group_by { |p, kind| [display_name(p['name'], kind), kind] }
+        split = names.select { |(_n, kind), list| kind == 'hardware' && list.map { |p, _k| p['length'].to_f.round }.uniq.size > 1 }.keys.map(&:first)
         parts.each do |p, kind|
           key = display_name(p['name'], kind)
+          key = "#{key} #{p['length'].to_f.round}" if kind == 'hardware' && split.include?(key)
           a = (by[key] ||= { 'kind' => 'aggregate', 'source' => kind, 'name' => key, 'count' => 0, 'ts' => [], 'lengths' => [], 'parts' => [], 'eids' => [] })
           a['count'] += p['qty'].to_i
           a['parts'] << p['name']

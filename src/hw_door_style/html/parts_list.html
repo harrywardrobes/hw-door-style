@@ -218,11 +218,12 @@ function render(d){
     '<div class="hint">One pair of runners per box. Internal cabinet width = box width + the box clearance each side.</div>' : '<div class="hint">No drawer boxes found.</div>';
   dbx.forEach(function(x){ if (x.warn) w.push(x.parent + ': drawer box ' + x.height + ' mm high - under 100 mm (Drawer Boxes tab).'); });
   $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
-  var hw = hws.length ? '<div class="grp"><h3>From the model</h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Size (mm)</th><th class="n">Qty</th></tr>' +
-    hws.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + f(x.length) + ' x ' + f(x.width) + ' x ' + f(x.thickness) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
-  var tb = d.timber || [];
-  hw += tb.length ? '<div class="grp"><h3>Timber <span>from the model, one grouped label (stock length in the Labels tab)</span></h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Section</th><th class="n">Length</th><th class="n">Qty</th></tr>' +
-    tb.map(function(x){ return '<tr><td class="num">' + esc(x.number) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + esc(x.section) + '</td><td class="n">' + f(x.length) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  var hwl = d.hardware_lines || [];
+  var hw = hwl.length ? '<div class="grp"><h3>From the model <span>one line per item (names from Settings &gt; Labels &gt; Label names)</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Qty</th></tr>' +
+    hwl.map(function(x){ return '<tr title="' + esc(x.parts.join(', ')) + '"><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
+  var tb = d.timber_lines || [];
+  hw += tb.length ? '<div class="grp"><h3>Timber / MDF <span>ordered as lengths; one grouped label per material (stock length in the Check tab)</span></h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Section</th><th class="n">Length</th><th class="n">Qty</th></tr>' +
+    tb.map(function(x){ return '<tr><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + esc(x.section) + '</td><td class="n">' + f(x.length) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
   hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
     d.handles.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
   $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
