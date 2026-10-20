@@ -32,7 +32,7 @@ module HarryWardrobes
 
       def self.update_info(dir = Updater.folder)
         r = Updater.latest(dir)
-        { 'folder_ok' => !dir.to_s.empty? && Dir.exist?(dir), 'latest' => r && r[:version],
+        { 'folder_ok' => !dir.to_s.empty? && Dir.exist?(dir), 'latest' => r && r[:version], 'test' => r && r[:test],
           'newer' => r ? Updater.newer?(r[:version], VERSION) : false,
           'ahead' => r ? Updater.newer?(VERSION, r[:version]) : false }
       rescue StandardError
@@ -122,7 +122,10 @@ module HarryWardrobes
             close.call
             Updater.install(r[:path])
           elsif !info['newer']
-            UI.messagebox(info['folder_ok'] ? "You have the newest version (#{VERSION})." : "Updates folder not found:\n#{dir}")
+            UI.messagebox(if !info['folder_ok'] then "Updates folder not found:\n#{dir}"
+                          elsif info['ahead'] then "You have #{VERSION} - newer than anything in the updates#{Settings.get['update_test_builds'] == false ? '' : ' and Dev'} folder (newest there: #{info['latest']})."
+                          else "You have the newest version (#{VERSION})."
+                          end)
           end
         end
         dlg.add_action_callback('installFile') do |_c|

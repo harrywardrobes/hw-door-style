@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.67.6 — 2026-10-20
+- Updates: test builds in the Dev folder (beside Updates) are found too - at start-up and by Check for updates - and marked "(test build)". Settings > General > "Also offer test builds" (on). When you're ahead of the released version it says so instead of "You have the newest version".
+
 ## 0.67.5 — 2026-10-20
 - PDF printing is single sided by default, whatever the Brother's own default is - Settings > Labels > PDF printer > Sides (single / double long edge / double short edge).
 

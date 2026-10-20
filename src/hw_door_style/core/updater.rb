@@ -36,13 +36,27 @@ module HarryWardrobes
         (parse(a) <=> parse(b)) == 1
       end
 
-      # Newest release in the folder: { version:, path:, notes: [] } or nil.
-      def self.latest(dir = folder)
-        return nil if dir.empty? || !Dir.exist?(dir)
-        best = Dir.children(dir).filter_map do |f|
+      # Test builds go in "Dev" beside the updates folder (_HW Door Style\Dev); offered too
+      # when Settings > General "Also offer test builds" is on.
+      def self.dev_folder(dir = folder)
+        dir.to_s.empty? ? '' : File.join(File.dirname(dir), 'Dev')
+      end
+
+      def self.builds(dir, test)
+        return [] if dir.to_s.empty? || !Dir.exist?(dir)
+        Dir.children(dir).filter_map do |f|
           m = PATTERN.match(f) or next
-          { version: m.captures.join('.'), path: File.join(dir, f) }
-        end.max_by { |r| parse(r[:version]) }
+          { version: m.captures.join('.'), path: File.join(dir, f), test: test }
+        end
+      end
+
+      # Newest release in the folder (and the Dev folder, if test builds are offered):
+      # { version:, path:, notes: [], test: } or nil.
+      def self.latest(dir = folder, test_builds: Settings.get['update_test_builds'] != false)
+        return nil if dir.to_s.empty?
+        all = builds(dir, false)
+        all += builds(dev_folder(dir), true) if test_builds
+        best = all.max_by { |r| [parse(r[:version]), r[:test] ? 0 : 1] }
         return nil unless best
         info = JSON.parse(File.read(File.join(dir, 'hw_door_style_latest.json'))) rescue {}
         best[:notes] = info['version'] == best[:version] ? Array(info['notes']) : []
@@ -74,7 +88,7 @@ module HarryWardrobes
 
       def self.offer(r)
         notes = r[:notes].first(8).map { |n| "- #{n}" }.join("\n")
-        msg = "HW Door Style #{r[:version]} is available (you have #{VERSION}).\n\n" \
+        msg = "HW Door Style #{r[:version]}#{r[:test] ? ' (test build)' : ''} is available (you have #{VERSION}).\n\n" \
               "#{notes.empty? ? '' : "#{notes}\n\n"}Update now? No restart needed."
         UI.messagebox(msg, MB_YESNO) == IDYES
       end

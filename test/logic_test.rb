@@ -458,6 +458,12 @@ Dir.mktmpdir do |d|
   File.write(File.join(d, 'hw_door_style_latest.json'), '{"version":"0.18.0","notes":["Updates without restarting"]}')
   r = Updater.latest(d)
   check 'newest release found (not by name order)', r[:version] == '0.18.0' && r[:path].end_with?('hw_door_style_v0.18.0.rbz') && r[:notes] == ['Updates without restarting']
+  Dir.mktmpdir do |root|
+    up = File.join(root, 'Updates'); dev = File.join(root, 'Dev'); Dir.mkdir(up); Dir.mkdir(dev)
+    File.write(File.join(up, 'hw_door_style_v0.44.4.rbz'), ''); File.write(File.join(dev, 'hw_door_style_v0.67.5.rbz'), '')
+    check 'test builds in Dev beside Updates are offered (and can be turned off)', Updater.latest(up, test_builds: true)[:version] == '0.67.5' && Updater.latest(up, test_builds: true)[:test] &&
+          Updater.latest(up, test_builds: false)[:version] == '0.44.4'
+  end
   check 'missing folder: nothing offered', Updater.latest(File.join(d, 'nope')).nil? && Updater.latest('').nil?
 end
 

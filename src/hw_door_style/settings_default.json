@@ -371,6 +371,7 @@
   ],
   "update_folder": "G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Harry Wardrobes\\_HW Door Style\\Updates",
   "update_check_at_start": true,
+  "update_test_builds": true,
   "hubspot_pictures": [
     {
       "field": "render_1",
