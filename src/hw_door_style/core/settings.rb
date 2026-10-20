@@ -28,7 +28,7 @@ module HarryWardrobes
         JSON.parse(File.read(DEFAULT_FILE))
       end
 
-      SETTINGS_VERSION = 8
+      SETTINGS_VERSION = 9
 
       # Brings settings saved by an older version up to date (names and tags
       # that changed in the model). Never removes the user's own extra tags.
@@ -81,6 +81,10 @@ module HarryWardrobes
         # 0.64: "T numbers" are Pod numbers (the tag too).
         if v < 8
           user['product_label_tag'] = d['product_label_tag'] if %w[T_numbers T\ numbers].include?(user['product_label_tag'].to_s) || user['product_label_tag'].to_s.strip.empty?
+        end
+        # 0.68: the Brother's Windows name
+        if v < 9
+          user['pdf_printer'] = d['pdf_printer'] if user['pdf_printer'].to_s.strip.empty? || user['pdf_printer'] == 'BROTHER - Harry Wardrobes'
         end
         user['settings_version'] = SETTINGS_VERSION
         user

@@ -1101,38 +1101,43 @@ module HarryWardrobes
           l = HubSpotRoom.link(model)
           next fail_js.call(StandardError.new('Link this file to a HubSpot room first (HubSpot > Link this file).')) unless l
           next fail_js.call(StandardError.new('Save the Workshop Pack on the Check tab first.')) unless pack
+          want = req['do'].is_a?(Hash) ? req['do'] : { 'hubspot' => true, 'labels' => true, 'pdfs' => true }
+          next fail_js.call(StandardError.new('Tick at least one: Send to HubSpot, Print labels or Print PDFs.')) unless want.values.any?
           n = 0
           zebra = 0
           brother = 0
           errors = []
           pdfs = (pack['files'] + [pack['plan']]).compact.select { |f| f =~ /\.pdf\z/i }
           # printing doesn't wait on HubSpot: a failed upload is reported, the prints still go
-          steps = [['Uploading the files and updating the Room', lambda do
+          steps = []
+          steps << ['Uploading the files and updating the Room', lambda do
                      n = Workshop.send_room(model, l['room_id'], pack['files'], req['values'] || {}, req['stage'], plan: pack['plan'])
                    rescue StandardError => e
                      Log.error('workshop send', e) unless e.is_a?(HubSpot::Error)
                      errors << "HubSpot: #{e.message}"
-                   end],
-                   ['Printing the labels on the Zebra', lambda do
+                   end] if want['hubspot']
+          steps << ['Printing the labels on the Zebra', lambda do
                      next unless pack['labels'] && File.exist?(pack['labels'])
                      Zpl.transmit(File.binread(pack['labels']))
                      zebra = pack['label_count']
                    rescue StandardError => e
                      Log.error('zebra', e)
                      errors << "Labels: #{e.message}"
-                   end],
-                   ['Printing the PDFs on the Brother', lambda do
+                   end] if want['labels']
+          steps << ['Printing the PDFs on the Brother', lambda do
                      brother = PdfPrint.print(pdfs)
                    rescue StandardError => e
                      Log.error('pdf print', e)
                      errors << "PDFs: #{e.message}"
-                   end]]
+                   end] if want['pdfs']
           Steps.run(dlg, steps,
                     done: lambda { |_r|
                       dlg.execute_script("sent(#{JSON.generate('n' => n, 'fields' => (req['values'] || {}).size, 'stage' => req['stage_label'], 'zebra' => zebra, 'brother' => brother, 'errors' => errors)})")
-                      lines = ["HubSpot: #{errors.any? { |x| x.start_with?('HubSpot') } ? 'NOT sent' : "#{n} file(s) sent"}",
-                               "Zebra: #{zebra} label(s)", "#{PdfPrint.printer}: #{brother} PDF(s)"]
-                      UI.messagebox((errors.empty? ? "Sent and printed.\n\n" : "Done, with problems:\n\n#{errors.join("\n\n")}\n\n") + lines.join("\n"))
+                      lines = []
+                      lines << "HubSpot: #{errors.any? { |x| x.start_with?('HubSpot') } ? 'NOT sent' : "#{n} file(s) sent"}" if want['hubspot']
+                      lines << "Zebra: #{zebra} label(s)" if want['labels']
+                      lines << "#{(PdfPrint.resolve rescue PdfPrint.printer)}: #{brother} PDF(s)" if want['pdfs']
+                      UI.messagebox((errors.empty? ? "Done.\n\n" : "Done, with problems:\n\n#{errors.join("\n\n")}\n\n") + lines.join("\n"))
                     },
                     fail: fail_js)
         end

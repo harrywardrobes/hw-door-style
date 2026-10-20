@@ -461,7 +461,8 @@ function hubspotPlan(p){
   var flags = p.rows.filter(function(r){ return r.flag; });
   var h = '<div class="warnbox" style="background:#eef6f1;border-color:#9cc7ad;display:flex;gap:12px;align-items:center"><div style="flex:1"><b>Ready to send:</b> ' + esc((PACK.names || []).join(', ')) +
     '<br>Prints ' + PACK.label_count + ' label(s) on the Zebra and ' + (PACK.pdfs || []).filter(function(x){ return x.pack; }).length + ' PDF(s) on "' + esc(PACK.pdf_printer) + '".</div>' +
-    '<button style="padding:8px 14px" onclick="sketchup.openHubspot()">Open in HubSpot</button><button class="primary" style="font-size:13px;padding:8px 16px" onclick="sendRoom()">Send to HubSpot + print</button></div>';
+    '<div style="display:flex;flex-direction:column;gap:3px;font-size:12px">' + [['hubspot', 'Send to HubSpot'], ['labels', 'Print labels (Zebra)'], ['pdfs', 'Print PDFs (' + esc(PACK.pdf_printer) + ')']].map(function(o){ return '<label style="display:flex;gap:5px;align-items:center"><input type="checkbox" style="width:auto" data-do="' + o[0] + '" onchange="doLabel()"' + (DO[o[0]] ? ' checked' : '') + '>' + o[1] + '</label>'; }).join('') + '</div>' +
+    '<button style="padding:8px 14px" onclick="sketchup.openHubspot()">Open in HubSpot</button><button class="primary" id="doBtn" style="font-size:13px;padding:8px 16px" onclick="sendRoom()">Send to HubSpot + print</button></div>';
   h += '<div class="sub" style="margin-bottom:6px">Room: <b>' + esc(p.room) + '</b>' + (p.stage.current ? ' - stage <b>' + esc(p.stage.current) + '</b>' : '') + '. Ticked rows are sent with the files (door order + parts list' + (D.export_csv ? ', PDF and CSV' : ' PDFs') + ', into Order / Parts List' + (p.has_files ? ', replacing the ones there' : '') + ').</div>';
   if (flags.length) h += '<div class="warnbox"><b>' + flags.length + ' order status(es) already set:</b> ' + flags.map(function(r){ return esc(r.label) + ' = ' + esc(r.hubspot); }).join(', ') + '. They are left as they are - check those orders still match the model.</div>';
   if (p.missing_colours.length) h += '<div class="warnbox">No MFC Sheets field in HubSpot for: ' + esc(p.missing_colours.join(', ')) + ' - they only count in MFC (Full Sheet) Quantity.</div>';
@@ -476,7 +477,16 @@ function hubspotPlan(p){
   h += '<div class="stage"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="moveStage" onchange="stageCheck()" style="width:auto"> Also move the Room to</label> <select id="stageTo" onchange="stageCheck()" style="margin-top:4px">' +
     p.stage.next.map(function(st){ return '<option value="' + esc(st.id) + '">' + esc(st.label) + '</option>'; }).join('') + '</select> <span id="stageMsg" class="hint" style="margin:0"></span><div class="hint" style="margin:4px 0 0">Off by default - the stage only changes when you tick this. Fields that stage needs must be filled first (Settings > HubSpot > Required).</div></div>';
   $('p_hubspot').innerHTML = h;
+  doLabel();
   stageCheck();
+}
+var DO = { hubspot: true, labels: true, pdfs: true };
+function doLabel(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-do]'), function(c){ DO[c.getAttribute('data-do')] = c.checked; });
+  var parts = [DO.hubspot ? 'Send to HubSpot' : '', DO.labels && DO.pdfs ? 'print' : (DO.labels ? 'print labels' : (DO.pdfs ? 'print PDFs' : ''))].filter(Boolean);
+  var b = $('doBtn'); if (!b) return;
+  b.textContent = parts.length ? parts.join(' + ').replace(/^print/, 'Print') : 'Tick something to do';
+  b.disabled = !parts.length;
 }
 function chosenValues(){
   var v = {};
@@ -496,12 +506,12 @@ function stageCheck(){
 function missingSheets(){ return (D ? D.groups : []).filter(function(g){ return g.ask && g.sheets == null; }); }
 function sendRoom(){
   if (!PACK) { packStale(); return; }
-  if (!HS || HS === 'loading' || HS.error || !HS.linked) { $('status').textContent = 'The HubSpot Room isn\'t ready - check the HubSpot tab.'; return; }
+  if (DO.hubspot && (!HS || HS === 'loading' || HS.error || !HS.linked)) { $('status').textContent = 'The HubSpot Room isn\'t ready - check the HubSpot tab.'; return; }
   var m = stageMissing();
   if (m.length) { $('status').innerHTML = '<span class="bad">Can\'t move the stage yet - fill: ' + esc(m.join(', ')) + '</span>'; return; }
   var move = $('moveStage') && $('moveStage').checked, sel = $('stageTo');
-  $('status').textContent = 'Sending to HubSpot and printing...';
-  sketchup.send(JSON.stringify({ values: chosenValues(), stage: move ? sel.value : null, stage_label: move ? sel.options[sel.selectedIndex].text : null }));
+  $('status').textContent = $('doBtn') ? $('doBtn').textContent + '...' : 'Working...';
+  sketchup.send(JSON.stringify({ do: DO, values: chosenValues(), stage: move ? sel.value : null, stage_label: move ? sel.options[sel.selectedIndex].text : null }));
 }
 document.addEventListener('change', function(e){ if (e.target && e.target.getAttribute && e.target.getAttribute('data-i') != null) stageCheck(); });
 

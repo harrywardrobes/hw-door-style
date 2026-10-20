@@ -3,7 +3,7 @@ require 'tmpdir'
 module HarryWardrobes
   module DoorStyle
     # The workshop pack's PDFs straight to the office printer (Settings > Labels > PDF printer,
-    # default "BROTHER - Harry Wardrobes") with no print dialog. Labels never go here - they
+    # default "Brother HL-L5000D series") with no print dialog. Labels never go here - they
     # go to the Zebra (Zpl).
     #
     #   SumatraPDF (free, sumatrapdfreader.org) does the printing: Windows has no reliable
@@ -11,7 +11,7 @@ module HarryWardrobes
     #   the path in Settings. Without it, Windows' "PrintTo" for the default PDF app is tried
     #   (works with Adobe Reader; not with Edge).
     module PdfPrint
-      DEFAULT = 'BROTHER - Harry Wardrobes'.freeze
+      DEFAULT = 'Brother HL-L5000D series'.freeze
 
       def self.printer
         p = Settings.get['pdf_printer'].to_s.strip
@@ -51,6 +51,10 @@ module HarryWardrobes
         norm = ->(n) { n.to_s.downcase.gsub(/\s+/, ' ').strip }
         hit = list.find { |n| norm.call(n) == norm.call(want) } || list.find { |n| norm.call(n).include?(norm.call(want)) }
         return hit if hit
+        # not found by name: the only printer with the name's first word (e.g. the one Brother)
+        word = norm.call(want).split.first.to_s
+        same = list.select { |n| !word.empty? && norm.call(n).include?(word) }
+        return same.first if same.size == 1
         raise "There's no printer called \"#{want}\" in Windows. Printers: #{list.join(', ')}. Set the name in Settings > Labels > PDF printer."
       end
 
