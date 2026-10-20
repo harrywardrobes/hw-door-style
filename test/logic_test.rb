@@ -799,5 +799,14 @@ check 'front types: door / drawer front / internal / fixed (styled as a door) / 
 
 check 'part type wins over the name / thickness rules (an 18mm worktop is still a worktop)', PLX.section_of(['LIN_WORKTOP'], 18, 'Oak', 'worktop') == 'worktops' && PLX.section_of(['WRKTP_FACING'], 25, 'Oak', 'sheet') == 'sheets' && PLX.section_of(['WRKTP'], 25, 'Oak') == 'worktops'
 
+puts "\n== Labels"
+class FakeModel; def path = "C:/CUSTOMERS/Smith/Bedroom.skp"; def title = "Bedroom"; def start_operation(*) = nil; def commit_operation = nil; def abort_operation = nil; end
+nparts = [{ 'instances' => [{ 'part_no' => nil, 'eid' => 1 }] }, { 'instances' => [{ 'part_no' => 5, 'eid' => 2 }, { 'part_no' => 5, 'eid' => 9 }] }, { 'instances' => [{ 'part_no' => 5, 'eid' => 3 }] }]
+PLX.number_parts(FakeModel.new, nparts)
+check 'part numbers: kept when unchanged, a clash or a new part gets the next after the highest', nparts.map { |x| x['number'] } == [6, 5, 7]
+fresh = [{ 'instances' => [{ 'eid' => 1 }] }, { 'instances' => [{ 'eid' => 2 }] }]
+PLX.number_parts(FakeModel.new, fresh)
+check 'part numbers start at 1', fresh.map { |x| x['number'] } == [1, 2]
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

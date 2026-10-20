@@ -267,7 +267,7 @@ module HarryWardrobes
             doc.page.text(M, doc.y, 'No parts found for this ref.', size: 8)
             doc.instance_variable_set(:@y, doc.y - ROW - 4)
           else
-            doc.table([['#', 30, :left], ['Part', nil, :left], ['Material', 170, :left], ['Size (mm)', 130, :right], ['Qty', 34, :right]], lines.sort_by { |a| a[0].to_s })
+            doc.table([['#', 30, :left], ['Part', nil, :left], ['Material', 170, :left], ['Size (mm)', 130, :right], ['Qty', 34, :right]], lines.sort_by { |a| [a[0].to_s.empty? ? 1 : 0, a[0].to_i, a[0].to_s] })
           end
         end
       end

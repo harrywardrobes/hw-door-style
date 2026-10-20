@@ -279,6 +279,7 @@ module HarryWardrobes
 
       def self.generate(model = Sketchup.active_model)
         opts = cutlist_options(model)
+        @pieces = {} # entity id -> the placed piece, so part numbers can be kept on it
         found = []
         collect(model.entities, [], found, {})
         groups = {}
@@ -361,7 +362,9 @@ module HarryWardrobes
       # What a label needs about one placed piece (OpenCutList InstanceInfo).
       def self.instance_info(path)
         e = path.last
+        (@pieces ||= {})[e.entityID] = e
         { 'layer' => e.layer.name, 'entity_name' => e.name.to_s, 'top' => path.first&.entityID,
+          'eid' => e.entityID, 'part_no' => e.get_attribute(DICT, PART_NO),
           'named_path' => path[0...-1].map { |x| x.name.to_s }.reject(&:empty?).join('.') } # OpenCutList PathUtils.get_named_path
       end
 
@@ -490,23 +493,76 @@ module HarryWardrobes
         out
       end
 
-      def self.first_number(opts)
-        opts['part_number_with_letters'] ? 'A' : 1
+      # --- part numbers: 1, 2, 3 ... per room file -------------------------------------------
+      # Identical parts share one number (as OpenCutList's letters did), running across the
+      # whole file (sheet goods then hardware) so a number - and the label barcode built from
+      # it - is unique in the room. Each number is kept on the part's pieces ("part_no"), so a
+      # part keeps its number when the list is made again; new parts get the next number after
+      # the highest. "Renumber parts" clears them and starts again from 1. The library master
+      # is never numbered.
+      PART_NO = 'part_no'.freeze
+
+      def self.number_parts(model, parts)
+        keep = !(defined?(LibraryExport) && LibraryExport.master?(model))
+        taken = {}
+        todo = []
+        parts.each do |p|
+          olds = Array(p['instances']).filter_map { |i| i['part_no'].to_i if i['part_no'].to_i.positive? }
+          n = olds.tally.sort_by { |v, c| [-c, v] }.map(&:first).find { |v| !taken[v] }
+          if keep && n
+            p['number'] = n
+            taken[n] = true
+          else
+            todo << p
+          end
+        end
+        nxt = taken.keys.max.to_i
+        todo.each { |p| p['number'] = (nxt += 1) }
+        return unless keep
+        changed = parts.flat_map { |p| Array(p['instances']).select { |i| i['part_no'].to_i != p['number'] }.map { |i| [i['eid'], p['number']] } }.uniq
+        unless changed.empty?
+          Ops.run(model, 'Part numbers', transparent: true) do
+            changed.each do |eid, n|
+              e = @pieces && @pieces[eid]
+              e.set_attribute(DICT, PART_NO, n) if e&.valid?
+            end
+          end
+        end
+        parts.each { |p| Array(p['instances']).each { |i| i['part_no'] = p['number'] } }
       end
+
+      # Every piece's number cleared (one undo step); the next list numbers from 1.
+      def self.renumber_parts(model)
+        Ops.run(model, 'Renumber parts') do
+          seen = {}
+          walk = lambda do |ents|
+            ents.each do |e|
+              next unless e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)
+              next if seen[e.entityID]
+              seen[e.entityID] = true
+              e.delete_attribute(DICT, PART_NO) if e.get_attribute(DICT, PART_NO)
+              walk.call(e.respond_to?(:definition) ? e.definition.entities : e.entities)
+            end
+          end
+          walk.call(model.entities)
+        end
+      end
+
+      def self.first_number(_opts) = 1
 
       # OpenCutList phase 2: groups by material type > name > thickness; parts sorted by the
       # part order strategy and numbered A, B ... (again from A in each group, as set in OpenCutList).
       def self.finish(model, groups, hardware, skipped, opts = CUTLIST_DEFAULTS)
         load_entered(model)
-        number = first_number(opts)
         strategy = opts['part_order_strategy']
         edging = Hash.new { |h, k| h[k] = { 'material' => k[0], 'height' => k[1], 'metres' => 0.0, 'parts' => 0 } }
-        sheet_groups = groups.values.sort_by { |g| [g['material'].downcase, -g['thickness']] }.map do |g|
-          number = first_number(opts) if opts['part_number_sequence_by_group']
-          parts = g['parts'].values.sort { |a, b| part_order(a, b, strategy) }
+        ordered = groups.values.sort_by { |g| [g['material'].downcase, -g['thickness']] }
+        ordered.each { |g| g['parts'] = g['parts'].values.sort { |a, b| part_order(a, b, strategy) } }
+        hw_parts = hardware.keys.sort_by(&:downcase).flat_map { |mname| hardware[mname].values.sort { |a, b| part_order(a, b, strategy) } }
+        number_parts(model, ordered.flat_map { |g| g['parts'] } + hw_parts)
+        sheet_groups = ordered.map do |g|
+          parts = g['parts']
           parts.each do |p|
-            p['number'] = number
-            number = number.succ
             p['area_m2'] = (p['length'] * p['width'] * p['qty'] / 1_000_000.0).round(3)
             add_strings(p)
             p['edges'].each do |side, em|
@@ -538,14 +594,7 @@ module HarryWardrobes
                   'estimate' => estimate, 'entered' => !entered.nil?, 'gid' => gid, 'strip_group' => strip_group?(g))
         end
         edge_list = edging.values.map { |e| e.merge('metres' => e['metres'].round(1)) }.sort_by { |e| [e['material'], e['height']] }
-        hw = hardware.keys.sort_by(&:downcase).flat_map do |mname|
-          number = first_number(opts) if opts['part_number_sequence_by_group']
-          hardware[mname].values.sort { |a, b| part_order(a, b, strategy) }.each do |h|
-            add_strings(h)
-            h['number'] = number
-            number = number.succ
-          end
-        end
+        hw = hw_parts.each { |h| add_strings(h) }
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
           'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
@@ -750,6 +799,7 @@ module HarryWardrobes
           Steps.one(dlg, 'Saving the room plan', done: ->(r) { dlg.execute_script("planSaved(#{JSON.generate('name' => File.basename(r[0]), 'v' => r[1])})") }, fail: fail_js) { RoomPlan.write(model, data) }
         end
         dlg.add_action_callback('renumber') { |_c| Products.renumber(model); reload.call }
+        dlg.add_action_callback('renumberParts') { |_c| PartsList.renumber_parts(model); reload.call }
         dlg.add_action_callback('doorView') do |_c|
           Steps.one(dlg, 'Drawing the doors view', done: ->(r) { dlg.execute_script("doorViewMade(#{JSON.generate(r)})") }, fail: fail_js) { DoorView.build(model) }
         end
