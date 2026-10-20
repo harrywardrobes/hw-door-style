@@ -573,7 +573,6 @@ damaged = jpg.dup.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, und
 check 'a picture damaged into text is spotted', !damaged.b.force_encoding('UTF-8').valid_encoding? == false && jpg.dup.force_encoding('UTF-8').valid_encoding? == false
 
 puts "\n== Parts list + labels (OpenCutList rules)"
-require 'hw_door_style/core/formula_parser'
 require 'hw_door_style/job/labels'
 require 'hw_door_style/job/parts_list' unless defined?(HarryWardrobes::DoorStyle::PartsList.part_order)
 LB = HarryWardrobes::DoorStyle::Labels
@@ -581,9 +580,7 @@ PLX = HarryWardrobes::DoorStyle::PartsList
 check 'label sizes read in mm', LB.mm('102 mm') == 102 && LB.mm('5mm') == 5 && LB.mm('0') == 0 && LB.mm('1"') == 25.4 && LB.mm('2cm') == 20
 o = LB.normalise('page_width' => '102 mm', 'page_height' => '76 mm', 'col_count' => 1, 'row_count' => 1, 'layout' => [{ 'formula' => 'part.number', 'size' => '0.75', 'x' => 0.3, 'y' => -0.4 }])
 check 'OpenCutList label preset normalised', o['page_width'] == 102 && o['margin_top'] == 10 && o['layout'][0]['size'] == 0.75
-dat = LB::Data.new(layer: 'STL', filename: 'Job.skp', batch: LB::Batch.new(2, 6), name: 'WRD_STL')
-check 'custom formulas: @layer, @filename.sub, @batch', LB.eval_formula('@layer', dat) == 'STL' && LB.eval_formula("@filename.sub(/\\.skp\\z/i, '')", dat) == 'Job' && LB.eval_formula('@batch', dat) == '2/6'
-check 'custom formulas: forbidden commands refused', LB.eval_formula('system("dir")', dat).is_a?(Hash) && LB.eval_formula('File.read("x")', dat).is_a?(Hash) && LB.eval_formula('`dir`', dat).is_a?(Hash)
+check 'custom (Ruby) label formulas are never run', LB.eval_formula('system("dir")', nil).is_a?(Hash) && LB.eval_formula('@layer', nil).is_a?(Hash) && !File.exist?(File.join(HarryWardrobes::DoorStyle::PATH, 'core/formula_parser.rb'))
 ea = { 'group_key' => [0, 'graphite', -18.0], 'number' => 'B', 'name' => 'X', 'entity_named_path' => '', 'entity_name' => '', 'position' => 2 }
 eb = ea.merge('position' => 1)
 ec = ea.merge('number' => 'AA', 'position' => 1)

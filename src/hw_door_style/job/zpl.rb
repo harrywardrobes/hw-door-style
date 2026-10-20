@@ -249,7 +249,7 @@ module HarryWardrobes
       rescue StandardError => e
         tmp = File.join(Dir.tmpdir, "hw_labels_#{Process.pid}.zpl")
         File.binwrite(tmp, zpl)
-        ok = system(%(cmd /c copy /b "#{tmp}" "#{target}" >nul 2>&1))
+        ok = system('cmd', '/c', 'copy', '/b', tmp.tr('/', '\\'), target, out: File::NULL, err: File::NULL)
         File.delete(tmp) rescue nil
         return true if ok
         raise "Couldn't reach the Zebra at #{target} (#{e.message}). Share it in Windows: Printers > Zebra GK420D > Printer properties > Sharing > share as \"#{share}\" (Settings > Labels)."

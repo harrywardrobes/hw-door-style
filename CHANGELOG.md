@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.70.1 — 2026-10-21
+- Security: custom (Ruby) label formulas are no longer run at all - a label layout can arrive inside a model file, and every HW field is a fixed field. The OpenCutList formula checker is gone with it. The Zebra fallback copy no longer goes through a shell string.
+- Fixes: the shipped label names (Settings > Labels) now apply alongside your own saved ones, so renamed hardware prints as "Hanging rail 775", "Hinges 110° soft close"...; the stable panel no longer counts as needing hinges in Repair; V36 had a duplicate top rail bracket on each hanging rail after the rename - removed.
+
 ## 0.70.0 — 2026-10-21 (needs Components V36)
 Library V36 and the plugin together - older job files need their units replaced from the new library.
 - Library: hardware renamed (OVAL_BRACKET_TOP, HANGING_RAIL_TOP / _BTM, HINGE_SOFT_CLOSE_110..., SHELF_BRACKET for the bookcase too, WARDROBE, WRD_RAIL / WST_RAIL); the hidden derived values every unit's formulas read are named consistently (zz_topped, zz_up_to_ceiling, zz_door_double, zz_door_right, zz_depth, a04_depth_finished); pull-out closed, colours cleared; linen press top is a floor; MDF and Timber 2x1 are length materials.

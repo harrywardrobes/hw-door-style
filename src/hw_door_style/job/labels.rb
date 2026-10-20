@@ -2,7 +2,7 @@
 #
 # Adapted from OpenCutList by L'Air du Bois (https://github.com/lairdubois/lairdubois-opencutlist-sketchup-extension),
 # GNU General Public License v3.0: ruby/worker/cutlist/cutlist_labels_worker.rb (one label per piece,
-# position in batch, part order strategy, custom formulas), worker/common/common_eval_formula_worker.rb,
+# position in batch, part order strategy),
 # model/formula/formula_wrapper.rb, and the label layout presets OpenCutList saves (dictionary
 # "cutlist_labels_options"), read here so the labels print the way they do in OpenCutList.
 # The drawing itself (twig/tabs/cutlist/_slide-labels.twig, _label-element.twig) is ported to
@@ -111,44 +111,7 @@ module HarryWardrobes
         { 'presets' => { 'Built-in' => normalise({}) }, 'active' => 'Built-in' }
       end
 
-      # --- formula values (OpenCutList FormulaWrapper, the parts labels use) ---------------
-
-      class Len
-        def initialize(mm)
-          @mm = mm.to_f
-        end
-
-        def to_s
-          PartsList.length_s(@mm)
-        end
-
-        def to_f
-          (@mm / PartsList::MM)
-        end
-
-        def to_mm; @mm; end
-        def to_cm; @mm / 10.0; end
-        def to_m; @mm / 1000.0; end
-        def to_inch; @mm / PartsList::MM; end
-        def export; to_s; end
-        def +(o) = o.is_a?(String) ? to_s + o : Len.new(@mm + (o.is_a?(Len) ? o.to_mm : o.to_f * PartsList::MM))
-        def -(o) = Len.new(@mm - (o.is_a?(Len) ? o.to_mm : o.to_f * PartsList::MM))
-        def *(o) = Len.new(@mm * o.to_f)
-        def /(o) = Len.new(@mm / o.to_f)
-      end
-
-      class Batch
-        attr_reader :position, :count
-
-        def initialize(position, count)
-          @position = position
-          @count = count
-        end
-
-        def to_s = "#{@position}/#{@count}"
-        def export = to_s
-        def +(o) = o.is_a?(String) ? to_s + o : self
-      end
+      # --- values the labels use ----------------------------------------------------------
 
       Material = Struct.new(:name, :type, :color, :grained, :std_dimension) do
         def to_s = name.to_s
@@ -156,33 +119,10 @@ module HarryWardrobes
         def +(o) = to_s + o.to_s
       end
 
-      Edge = Struct.new(:name, :color) do
-        def to_s = name.to_s
-        def export = to_s
-        def material_name = name.to_s
-        def +(o) = to_s + o.to_s
-      end
-
-      # The instance variables a custom formula can use (OpenCutList LabelData).
-      class Data
-        def initialize(vars)
-          vars.each { |k, v| instance_variable_set("@#{k}", v) }
-        end
-
-        def get_binding
-          binding
-        end
-      end
-
-      def self.eval_formula(formula, data)
-        FormulaParser.new(formula.to_s, data).parse
-        v = eval(formula.to_s, data.get_binding) # rubocop:disable Security/Eval -- checked by FormulaParser, as OpenCutList does
-        v = v.export if v.respond_to?(:export)
-        v.to_s
-      rescue ForbiddenFormulaError => e
-        { 'error' => e.message }
-      rescue Exception => e # rubocop:disable Lint/RescueException -- a bad formula must not stop the labels
-        { 'error' => e.message.to_s.split(/labels[.]rb:\d+:/).last.to_s }
+      # Custom (Ruby) label formulas aren't supported: they would be run as code, and a layout
+      # can arrive inside a model file. Every HW field is a fixed field instead.
+      def self.eval_formula(_formula, _data)
+        { 'error' => 'custom formulas are not supported' }
       end
 
       # --- entries (OpenCutList CutlistLabelsWorker) ---------------------------------------
@@ -245,7 +185,8 @@ module HarryWardrobes
       def self.display_name(name, kind = nil)
         return '2x1 Timber' if kind == 'timber' && name.to_s.upcase =~ /2X1|TIMBER/
         return 'MDF lengths' if kind == 'timber' && name.to_s.upcase =~ /MDF/
-        map = (Settings.get['label_display_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
+        # shipped names plus your own (Settings > Labels), so a new component name has a label name
+        map = (Settings.defaults['label_display_names'] || {}).merge(Settings.get['label_display_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
         base = name.to_s.sub(/#\d+\z/, '').strip
         map[base.upcase] || base.split(/[_\s]+/).map { |w| w =~ /\d/ ? w : w.capitalize }.join(' ')
       end
@@ -323,7 +264,6 @@ module HarryWardrobes
           insts = Array(p['instances']).sort_by { |i| i['entity_name'].to_s }
           insts.each_with_index do |inst, i|
             mat = g ? Material.new(g['material'], 'sheet_good', nil, g['grained'], PartsList.length_s(g['thickness'])) : Material.new(p['material'], kind == 'timber' ? 'dimensional' : 'hardware', nil, false, '')
-            edges = (p['edges'] || {}).to_h { |k, v| [k, Edge.new(v, (p['edge_colors'] || {})[k])] }
             e = {
               'kind' => kind, 'number' => p['number'], 't' => tops[inst['top']].to_s, 'name' => p['name'],
               'barcode' => barcode(room_id, p['number']), 'eids' => [inst['eid']].compact, 'length' => p['length_s'], 'width' => p['width_s'],
@@ -333,21 +273,7 @@ module HarryWardrobes
               'group_key' => [kind == 'sheet' ? 0 : 3, mat.name.to_s.empty? ? '~' : mat.name.to_s.downcase, -(g ? g['thickness'].to_f : 0)],
               'layer' => inst['layer'], 'entity_name' => inst['entity_name'], 'entity_named_path' => inst['named_path']
             }
-            e['custom'] = layout.map do |el|
-              next nil unless el['formula'].to_s.start_with?('custom')
-              data = Data.new(
-                number: p['number'].to_s, path: inst['named_path'].to_s, instance_name: inst['entity_name'].to_s, name: p['name'].to_s,
-                cutting_length: Len.new(p['length']), cutting_width: Len.new(p['width']), cutting_thickness: Len.new(p['thickness']),
-                edge_cutting_length: Len.new(p['length']), edge_cutting_width: Len.new(p['width']),
-                bbox_length: Len.new(p['length']), bbox_width: Len.new(p['width']), bbox_thickness: Len.new(p['thickness']),
-                final_area: (p['length'].to_f * p['width'].to_f / 1_000_000.0).round(3).to_s, material: mat,
-                description: '', url: '', tags: [], edge_ymin: edges['ymin'], edge_ymax: edges['ymax'], edge_xmin: edges['xmin'], edge_xmax: edges['xmax'],
-                layer: inst['layer'].to_s, batch: Batch.new(i + 1, p['qty']), bin: nil,
-                filename: list['filename'].to_s, model_name: list['model_name'].to_s, model_description: '',
-                page_name: list['page_name'].to_s, page_description: ''
-              )
-              eval_formula(el['custom_formula'], data)
-            end
+            e['custom'] = layout.map { |el| el['formula'].to_s.start_with?('custom') ? eval_formula(nil, nil) : nil }
             out << e
           end
         end

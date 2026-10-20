@@ -18,7 +18,6 @@ saying so and that it was modified by Gautier Design Ltd):
 | `src/hw_door_style/html/vendor/label_editor.js` | `js/plugins/components/jquery.ladb.editor-label-layout.js`, `twig/components/_editor-label-element-form.twig` — label layout editor (canvas, grid, drag / snap, nudge, add / duplicate / remove / rotate, element form). Rewritten without jQuery / Twig / i18next; fields rewired to HW's. Modified by Gautier Design Ltd, 20 October 2026. |
 | `src/hw_door_style/html/parts_list.html` (labels part) | `twig/tabs/cutlist/_slide-labels.twig`, `twig/tabs/cutlist/_label-element.twig` — label page and element drawing. Modified by Gautier Design Ltd. |
 | `src/hw_door_style/job/labels.rb` | `ruby/worker/cutlist/cutlist_labels_worker.rb`, `worker/common/common_eval_formula_worker.rb`, `model/formula/formula_wrapper.rb` — label entries, part order, custom formulas; reads OpenCutList's saved label layouts. Modified by Gautier Design Ltd. |
-| `src/hw_door_style/core/formula_parser.rb` | OpenCutList's formula checker. Modified by Gautier Design Ltd. |
 | `src/hw_door_style/job/parts_list.rb` | Cut list rules (parts, groups, edges, part order, numbering). Modified by Gautier Design Ltd. |
 
 Left behind on purpose: OpenCutList's i18n layer, tab framework and cut list data model.

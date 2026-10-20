@@ -49,7 +49,6 @@
     ['thumbnail.proportional.drawing', 'Part drawing with edging (OpenCutList, to scale)'],
     ['part.edge.ymin', 'Edge - long 1'], ['part.edge.ymax', 'Edge - long 2'], ['part.edge.xmin', 'Edge - short 1'], ['part.edge.xmax', 'Edge - short 2'],
     ['generated_at', 'Date'],
-    ['custom', 'Custom formula (OpenCutList)']
   ];
   var SIZES = [0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6];
   var ANCHORS = [['start-top', 'Top left'], ['middle-top', 'Top centre'], ['end-top', 'Top right'], ['start', 'Baseline left'], ['middle', 'Baseline centre'], ['end', 'Baseline right']];
