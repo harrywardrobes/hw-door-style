@@ -71,7 +71,7 @@ module HarryWardrobes
           p << 'slab size' if got.zip(size).any? { |g, w| (g - w).abs > TOL }
           p << 'styled slab stretched' if !['', 'FLAT'].include?(DC.read(s, 'door_style').to_s.upcase) && !scale_ok?(s)
         end
-        if kind == :door
+        if kind == :door && !Finder.fixed?(inst) # a fixed panel (stable panel) has no hinges
           hinges = kids.select { |k| k.get_attribute(DICT, 'role') == 'hinge' }
           h = Finder.real_size(inst)[2]
           p << "hinges #{hinges.size} (rule #{Settings.hinge_count(h)})" if hinges.size != Settings.hinge_count(h)

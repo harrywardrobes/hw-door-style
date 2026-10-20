@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.70.0 — 2026-10-21 (needs Components V36)
+Library V36 and the plugin together - older job files need their units replaced from the new library.
+- Library: hardware renamed (OVAL_BRACKET_TOP, HANGING_RAIL_TOP / _BTM, HINGE_SOFT_CLOSE_110..., SHELF_BRACKET for the bookcase too, WARDROBE, WRD_RAIL / WST_RAIL); the hidden derived values every unit's formulas read are named consistently (zz_topped, zz_up_to_ceiling, zz_door_double, zz_door_right, zz_depth, a04_depth_finished); pull-out closed, colours cleared; linen press top is a floor; MDF and Timber 2x1 are length materials.
+- Plugin: reads the dropdowns by fixed keys (i04_top_of_unit, b01_doors); no settings migrations, no upgrade-on-open, no old tag / name / folder fallbacks. The acceptance suite knows right-hand doors.
+- Parts list: Boards without length materials; Cut + Edged (Material, Thickness, Strip, Qty); Hardware one line per item (names from Settings > Labels; rails by length), no size / material columns; Timber / MDF as lengths; 22mm panels and bullnose moved to the Door / Vinyl order. Settings > Cut list > Length materials.
+- Room Plan: cover without address / depth / products / doors, colours resolved (never "Default"), door style with a note for other styles; product list as pod blocks (Doors / Interior lines); installation plan footer: drawing, ceiling, top fascia, cornice, runouts written out; one panel list with the pods each part is in (Timber / MDF, Cut, Worktop, Facing, hardware, doors).
+- Door / Vinyl Order: new title; 22mm and bullnose sections; worktop views (front always profiled, left / right unless against a wall or fitted between units, back only when Wall back is off; length x depth); door elevations and worktops two to a page.
+
 ## 0.68.4 — 2026-10-20
 - Door order (PDF and the Doors / Vinyl tab): a **Hand** column - LH / RH for each door.
 - Different hinges: only the hinge text is shaded (e.g. "** SC 155"), not the whole row.
