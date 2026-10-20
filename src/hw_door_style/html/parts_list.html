@@ -112,6 +112,7 @@
   <button class="primary" id="sendBtn" onclick="sendRoom()">Save + send to HubSpot</button>
 </div>
 <div id="printArea"></div>
+<!--VENDOR:JsBarcode.code128.min.js-->
 <script>
 var D = null, ENTRIES = [], HS = null;
 function f(v){ v = +v; return Math.round(v) === v ? String(v) : v.toFixed(1); }
@@ -365,7 +366,7 @@ function pageSvg(o, entries, preview, w, h){
       var lx = col * (lw + o.spacing_v), e = entries[row * o.col_count + col];
       if (e) {
         s += '<g transform="translate(' + (lx + lw / 2) + ' ' + (ly + lh / 2) + ')">';
-        o.layout.forEach(function(el, i){ s += '<g transform="translate(' + (el.x * lw) + ' ' + (el.y * lh) + ')' + (el.rotation ? ' rotate(' + el.rotation + ')' : '') + '">' + element(el, e, i, minUnit) + '</g>'; });
+        o.layout.forEach(function(el, i){ s += '<g transform="translate(' + (el.x * lw) + ' ' + (el.y * lh) + ')' + (el.rotation ? ' rotate(' + el.rotation + ')' : '') + '">' + element(el, e, i, minUnit, lw) + '</g>'; });
         s += '</g>';
       }
       var lines = [];
@@ -382,8 +383,18 @@ function pageSvg(o, entries, preview, w, h){
   return s + '</g></svg>';
 }
 function anchorX(anchor, size){ return anchor.indexOf('middle') === 0 ? size * -0.5 : (anchor.indexOf('end') === 0 ? -size : 0); }
-function element(el, e, idx, minUnit){
+// Code 128 (JsBarcode, bundled) as an SVG fitted to w x h mm, anchored like a text element.
+function barcodeSvg(payload, w, h, anchor){
+  if (!payload || typeof JsBarcode === 'undefined') return '';
+  var b = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  try { JsBarcode(b, payload, { format: 'CODE128', displayValue: true, margin: 0, height: 60, width: 2, fontSize: 16, textMargin: 2, font: 'Helvetica' }); } catch (x) { return ''; }
+  var bw = parseFloat(b.getAttribute('width')), bh = parseFloat(b.getAttribute('height'));
+  var x = anchorX(anchor, w), y = /top$/.test(anchor) ? 0 : -h;
+  return '<svg x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" viewBox="0 0 ' + bw + ' ' + bh + '" preserveAspectRatio="none">' + b.innerHTML + '</svg>';
+}
+function element(el, e, idx, minUnit, lw){
   var terms = el.formula.split('.'), anchor = el.anchor || 'middle', color = el.color || '#000000';
+  if (terms[0] === 'barcode') return barcodeSvg(e.barcode, (el.width || 0.8) * (lw || minUnit * 12), el.size * minUnit * 1.6, anchor);
   if (terms[0] === 'thumbnail' && e.kind === 'aggregate') return '';
   if (terms[0] === 'thumbnail') {
     var area = el.size * minUnit, tx = anchorX(anchor, area), ty = /top$/.test(anchor) ? 0 : -area;

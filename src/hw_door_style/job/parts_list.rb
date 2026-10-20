@@ -511,6 +511,9 @@ module HarryWardrobes
       # is never numbered.
       PART_NO = 'part_no'.freeze
 
+      # The placed pieces found by the last generate (entity id -> entity).
+      def self.pieces = @pieces || {}
+
       def self.number_parts(model, parts)
         keep = !(defined?(LibraryExport) && LibraryExport.master?(model))
         taken = {}
@@ -873,7 +876,10 @@ module HarryWardrobes
             if w == 'agg'
               list = data
             end
-            entries = Labels.entries(list, preset, tops_map, modes: Labels.modes(model), stock: Labels.stock_mm(model), which: w)
+            entries = Labels.entries(list, preset, tops_map, modes: Labels.modes(model), stock: Labels.stock_mm(model), which: w,
+                                                          room_id: (data['job_info'] || {})['room_id'])
+            Labels.store_barcodes(model, entries, PartsList.pieces)
+            entries.each { |e| e.delete('eids') }
             errors = entries.count { |e| e['custom'].any? { |c| c.is_a?(Hash) } }
             dlg.execute_script("labelEntries(#{JSON.generate('entries' => entries, 'errors' => errors)})")
           rescue StandardError => e

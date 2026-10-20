@@ -162,6 +162,27 @@ module HarryWardrobes
       # e.g. the 2x1 battens). The Labels tab can switch any part name either way for the job
       # (kept on the model, "label_modes").
       MODES = 'label_modes'.freeze
+      BARCODE = 'barcode'.freeze
+
+      # --- barcodes (Code 128) ---------------------------------------------------------------
+      # HW-{ROOM_ID}-{PART_NO} on a part label, HW-{ROOM_ID}-H{n} on a grouped label. Kept on
+      # each piece ("barcode") so a scan can be matched back to the part later.
+      def self.room_code(room_id)
+        r = room_id.to_s.upcase.gsub(/[^A-Z0-9]/, '')
+        r.empty? ? 'ROOM' : r
+      end
+
+      def self.barcode(room_id, number) = "HW-#{room_code(room_id)}-#{number}"
+
+      # Writes each piece's barcode (only where it changed; not in the library master).
+      def self.store_barcodes(model, entries, pieces)
+        return if defined?(LibraryExport) && LibraryExport.master?(model)
+        want = {}
+        entries.each { |e| Array(e['eids']).each { |id| want[id] = e['barcode'] } }
+        changed = want.select { |id, code| (p = pieces[id]) && p.valid? && p.get_attribute(DICT, BARCODE) != code }
+        return if changed.empty?
+        Ops.run(model, 'Label barcodes', transparent: true) { changed.each { |id, code| pieces[id].set_attribute(DICT, BARCODE, code) } }
+      end
       STOCK = 'timber_stock_mm'.freeze
 
       def self.glob?(name, pattern)
@@ -221,10 +242,11 @@ module HarryWardrobes
         by = {}
         parts.each do |p, kind|
           key = display_name(p['name'], kind)
-          a = (by[key] ||= { 'kind' => 'aggregate', 'source' => kind, 'name' => key, 'count' => 0, 'ts' => [], 'lengths' => [], 'parts' => [] })
+          a = (by[key] ||= { 'kind' => 'aggregate', 'source' => kind, 'name' => key, 'count' => 0, 'ts' => [], 'lengths' => [], 'parts' => [], 'eids' => [] })
           a['count'] += p['qty'].to_i
           a['parts'] << p['name']
           Array(p['instances']).each do |i|
+            a['eids'] << i['eid'] if i['eid']
             t = tops[i['top']].to_s
             a['ts'] << t unless t.empty?
             a['lengths'] << p['length'].to_f if kind == 'timber'
@@ -235,6 +257,7 @@ module HarryWardrobes
           a['agg_index'] = i + 1
           a['ts'] = a['ts'].uniq.sort_by { |t| t_key(t) }.join(', ')
           a['parts'] = a['parts'].uniq
+          a['eids'] = a['eids'].uniq
           if a['source'] == 'timber'
             b = timber_bins(a.delete('lengths'), stock)
             a['count'] = b['stock']
@@ -251,7 +274,7 @@ module HarryWardrobes
       # tops: Products.list's top-level entity id -> T number, so each piece carries its
       # product's T number (blank when it isn't in one). Printed T number, then part number;
       # the grouped labels come after the part labels.
-      def self.entries(list, preset, tops = {}, modes: {}, stock: 2400, which: '')
+      def self.entries(list, preset, tops = {}, modes: {}, stock: 2400, which: '', room_id: '')
         layout = Array(preset['layout'])
         out = []
         all = list['groups'].flat_map { |g| g['parts'].map { |p| [p, g, 'sheet'] } } + list['hardware'].map { |h| [h, nil, 'hardware'] } +
@@ -264,7 +287,8 @@ module HarryWardrobes
             mat = g ? Material.new(g['material'], 'sheet_good', nil, g['grained'], PartsList.length_s(g['thickness'])) : Material.new(p['material'], kind == 'timber' ? 'dimensional' : 'hardware', nil, false, '')
             edges = (p['edges'] || {}).to_h { |k, v| [k, Edge.new(v, (p['edge_colors'] || {})[k])] }
             e = {
-              'kind' => kind, 'number' => p['number'], 't' => tops[inst['top']].to_s, 'name' => p['name'], 'length' => p['length_s'], 'width' => p['width_s'],
+              'kind' => kind, 'number' => p['number'], 't' => tops[inst['top']].to_s, 'name' => p['name'],
+              'barcode' => barcode(room_id, p['number']), 'eids' => [inst['eid']].compact, 'length' => p['length_s'], 'width' => p['width_s'],
               'thickness' => p['thickness_s'], 'count' => p['qty'], 'position' => i + 1,
               'material_name' => mat.name, 'std_dimension' => mat.std_dimension, 'grained' => mat.grained ? true : false,
               'edges' => p['edges'] || {}, 'edge_colors' => p['edge_colors'] || {}, 'l_ratio' => p['l_ratio'], 'w_ratio' => p['w_ratio'],
@@ -290,7 +314,7 @@ module HarryWardrobes
           end
         end
         by_t(out) + aggregates(agg.map { |p, _g, kind| [p, kind] }, tops, stock).map do |a|
-          a.merge('number' => '', 't' => '', 'position' => 1, 'length' => '', 'width' => '', 'thickness' => '', 'material_name' => '',
+          a.merge('barcode' => barcode(room_id, "H#{a['agg_index']}"), 'number' => '', 't' => '', 'position' => 1, 'length' => '', 'width' => '', 'thickness' => '', 'material_name' => '',
                   'edges' => {}, 'edge_colors' => {}, 'custom' => layout.map { nil })
         end
       end

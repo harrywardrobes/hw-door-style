@@ -833,5 +833,8 @@ ag = LB.aggregates([[{ 'name' => 'L_BRACKET', 'qty' => 4, 'instances' => [{ 'top
                     [{ 'name' => 'WRKTP_2x1_SUPPORT', 'qty' => 2, 'length' => 800, 'instances' => [{ 'top' => 1 }, { 'top' => 1 }] }, 'timber']], { 1 => 'T3', 2 => 'T1' }, 2400)
 check 'grouped labels: total, T numbers in order, timber as stock lengths, running index', ag.map { |a| [a['name'], a['count'], a['ts'], a['agg_index']] } == [['L Brackets', 4, 'T1, T3', 1], ['2x1 Timber', 1, 'T3', 2]]
 
+check 'barcode payloads HW-{ROOM}-{PART} / HW-{ROOM}-H{n}', LB.barcode('WIL26102001', 12) == 'HW-WIL26102001-12' && LB.barcode('830 735', 'H3') == 'HW-830735-H3' && LB.barcode('', 1) == 'HW-ROOM-1'
+check 'JsBarcode bundled (no CDN) and put inline in the window', File.exist?(File.join(HarryWardrobes::DoorStyle::PATH, 'html/vendor/JsBarcode.code128.min.js')) && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')).include?('<!--VENDOR:JsBarcode.code128.min.js-->')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

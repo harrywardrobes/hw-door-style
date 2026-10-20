@@ -21,6 +21,8 @@ module HarryWardrobes
       def self.html(name, data = nil)
         page = File.read(File.join(DIR, "#{name}.html"))
         page = page.sub('<!--HW-->') { shared }
+        # <!--VENDOR:file.js--> -> that bundled library inline (html/vendor; no CDN - the window may be offline)
+        page = page.gsub(/<!--VENDOR:([\w.\-]+)-->/) { "<script>\n#{File.read(File.join(DIR, 'vendor', Regexp.last_match(1)))}\n</script>" }
         page.sub('/*DATA*/null') { JSON.generate(data) }
       end
 
