@@ -155,7 +155,35 @@ module HarryWardrobes
         m = nil if virtual?(m)
         m ||= dominant_child_material(e)
         path[0...-1].reverse_each { |p| break if m; m = p.material unless virtual?(p.material) } unless m
-        m
+        m || job_colour(path)
+      end
+
+      # A part with no material of its own (or from its units): the job colour of its colour
+      # group (Settings > Colours tags) - its own tag, else the nearest tagged unit above it -
+      # as the Colours window resolves it (Default exterior / interior / worktop = the door
+      # colour). So an untagged shelf in a BOOKCASE unit counts as the exterior colour.
+      def self.colour_context(model)
+        lookup = {}
+        Colours.group_tags.each { |gid, list| list.each { |t| lookup[t] = gid } }
+        choices = Colours.job_choices(model).transform_values { |v| v || Colours::DEFAULT }
+        mats = Colours.resolved(model, choices).to_h { |gid, name| [gid, name == Colours::DEFAULT ? nil : model.materials[name]] }
+        { lookup: lookup, mats: mats }
+      rescue StandardError => e
+        Log.error('parts list job colours', e)
+        nil
+      end
+
+      def self.job_colour(path)
+        ctx = @colour_ctx or return nil
+        path.reverse_each do |inst|
+          return nil if Colours.skip?(inst)
+          tag = inst == path.last ? Colours.effective_tag(inst) : (inst.layer == inst.model.layers[0] ? nil : inst.layer.name.upcase)
+          gid = tag && ctx[:lookup][tag]
+          next unless gid
+          return nil if %w[door drawer_box].include?(gid)
+          return ctx[:mats][gid]
+        end
+        nil
       end
 
       # --- finding parts (OpenCutList _fetch_useful_instance_infos) ---------------------------
@@ -286,6 +314,8 @@ module HarryWardrobes
         hardware = {}
         @timber = {}
         @untyped = Hash.new(0) # material name ('' = no colour) -> parts left out
+        @nocolour = Hash.new(0) # part name -> pieces with no colour
+        @colour_ctx = colour_context(model)
         skipped = Hash.new(0)
         found.each do |path, bounds|
           if bought_in?(path)
@@ -348,6 +378,7 @@ module HarryWardrobes
           else
             skipped[type == TYPE_UNKNOWN ? 'no_type' : 'other'] += 1
             @untyped[mat ? mat.name : ''] += 1 if type == TYPE_UNKNOWN
+            @nocolour[name] += 1 if type == TYPE_UNKNOWN && mat.nil?
           end
         end
         finish(model, groups, hardware, skipped, opts)
@@ -614,7 +645,7 @@ module HarryWardrobes
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
           'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'timber' => timber, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
-          'skipped' => skipped, 'untyped' => (@untyped || {}).map { |n, c| { 'name' => n, 'count' => c } }.sort_by { |u| u['name'] }, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
+          'skipped' => skipped, 'untyped' => (@untyped || {}).map { |n, c| { 'name' => n, 'count' => c } }.sort_by { |u| u['name'] }, 'nocolour' => (@nocolour || {}).map { |n, c| c > 1 ? "#{n} x#{c}" : n }.sort, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,
           'labels' => Labels.options(model), 'cutlist_options' => opts
         }

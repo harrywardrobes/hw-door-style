@@ -357,7 +357,7 @@ function showChecks(list){
         [['sheet', 'Sheet good (board)'], ['hardware', 'Hardware'], ['', 'Leave out']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === m.default ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></td></tr>';
     }).join('') + '</table>';
     if (c.groups) h += '<table><tr><th>Colour</th><th>Job colour</th></tr>' + c.groups.map(function(g){
-      return '<tr><td>' + esc(g.label) + '</td><td><select data-grp="' + esc(g.id) + '">' + g.options.map(function(o){ return '<option' + (o === g.value ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select></td></tr>';
+      return '<tr><td>' + esc(g.label) + '</td><td><select data-grp="' + esc(g.id) + '">' + g.options.map(function(o){ return '<option value="' + esc(o[0]) + '"' + (o[0] === g.value ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></td></tr>';
     }).join('') + '</table>';
     h += '</div>';
   });

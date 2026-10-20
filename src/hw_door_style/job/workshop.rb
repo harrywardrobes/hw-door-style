@@ -110,9 +110,12 @@ module HarryWardrobes
           dft = Colours.defaults
           groups = Colours::GROUPS.reject { |id, _| %w[panels_22 drawer_box].include?(id) }.map do |id, label|
             pick = [cur[id], dft[id]].find { |v| v && v != Colours::DEFAULT } || Colours::DEFAULT
-            { 'id' => id, 'label' => label, 'value' => pick, 'options' => [Colours::DEFAULT] + Colours.names_for(id) }
+            door = [cur['door'], dft['door']].find { |v| v && v != Colours::DEFAULT }
+            dlabel = id != 'door' && door ? "#{Colours::DEFAULT} (#{door})" : Colours::DEFAULT
+            { 'id' => id, 'label' => label, 'value' => pick, 'options' => [[Colours::DEFAULT, dlabel]] + Colours.names_for(id).map { |n| [n, n] } }
           end
-          out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour, so they're left out of the parts list.",
+          which = Array(parts['nocolour'])
+          out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour and aren't in a colour group, so they're left out: #{which.first(8).join(', ')}#{which.size > 8 ? '...' : ''}.",
                    'fix' => 'Apply the job colours (as the Colours window) - pick them below. Default on Exterior / Interior / Worktop = the door colour.', 'groups' => groups }
         end
         out
