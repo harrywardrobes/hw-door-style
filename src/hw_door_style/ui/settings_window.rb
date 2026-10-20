@@ -134,29 +134,12 @@ module HarryWardrobes
           close.call
           Updater.install(f)
         end
-        # View / clear queue: which: 'pdf' (the Brother) or 'zebra' (by its share name).
+        # View queue: which: 'pdf' (the Brother) or 'zebra' (by its share name).
         queue_name = ->(which) { which == 'zebra' ? Zpl.share : PdfPrint.printer }
         queue_msg = ->(which, msg) { dlg.execute_script("$('#{which == 'zebra' ? 'zebraMsg' : 'pdfMsg'}').textContent = #{JSON.generate(msg)}") }
         dlg.add_action_callback('viewQueue') do |_c, which|
           msg = begin
             "Queue for #{PdfPrint.view_queue(queue_name.call(which))} opened."
-          rescue StandardError => e
-            e.message
-          end
-          queue_msg.call(which, msg)
-        end
-        dlg.add_action_callback('clearQueue') do |_c, which|
-          msg = begin
-            name = PdfPrint.resolve(queue_name.call(which))
-            n = PdfPrint.jobs(name).size
-            if n.zero?
-              "Nothing waiting on #{name}."
-            elsif UI.messagebox("Cancel the #{n} job(s) waiting on #{name}?\n\nAnything still printing stops.", MB_YESNO) == IDYES
-              _nm, done, left = PdfPrint.clear_queue(name)
-              "#{done} job(s) cancelled on #{name}#{left.positive? ? "; #{left} couldn't be (another user's - clear them from Windows)" : ''}."
-            else
-              'Queue left as it is.'
-            end
           rescue StandardError => e
             e.message
           end

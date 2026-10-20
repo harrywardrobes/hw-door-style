@@ -335,7 +335,7 @@
     <div class="f t"><span>Shared printer</span><span style="display:flex;gap:6px;align-items:center"><select id="zebraPick" style="max-width:320px" onchange="if (this.value) $('zebra_share').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
     <div class="f t"><span>Windows share name</span><input type="text" id="zebra_share" style="max-width:160px"></div>
     <div class="hint">Labels print straight to the Zebra as ZPL, with no print dialog. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above.</div>
-    <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('zebra')">View queue</button> <button class="warnbtn" onclick="sketchup.clearQueue('zebra')">Clear queue</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
+    <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('zebra')">View queue</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
   </fieldset>
   <fieldset><legend>PDF printer (workshop pack)</legend>
     <div class="f t"><span>Printer</span><span style="display:flex;gap:6px;align-items:center"><select id="pdfPick" style="max-width:320px" onchange="if (this.value) $('pdf_printer').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
@@ -343,7 +343,7 @@
     <div class="f t"><span>Sides</span><select id="pdf_sides" style="max-width:260px"><option value="simplex">Single sided</option><option value="duplexlong">Double sided (long edge)</option><option value="duplexshort">Double sided (short edge)</option></select></div>
     <div class="f t"><span>SumatraPDF path</span><input type="text" id="sumatra_path" placeholder="found automatically if installed"></div>
     <div class="hint">The door order, parts list and Room Plan PDFs print here, with no dialog, when you send from the Workshop's HubSpot tab (labels only ever go to the Zebra). The name must match Windows exactly. Needs SumatraPDF (free, sumatrapdfreader.org) installed once.</div>
-    <div style="margin-top:6px"><button onclick="sketchup.pdfTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('pdf')">View queue</button> <button class="warnbtn" onclick="sketchup.clearQueue('pdf')">Clear queue</button> <span id="pdfMsg" class="hint" style="margin:0">Save the settings first if you changed the name.</span></div>
+    <div style="margin-top:6px"><button onclick="sketchup.pdfTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('pdf')">View queue</button> <span id="pdfMsg" class="hint" style="margin:0">Save the settings first if you changed the name.</span></div>
   </fieldset>
 </section>
 

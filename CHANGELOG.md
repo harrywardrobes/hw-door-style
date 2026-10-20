@@ -1,7 +1,7 @@
 # Changelog
 
-## 0.68.2 — 2026-10-20
-- Settings > Labels: **View queue** and **Clear queue** (yellow) for the Zebra and the PDF printer. View opens Windows' queue window; Clear asks first, then cancels every job waiting on that printer (another user's jobs are left and said so).
+## 0.68.3 — 2026-10-20
+- Settings > Labels: **View queue** (yellow) for the Zebra and the PDF printer - opens Windows' queue window for it.
 
 ## 0.68.1 — 2026-10-20
 - PDF printer: the setting is the Brother's network share name again, "BROTHER - Harry Wardrobes"; the plugin finds the printer it belongs to in Windows by its share name (or its Windows name, or \\computer\share). No guessing - a name that matches nothing lists the printers and their share names.
