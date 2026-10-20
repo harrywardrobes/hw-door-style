@@ -163,9 +163,9 @@ module HarryWardrobes
       # Applies values (and optionally the ceiling height) to units, one undo
       # step with a progress window. values: { side => mm } or nil.
       # facing: bottom facing (mm) for units that have the option.
-      def self.apply(model, units, values, title, done_msg, before: nil, ceiling: nil, facing: nil, depth: false)
+      def self.apply(model, units, values, title, done_msg, before: nil, after: nil, ceiling: nil, facing: nil, depth: false)
         return UI.messagebox('No units with runout settings found.') if units.empty?
-        Batch.run(model, units, title, done: done_msg, before: before) do |inst|
+        Batch.run(model, units, title, done: done_msg, before: before, after: after) do |inst|
           changed = values ? set(inst, values) : false
           changed = Facing.set(inst, facing) || changed if facing
           changed = Ceiling.set_worktop(inst) || changed

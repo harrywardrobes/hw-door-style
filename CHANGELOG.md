@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.63.0 — 2026-10-20
+- Workshop opens with a **Before you start** box when something can be put right straight away: scribes off (turned on for every unit with the job's runouts) and colours not set up as a sheet good or hardware (pick Sheet good / Hardware / Leave out for each - known board colours are pre-set). **Fix and reopen** does them in one go and opens the Workshop again; parts with no colour at all are listed to paint. "Not now" carries on.
+- Floor plan: hardware is left off the plan picture (Floor Plan tab and the Room Plan PDF) - Settings > Floor plan > Hidden on the plan (hinges, shelf brackets, drawer runners, cable outlets, hanging rails by default). Scenes aren't changed.
+
 ## 0.62.0 — 2026-10-20
 - HubSpot **Design Visit**: a project with no Rooms can be linked as a design visit (customer only) - "DESIGN VISIT - <customer>.skp". Opening it again checks the project: once a Room exists it asks which one ("Not now" asks again next time) and saves the file as that room's SURVEY file, linked to it (the design visit file is left as it was). If HubSpot can't be reached it says so - try again. Labels / Room Plan take the customer from HubSpot (Room ID made up until there's a Room).
 - All PDFs (door order, parts list, Room Plan) are A4 portrait; table columns fit the page (door order: Mid / Hng / TIP / Hdl, explained in the header).

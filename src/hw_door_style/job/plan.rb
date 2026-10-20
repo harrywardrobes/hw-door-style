@@ -167,15 +167,24 @@ module HarryWardrobes
           opts['ShowTransition'] = false
           model.pages.selected_page = pg
           [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| l.visible = true }
+          hidden = hidden_tags(model).select(&:visible?)
+          hidden.each { |l| l.visible = false }
           h = (width * view.vpheight / view.vpwidth.to_f).round
           view.write_image(filename: path, width: width, height: h, antialias: true, compression: 0.9) or raise "Couldn't make the plan picture"
         ensure
+          Array(hidden).each { |l| l.visible = true if l.valid? }
           model.pages.selected_page = was_page if was_page
           view.camera = cam
           opts['ShowTransition'] = trans
           [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| plan_only(model, l) }
         end
         path
+      end
+
+      # Tags left off the plan picture (Settings > Floor plan: hardware - hinges, rails...).
+      def self.hidden_tags(model)
+        names = s['plan_hidden_tags'].to_s.split(/[,;\n]/).map(&:strip).reject(&:empty?)
+        names.filter_map { |n| model.layers[n] }
       end
 
       def self.top_fascia(model)

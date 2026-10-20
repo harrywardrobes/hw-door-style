@@ -83,6 +83,70 @@ module HarryWardrobes
         { 'files' => [door[1], door[0], part[1], part[0]].compact, 'plan' => plan&.first, 'door_v' => door[2], 'parts_v' => part[2], 'plan_v' => plan&.last }
       end
 
+      # --- checks when the window opens, fixed with one click ------------------------------
+
+      # What can be put right straight away: scribes off (turned on with the job's runouts) and
+      # colours not set up in OpenCutList (parts left out of the lists). [{ id, text, ... }]
+      def self.checks(model, parts)
+        out = []
+        units = Runouts.units(model.entities)
+        if !parts['scribes_on'] && !units.empty?
+          v = Runouts.job_values(model)
+          out << { 'id' => 'scribes', 'text' => 'Scribes are OFF (every runout 0) - panel sizes may be wrong.',
+                   'fix' => "Turn scribes on for #{units.size} unit(s): #{Runouts::SIDES.map { |s, _, l| "#{l.sub(/\ARunout - /, '').sub(' (mm)', '')} #{v[s].round}" }.join(', ')} mm" }
+        end
+        known = OpenCutList.desired
+        cols = Array(parts['untyped']).reject { |u| u['name'].empty? }.map do |u|
+          want = known[u['name']]
+          { 'name' => u['name'], 'count' => u['count'], 'known' => want ? want['why'] : nil,
+            'default' => want ? (want['type'] == OpenCutList::HARDWARE ? 'hardware' : 'sheet') : (u['name'] =~ /HARDWARE|INTERFIT|BLUM|STEEL|CHROME|ALUMIN/i ? 'hardware' : 'sheet') }
+        end
+        unless cols.empty?
+          out << { 'id' => 'colours', 'text' => "#{cols.sum { |c| c['count'] }} part(s) have a colour that isn't set up as a sheet good or hardware, so they're left out.", 'colours' => cols }
+        end
+        none = Array(parts['untyped']).find { |u| u['name'].empty? }
+        out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour at all - paint them (or their unit) and Refresh.", 'info' => true } if none
+        out
+      end
+
+      # Sets the chosen colours up in OpenCutList (as Settings > Cut list would). choice: name =>
+      # 'sheet' / 'hardware' / '' (left as it is). One undo step.
+      def self.set_colours(model, choice)
+        known = OpenCutList.desired
+        n = 0
+        Ops.run(model, 'Set up colours (OpenCutList)') do
+          choice.each do |name, kind|
+            mat = model.materials[name] or next
+            next if kind.to_s.empty?
+            want = known[name]
+            want = nil if want && (want['type'] == OpenCutList::HARDWARE) != (kind == 'hardware')
+            want ||= if kind == 'hardware'
+                       { 'type' => OpenCutList::HARDWARE }
+                     else
+                       { 'type' => OpenCutList::SHEET, 'std_thicknesses' => OpenCutList.thicknesses_s(OpenCutList.thicknesses_for(name)),
+                         'std_sizes' => OpenCutList.sizes_s(OpenCutList.sheet_sizes), 'grained' => mat.texture ? true : false }
+                     end
+            mat.set_attribute(OpenCutList::DICT_NAME, 'type', want['type'])
+            if want['type'] == OpenCutList::SHEET
+              %w[std_thicknesses std_sizes grained].each { |k| mat.set_attribute(OpenCutList::DICT_NAME, k, want[k]) }
+            end
+            n += 1
+          end
+        end
+        n
+      end
+
+      # Scribes on for every unit with the job's runouts (as the Scribe window's Apply), then after.
+      def self.scribes_on(model, after)
+        v = Runouts.job_values(model)
+        Runouts.apply(model, Runouts.units(model.entities), v, 'Scribes on',
+                      "Scribes on: #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm.",
+                      before: lambda {
+                        model.set_attribute(DICT, 'scribe_on', true)
+                        model.set_attribute(DICT, 'scribe_values', JSON.generate(v))
+                      }, after: after)
+      end
+
       PDF_KINDS = [['DOOR_ORDER', 'Door order'], ['PARTS_LIST', 'Parts list'], ['ROOM_PLAN', 'Room Plan']].freeze
 
       # The latest PDF of each kind saved for this model (next to it): [{ title, name, path, v, date }].

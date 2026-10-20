@@ -256,6 +256,7 @@
     "CABLE_OUTLET"
   ],
   "plan_scenes": "top|plan",
+  "plan_hidden_tags": "hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail",
   "plan_notes_tag": "plan_notes",
   "plan_dims_tag": "room_dims",
   "label_tag_folder": "dimensions / labels",

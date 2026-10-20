@@ -314,6 +314,10 @@
     <div class="f" style="grid-template-columns:150px 80px"><span>Dimension distance (mm)</span><input type="number" id="plan_dim_offset_mm"></div>
     <div class="hint">Notes, dimensions and T numbers show only in scenes whose name matches (e.g. <code>top|plan</code> for "S top"). Distances: how far a note sits from its part, and the dimensions from the wall.</div>
   </fieldset>
+  <fieldset><legend>Hidden on the plan</legend>
+    <div class="f t"><span>Tags</span><input type="text" id="plan_hidden_tags"></div>
+    <div class="hint">Comma separated. These tags (the hardware: hinges, shelf brackets, drawer runners, cable outlets, hanging rails) are left off the plan picture - in the Floor Plan tab and the Room Plan PDF. Your scenes aren't changed.</div>
+  </fieldset>
 </section>
 
 <section id="s_labels">
@@ -528,7 +532,7 @@ var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrai
 var LOWER_LISTS = ['product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_prefix:'T', product_label_tag:'T_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]

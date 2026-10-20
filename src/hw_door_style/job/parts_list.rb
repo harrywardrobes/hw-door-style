@@ -285,6 +285,7 @@ module HarryWardrobes
         groups = {}
         hardware = {}
         @timber = {}
+        @untyped = Hash.new(0) # material name ('' = no colour) -> parts left out
         skipped = Hash.new(0)
         found.each do |path, bounds|
           if bought_in?(path)
@@ -346,6 +347,7 @@ module HarryWardrobes
             tp['instances'] << instance_info(path)
           else
             skipped[type == TYPE_UNKNOWN ? 'no_type' : 'other'] += 1
+            @untyped[mat ? mat.name : ''] += 1 if type == TYPE_UNKNOWN
           end
         end
         finish(model, groups, hardware, skipped, opts)
@@ -612,7 +614,7 @@ module HarryWardrobes
         {
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
           'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'timber' => timber, 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
-          'skipped' => skipped, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
+          'skipped' => skipped, 'untyped' => (@untyped || {}).map { |n, c| { 'name' => n, 'count' => c } }.sort_by { |u| u['name'] }, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,
           'labels' => Labels.options(model), 'cutlist_options' => opts
         }
@@ -796,6 +798,7 @@ module HarryWardrobes
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
           data['job_info'] = JobInfo.get(model)
           data['pdfs'] = Workshop.pdfs(model)
+          data['checks'] = (Workshop.checks(model, data) rescue (Log.error('workshop checks', $!); []))
           label_parts.call
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
@@ -806,6 +809,26 @@ module HarryWardrobes
         end
         dlg.add_action_callback('ready') { |_c| reload.call }
         dlg.add_action_callback('refresh') { |_c| reload.call }
+        # The checks prompt: fix what was ticked in one go, then open the window again.
+        dlg.add_action_callback('fixChecks') do |_c, json|
+          req = JSON.parse(json)
+          reopen = lambda do
+            dlg.close
+            UI.start_timer(0.3, false) { PartsList.show }
+          end
+          begin
+            Workshop.set_colours(model, req['colours'] || {}) unless (req['colours'] || {}).empty?
+            if req['scribes']
+              dlg.execute_script("$('status').textContent = 'Turning scribes on...'")
+              Workshop.scribes_on(model, reopen) or reopen.call
+            else
+              reopen.call
+            end
+          rescue StandardError => e
+            Log.error('workshop fix', e)
+            fail_js.call(e)
+          end
+        end
         dlg.add_action_callback('close') { |_c| dlg.close }
         # Product list: move a part to another product / its own, renumber, label the plan.
         dlg.add_action_callback('setHost') do |_c, json|

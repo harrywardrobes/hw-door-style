@@ -17,7 +17,7 @@ module HarryWardrobes
         @running ? true : false
       end
 
-      def self.run(model, items, title, done: nil, before: nil, label: ->(i) { Finder.label(i) }, &work)
+      def self.run(model, items, title, done: nil, before: nil, after: nil, label: ->(i) { Finder.label(i) }, &work)
         return false if running?
         @running = true
         Pencil.hold
@@ -29,7 +29,7 @@ module HarryWardrobes
         first = true
         tick = lambda do
           item = queue.shift
-          return finish(dlg, total, done, errors) if item.nil?
+          return finish(dlg, total, done, errors, after) if item.nil?
           dlg.execute_script("progress(#{n}, #{total}, #{JSON.generate("Updating #{label.call(item)}...")})")
           UI.start_timer(0.02, false) do
             Ops.run(model, title, transparent: !first) do
@@ -56,7 +56,7 @@ module HarryWardrobes
         true
       end
 
-      def self.finish(dlg, total, done, errors)
+      def self.finish(dlg, total, done, errors, after = nil)
         stop
         dlg.execute_script("progress(#{total}, #{total}, 'Done')")
         UI.start_timer(0.4, false) { dlg.close }
@@ -64,6 +64,7 @@ module HarryWardrobes
         msg += "\n\nCould not update:\n" + errors.join("\n") unless errors.empty?
         Sketchup.status_text = msg.lines.first.to_s
         UI.messagebox(msg) unless errors.empty?
+        UI.start_timer(0.5, false) { after.call } if after
       end
 
       def self.stop
