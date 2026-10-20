@@ -48,15 +48,15 @@ module HarryWardrobes
         rows = mine.filter_map do |p, (v, shown, section)|
           next unless m[p]
           cur = theirs[p]
-          { 'prop' => p, 'label' => m[p]['label'], 'section' => section, 'hubspot' => HubSpotRoom.label_of(cur, m[p]['options'] || []), 'value' => v,
-            'shown' => shown || (v.nil? ? nil : HubSpotRoom.label_of(v, m[p]['options'] || [])),
+          { 'prop' => p, 'label' => m[p]['label'], 'section' => section, 'hubspot' => HubSpotRoom.label_of(cur, m[p]['all_options'] || m[p]['options'] || []), 'value' => v,
+            'shown' => shown || (v.nil? ? nil : HubSpotRoom.label_of(v, m[p]['all_options'] || m[p]['options'] || [])),
             'send' => v.to_s != cur.to_s && !(v.nil? && cur.to_s.empty?) }
         end
         missing_colours = parts['groups'].map { |g| g['material'] }.uniq.reject { |n| m["mfc_sheets_#{PartsList.slug(n)}"] }
         statuses = need.filter_map do |p, (present, why)|
           next unless m[p]
           # HubSpot gives the option value ("pending"); compare and show the label ("Needs Ordering")
-          cur = HubSpotRoom.label_of(theirs[p].to_s, m[p]['options'] || []).to_s
+          cur = HubSpotRoom.label_of(theirs[p].to_s, m[p]['all_options'] || m[p]['options'] || []).to_s
           want = present ? NEEDS : NA
           done = STATUS_DONE.include?(cur)
           flag = if done && !present then "#{cur} in HubSpot, but nothing in the model needs it (#{why}) - check it"

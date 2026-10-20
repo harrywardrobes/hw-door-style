@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.67.3 — 2026-10-20
+- HubSpot: archived (hidden) dropdown answers are no longer offered - Survey tab, Send to HubSpot, Settings. A Room whose current answer has since been archived still shows it, marked "(archived)", so it isn't lost by accident. Hidden Room fields aren't offered under Settings > Survey questions > Add a Room field.
+
 ## 0.67.2 — 2026-10-20
 - Doors / Vinyl tab and the door order PDF: when doors have different hinges, the usual type stays plain and each other type is shaded grey with a mark (* lightest, ** darker, *** darker again) and bold, with a key at the top - readable in black and white. PDF hinge column: SC = Soft Close.
 

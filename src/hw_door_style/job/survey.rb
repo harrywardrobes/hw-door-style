@@ -24,7 +24,14 @@ module HarryWardrobes
         theirs = names.empty? ? {} : (HubSpot.read_one('listings', l['room_id'], names)['properties'] || {})
         qs = names.map do |n|
           d = m[n]
-          { 'name' => n, 'label' => d['label'], 'type' => d['type'], 'field' => d['field'], 'options' => d['options'],
+          opts = d['options'].dup
+          # an answer that has since been archived in HubSpot: still shown (marked) when it's the current one
+          Array(theirs[n]).join.split(';').each do |cv|
+            next if cv.empty? || opts.any? { |_l, v| v == cv }
+            old = Array(d['all_options']).find { |_l, v| v == cv }
+            opts << ["#{old ? old[0] : cv} (archived)", cv] if old
+          end
+          { 'name' => n, 'label' => d['label'], 'type' => d['type'], 'field' => d['field'], 'options' => opts,
             'readonly' => d['readonly'], 'value' => theirs[n] }
         end
         { 'linked' => true, 'room' => l['room_name'], 'questions' => qs, 'missing' => fields - names }
@@ -41,7 +48,7 @@ module HarryWardrobes
 
       # The Room's fields to pick from in Settings: [[name, label]].
       def self.available
-        HubSpotRoom.meta.reject { |_n, d| d['readonly'] }.map { |n, d| [n, d['label'].to_s] }.sort_by { |_n, l| l.downcase }
+        HubSpotRoom.meta.reject { |_n, d| d['readonly'] || d['hidden'] }.map { |n, d| [n, d['label'].to_s] }.sort_by { |_n, l| l.downcase }
       end
 
       KINDS = {

@@ -127,7 +127,7 @@ module HarryWardrobes
       # sending (checkboxes: each of the ;-separated answers). Values already right are kept.
       def self.to_values(props, m = (meta rescue {}))
         props.to_h do |p, v|
-          opts = m.dig(p, 'options')
+          opts = m.dig(p, 'all_options') || m.dig(p, 'options')
           next [p, v] if opts.nil? || opts.empty? || v.nil? || v.to_s.empty? || !%w[enumeration bool].include?(m[p]['type'])
           fix = lambda do |x|
             x = x.to_s.strip
@@ -185,7 +185,9 @@ module HarryWardrobes
           all = HubSpot.get('/crm/v3/properties/listings')['results']
           owners = nil
           all.to_h do |p|
-            opts = Array(p['options']).map { |o| [o['label'], o['value']] }
+            # archived (hidden) answers aren't offered; 'all_options' keeps them for reading old values
+            all_opts = Array(p['options']).map { |o| [o['label'], o['value']] }
+            opts = Array(p['options']).reject { |o| o['hidden'] }.map { |o| [o['label'], o['value']] }
             note = nil
             if p['referencedObjectType'] == 'OWNER'
               owners ||= (HubSpot.owners rescue :none)
@@ -193,7 +195,7 @@ module HarryWardrobes
               note = 'needs the Users permission on the key' if owners == :none
             end
             ro = (p['modificationMetadata'] || {})['readOnlyValue'] ? true : false
-            [p['name'], { 'label' => p['label'], 'type' => p['type'], 'field' => p['fieldType'], 'options' => opts, 'group' => p['groupName'],
+            [p['name'], { 'label' => p['label'], 'type' => p['type'], 'field' => p['fieldType'], 'options' => opts, 'all_options' => all_opts, 'group' => p['groupName'], 'hidden' => p['hidden'] ? true : false,
                           'readonly' => ro || !note.nil?, 'note' => note || (ro ? 'set on the Project' : nil) }]
           end
         end
@@ -410,7 +412,7 @@ module HarryWardrobes
           choices = Colours.job_choices(model).compact
           choices['drawer_box'] ||= Colours.defaults['drawer_box']
           colours.each do |gid, prop|
-            label = label_of(take[prop], meta.dig(prop, 'options') || [])
+            label = label_of(take[prop], meta.dig(prop, 'all_options') || meta.dig(prop, 'options') || [])
             choices[gid] = label.to_s.empty? ? Colours::DEFAULT : closest_colour(label, gid)
           end
           ColoursWindow.apply(model, choices)

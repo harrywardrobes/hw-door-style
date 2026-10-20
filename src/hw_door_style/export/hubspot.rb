@@ -271,7 +271,7 @@ module HarryWardrobes
 
       # Options of a dropdown Room field: [[label, value]] (cached for the session).
       def self.options(field)
-        (@options ||= {})[field] ||= Array(get("/crm/v3/properties/listings/#{field}")['options']).map { |o| [o['label'], o['value']] }
+        (@options ||= {})[field] ||= Array(get("/crm/v3/properties/listings/#{field}")['options']).reject { |o| o['hidden'] }.map { |o| [o['label'], o['value']] }
       end
 
       def self.forget_cache!
@@ -286,7 +286,7 @@ module HarryWardrobes
         data = get('/crm/v3/properties/listings')
         Array(data['results']).reject { |p| p['hubspotDefined'] }.map do |p|
           { 'name' => p['name'], 'label' => p['label'], 'type' => p['type'], 'field' => p['fieldType'],
-            'group' => p['groupName'], 'options' => Array(p['options']).map { |o| o['label'] } }
+            'group' => p['groupName'], 'options' => Array(p['options']).reject { |o| o['hidden'] }.map { |o| o['label'] } }
         end.sort_by { |p| [p['group'].to_s, p['label'].to_s] }
       end
     end
