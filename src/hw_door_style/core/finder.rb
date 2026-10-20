@@ -43,6 +43,11 @@ module HarryWardrobes
         inst.respond_to?(:definition) && (names_for(inst) & Settings.names('fixed_panel_names')).any?
       end
 
+      # Doors that never get a mid-rail (Settings "no_midrail_names").
+      def self.no_midrail?(inst)
+        inst.respond_to?(:definition) && (names_for(inst) & Settings.names('no_midrail_names')).any?
+      end
+
       def self.label(inst)
         n = dc_name(inst)
         n = inst.definition.name if n.empty?

@@ -129,7 +129,9 @@
     <div class="f t"><span>External drawer fronts</span><textarea id="ext_drawer_names"></textarea></div>
     <div class="f t"><span>Internal drawer fronts</span><textarea id="int_drawer_names"></textarea></div>
     <div class="f t"><span>Fixed panels</span><textarea id="fixed_panel_names"></textarea></div>
-    <div class="hint">Fixed panels (e.g. the stable wardrobe's WST_STABLE_PANEL) are also in Doors: styled and on the door order like a door, but no hinges or handles.</div>
+    <div class="hint">Fixed panels (e.g. the stable wardrobe's WST_STABLE_PANEL) are also in Doors: on the door order like a door, but always flat, with no hinges or handles.</div>
+    <div class="f t"><span>No mid-rail</span><textarea id="no_midrail_names"></textarea></div>
+    <div class="hint">Doors that never get a mid-rail, however tall (e.g. WST_DOOR_UPPER, above the stable panel).</div>
     <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name.</div>
   </fieldset>
   <fieldset><legend>Door styles</legend>
@@ -495,7 +497,7 @@
 
 <script>
 var S = /*DATA*/null;
-var LISTS = ['door_names','fixed_panel_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip','depth_short_components'];
+var LISTS = ['door_names','fixed_panel_names','no_midrail_names','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','product_joiners','product_skip','depth_short_components'];
 var LOWER_LISTS = ['product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];

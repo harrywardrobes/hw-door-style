@@ -210,13 +210,26 @@ module HarryWardrobes
         { components: defs.map(&:name).sort }
       end
 
-      # Clean the master in place (one undo step): colours Default, drawers closed,
-      # optionally purge unused components (materials are never purged).
+      KINDS = [:door, :ext_drawer, :int_drawer].freeze
+
+      # Doors and drawer fronts that aren't flat (the library ships flat; the job's style is
+      # put on when a unit is placed).
+      def self.styled(model)
+        Finder.all_targets(model, KINDS).reject { |i, _k| (i.definition.get_attribute(DICT, 'style') || 'flat') == 'flat' }
+      end
+
+      # Clean the master in place (one undo step): colours Default, doors and drawer fronts
+      # flat, drawers closed, optionally purge unused components (materials are never purged).
       def self.clean_model(model, purge)
-        report = { painted: 0, closed: [], purged_components: 0 }
+        report = { painted: 0, closed: [], purged_components: 0, flat: 0 }
         Ops.run(model, 'Clean model for export') do
           report[:painted] = Colours.apply(model, Colours.all_default, plain: true).values.sum
           report[:closed] = Drawers.close(model.entities)
+          st = styled(model)
+          unless st.empty?
+            Converter.rebuild(model, st, 'flat', override: false, finish: false)
+            report[:flat] = st.size
+          end
           if purge
             u = unused(model)
             report[:purged_components] = u[:components].size
@@ -231,13 +244,16 @@ module HarryWardrobes
       def self.check(model)
         painted = Colours.apply(model, Colours.all_default, record: false, plain: true, dry: true).values.sum
         open = Drawers.open_ones(model.entities)
-        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'ok' => painted.zero? && open.empty? }
+        styled = styled(model).size
+        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'styled' => styled,
+          'ok' => painted.zero? && open.empty? && styled.zero? }
       end
 
       def self.not_clean_message(c)
         bits = []
         bits << "#{c['painted']} part(s) still have a colour" if c['painted'].positive?
         bits << "#{c['open']} drawer(s) are open" if c['open'].positive?
+        bits << "#{c['styled']} door(s) / drawer front(s) aren't flat" if c['styled'].to_i.positive?
         "Clean the model first: #{bits.join(' and ')}. Press Clean model, check it over, then export."
       end
 
@@ -333,7 +349,7 @@ module HarryWardrobes
           begin
             r = clean_model(model, purge.to_s == 'true')
             msg = "Model cleaned (one undo step): #{r[:painted]} parts set to Default colour, " \
-                  "#{r[:closed].size} drawers closed, #{r[:purged_components]} unused components purged " \
+                  "#{r[:flat]} doors / drawer fronts set to Flat, #{r[:closed].size} drawers closed, #{r[:purged_components]} unused components purged " \
                   "(materials kept). Check it over, then export."
             dlg.execute_script("load(#{JSON.generate(payload(model))}); note(#{JSON.generate(msg)})")
           rescue StandardError => e

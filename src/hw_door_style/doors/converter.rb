@@ -58,14 +58,15 @@ module HarryWardrobes
 
         # Measure everything BEFORE changing any definition.
         jobs = pairs.map do |inst, kind|
-          s = style || current_style(inst)
-          { inst: inst, kind: kind, style: s, defn: inst.definition, size: Finder.real_size(inst),
+          # Fixed panels (the stable panel) are always flat.
+          s = Finder.fixed?(inst) ? 'flat' : (style || current_style(inst))
+          { inst: inst, kind: kind, style: s, plain: Finder.no_midrail?(inst), defn: inst.definition, size: Finder.real_size(inst),
             formulas: wrapper_formulas(inst), override: override.nil? ? override?(inst) : override,
             right: kind == :door ? Hardware.right?(inst) : false }
         end
 
         groups = jobs.group_by do |j|
-          [j[:defn].entityID, j[:style], j[:kind], j[:override], j[:right], j[:size].map { |v| (v * 25.4 * 2).round }]
+          [j[:defn].entityID, j[:style], j[:kind], j[:plain], j[:override], j[:right], j[:size].map { |v| (v * 25.4 * 2).round }]
         end
 
         style_cache = {}
@@ -135,7 +136,7 @@ module HarryWardrobes
         end
         ents.erase_entities(doomed) unless doomed.empty?
 
-        sdef, info = slab_definition(model, job[:style], job[:kind], w, t, h, cache)
+        sdef, info = slab_definition(model, job[:style], job[:kind], w, t, h, cache, no_midrail: job[:plain])
         si = ents.add_instance(sdef, Geom::Transformation.new)
         si.layer = tag
         si.set_attribute(DICT, 'role', 'style')
@@ -168,8 +169,8 @@ module HarryWardrobes
       end
 
       # One slab definition per (style, kind, size), shared between wrappers.
-      def self.slab_definition(model, style, kind, w, t, h, cache)
-        key = [style, kind, [w, t, h].map { |v| (v * 25.4 * 10).round }, Styles.signature(style)].flatten.join('|')
+      def self.slab_definition(model, style, kind, w, t, h, cache, no_midrail: false)
+        key = [style, kind, [w, t, h].map { |v| (v * 25.4 * 10).round }, Styles.signature(style), no_midrail ? 'nomid' : nil].compact.flatten.join('|')
         return cache[key] if cache[key]
 
         existing = model.definitions.find do |d|
@@ -183,7 +184,7 @@ module HarryWardrobes
         end
 
         d = model.definitions.add(slab_name(kind))
-        info = Styles.build(style, d.entities, w, t, h, kind)
+        info = Styles.build(style, d.entities, w, t, h, kind, no_midrail: no_midrail)
         d.set_attribute(DICT, 'role', 'style')
         d.set_attribute(DICT, 'style_key', key)
         d.set_attribute(DICT, 'style', info[:style])

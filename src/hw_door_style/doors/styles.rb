@@ -138,9 +138,12 @@ module HarryWardrobes
 
       # Builds the style's drawing. A style that can't be drawn (or is too small) is drawn
       # flat; info[:style] says what was drawn.
-      def self.build(id, ents, w, t, h, kind)
+      # no_midrail: never a mid-rail (Settings "no_midrail_names", e.g. the door above a stable panel).
+      def self.build(id, ents, w, t, h, kind, no_midrail: false)
         id = 'flat' unless ready?(id)
-        info = DRAWINGS[id][:builder].call(ents, w, t, h, kind, profile(id))
+        pr = profile(id)
+        pr = pr.merge('midrail_min_door_height_mm' => 1_000_000) if no_midrail && pr
+        info = DRAWINGS[id][:builder].call(ents, w, t, h, kind, pr)
         info.merge(style: info.delete(:flat) ? 'flat' : id)
       end
     end

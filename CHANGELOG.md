@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.50.0 — 2026-10-20
+- The stable panel (fixed panels) is always flat, whatever style the job's doors are.
+- No mid-rail on the door above the stable panel (WST_DOOR_UPPER), however tall. Settings > Doors > No mid-rail lists the doors that never get one.
+- Clean model (Export library) also sets every door and drawer front back to Flat, and export stays locked while any aren't flat.
+
+## 0.50.0 — 2026-10-20
+- 
+
 ## 0.49.0 — 2026-10-20
 - **Stable wardrobe** (WARDROBE_STABLE, Components V29+): a double wardrobe with a fixed stable panel below one door. Its doors are WST_DOOR (full height) and WST_DOOR_UPPER (above the panel, lined up like the linen press door), and the panel is WST_STABLE_PANEL. Each door hinges on its outer edge, whichever side the panel is on.
 - Fixed panels (Settings > Doors > Fixed panels, default WST_STABLE_PANEL) are styled, coloured and on the door order like a door ("Stable Panel"), with no hinges, TIP-ON or handles. The Room Plan lists them as "stable panel W x H (fixed)".

@@ -13,6 +13,9 @@
   "fixed_panel_names": [
     "WST_STABLE_PANEL"
   ],
+  "no_midrail_names": [
+    "WST_DOOR_UPPER"
+  ],
   "ext_drawer_names": [
     "DRW_FRONT"
   ],
