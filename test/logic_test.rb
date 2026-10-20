@@ -808,5 +808,10 @@ fresh = [{ 'instances' => [{ 'eid' => 1 }] }, { 'instances' => [{ 'eid' => 2 }] 
 PLX.number_parts(FakeModel.new, fresh)
 check 'part numbers start at 1', fresh.map { |x| x['number'] } == [1, 2]
 
+require 'hw_door_style/job/labels'
+LB = HarryWardrobes::DoorStyle::Labels
+ord = LB.by_t([{ 't' => '', 'number' => 1, 'position' => 1 }, { 't' => 'W1', 'number' => 2, 'position' => 1 }, { 't' => 'T2', 'number' => 1, 'position' => 1 }, { 't' => 'T10', 'number' => 3, 'position' => 1 }, { 't' => 'T2', 'number' => 10, 'position' => 1 }, { 't' => 'T2', 'number' => 9, 'position' => 1 }])
+check 'labels print T number then part number (T2 9 before T2 10, T10 after T2, no T last)', ord.map { |e| "#{e['t']}#{e['t'].empty? ? '' : ':'}#{e['number']}" } == %w[T2:1 T2:9 T2:10 T10:3 W1:2 1]
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

@@ -376,6 +376,8 @@ function element(el, e, idx, minUnit){
   if (terms[0] === 'part') {
     if (key === 'size' || key === 'cutting_size' || key === 'edge_cutting_size') value = e.length + ' x ' + e.width;
     else if (key === 'batch') value = e.position + '/' + e.count;
+    else if (key === 'number') value = (e.t ? e.t + '\u2003' : '') + e.number; // HW: T number left of the part number
+    else if (key === 't' || key === 't_number') value = e.t || '';
     else if (key === 'count') value = String(e.count);
     else if (key === 'entity_named_path') value = e.entity_named_path;
     else if (key === 'entity_name') value = e.entity_name;

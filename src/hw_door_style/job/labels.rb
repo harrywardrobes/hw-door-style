@@ -155,7 +155,9 @@ module HarryWardrobes
       # --- entries (OpenCutList CutlistLabelsWorker) ---------------------------------------
 
       # One entry per piece: sheet goods then hardware, each part's pieces sorted by name.
-      def self.entries(list, preset)
+      # tops: Products.list's top-level entity id -> T number, so each piece carries its
+      # product's T number (blank when it isn't in one). Printed T number, then part number.
+      def self.entries(list, preset, tops = {})
         layout = Array(preset['layout'])
         out = []
         parts = list['groups'].flat_map { |g| g['parts'].map { |p| [p, g, 'sheet'] } } + list['hardware'].map { |h| [h, nil, 'hardware'] }
@@ -165,7 +167,7 @@ module HarryWardrobes
             mat = g ? Material.new(g['material'], 'sheet_good', nil, g['grained'], PartsList.length_s(g['thickness'])) : Material.new(p['material'], 'hardware', nil, false, '')
             edges = (p['edges'] || {}).to_h { |k, v| [k, Edge.new(v, (p['edge_colors'] || {})[k])] }
             e = {
-              'kind' => kind, 'number' => p['number'], 'name' => p['name'], 'length' => p['length_s'], 'width' => p['width_s'],
+              'kind' => kind, 'number' => p['number'], 't' => tops[inst['top']].to_s, 'name' => p['name'], 'length' => p['length_s'], 'width' => p['width_s'],
               'thickness' => p['thickness_s'], 'count' => p['qty'], 'position' => i + 1,
               'material_name' => mat.name, 'std_dimension' => mat.std_dimension, 'grained' => mat.grained ? true : false,
               'edges' => p['edges'] || {}, 'edge_colors' => p['edge_colors'] || {}, 'l_ratio' => p['l_ratio'], 'w_ratio' => p['w_ratio'],
@@ -190,7 +192,20 @@ module HarryWardrobes
             out << e
           end
         end
-        sort(out, preset['part_order_strategy'])
+        by_t(out)
+      end
+
+      T_ORDER = %w[T W B L F M].freeze
+
+      # T number (T1, T2... W1... in list order; none last), then part number, then piece.
+      def self.t_key(t)
+        return [1, 99, 0, ''] if t.to_s.empty?
+        l = t[/\A[A-Z]+/].to_s
+        [0, T_ORDER.index(l) || 9, t[/\d+/].to_i, l]
+      end
+
+      def self.by_t(list)
+        list.sort_by { |e| [t_key(e['t']), e['number'].to_i, e['number'].to_s, e['position']] }
       end
 
       # OpenCutList LabelEntry.entry_order: "number>name>entity_named_path>entity_name>bin", "-" = descending.

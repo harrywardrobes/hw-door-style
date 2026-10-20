@@ -755,11 +755,12 @@ module HarryWardrobes
         model = Sketchup.active_model
         TopOfUnit.upgrade(model)
         data = nil
+        tops_map = {}
         build = lambda do
           data = generate(model)
           data['door'] = Report.payload(model)
           data['export_csv'] = Report.csv?
-          prods, _tops = Products.list(model)
+          prods, tops_map = Products.list(model)
           data['products'] = prods
           data['product_prefix'] = Products.cfg['prefix']
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
@@ -826,7 +827,7 @@ module HarryWardrobes
             elsif w.start_with?('g')
               list = data.merge('groups' => [data['groups'][w[1..].to_i]].compact, 'hardware' => [])
             end
-            entries = Labels.entries(list, preset)
+            entries = Labels.entries(list, preset, tops_map)
             errors = entries.count { |e| e['custom'].any? { |c| c.is_a?(Hash) } }
             dlg.execute_script("labelEntries(#{JSON.generate('entries' => entries, 'errors' => errors)})")
           rescue StandardError => e
