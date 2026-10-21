@@ -627,6 +627,7 @@ require 'hw_door_style/core/library_cache'
 LC = HarryWardrobes::DoorStyle::LibraryCache
 check 'versions read from file names', LC.parse('WARDROBE_V10') == ['WARDROBE', 10] && LC.parse('SHOE_UNIT V2') == ['SHOE_UNIT', 2] && LC.parse('CAB') == ['CAB', 0] && LC.parse('INT_DRAWER_PLUS_V9') == ['INT_DRAWER_PLUS', 9]
 check 'names made readable', LC.pretty('INT_DRAWER_PLUS') == 'Int Drawer Plus' && LC.pretty('WALK-IN') == 'Walk-In' && LC.pretty('MAIN COMPONENTS') == 'Main Components'
+check 'mixed-case names kept; Electrical Faceplates is a plain category after Main Components', LC.pretty('Double UK 3 Pin Power Socket') == 'Double UK 3 Pin Power Socket' && LC.plain?('ELECTRICAL FACEPLATES') && !LC.plain?('WARDROBES') && LC.cat_order('ELECTRICAL FACEPLATES') > LC.cat_order('MAIN COMPONENTS')
 lib = Dir.mktmpdir('hw_lib')
 { 'WARDROBES' => %w[WARDROBE_V9.skp WARDROBE_V10.skp TOPBOX_V13.skp desktop.ini], 'DRAWERS' => %w[EXT_DRAWER_V8.skp], '_old' => %w[WARDROBE_V11.skp], 'SURVEY RENDERS' => %w[a.jpg] }.each do |d, fs|
   FileUtils.mkdir_p(File.join(lib, d))

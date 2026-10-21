@@ -23,11 +23,19 @@ module HarryWardrobes
       VER_RE = /\A(.+?)[ _-]+V(\d+)\z/i.freeze # WARDROBE_V10, "SHOE_UNIT V2"
 
       # Category order and colour (the rest follow, grey).
-      ORDER = ['WARDROBES', 'DRAWERS', 'BRIDGE', 'BOOKCASE', 'SHELVING', 'MAIN COMPONENTS', OTHER].freeze
+      ORDER = ['WARDROBES', 'DRAWERS', 'BRIDGE', 'BOOKCASE', 'SHELVING', 'MAIN COMPONENTS', 'ELECTRICAL FACEPLATES', OTHER].freeze
       COLOURS = {
         'WARDROBES' => '#2f4a3f', 'DRAWERS' => '#b4541a', 'BRIDGE' => '#3d5a80', 'BOOKCASE' => '#7a4e2d',
-        'SHELVING' => '#6b7f3a', 'MAIN COMPONENTS' => '#6d4c7d', OTHER => '#6a737d'
+        'SHELVING' => '#6b7f3a', 'MAIN COMPONENTS' => '#6d4c7d', 'ELECTRICAL FACEPLATES' => '#9a7b0a', OTHER => '#6a737d'
       }.freeze
+
+      # A category that isn't furniture (Settings "ignore_component_folders", e.g. Electrical
+      # Faceplates): placed as it is - no job colours, scribes or door style - and left out
+      # of the Workshop.
+      def self.plain?(cat)
+        folders = Array(Settings.get['ignore_component_folders']).map { |f| f.to_s.downcase }
+        folders.include?(cat.to_s.downcase)
+      end
 
       def self.root
         r = Settings.get['library_folder'].to_s.strip
@@ -40,8 +48,10 @@ module HarryWardrobes
         m ? [m[1], m[2].to_i] : [base, 0]
       end
 
-      # 'INT_DRAWER_PLUS' -> 'Int Drawer Plus', 'WALK-IN' -> 'Walk-In', 'MAIN COMPONENTS' -> 'Main Components'
+      # 'INT_DRAWER_PLUS' -> 'Int Drawer Plus', 'WALK-IN' -> 'Walk-In', 'MAIN COMPONENTS' -> 'Main Components'.
+      # A name already in mixed case ('Double UK 3 Pin Power Socket') is left as it is.
       def self.pretty(name)
+        return name.to_s.tr('_', ' ').squeeze(' ').strip if name.to_s =~ /[a-z]/
         name.to_s.tr('_', ' ').split(/(\s+|-)/).map { |w| w =~ /\A[A-Za-z]/ ? w.capitalize : w }.join.squeeze(' ').strip
       end
 
@@ -169,7 +179,7 @@ module HarryWardrobes
            .sort_by { |e| [cat_order(e['cat']), e['cat'], e['name']] }
            .map do |e|
              { 'key' => e['key'], 'cat' => e['cat'], 'cat_label' => pretty(e['cat']), 'name' => e['name'], 'label' => pretty(e['name']),
-               'ver' => e['ver'], 'img' => img(e['png']), 'colour' => colour(e['cat']) }
+               'ver' => e['ver'], 'img' => img(e['png']), 'colour' => colour(e['cat']), 'plain' => plain?(e['cat']) }
            end
       end
     end

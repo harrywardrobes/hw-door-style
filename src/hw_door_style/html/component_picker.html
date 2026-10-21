@@ -82,9 +82,9 @@ function draw(){
       var n = list.filter(function(x){ return x.cat === c.cat; }).length;
       html += '<h2><i style="background:' + c.colour + '"></i>' + esc(c.cat_label) + ' <small>' + n + '</small></h2><div class="grid">';
     }
-    html += '<div class="card' + (picked === c.key ? ' on' : '') + '" style="--c:' + c.colour + '" onclick="pick(\'' + esc(c.key) + '\')" title="' + esc(c.name) + ' V' + c.ver + '">' +
+    html += '<div class="card' + (picked === c.key ? ' on' : '') + '" style="--c:' + c.colour + '" onclick="pick(\'' + esc(c.key) + '\')" title="' + esc(c.name) + (c.ver ? ' V' + c.ver : '') + (c.plain ? ' (placed as it is - not set up to the job)' : '') + '">' +
       '<div class="pic"' + (c.img ? ' style="background-image:url(' + c.img + ')"' : '') + '>' + (c.img ? '' : '<span>' + esc(initials(c.label)) + '</span>') + '</div>' +
-      '<div class="nm"><b>' + esc(c.label) + '</b><small>V' + c.ver + '</small></div></div>';
+      '<div class="nm"><b>' + esc(c.label) + '</b>' + (c.ver ? '<small>V' + c.ver + '</small>' : '') + '</div></div>';
   });
   if (cur !== null) html += '</div>';
   $('list').innerHTML = html;

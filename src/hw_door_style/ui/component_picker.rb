@@ -127,7 +127,8 @@ module HarryWardrobes
         end
         defn = model.definitions.load(e['file'])
         # Scribes on / off as the model is NOW (the new unit's own runouts mustn't decide it).
-        job = setup_on? ? { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model) } : nil
+        # Not for a faceplate or anything else that isn't furniture - placed as it is.
+        job = setup_on? && !LibraryCache.plain?(e['cat']) ? { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model) } : nil
         @watch&.stop
         @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']))
         model.add_observer(@watch)

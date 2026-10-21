@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.71.0 — 2026-10-22
+- Add component (+): a new Electrical Faceplates category - the faceplates now live in the library's own "Electrical Faceplates" folder (sockets, switches, blank covers, phone / TV / fuse plates). They're placed as they are: no job colours, scribes or door style, and they stay out of the Workshop. Unversioned files no longer show "V0"; mixed-case names are kept as written.
+
 ## 0.70.4 — 2026-10-22
 - Electrical faceplates (sockets, switches, back plates) are no longer parts or hardware in the Workshop: anything loaded from the Electrical Faceplates library folder, or on the "Sockets Switches and Plugs" / "Socket Cutout Construction Lines" tags, is skipped and never flagged in the checks. Settings > Hardware > "Not furniture" lists the folders and tags.
 
