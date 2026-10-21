@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.72.1 — 2026-10-22
+- A settings file saved from the Settings window kept the old Pod letters (L, M) and export list; those three settings now take the shipped values (the rest of your settings are kept).
+
 ## 0.72.0 — 2026-10-22
 - Pod letters are now T Tall units, W Wall / bridge units (box shelves moved here), B Base units (worktops, box ends, cabinets and the external drawer units - L is gone), F Facings. M (miscellaneous) is gone; end panels were never products.
 - Wardrobe internals (int drawer, int drawer plus, shoe pull-out - Settings "product_internals") are always part of a tall unit's pod: they can't be their own product, and one that isn't inside any tall unit gets no Pod number - the Workshop checks and the Product List tab say so, with a "Put it in" list of the tall units. The Workshop pack can't be saved until they're in one.

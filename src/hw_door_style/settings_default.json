@@ -393,7 +393,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 4,
+  "settings_version": 12,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",

@@ -68,6 +68,7 @@ def mm(v); (v * 25.4).round(1); end
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
 check 'no team file yet', Settings.team_file.nil?
+check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 11, 'product_refs' => { 'EXT_DRAWER' => 'L' }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 11, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 12, 'product_refs' => { 'X' => 'T' } }, Settings.defaults)['product_refs'] == { 'X' => 'T' }
 Settings.team_file = 'G:/My Drive/team.json'
 check 'team file remembered', Settings.team_file == 'G:/My Drive/team.json'
 Dir.mktmpdir do |d|
