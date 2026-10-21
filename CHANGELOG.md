@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.70.4 — 2026-10-22
+- Electrical faceplates (sockets, switches, back plates) are no longer parts or hardware in the Workshop: anything loaded from the Electrical Faceplates library folder, or on the "Sockets Switches and Plugs" / "Socket Cutout Construction Lines" tags, is skipped and never flagged in the checks. Settings > Hardware > "Not furniture" lists the folders and tags.
+
 ## 0.70.3 — 2026-10-21
 - Export components (template): the template's floor and ceiling are saved at the default room size - 4000 wide, 3000 long, 2400 ceiling (Settings > Export components > Template room). The room itself isn't recorded in the template, so Room setup still asks for each job with blank boxes.
 

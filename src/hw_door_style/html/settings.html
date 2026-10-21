@@ -242,7 +242,12 @@
   </fieldset>
   <fieldset><legend>Hardware</legend>
     <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4"></textarea></div>
-    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET, BKS_SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag, so nothing stays on HARDWARE.</div>
+    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag.</div>
+  </fieldset>
+  <fieldset><legend>Not furniture (left out of the Workshop)</legend>
+    <div class="f t"><span>Library folders</span><input type="text" id="ignore_component_folders"></div>
+    <div class="f t"><span>Tags</span><input type="text" id="ignore_tags"></div>
+    <div class="hint">Comma separated. Components loaded from these library folders (e.g. Electrical Faceplates), and anything on these tags (sockets, switches), are never parts or hardware.</div>
   </fieldset>
 </section>
 
@@ -609,6 +614,8 @@ function load(s){
   $('ocl_thicknesses_mm').value = (s.ocl_thicknesses_mm || []).join(', ');
   $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
   $('ocl_length_materials').value = (s.ocl_length_materials || []).join(', ');
+  $('ignore_component_folders').value = (s.ignore_component_folders || []).join(', ');
+  $('ignore_tags').value = (s.ignore_tags || []).join(', ');
   var rd = s.room_default_mm || {}; $('room_w').value = rd.width || 4000; $('room_l').value = rd.length || 3000; $('room_c').value = rd.ceiling || 2400;
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
@@ -675,6 +682,8 @@ function collect(){
   o.ocl_thicknesses_mm = $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   o.ocl_length_materials = $('ocl_length_materials').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  o.ignore_component_folders = $('ignore_component_folders').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  o.ignore_tags = $('ignore_tags').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
   o.room_default_mm = { width: parseFloat($('room_w').value) || 4000, length: parseFloat($('room_l').value) || 3000, ceiling: parseFloat($('room_c').value) || 2400 };
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
   o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';

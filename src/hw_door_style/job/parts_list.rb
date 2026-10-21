@@ -248,6 +248,22 @@ module HarryWardrobes
         path.any? { |e| e.respond_to?(:definition) && tags_of(e.definition).include?(tag) }
       end
 
+      # Not part of the furniture at all - electrical faceplates and the like: a component
+      # from a library folder in Settings "ignore_component_folders" (by the file it was
+      # loaded from), or anything on a tag in "ignore_tags" (sockets, switches).
+      def self.ignored?(path)
+        folders = Settings.get['ignore_component_folders']
+        folders = Array(folders).map { |f| f.to_s.downcase }.reject(&:empty?)
+        tags = Settings.get['ignore_tags']
+        tags = Array(tags).map { |t| t.to_s.downcase }.reject(&:empty?)
+        path.any? do |e|
+          next true if tags.include?(e.layer.name.to_s.downcase)
+          next false unless e.respond_to?(:definition)
+          p = e.definition.path.to_s.tr('\\', '/').downcase
+          !p.empty? && folders.any? { |f| p.include?("/#{f}/") }
+        end
+      end
+
       def self.r1(inches)
         (inches.to_f * MM).round(1)
       end
@@ -329,6 +345,10 @@ module HarryWardrobes
         found.each do |path, bounds|
           if bought_in?(path)
             skipped['bought_in'] += 1
+            next
+          end
+          if ignored?(path)
+            skipped['ignored'] += 1
             next
           end
           inst = path.last

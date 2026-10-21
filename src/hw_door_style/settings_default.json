@@ -155,6 +155,13 @@
       "CABLE_OUTLET_80"
     ]
   },
+  "ignore_component_folders": [
+    "Electrical Faceplates"
+  ],
+  "ignore_tags": [
+    "Sockets Switches and Plugs",
+    "Socket Cutout Construction Lines"
+  ],
   "colour_groups": {
     "door": [
       "DOOR",

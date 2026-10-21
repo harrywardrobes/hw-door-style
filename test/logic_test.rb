@@ -591,6 +591,13 @@ pb = pa.merge('length' => 1200.0)
 pc = pa.merge('flipped' => true)
 st = '-thickness>-length>-width>-count>name>-edge_pattern>tags>thickness_layer_count'
 check 'parts: longest first, mirrored after', [pb, pc, pa].sort { |x, y| PLX.part_order(x, y, st) }.map { |x| [x['length'], x['flipped']] } == [[2400.0, false], [2400.0, true], [1200.0, false]]
+IgnDef = Struct.new(:path)
+IgnEnt = Struct.new(:layer, :definition)
+IgnLay = Struct.new(:name)
+sock = IgnEnt.new(IgnLay.new('Untagged'), IgnDef.new('G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Electrical Faceplates\\Double UK 3 Pin Power Socket.skp'))
+plate = IgnEnt.new(IgnLay.new('Sockets Switches and Plugs'), IgnDef.new(''))
+hinge = IgnEnt.new(IgnLay.new('HARDWARE'), IgnDef.new('G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Harry Wardrobes\\Components V36.skp'))
+check 'electrical faceplates ignored by library folder and by tag, hardware kept', PLX.ignored?([sock]) && PLX.ignored?([hinge, plate]) && !PLX.ignored?([hinge])
 
 puts "\n== Workshop: strips and Room values"
 gx = { 'material' => 'Graphite', 'all_sizes' => [[2800.0, 2070.0], [2800.0, 610.0]] }
