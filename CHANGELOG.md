@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.70.3 — 2026-10-21
+- Export components (template): the template's floor and ceiling are saved at the default room size - 4000 wide, 3000 long, 2400 ceiling (Settings > Export components > Template room). The room itself isn't recorded in the template, so Room setup still asks for each job with blank boxes.
+
 ## 0.70.2 — 2026-10-21
 - Room setup (new job): the customer comes from a HubSpot search - pick the project, then its Room (or Design Visit) - the customer folder is found by contact ID (or a new "SURNAME First (id)" folder is made), the file name is pre-filled (SURVEY - room - customer / DESIGN VISIT - customer) to check, then the room size. The file is linked to HubSpot as it's saved. A file that already exists offers to open it instead. "select folder manually" under the customer search for a folder of your own; the "Change..." button is gone.
 

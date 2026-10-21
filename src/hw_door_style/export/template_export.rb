@@ -59,6 +59,7 @@ module HarryWardrobes
         parts << model.pages.map(&:name).inspect
         parts << model.styles.map(&:name).sort.inspect
         parts << model.options['UnitsOptions'].keys.sort.map { |k| "#{k}=#{model.options['UnitsOptions'][k]}" }.inspect
+        parts << Room.default_mm.inspect
         Digest::MD5.hexdigest(parts.join("\n"))
       end
 
@@ -106,7 +107,11 @@ module HarryWardrobes
           drop = model.entities.select { |e| (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) && !keep?(e) }
           model.entities.erase_entities(drop) unless drop.empty?
           model.definitions.purge_unused
-          [LibraryExport::META, DICT].each { |d| model.attribute_dictionaries&.delete(d) }
+          # the floor and ceiling at the default room size (Settings > General); the room
+          # itself isn't recorded, so Room setup still asks, with blank boxes
+          d = Room.default_mm
+          Room.apply(model, width: d['width'], length: d['length'], ceiling: d['ceiling'])
+          [LibraryExport::META, DICT].each { |d2| model.attribute_dictionaries&.delete(d2) }
           model.description = "Harry Wardrobes job template V#{v} (#{Time.now.strftime('%d/%m/%Y')})"
           view.zoom_extents
           ok = model.save_copy(path)

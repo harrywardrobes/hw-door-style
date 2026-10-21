@@ -673,6 +673,7 @@ check 'file / folder names made safe', RM.safe('Liam Tunney: Chester/1.skp') == 
 cf = Dir.mktmpdir('hw_cust')
 FileUtils.mkdir_p(File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)'))
 pick = { 'contact_id' => '830735284436', 'first_name' => 'Rebecca', 'last_name' => 'Williams' }
+check 'template room defaults 4000 x 3000, ceiling 2400 (Settings room_default_mm)', RM.default_mm == { 'width' => 4000.0, 'length' => 3000.0, 'ceiling' => 2400.0 }
 check 'customer folder found by contact ID, else named SURNAME First (id)', RM.folder_for(pick, cf) == { 'folder' => File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)'), 'name' => 'WILLIAMS Rebecca (Rossett - 830735284436)', 'exists' => true } &&
   RM.folder_for({ 'contact_id' => '1', 'first_name' => 'John', 'last_name' => 'Smith' }, cf) == { 'folder' => File.join(cf, 'SMITH John (1)'), 'name' => 'SMITH John (1)', 'exists' => false }
 rh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/room.html'))

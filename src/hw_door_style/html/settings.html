@@ -356,6 +356,8 @@
     <div class="hint">Top-level components left out of the export list.</div>
     <div class="f t"><span>Template keeps</span><input type="text" id="template_keep"></div>
     <div class="hint">The only things kept in the job template for Welcome to SketchUp (saved with Export components), e.g. FLOOR, CEILING. Everything else is left out.</div>
+    <div class="f" style="grid-template-columns:150px 70px 70px 70px"><span>Template room (mm)</span><input type="number" id="room_w" placeholder="width"><input type="number" id="room_l" placeholder="length"><input type="number" id="room_c" placeholder="ceiling"></div>
+    <div class="hint">The template's floor and ceiling are saved at this size (width, length, ceiling). Room setup still asks for each job's room, starting blank.</div>
   </fieldset>
   <fieldset><legend>Door order and parts list</legend>
     <div class="f c"><span>Also save CSV files (the PDF is always saved)</span><input type="checkbox" id="export_csv"></div>
@@ -607,6 +609,7 @@ function load(s){
   $('ocl_thicknesses_mm').value = (s.ocl_thicknesses_mm || []).join(', ');
   $('ocl_sheet_sizes').value = (s.ocl_sheet_sizes || []).map(function(x){ return Array.isArray(x) ? x.join('x') : x; }).join(', ');
   $('ocl_length_materials').value = (s.ocl_length_materials || []).join(', ');
+  var rd = s.room_default_mm || {}; $('room_w').value = rd.width || 4000; $('room_l').value = rd.length || 3000; $('room_c').value = rd.ceiling || 2400;
   $('ocl_doors_bought_in').checked = s.ocl_doors_bought_in !== false;
   $('ocl_bought_in_tag').value = s.ocl_bought_in_tag || 'bought-in';
   $('strip_widths_mm').value = (s.strip_widths_mm || []).join(', ');
@@ -672,6 +675,7 @@ function collect(){
   o.ocl_thicknesses_mm = $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
   o.ocl_sheet_sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   o.ocl_length_materials = $('ocl_length_materials').value.split(',').map(function(x){ return x.trim(); }).filter(Boolean);
+  o.room_default_mm = { width: parseFloat($('room_w').value) || 4000, length: parseFloat($('room_l').value) || 3000, ceiling: parseFloat($('room_c').value) || 2400 };
   o.ocl_doors_bought_in = $('ocl_doors_bought_in').checked;
   o.ocl_bought_in_tag = $('ocl_bought_in_tag').value.trim() || 'bought-in';
   o.strip_widths_mm = $('strip_widths_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).sort(function(a, b){ return a - b; });

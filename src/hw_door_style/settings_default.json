@@ -435,5 +435,10 @@
   ],
   "hinge_defaults": {
     "WST_DOOR": "soft_close_155"
+  },
+  "room_default_mm": {
+    "width": 4000,
+    "length": 3000,
+    "ceiling": 2400
   }
 }

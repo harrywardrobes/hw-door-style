@@ -17,6 +17,14 @@ module HarryWardrobes
       FLOOR = /\Afloor\z/i.freeze
       CEILING = /\Aceiling\z/i.freeze
 
+      # The size the template's floor and ceiling are saved at (Settings "room_default_mm").
+      # Only the template: a new job's Room setup starts blank.
+      def self.default_mm
+        d = Settings.get['room_default_mm']
+        d = {} unless d.is_a?(Hash)
+        { 'width' => (d['width'] || 4000).to_f, 'length' => (d['length'] || 3000).to_f, 'ceiling' => (d['ceiling'] || 2400).to_f }
+      end
+
       def self.get(model = Sketchup.active_model)
         r = JSON.parse(model.get_attribute(DICT, KEY, 'null'))
         r.is_a?(Hash) ? r : nil
