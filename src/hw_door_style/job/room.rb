@@ -109,16 +109,17 @@ module HarryWardrobes
         f.empty? || !File.directory?(f) ? nil : f
       end
 
-      def self.customers(folder)
-        return [] unless folder && File.directory?(folder)
-        Dir.children(folder).select { |d| d !~ /\A[._]/ && File.directory?(File.join(folder, d)) }
-           .sort_by { |d| -(File.mtime(File.join(folder, d)).to_i rescue 0) }
-      rescue StandardError
-        []
-      end
-
       def self.safe(name)
         name.to_s.gsub(/[<>:"\/\\|?*\x00-\x1F]/, '').strip.sub(/\.skp\z/i, '')
+      end
+
+      # The customer's folder in the customers folder, found by the HubSpot contact ID, else
+      # the name a new one would get: "WILLIAMS Rebecca (830735284436)".
+      def self.folder_for(pick, jf)
+        found = HubSpotRoom.customer_folder(pick['contact_id'], jf)
+        return { 'folder' => found, 'name' => File.basename(found), 'exists' => true } if found
+        name = safe("#{HubSpotRoom.customer_tag(pick)} (#{pick['contact_id']})".strip)
+        { 'folder' => File.join(jf, name), 'name' => name, 'exists' => false }
       end
 
       def self.data(model)
@@ -126,56 +127,90 @@ module HarryWardrobes
         p = parts(model)
         r = get(model) || {}
         { 'saved' => !model.path.to_s.empty?, 'file' => File.basename(model.path.to_s, '.skp'),
-          'jobs' => jf, 'customers' => customers(jf),
+          'jobs' => jf, 'hubspot' => HubSpot.key?,
           'width' => r['width'], 'length' => r['length'], 'ceiling' => r['ceiling'] || (Ceiling.mm(model).positive? ? Ceiling.mm(model) : nil),
           'has_floor' => !p[:floor].nil?, 'has_ceiling' => !p[:ceiling].nil? }
       end
 
+      # New job: the customer from HubSpot (search, then the project's Room or Design Visit),
+      # the folder found by contact ID (or made), the file name checked, then the room size.
       def self.show(model = Sketchup.active_model)
-        dlg = Dialog.open('room', title: 'HW - Room setup', key: 'hw_room_v1', width: 440, height: 560, data: data(model), resizable: true)
+        dlg = Dialog.open('room', title: 'HW - Room setup', key: 'hw_room_v2', width: 460, height: 640, data: data(model), resizable: true)
+        js = ->(fn, obj) { dlg.execute_script("#{fn}(#{JSON.generate(obj)})") }
         dlg.add_action_callback('browse') do |_c|
           f = UI.select_directory(title: 'Customers folder (holds a folder per customer)', directory: jobs_folder || Dir.home)
           if f
             Sketchup.write_default(Settings::PREFS, PREF_JOBS, f.tr('\\', '/'))
-            dlg.execute_script("setJobs(#{JSON.generate('jobs' => jobs_folder, 'customers' => customers(jobs_folder))})")
+            js.call('setJobs', 'jobs' => jobs_folder)
           end
+        end
+        dlg.add_action_callback('search') do |_c, q|
+          Steps.one(dlg, q.to_s.strip.empty? ? 'Reading recent projects' : "Searching HubSpot for \"#{q.to_s.strip}\"",
+                    done: ->(r) { js.call('projects', 'projects' => r) }, fail: ->(e) { js.call('projects', 'error' => e.message) }) { HubSpot.search_projects(q) }
+        end
+        dlg.add_action_callback('project') do |_c, pid|
+          Steps.one(dlg, 'Reading the rooms and customer',
+                    done: lambda { |r|
+                      jf = jobs_folder
+                      r['found'] = jf ? folder_for(r, jf) : nil
+                      r['design_file'] = HubSpotRoom.design_file_name(r['customer'])
+                      js.call('rooms', r)
+                    }, fail: ->(e) { js.call('rooms', 'error' => e.message) }) { HubSpotRoom.project_details(pid.to_s) }
+        end
+        # "select folder manually": any folder inside the customers folder.
+        dlg.add_action_callback('pickFolder') do |_c|
+          f = UI.select_directory(title: 'Customer folder', directory: jobs_folder || Dir.home)
+          js.call('setFolder', 'folder' => f.tr('\\', '/'), 'name' => File.basename(f), 'exists' => true) if f
         end
         dlg.add_action_callback('never') do |_c|
           Ops.run(model, 'Room: don\'t ask', transparent: true) { model.set_attribute(DICT, SKIP, true) }
           dlg.close
         end
+        dlg.add_action_callback('openExisting') do |_c, path|
+          dlg.close
+          Sketchup.open_file(path) if File.exist?(path.to_s)
+        end
         dlg.add_action_callback('apply') do |_c, json|
           o = JSON.parse(json)
           err = save_and_apply(model, o)
-          err ? dlg.execute_script("problem(#{JSON.generate(err)})") : dlg.close
+          err.is_a?(Hash) ? js.call('exists', err) : (err ? js.call('problem', err) : dlg.close)
         end
         dlg.show
         dlg
       end
 
-      # Saves the file first if it hasn't been (so a typo in the name changes nothing),
-      # then sizes the room in one undo step. Returns an error message or nil.
+      # Saves the file first if it hasn't been (so a typo in the name changes nothing), links
+      # it to HubSpot when a customer was picked, then sizes the room in one undo step.
+      # Returns nil, an error message, or { 'path' } when that file already exists.
       def self.save_and_apply(model, o)
         w, l, c = o['width'].to_f, o['length'].to_f, o['ceiling'].to_f
         return 'Enter the ceiling height.' unless c.positive?
         p = parts(model)
         return 'Enter the room width and length.' if (p[:floor] || p[:ceiling]) && !(w.positive? && l.positive?)
+        pick = o['pick'].is_a?(Hash) ? o['pick'] : nil
         if model.path.to_s.empty?
           jf = jobs_folder or return 'Choose the customers folder first.'
-          cust = safe(o['customer'])
+          dir = o['folder'].to_s.strip
+          dir = File.join(jf, safe(File.basename(dir))) unless dir.start_with?(jf) # keep it inside the customers folder
           file = safe(o['file'])
-          return 'Enter the customer folder.' if cust.empty?
+          return 'Pick the customer (or select the folder manually).' if File.basename(dir).empty?
           return 'Enter the file name.' if file.empty?
-          dir = File.join(jf, cust)
           path = File.join(dir, "#{file}.skp")
-          return "#{file}.skp is already in #{cust} - choose another name." if File.exist?(path)
+          return { 'path' => path, 'name' => "#{file}.skp", 'folder' => File.basename(dir) } if File.exist?(path)
           FileUtils.mkdir_p(dir)
         end
-        Ops.run(model, 'Room setup') { apply(model, width: w, length: l, ceiling: c) }
+        Ops.run(model, 'Room setup') do
+          apply(model, width: w, length: l, ceiling: c)
+          if pick
+            HubSpotRoom.store_link(model, HubSpotRoom.link_from(pick))
+            model.set_attribute(DICT, 'room_name', pick['design_visit'] ? 'Design visit' : JobInfo.room_from_link(pick['room_name']))
+          end
+        end
         if path
           ok = model.save(path)
           return "SketchUp couldn't save #{path}." unless ok
         end
+        HubSpotRoom.refresh_info(model) if pick && !pick['design_visit']
         Pencil.invalidate(model) if defined?(Pencil)
         Sketchup.status_text = "Room #{w.round} x #{l.round} mm, ceiling #{c.round} mm#{path ? " - saved as #{path}" : ''}."
         nil

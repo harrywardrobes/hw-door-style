@@ -19,6 +19,11 @@ input:focus { outline:none; border-color:var(--accent); }
 .foot { border-top:1px solid var(--line); padding:9px 14px; display:flex; gap:6px; align-items:center; }
 .foot a { font-size:11px; color:var(--muted); cursor:pointer; text-decoration:underline; }
 svg { display:block; margin:6px auto 0; }
+.list { border:1px solid var(--line); border-radius:3px; max-height:120px; overflow:auto; margin-top:4px; display:none; }
+.list div { padding:4px 7px; border-bottom:1px solid var(--rule); cursor:pointer; font-size:11.5px; }
+.list div:hover { background:#f3f5f4; }
+.list div.on { background:#e3ece8; font-weight:600; }
+.list .msg { color:var(--muted); cursor:default; }
 </style></head>
 <body>
 <div id="main">
@@ -28,11 +33,15 @@ svg { display:block; margin:6px auto 0; }
 
   <fieldset id="saveBox">
     <legend>Save the job</legend>
-    <div class="row"><label>Customers folder</label><div><button onclick="sketchup.browse()" id="browseBtn">Choose...</button> <span class="path" id="jobs"></span></div></div>
-    <div class="row"><label>Customer folder</label><div><input type="text" id="customer" list="custList" placeholder="Pick one, or type a new name" autocomplete="off"><datalist id="custList"></datalist><div class="hint" id="custHint"></div></div></div>
+    <div class="row"><label>Customer</label><div>
+      <div style="display:flex;gap:6px"><input type="text" id="q" placeholder="Search HubSpot: customer or project" autocomplete="off"><button onclick="search()">Search</button></div>
+      <div class="list" id="projects"></div>
+      <div class="hint" id="custHint" style="margin:3px 0 0"></div>
+    </div></div>
+    <div class="row" id="roomRow" style="display:none"><label>Room</label><div><div class="list" id="rooms"></div></div></div>
+    <div class="row"><label>Folder</label><div><span class="path" id="folder">pick the customer above</span><div class="hint" style="margin:3px 0 0"><a id="pickFolder" onclick="sketchup.pickFolder()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">select folder manually</a> <span id="jobs" class="path"></span> <a onclick="sketchup.browse()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">customers folder...</a></div></div></div>
     <div class="row"><label>File name</label><div class="unit"><input type="text" id="file" autocomplete="off"><span>.skp</span></div></div>
   </fieldset>
-
   <fieldset>
     <legend>Room size</legend>
     <div class="row"><label>Width</label><div class="unit"><input type="number" id="width" min="0" step="1"><span>mm</span></div></div>
@@ -58,41 +67,76 @@ svg { display:block; margin:6px auto 0; }
 </div>
 <script>
 var D = /*DATA*/null;
-function setJobs(o){
-  D.jobs = o.jobs; D.customers = o.customers || [];
-  $('jobs').textContent = D.jobs || 'not chosen yet (e.g. 1_CUSTOMERS)';
-  $('browseBtn').textContent = D.jobs ? 'Change...' : 'Choose...';
-  $('custList').innerHTML = D.customers.map(function(c){ return '<option value="' + esc(c) + '">'; }).join('');
-  custHint();
-}
-function custHint(){
-  var v = $('customer').value.trim();
-  $('custHint').textContent = !v ? (D.customers.length ? D.customers.length + ' customer folders - newest first' : '')
-    : (D.customers.indexOf(v) >= 0 ? 'Saves into the existing folder.' : 'A new folder will be made.');
-}
+var P = null, PICK = null, FOLDER = null;
+function setJobs(o){ D.jobs = o.jobs; $('jobs').textContent = D.jobs ? '(' + D.jobs + ')' : '(customers folder not chosen yet - e.g. 1_CUSTOMERS)'; }
 function problem(t){ var e = $('err'); e.textContent = t; e.style.display = 'block'; }
+function list(id, html){ var el = $(id); el.innerHTML = html; el.style.display = html ? 'block' : 'none'; }
+function search(){ $('err').style.display = 'none'; list('projects', '<div class="msg">Searching...</div>'); sketchup.search($('q').value); }
+function projects(r){
+  if (r.error) return list('projects', '<div class="msg">' + esc(r.error) + '</div>');
+  if (!r.projects.length) return list('projects', '<div class="msg">No projects found - try the surname, or select the folder manually.</div>');
+  list('projects', r.projects.map(function(p){ return '<div data-id="' + esc(p.id) + '">' + esc(p.name || '(no name)') + '</div>'; }).join(''));
+  Array.prototype.forEach.call($('projects').querySelectorAll('div[data-id]'), function(el){
+    el.onclick = function(){
+      Array.prototype.forEach.call($('projects').querySelectorAll('div'), function(x){ x.classList.remove('on'); });
+      el.classList.add('on'); PICK = null; list('rooms', '<div class="msg">Reading the rooms and customer...</div>'); $('roomRow').style.display = '';
+      sketchup.project(el.getAttribute('data-id'));
+    };
+  });
+}
+// the project's customer, folder and rooms
+function rooms(r){
+  if (r.error) return list('rooms', '<div class="msg">' + esc(r.error) + '</div>');
+  P = r;
+  $('custHint').textContent = r.customer ? r.customer + (r.address ? ' - ' + r.address : '') : 'No contact linked to this project in HubSpot.';
+  if (r.found) setFolder(r.found);
+  var h = r.rooms.map(function(x, i){ return '<div data-i="' + i + '">' + esc(x.name) + '</div>'; }).join('');
+  h += '<div data-i="dv"><b>Design Visit</b> <span class="hint" style="margin:0">no Room yet - linked to the customer only</span></div>';
+  list('rooms', h);
+  Array.prototype.forEach.call($('rooms').querySelectorAll('div[data-i]'), function(el){
+    el.onclick = function(){
+      Array.prototype.forEach.call($('rooms').querySelectorAll('div'), function(x){ x.classList.remove('on'); });
+      el.classList.add('on');
+      var i = el.getAttribute('data-i'), room = i === 'dv' ? null : P.rooms[+i];
+      PICK = { design_visit: !room, room_id: room ? room.id : null, room_name: room ? room.name : null, project_id: P.project_id, contact_id: P.contact_id,
+               customer: P.customer, first_name: P.first_name, last_name: P.last_name, address: P.address };
+      $('file').value = room ? room.file.replace(/\.skp$/i, '') : P.design_file.replace(/\.skp$/i, '');
+      $('file').dataset.touched = '';
+    };
+  });
+  if (r.rooms.length === 1) $('rooms').querySelector('div[data-i="0"]').click();
+}
+function setFolder(f){
+  FOLDER = f;
+  $('folder').innerHTML = esc(f.name) + (f.exists ? '' : ' <span style="color:var(--warn)">(new folder - will be made)</span>');
+}
 function go(){
-  var o = { width: $('width').value, length: $('length').value, ceiling: $('ceiling').value, customer: $('customer').value, file: $('file').value };
+  var o = { width: $('width').value, length: $('length').value, ceiling: $('ceiling').value, file: $('file').value, folder: FOLDER ? FOLDER.folder : '', pick: PICK };
   if (!D.saved) {
-    if (!D.jobs) return problem('Choose the customers folder first.');
-    if (!o.customer.trim()) { $('customer').focus(); return problem('Enter the customer folder.'); }
+    if (!D.jobs) return problem('Choose the customers folder first (customers folder... link).');
+    if (!FOLDER) { $('q').focus(); return problem('Pick the customer from HubSpot, or select the folder manually.'); }
     if (!o.file.trim()) { $('file').focus(); return problem('Enter the file name.'); }
   }
   if ((D.has_floor || D.has_ceiling) && !(parseFloat(o.width) > 0 && parseFloat(o.length) > 0)) { $('width').focus(); return problem('Enter the room width and length.'); }
   if (!(parseFloat(o.ceiling) > 0)) { $('ceiling').focus(); return problem('Enter the ceiling height.'); }
   sketchup.apply(JSON.stringify(o));
 }
-$('sub').textContent = D.saved ? D.file + '.skp - set the room size.' : 'New job - where to save it, and the room size.';
+function exists(r){
+  var e = $('err'); e.style.display = 'block';
+  e.innerHTML = esc(r.name) + ' is already in ' + esc(r.folder) + '. <a style="cursor:pointer;text-decoration:underline" onclick="sketchup.openExisting(' + JSON.stringify(r.path).replace(/"/g, '&quot;') + ')">Open it instead</a>, or change the file name.';
+}
+$('sub').textContent = D.saved ? D.file + '.skp - set the room size.' : 'New job - the customer, where to save it, and the room size.';
 $('saveBox').style.display = D.saved ? 'none' : '';
 ['width', 'length', 'ceiling'].forEach(function(k){ if (D[k]) $(k).value = Math.round(D[k]); });
 var missing = [];
 if (!D.has_floor) missing.push('floor'); if (!D.has_ceiling) missing.push('ceiling');
 $('partsHint').textContent = missing.length === 2 ? 'This file has no floor or ceiling (start new jobs from the Harry Wardrobes template) - only the ceiling height is set.'
   : missing.length ? 'No ' + missing[0] + ' in this file - the rest is sized.' : 'The floor and ceiling are sized to the room; the ceiling sits at the ceiling height.';
-$('customer').addEventListener('input', function(){ custHint(); if (!$('file').dataset.touched) $('file').value = $('customer').value; });
-$('file').addEventListener('input', function(){ this.dataset.touched = '1'; });
-document.addEventListener('keydown', function(e){ if (e.key === 'Enter') go(); });
+$('q').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.stopPropagation(); search(); } });
+document.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target !== $('q')) go(); });
 setJobs(D);
-(D.saved ? $('width') : (D.jobs ? $('customer') : $('browseBtn'))).focus();
+if (!D.saved && !D.hubspot) { $('custHint').textContent = 'No HubSpot key (Settings > HubSpot) - select the folder manually.'; }
+else if (!D.saved) search();
+(D.saved ? $('width') : $('q')).focus();
 </script>
 </body></html>

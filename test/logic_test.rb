@@ -671,11 +671,12 @@ require 'hw_door_style/job/room'
 RM = HarryWardrobes::DoorStyle::Room
 check 'file / folder names made safe', RM.safe('Liam Tunney: Chester/1.skp') == 'Liam Tunney Chester1' && RM.safe(' Smith ') == 'Smith'
 cf = Dir.mktmpdir('hw_cust')
-%w[Old_Customer New_Customer _archive].each { |d| FileUtils.mkdir_p(File.join(cf, d)) }
-File.utime(Time.now - 86_400, Time.now - 86_400, File.join(cf, 'Old_Customer'))
-check 'customer folders listed newest first, _ folders hidden', RM.customers(cf) == %w[New_Customer Old_Customer]
+FileUtils.mkdir_p(File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)'))
+pick = { 'contact_id' => '830735284436', 'first_name' => 'Rebecca', 'last_name' => 'Williams' }
+check 'customer folder found by contact ID, else named SURNAME First (id)', RM.folder_for(pick, cf) == { 'folder' => File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)'), 'name' => 'WILLIAMS Rebecca (Rossett - 830735284436)', 'exists' => true } &&
+  RM.folder_for({ 'contact_id' => '1', 'first_name' => 'John', 'last_name' => 'Smith' }, cf) == { 'folder' => File.join(cf, 'SMITH John (1)'), 'name' => 'SMITH John (1)', 'exists' => false }
 rh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/room.html'))
-check 'room window sends width, length, ceiling, customer and file', %w[width length ceiling customer file sketchup.apply sketchup.browse sketchup.never].all? { |w| rh.include?(w) }
+check 'room window: HubSpot customer search, room pick, folder (manual link), file name', %w[width length ceiling sketchup.search sketchup.project sketchup.pickFolder sketchup.apply sketchup.browse sketchup.never sketchup.openExisting select\ folder\ manually].all? { |w| rh.include?(w.tr('\\', '')) }
 check 'scribe window sends the room size with the ceiling', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.room_width')
 
 puts "\n== Product list"

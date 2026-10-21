@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.70.2 — 2026-10-21
+- Room setup (new job): the customer comes from a HubSpot search - pick the project, then its Room (or Design Visit) - the customer folder is found by contact ID (or a new "SURNAME First (id)" folder is made), the file name is pre-filled (SURVEY - room - customer / DESIGN VISIT - customer) to check, then the room size. The file is linked to HubSpot as it's saved. A file that already exists offers to open it instead. "select folder manually" under the customer search for a folder of your own; the "Change..." button is gone.
+
 ## 0.70.1 — 2026-10-21
 - Security: custom (Ruby) label formulas are no longer run at all - a label layout can arrive inside a model file, and every HW field is a fixed field. The OpenCutList formula checker is gone with it. The Zebra fallback copy no longer goes through a shell string.
 - Fixes: the shipped label names (Settings > Labels) now apply alongside your own saved ones, so renamed hardware prints as "Hanging rail 775", "Hinges 110° soft close"...; the stable panel no longer counts as needing hinges in Repair; V36 had a duplicate top rail bracket on each hanging rail after the rename - removed.
