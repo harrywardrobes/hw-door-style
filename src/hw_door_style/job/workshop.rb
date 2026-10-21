@@ -101,6 +101,7 @@ module HarryWardrobes
                    'fix' => 'Redraw those doors with the right hinges (style kept).' }
         end
         loose = Array(parts['loose_internals'])
+        loose = [] if defined?(LibraryExport) && LibraryExport.master?(model) # the library's own copies sit alone
         unless loose.empty?
           out << { 'id' => 'internals', 'text' => "#{loose.size} wardrobe internal(s) aren't inside a tall unit, so they have no Pod number: #{loose.map { |l| "#{l['name']} at x #{l['x']}" }.first(6).join(', ')}#{loose.size > 6 ? '...' : ''}. Move each into its wardrobe, or put it in one on the Product List tab." }
         end

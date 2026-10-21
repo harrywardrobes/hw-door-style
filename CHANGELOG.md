@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.72.2 — 2026-10-22
+- The master library file isn't told its internals have no tall unit (they sit alone there by design).
+
 ## 0.72.1 — 2026-10-22
 - A settings file saved from the Settings window kept the old Pod letters (L, M) and export list; those three settings now take the shipped values (the rest of your settings are kept).
 
