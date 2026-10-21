@@ -628,7 +628,7 @@ require 'hw_door_style/job/products' unless defined?(HarryWardrobes::DoorStyle::
 LC = HarryWardrobes::DoorStyle::LibraryCache
 check 'versions read from file names', LC.parse('WARDROBE_V10') == ['WARDROBE', 10] && LC.parse('SHOE_UNIT V2') == ['SHOE_UNIT', 2] && LC.parse('CAB') == ['CAB', 0] && LC.parse('INT_DRAWER_PLUS_V9') == ['INT_DRAWER_PLUS', 9]
 check 'names made readable', LC.pretty('INT_DRAWER_PLUS') == 'Int Drawer Plus' && LC.pretty('WALK-IN') == 'Walk-In' && LC.pretty('MAIN COMPONENTS') == 'Main Components'
-check 'mixed-case names kept; Electrical Faceplates is a plain category after Main Components', LC.pretty('Double UK 3 Pin Power Socket') == 'Double UK 3 Pin Power Socket' && LC.plain?('ELECTRICAL FACEPLATES') && !LC.plain?('WARDROBES') && LC.cat_order('ELECTRICAL FACEPLATES') > LC.cat_order('M')
+check 'mixed-case names kept; Electrical Faceplates is a plain category after Main Components', LC.pretty('Double UK 3 Pin Power Socket') == 'Double UK 3 Pin Power Socket' && LC.plain?('ELECTRICAL FACEPLATES') && !LC.plain?('WARDROBES') && LC.cat_order('ELECTRICAL FACEPLATES') > LC.cat_order('F')
 lib = Dir.mktmpdir('hw_lib')
 { 'WARDROBES' => %w[WARDROBE_V9.skp WARDROBE_V10.skp TOPBOX_V13.skp desktop.ini], 'DRAWERS' => %w[EXT_DRAWER_V8.skp], '_old' => %w[WARDROBE_V11.skp], 'SURVEY RENDERS' => %w[a.jpg] }.each do |d, fs|
   FileUtils.mkdir_p(File.join(lib, d))
@@ -656,7 +656,8 @@ LC.forget(gone, idx)
 check 'old copy replaced by the new version', !File.exist?(old_file) && idx['WARDROBES/WARDROBE']['ver'] == 11 && !idx.key?('WARDROBES/TOPBOX')
 LC.save_index(idx)
 cs = LC.cards
-check 'cards: grouped by pod letter (T, L, then Other), colour coded', cs.map { |c| [c['key'], c['cat']] } == [['WARDROBES/WARDROBE', 'T'], ['DRAWERS/EXT_DRAWER', 'L'], ['OTHER/COVER_WITH_WORKTOP', 'OTHER']] && cs.first['colour'] == LC::COLOURS['T'] && cs.first['label'] == 'Wardrobe' && cs.first['cat_label'] == 'T - Tall units'
+check 'cards: grouped by pod letter (T, B, then Other), colour coded', cs.map { |c| [c['key'], c['cat']] } == [['WARDROBES/WARDROBE', 'T'], ['DRAWERS/EXT_DRAWER', 'B'], ['OTHER/COVER_WITH_WORKTOP', 'OTHER']] && cs.first['colour'] == LC::COLOURS['T'] && cs.first['label'] == 'Wardrobe' && cs.first['cat_label'] == 'T - Tall units'
+check 'groups: internals under T - Wardrobe internals, box shelf W', LC.group('cat' => 'DRAWERS', 'name' => 'INT_DRAWER_PLUS') == LC::INTERNALS && LC.group('cat' => 'DRAWERS', 'name' => 'SHOE_PULL_OUT') == LC::INTERNALS && LC.group_label(LC::INTERNALS) == 'T - Wardrobe internals' && LC.group('cat' => 'SHELVING', 'name' => 'BOX_SHELF') == 'W' && LC.group('cat' => 'DRAWERS', 'name' => 'EXT_DRAWER (Fitted)') == 'B'
 check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
@@ -706,6 +707,7 @@ check 'Depth option names: wardrobe c01_depth and the others a03_wall_depth', %w
 puts "\n== Room Plan"
 pc2 = pc.merge('refs' => { 'BRIDGE' => 'W', 'EXT_DRAWER' => 'B', 'BOX_SHELF' => 'M' })
 check 'reference letters: W bridge, B drawers, M box shelves, T otherwise', PR.ref_of('BRIDGE_SKELETON', pc2) == 'W' && PR.ref_of('EXT_DRAWER_3', pc2) == 'B' && PR.ref_of('BOX_SHELF', pc2) == 'M' && PR.ref_of('WARDROBE', pc2) == 'T'
+check 'shipped refs: box shelf W, ext drawer B, no L or M, internals listed, ceiling never exported', PR.ref_of('BOX_SHELF') == 'W' && PR.ref_of('EXT_DRAWER') == 'B' && PR.order == %w[T W B F] && PR.internal?('SHOE_PULL_OUT') && PR.internal?('INT_DRAWER_PLUS') && PR.joiner?('INT_DRAWER') && !PR.internal?('BOX_SHELF') && HarryWardrobes::DoorStyle::Settings.names('export_skip').include?('CEILING')
 require 'hw_door_style/job/pdf'
 require 'hw_door_style/job/parts_pdf'
 require 'hw_door_style/job/room_plan'
@@ -741,7 +743,7 @@ require 'hw_door_style/job/midrail'
 MR = HarryWardrobes::DoorStyle::Midrail
 check 'mid-rail option names (stable wardrobe and linen press)', %w[b06_midrail_centre b07_midrail_width h07_midrail_centre h08_midrail_width].all? { |k| k =~ MR::KEY_RE } && !('midrail_centre_mm' =~ MR::KEY_RE)
 
-check 'reference letter key in list order, only the letters used', PR.key(%w[F T L]).map(&:first) == %w[T L F] && PR.key_text(%w[T]).start_with?('Key: T = ')
+check 'reference letter key in list order, only the letters used', PR.key(%w[F T B]).map(&:first) == %w[T B F] && PR.key_text(%w[T]).start_with?('Key: T = ')
 
 require 'hw_door_style/core/finder'
 FD = HarryWardrobes::DoorStyle::Finder

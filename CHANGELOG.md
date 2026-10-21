@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.72.0 — 2026-10-22
+- Pod letters are now T Tall units, W Wall / bridge units (box shelves moved here), B Base units (worktops, box ends, cabinets and the external drawer units - L is gone), F Facings. M (miscellaneous) is gone; end panels were never products.
+- Wardrobe internals (int drawer, int drawer plus, shoe pull-out - Settings "product_internals") are always part of a tall unit's pod: they can't be their own product, and one that isn't inside any tall unit gets no Pod number - the Workshop checks and the Product List tab say so, with a "Put it in" list of the tall units. The Workshop pack can't be saved until they're in one.
+- Add component (+): "T - Wardrobe internals" is its own group under T; the groups follow the new letters.
+- The ceiling is treated like the floor: never exported from the master (Settings "export_skip"), kept in the job template.
+
 ## 0.71.1 — 2026-10-22
 - Add component (+): components are grouped by their Pod number letter - T Tall units, W Wall / bridge, B Base (worktops, box ends, cabinets), L Drawer units, F Facings, M Miscellaneous - then Electrical Faceplates, then Other (bullnose, ceiling, cover). The library folders are unchanged; search still finds a component by its folder name.
 

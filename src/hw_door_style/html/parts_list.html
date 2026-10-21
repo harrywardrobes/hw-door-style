@@ -259,10 +259,19 @@ function renderProducts(d){
       return '<div style="display:flex;gap:6px;align-items:center;margin:1px 0"><span style="flex:1">' + esc(m.name) + ' <span style="color:var(--muted)">' + m.size.join(' x ') + '</span></span><select style="font-size:11px" onchange="setHost(\'' + esc(m.pid) + '\', this.value)">' + opts(m.auto ? '' : p.pid, m.pid, p.t) + '</select></div>';
     }).join('');
     return '<tr><td><b><a href="#" onclick="sketchup.selectProduct(\'' + esc(p.pid) + '\');return false" title="Select it in the model">' + esc(p.t) + '</a></b></td><td>' + esc(p.name) + '</td><td style="color:var(--muted)">' + esc(p.component) + '</td><td class="n">' + p.size.join(' x ') + '</td><td class="n">' + (p.depth ? '<b>' + p.depth + (p.finished ? ' / ' + p.finished : '') + '</b>' : '-') + '</td><td>' + (inc || '<span style="color:var(--muted)">-</span>') + '</td></tr>';
-  }).join('') + '</table><div class="hint">Includes: parts that belong to the product (internal drawers in a wardrobe, a box end under a worktop, box shelves next to each other...). Change one to split it off as its own product or move it to another.</div>' : '<div class="hint">No products found - check the names in Settings &gt; Product list.</div>';
+  }).join('') + '</table>' + looseInternals(d, P) + '<div class="hint">Includes: parts that belong to the product (internal drawers in a wardrobe, a box end under a worktop, box shelves next to each other...). Change one to split it off as its own product or move it to another.</div>' : '<div class="hint">No products found - check the names in Settings &gt; Product list.</div>';
   var K = d.product_key || [];
   if (K.length) h = '<div class="hint" style="margin:0 0 6px"><b>Key:</b> ' + K.map(function(k){ return '<b>' + esc(k[0]) + '</b> ' + esc(k[1]); }).join(' &middot; ') + '</div>' + h;
   $('p_products').innerHTML = h;
+}
+// Wardrobe internals that aren't inside any tall unit: no Pod number until they are (or are put in one here).
+function looseInternals(d, P){
+  var L = d.loose_internals || [];
+  if (!L.length) return '';
+  var tall = P.filter(function(p){ return p.ref === 'T'; });
+  return '<div class="grp" style="margin-top:10px"><h3 style="color:var(--warn)">Not in a tall unit <span>' + L.length + ' wardrobe internal(s) with no Pod number</span></h3><table><tr><th>Internal</th><th class="n">x (mm)</th><th>Put it in</th></tr>' + L.map(function(l){
+    return '<tr><td>' + esc(l.name) + '</td><td class="n">' + l.x + '</td><td><select style="font-size:11px" onchange="if(this.value)setHost(\'' + esc(l.pid) + '\', this.value)"><option value="">Choose a tall unit...</option>' + tall.map(function(p){ return '<option value="' + esc(p.pid) + '">' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join('') + '</select></td></tr>';
+  }).join('') + '</table></div>';
 }
 function labelParts(r){
   var P = r.parts || [];

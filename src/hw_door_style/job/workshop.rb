@@ -100,6 +100,10 @@ module HarryWardrobes
           out << { 'id' => 'hinges', 'text' => "#{wrong.size} door(s) have the wrong hinges: #{wrong.first(6).map { |w| "#{w[:label]} (#{w[:have]}, should be #{w[:want]})" }.join(', ')}#{wrong.size > 6 ? '...' : ''}.",
                    'fix' => 'Redraw those doors with the right hinges (style kept).' }
         end
+        loose = Array(parts['loose_internals'])
+        unless loose.empty?
+          out << { 'id' => 'internals', 'text' => "#{loose.size} wardrobe internal(s) aren't inside a tall unit, so they have no Pod number: #{loose.map { |l| "#{l['name']} at x #{l['x']}" }.first(6).join(', ')}#{loose.size > 6 ? '...' : ''}. Move each into its wardrobe, or put it in one on the Product List tab." }
+        end
         units = Runouts.units(model.entities)
         if !parts['scribes_on'] && !units.empty?
           v = Runouts.job_values(model)
@@ -173,6 +177,8 @@ module HarryWardrobes
         wh = wrong_hinges(model).size
         out << "#{wh} door(s) have the wrong hinges - redraw them (Before you start box, or right-click > Rebuild selected)." if wh.positive?
         out << 'Scribes are OFF - turn them on (every runout is 0).' if !parts['scribes_on'] && !Runouts.units(model.entities).empty?
+        li = Array(parts['loose_internals']).size
+        out << "#{li} wardrobe internal(s) aren't inside a tall unit (no Pod number) - move them into their wardrobe." if li.positive?
         n = Array(parts['untyped']).sum { |u| u['count'].to_i }
         out << "#{n} part(s) are left out (no colour, or a colour not set up as a sheet good or hardware)." if n.positive?
         parts['groups'].each do |g|

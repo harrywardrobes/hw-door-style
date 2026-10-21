@@ -292,7 +292,7 @@ module HarryWardrobes
         entries.select { |e| nums.include?(e['number'].to_s) || nums.include?("H#{e['agg_index']}") }
       end
 
-      T_ORDER = %w[T W B L F M].freeze
+      T_ORDER = %w[T W B F].freeze
 
       # Pod number (T1, T2... W1... in list order; none last), then part number, then piece.
       def self.t_key(t)

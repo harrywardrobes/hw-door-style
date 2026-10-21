@@ -264,14 +264,18 @@
   "product_prefix": "T",
   "product_refs": {
     "BRIDGE": "W",
-    "EXT_DRAWER": "L",
+    "BOX_SHELF": "W",
+    "EXT_DRAWER": "B",
     "WORKTOP": "B",
     "BXEND": "B",
     "CAB": "B",
-    "BOX_SHELF": "M",
-    "END_PAN": "M",
     "FACING_BLOCK": "F"
   },
+  "product_internals": [
+    "INT_DRAWER",
+    "INT_DRAWER_PLUS",
+    "SHOE_PULL_OUT"
+  ],
   "product_depth_keys": [
     "wall_depth",
     "depth",
@@ -293,7 +297,8 @@
   "product_label_tag": "Pod_numbers",
   "product_label_scenes": "top|plan",
   "export_skip": [
-    "FLOOR"
+    "FLOOR",
+    "CEILING"
   ],
   "template_default": true,
   "template_keep": [
@@ -392,10 +397,8 @@
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",
-    "B": "Base units - worktops / box ends",
-    "L": "Drawer units",
-    "F": "Facings",
-    "M": "Miscellaneous"
+    "B": "Base units",
+    "F": "Facings"
   },
   "label_aggregate_names": [
     "L_BRACKET",

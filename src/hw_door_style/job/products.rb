@@ -23,12 +23,18 @@ module HarryWardrobes
       KEY_REF = 'product_ref'.freeze # on a joiner: 'own' or the host's persistent id
       TOUCH = 2.0 / 25.4 # 2 mm
 
+      # Letters in key / list order (Settings "product_ref_names"); any other letter follows.
+      def self.order
+        (Settings.get['product_ref_names'] || {}).keys.map { |k| k.to_s.upcase }
+      end
+
       def self.cfg
         s = Settings.get
         {
           'types' => (s['product_types'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] },
           'skip' => Settings.names('product_skip'),
           'joiners' => Settings.names('product_joiners'),
+          'internals' => Settings.names('product_internals'),
           'prefix' => s['product_prefix'].to_s.strip.empty? ? 'T' : s['product_prefix'].to_s.strip,
           'refs' => (s['product_refs'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s.strip.upcase] }
         }
@@ -49,7 +55,7 @@ module HarryWardrobes
         k && c['types'][k]
       end
 
-      # Reference letter: T tall, W wall / bridge, B base, L drawer units, F facings, M misc (Settings "product_refs"),
+      # Reference letter: T tall, W wall / bridge, B base, F facings (Settings "product_refs"),
       # else the number prefix (T).
       def self.ref_of(name, c = cfg)
         k = c['refs'].keys.sort_by { |x| -x.size }.find { |x| name == x || name.start_with?(x) }
@@ -60,8 +66,8 @@ module HarryWardrobes
       # in list order. Settings "product_ref_names".
       def self.key(letters = nil)
         names = (Settings.get['product_ref_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
-        order = %w[T W B L F M]
-        list = (letters ? letters.map(&:to_s).uniq : names.keys).sort_by { |l| [order.index(l) || 9, l] }
+        ord = order
+        list = (letters ? letters.map(&:to_s).uniq : names.keys).sort_by { |l| [ord.index(l) || 9, l] }
         list.map { |l| [l, names[l] || (l == cfg['prefix'] ? 'Tall units' : '')] }
       end
 
@@ -72,7 +78,13 @@ module HarryWardrobes
       end
 
       def self.joiner?(name, c = cfg)
-        c['joiners'].any? { |j| named?(name, j) }
+        c['joiners'].any? { |j| named?(name, j) } || internal?(name, c)
+      end
+
+      # A wardrobe internal (int drawers, shoe pull-out - Settings "product_internals"): only
+      # ever part of a tall unit's pod, never a pod of its own.
+      def self.internal?(name, c = cfg)
+        Array(c['internals']).any? { |j| named?(name, j) }
       end
 
       def self.skip?(name, c = cfg)
@@ -155,15 +167,21 @@ module HarryWardrobes
         by_pid = (hosts + joiners).to_h { |e, _| [e.persistent_id.to_s, e] }
         groups = hosts.to_h { |e, n| [e, { 'host' => e, 'name' => n, 'members' => [] }] }
         loose = []
+        tall = hosts.select { |_e, n| ref_of(n, c) == c['prefix'] }
+        @loose_internals = []
         joiners.each do |e, n|
           want = e.get_attribute(DICT, KEY_HOST)
-          auto = auto_host(e, hosts)
-          host = if want == 'own' then nil
-                 elsif want && by_pid[want] && groups[by_pid[want]] then by_pid[want]
+          int = internal?(n, c)
+          auto = auto_host(e, int ? tall : hosts)
+          host = if want == 'own' && !int then nil
+                 elsif want && want != 'own' && by_pid[want] && groups[by_pid[want]] && (!int || tall.any? { |h, _| h == by_pid[want] }) then by_pid[want]
                  else auto
                  end
           if host
             groups[host]['members'] << { 'e' => e, 'name' => n, 'auto' => want.nil?, 'auto_host' => auto }
+          elsif int
+            # not inside any tall unit: not numbered - the Workshop checks say so
+            @loose_internals << { 'pid' => e.persistent_id.to_s, 'name' => e.respond_to?(:definition) ? e.definition.name : n, 'x' => mm(e.bounds.min.x) }
           else
             loose << [e, n, want]
           end
@@ -182,8 +200,8 @@ module HarryWardrobes
         prods.each { |p| p['ref'] = ref_of(p['name'], c) }
         number(model, prods)
         tops = {}
-        order = %w[T W B L F M]
-        rows = prods.sort_by { |p| [order.index(p['ref']) || 9, p['ref'], p['num']] }.map do |p|
+        ord = order
+        rows = prods.sort_by { |p| [ord.index(p['ref']) || 9, p['ref'], p['num']] }.map do |p|
           h = p['host']
           bb = Geom::BoundingBox.new
           bb.add(h.bounds)
@@ -204,6 +222,12 @@ module HarryWardrobes
           }
         end
         [rows, tops]
+      end
+
+      # Wardrobe internals that aren't in any tall unit, from the last list (or this one).
+      def self.loose_internals(model = nil)
+        list(model) if model
+        Array(@loose_internals)
       end
 
       # Pod numbers: kept on each product; new ones get the next numbers, left to right.

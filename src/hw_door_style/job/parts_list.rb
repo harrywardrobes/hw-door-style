@@ -886,6 +886,7 @@ module HarryWardrobes
           data['export_csv'] = Report.csv?
           prods, tops_map = Products.list(model)
           data['products'] = prods
+          data['loose_internals'] = Products.loose_internals
           data['product_prefix'] = Products.cfg['prefix']
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
           data['job_info'] = JobInfo.get(model)

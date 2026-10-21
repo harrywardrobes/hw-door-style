@@ -25,9 +25,10 @@ module HarryWardrobes
       # Groups in the window: the Pod number letters (T tall, W wall / bridge, B base, L drawer
       # units, F facings, M misc - Settings "product_refs" / "product_ref_names"), then the
       # categories that aren't pods (Electrical Faceplates), then everything else.
-      ORDER = ['T', 'W', 'B', 'L', 'F', 'M', 'ELECTRICAL FACEPLATES', OTHER].freeze
+      INTERNALS = 'T_INTERNALS'.freeze # int drawers, shoe pull-out: shown under T as their own group
+      ORDER = ['T', INTERNALS, 'W', 'B', 'F', 'ELECTRICAL FACEPLATES', OTHER].freeze
       COLOURS = {
-        'T' => '#2f4a3f', 'W' => '#3d5a80', 'B' => '#7a4e2d', 'L' => '#b4541a', 'F' => '#6d4c7d', 'M' => '#6b7f3a',
+        'T' => '#2f4a3f', INTERNALS => '#5e8a76', 'W' => '#3d5a80', 'B' => '#7a4e2d', 'F' => '#6d4c7d',
         'ELECTRICAL FACEPLATES' => '#9a7b0a', OTHER => '#6a737d'
       }.freeze
 
@@ -39,11 +40,13 @@ module HarryWardrobes
         n = e['name'].to_s.upcase
         c = Products.cfg
         return OTHER if Products.skip?(n, c)
+        return INTERNALS if Products.internal?(n, c)
         return Products.ref_of(n, c) if Products.type_of(n, c) || c['refs'].keys.any? { |k| n == k || n.start_with?(k) }
         OTHER
       end
 
       def self.group_label(g)
+        return 'T - Wardrobe internals' if g == INTERNALS
         return pretty(g) unless g =~ /\A[A-Z]\z/
         name = (Settings.get['product_ref_names'] || {})[g].to_s
         name.empty? ? g : "#{g} - #{name}"
