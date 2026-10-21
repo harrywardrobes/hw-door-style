@@ -39,7 +39,7 @@ module HarryWardrobes
 
       def self.data(model)
         { 'cards' => LibraryCache.cards, 'root' => LibraryCache.root, 'setup' => setup_on?, 'job' => job_summary(model),
-          'cats' => LibraryCache::ORDER.map { |c| [c, LibraryCache.pretty(c), LibraryCache.colour(c)] } }
+          'cats' => LibraryCache::ORDER.map { |c| [c, LibraryCache.group_label(c), LibraryCache.colour(c)] } }
       end
 
       def self.show

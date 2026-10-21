@@ -624,10 +624,11 @@ check 'scribe window sends ceiling height apart from the ceiling runout', File.r
 
 puts "\n== Library cache (Add component)"
 require 'hw_door_style/core/library_cache'
+require 'hw_door_style/job/products' unless defined?(HarryWardrobes::DoorStyle::Products)
 LC = HarryWardrobes::DoorStyle::LibraryCache
 check 'versions read from file names', LC.parse('WARDROBE_V10') == ['WARDROBE', 10] && LC.parse('SHOE_UNIT V2') == ['SHOE_UNIT', 2] && LC.parse('CAB') == ['CAB', 0] && LC.parse('INT_DRAWER_PLUS_V9') == ['INT_DRAWER_PLUS', 9]
 check 'names made readable', LC.pretty('INT_DRAWER_PLUS') == 'Int Drawer Plus' && LC.pretty('WALK-IN') == 'Walk-In' && LC.pretty('MAIN COMPONENTS') == 'Main Components'
-check 'mixed-case names kept; Electrical Faceplates is a plain category after Main Components', LC.pretty('Double UK 3 Pin Power Socket') == 'Double UK 3 Pin Power Socket' && LC.plain?('ELECTRICAL FACEPLATES') && !LC.plain?('WARDROBES') && LC.cat_order('ELECTRICAL FACEPLATES') > LC.cat_order('MAIN COMPONENTS')
+check 'mixed-case names kept; Electrical Faceplates is a plain category after Main Components', LC.pretty('Double UK 3 Pin Power Socket') == 'Double UK 3 Pin Power Socket' && LC.plain?('ELECTRICAL FACEPLATES') && !LC.plain?('WARDROBES') && LC.cat_order('ELECTRICAL FACEPLATES') > LC.cat_order('M')
 lib = Dir.mktmpdir('hw_lib')
 { 'WARDROBES' => %w[WARDROBE_V9.skp WARDROBE_V10.skp TOPBOX_V13.skp desktop.ini], 'DRAWERS' => %w[EXT_DRAWER_V8.skp], '_old' => %w[WARDROBE_V11.skp], 'SURVEY RENDERS' => %w[a.jpg] }.each do |d, fs|
   FileUtils.mkdir_p(File.join(lib, d))
@@ -655,7 +656,8 @@ LC.forget(gone, idx)
 check 'old copy replaced by the new version', !File.exist?(old_file) && idx['WARDROBES/WARDROBE']['ver'] == 11 && !idx.key?('WARDROBES/TOPBOX')
 LC.save_index(idx)
 cs = LC.cards
-check 'cards: by category order, colour coded', cs.map { |c| c['key'] } == ['WARDROBES/WARDROBE', 'DRAWERS/EXT_DRAWER', 'OTHER/COVER_WITH_WORKTOP'] && cs.first['colour'] == LC::COLOURS['WARDROBES'] && cs.first['label'] == 'Wardrobe'
+check 'cards: grouped by pod letter (T, L, then Other), colour coded', cs.map { |c| [c['key'], c['cat']] } == [['WARDROBES/WARDROBE', 'T'], ['DRAWERS/EXT_DRAWER', 'L'], ['OTHER/COVER_WITH_WORKTOP', 'OTHER']] && cs.first['colour'] == LC::COLOURS['T'] && cs.first['label'] == 'Wardrobe' && cs.first['cat_label'] == 'T - Tall units'
+check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.71.1 — 2026-10-22
+- Add component (+): components are grouped by their Pod number letter - T Tall units, W Wall / bridge, B Base (worktops, box ends, cabinets), L Drawer units, F Facings, M Miscellaneous - then Electrical Faceplates, then Other (bullnose, ceiling, cover). The library folders are unchanged; search still finds a component by its folder name.
+
 ## 0.71.0 — 2026-10-22
 - Add component (+): a new Electrical Faceplates category - the faceplates now live in the library's own "Electrical Faceplates" folder (sockets, switches, blank covers, phone / TV / fuse plates). They're placed as they are: no job colours, scribes or door style, and they stay out of the Workshop. Unversioned files no longer show "V0"; mixed-case names are kept as written.
 

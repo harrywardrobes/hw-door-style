@@ -22,12 +22,32 @@ module HarryWardrobes
       OTHER = 'OTHER'.freeze                   # loose .skp files in the library's own folder
       VER_RE = /\A(.+?)[ _-]+V(\d+)\z/i.freeze # WARDROBE_V10, "SHOE_UNIT V2"
 
-      # Category order and colour (the rest follow, grey).
-      ORDER = ['WARDROBES', 'DRAWERS', 'BRIDGE', 'BOOKCASE', 'SHELVING', 'MAIN COMPONENTS', 'ELECTRICAL FACEPLATES', OTHER].freeze
+      # Groups in the window: the Pod number letters (T tall, W wall / bridge, B base, L drawer
+      # units, F facings, M misc - Settings "product_refs" / "product_ref_names"), then the
+      # categories that aren't pods (Electrical Faceplates), then everything else.
+      ORDER = ['T', 'W', 'B', 'L', 'F', 'M', 'ELECTRICAL FACEPLATES', OTHER].freeze
       COLOURS = {
-        'WARDROBES' => '#2f4a3f', 'DRAWERS' => '#b4541a', 'BRIDGE' => '#3d5a80', 'BOOKCASE' => '#7a4e2d',
-        'SHELVING' => '#6b7f3a', 'MAIN COMPONENTS' => '#6d4c7d', 'ELECTRICAL FACEPLATES' => '#9a7b0a', OTHER => '#6a737d'
+        'T' => '#2f4a3f', 'W' => '#3d5a80', 'B' => '#7a4e2d', 'L' => '#b4541a', 'F' => '#6d4c7d', 'M' => '#6b7f3a',
+        'ELECTRICAL FACEPLATES' => '#9a7b0a', OTHER => '#6a737d'
       }.freeze
+
+      # The group a library component is shown under: a plain category (faceplates) is its
+      # own group; a pod (a product type, or a name in product_refs) goes under its letter;
+      # the rest (bullnose, ceiling, cover) under Other.
+      def self.group(e)
+        return e['cat'] if plain?(e['cat'])
+        n = e['name'].to_s.upcase
+        c = Products.cfg
+        return OTHER if Products.skip?(n, c)
+        return Products.ref_of(n, c) if Products.type_of(n, c) || c['refs'].keys.any? { |k| n == k || n.start_with?(k) }
+        OTHER
+      end
+
+      def self.group_label(g)
+        return pretty(g) unless g =~ /\A[A-Z]\z/
+        name = (Settings.get['product_ref_names'] || {})[g].to_s
+        name.empty? ? g : "#{g} - #{name}"
+      end
 
       # A category that isn't furniture (Settings "ignore_component_folders", e.g. Electrical
       # Faceplates): placed as it is - no job colours, scribes or door style - and left out
@@ -176,10 +196,11 @@ module HarryWardrobes
       # Cards: [{ key, cat, name, label, ver, img, colour }] sorted by category then name.
       def self.cards(idx = index)
         idx.values.select { |e| File.exist?(e['file'].to_s) }
-           .sort_by { |e| [cat_order(e['cat']), e['cat'], e['name']] }
-           .map do |e|
-             { 'key' => e['key'], 'cat' => e['cat'], 'cat_label' => pretty(e['cat']), 'name' => e['name'], 'label' => pretty(e['name']),
-               'ver' => e['ver'], 'img' => img(e['png']), 'colour' => colour(e['cat']), 'plain' => plain?(e['cat']) }
+           .map { |e| [group(e), e] }
+           .sort_by { |g, e| [cat_order(g), g, e['name']] }
+           .map do |g, e|
+             { 'key' => e['key'], 'cat' => g, 'cat_label' => group_label(g), 'folder' => e['cat'], 'name' => e['name'], 'label' => pretty(e['name']),
+               'ver' => e['ver'], 'img' => img(e['png']), 'colour' => colour(g), 'plain' => plain?(e['cat']) }
            end
       end
     end

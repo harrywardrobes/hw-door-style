@@ -69,7 +69,7 @@ function showCat(c){ only = (only === c) ? '' : c; try { localStorage.setItem('h
 function matches(){
   var q = $('q').value.trim().toLowerCase();
   return D.cards.filter(function(c){
-    if (q) return (c.label + ' ' + c.name + ' ' + c.cat_label).toLowerCase().indexOf(q) >= 0;   // search looks everywhere
+    if (q) return (c.label + ' ' + c.name + ' ' + c.cat_label + ' ' + (c.folder || '')).toLowerCase().indexOf(q) >= 0;   // search looks everywhere
     return !only || c.cat === only;
   });
 }
