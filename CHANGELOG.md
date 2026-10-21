@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.72.3 — 2026-10-22
+- Settings > Product list: "Wardrobe internals" list added.
+
 ## 0.72.2 — 2026-10-22
 - The master library file isn't told its internals have no tall unit (they sit alone there by design).
 
