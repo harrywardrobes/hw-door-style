@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.77.0 — 2026-10-22
+- The pencil (Scribes on / off) is a plain switch: pressed sets every runout to 0, pressed again puts the job's runouts back - no window.
+- New Room settings button (cog with the pencil in front, next to it): runouts, bottom facing, drawer fronts, small drawer fronts, ceiling height, depth and room size for the whole job. It never switches the scribes: with them off, the runouts you set are kept for when you switch them on.
+- Small drawer fronts (the small top drawers on internal drawers plus) are a job value too, default 142 (Settings > Job); set in Room settings or per unit by right-click. Their boxes stay 100.
+
 ## 0.76.0 — 2026-10-22
 - Drawer front height is a job value, like the bottom facing: one height for every drawer unit (fitted / unfitted, internal drawers, internal drawers plus), set in the pencil window for the whole model or per unit by right-click > Runouts / facing / drawer fronts; a unit that differs is flagged in the Summary. Default 228 (Settings > Job). It's hidden from Component Options, and the drawer box height follows it in the components (front - 78 mm, so 150; the linen press, whose fronts follow its mid-rail, gets 175).
 - New units placed from the + window get the job's drawer front height.

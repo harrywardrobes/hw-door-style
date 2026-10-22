@@ -26,6 +26,7 @@
 <div id="depRow" class="row" style="display:none"><label>Depth</label><div><div style="display:flex;gap:6px"><input type="number" id="dep_std" min="100" step="1" title="Standard" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><input type="number" id="dep_short" min="100" step="1" title="Bridge units, worktops, box ends" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"></div><div class="hint" style="margin-top:3px">Back wall to the back of the facing (mm): standard / bridge units + worktops. Set on every unit (finished depth adds the facing / door).</div></div></div>
 <div id="facRow" class="row" style="display:none"><label>Bottom facing</label><div><input type="number" id="facing" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="facHint">Plinth height under the units (mm)</div></div></div>
 <div id="frontRow" class="row" style="display:none"><label>Drawer fronts</label><div><input type="number" id="front" min="50" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="frontHint">Drawer front height (mm) - every drawer unit; the box is 78 mm less. The linen press follows its mid-rail.</div></div></div>
+<div id="smallRow" class="row" style="display:none"><label>Small drawer fronts</label><div><input type="number" id="small" min="50" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="smallHint">The small top drawers on internal drawers plus (mm); their boxes stay 100.</div></div></div>
 <div id="runHead" style="font-weight:600;font-size:12px;margin-top:10px">Runouts (scribe allowance)</div>
 <div id="rows"></div>
 <div id="ownBox" style="display:none;margin-top:10px">
@@ -42,7 +43,7 @@
 <script>
 var D = /*DATA*/null;
 document.getElementById('title').textContent = D.title;
-document.getElementById('sub').textContent = D.selection ? 'Only the selected unit(s). Differences from the job values are flagged in the Summary.' : 'Applies to every unit in the model. Press the pencil again to set all runouts to 0.';
+document.getElementById('sub').textContent = D.selection ? 'Only the selected unit(s). Differences from the job values are flagged in the Summary.' : 'The job\'s settings, applied to every unit. The pencil button switches the scribes on and off; this window doesn\'t.';
 var h = '';
 D.sides.forEach(function(s){
   var cur = D.current[s[0]];
@@ -62,6 +63,12 @@ if (D.has_front) {
   document.getElementById('front').value = Math.round(D.front);
   if (D.selection && Math.abs(D.front - D.front_job) > 0.3) document.getElementById('frontHint').textContent = 'Drawer front height (mm) - job: ' + Math.round(D.front_job) + ' mm';
 }
+if (D.has_small) {
+  document.getElementById('smallRow').style.display = '';
+  document.getElementById('small').value = Math.round(D.small);
+  if (D.selection && Math.abs(D.small - D.small_job) > 0.3) document.getElementById('smallHint').textContent = 'Small drawer fronts (mm) - job: ' + Math.round(D.small_job) + ' mm';
+}
+if (!D.selection && !D.scribes_on) document.getElementById('runHead').textContent = 'Runouts - scribes are OFF: kept for when you switch them on';
 if (D.ceiling !== null && D.ceiling !== undefined) {
   document.getElementById('ceilRow').style.display = '';
   document.getElementById('ceiling').value = D.ceiling > 0 ? Math.round(D.ceiling) : 0;
@@ -102,6 +109,11 @@ function apply(){ var o = {};
     var fr = parseFloat(document.getElementById('front').value);
     if (!(fr >= 50)) { document.getElementById('frontHint').textContent = 'Enter the drawer front height (mm)'; document.getElementById('front').focus(); return; }
     o.front = fr;
+  }
+  if (D.has_small) {
+    var sm = parseFloat(document.getElementById('small').value);
+    if (!(sm >= 50)) { document.getElementById('smallHint').textContent = 'Enter the small drawer front height (mm)'; document.getElementById('small').focus(); return; }
+    o.small = sm;
   }
   if (D.has_runouts !== false) D.sides.forEach(function(s){ o[s[0]] = parseFloat(document.getElementById('s_'+s[0]).value); });
   var own = {}; Array.prototype.forEach.call(document.querySelectorAll('[data-own]'), function(i){ own[i.getAttribute('data-own')] = parseFloat(i.value); }); o.own = own;

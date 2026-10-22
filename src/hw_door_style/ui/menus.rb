@@ -77,8 +77,8 @@ module HarryWardrobes
                              'Library file only: export each component to its own versioned file (old versions to _old).',
                              'rocket') { LibraryExport.show }
         menu.add_item(c[:export])
-        c[:pencil] = command('Scribe / runout',
-                             'Pressed: every unit has the job runouts. Click to set all to 0 (easier to move); click again to choose floor, ceiling, left, right and back.',
+        c[:pencil] = command('Scribes on / off',
+                             'Pressed: every unit has the job runouts. Click to set them all to 0 (easier to move); click again to put the job runouts back. Change them in Room settings.',
                              'pencil') { Pencil.toggle }
         c[:pencil].set_validation_proc { Pencil.on? ? MF_CHECKED : MF_UNCHECKED }
         menu.add_item(c[:pencil])
@@ -86,7 +86,10 @@ module HarryWardrobes
                               'Set the ceiling height for every unit with "Up to ceiling" = TRUE (any time; scribes not changed).',
                               'ceiling') { Ceiling.show }
         menu.add_item(c[:ceiling])
-        menu.add_item('Runouts - re-apply job values to every unit') { Pencil.show(Sketchup.active_model, nil) }
+        c[:room] = command('Room settings',
+                           'Runouts, bottom facing, drawer fronts, ceiling height, depth and room size for the whole job - without switching the scribes on or off.',
+                           'room') { Pencil.show(Sketchup.active_model, nil) }
+        menu.add_item(c[:room])
 
         # Developer (only with the developer switch on)
         menu.add_separator if Developer.enabled?
@@ -98,7 +101,7 @@ module HarryWardrobes
 
       # Two toolbars (nil = separator). Everyday survey work, then the admin / library tools.
       TOOLBARS = {
-        'HW measure once' => [:add, nil, :colours, :doors, nil, :pencil, :parts, :hubspot],
+        'HW measure once' => [:add, nil, :colours, :doors, nil, :pencil, :room, :parts, :hubspot],
         'HW dev' => [:settings, :export]
       }.freeze
 

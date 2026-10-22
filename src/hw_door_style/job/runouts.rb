@@ -181,6 +181,14 @@ module HarryWardrobes
         end
       end
 
+      # Pencil pressed again: every unit back to the job's runouts (Room settings sets them).
+      def self.all_on(model)
+        v = job_values(model)
+        apply(model, units(model.entities), v, 'Scribes on',
+              "Scribes on: #{SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm (change them in Room settings).",
+              before: -> { model.set_attribute(DICT, 'scribe_on', true) })
+      end
+
       # Pencil released: every runout to 0.
       def self.all_off(model)
         apply(model, units(model.entities), ZERO, 'Scribes off (all runouts 0)',

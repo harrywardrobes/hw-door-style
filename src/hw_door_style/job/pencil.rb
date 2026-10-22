@@ -57,31 +57,38 @@ module HarryWardrobes
 
       # --- button -------------------------------------------------------------
 
-      # Pressed -> every runout 0 straight away. Released -> the window.
+      # An on / off switch: pressed -> every runout 0; released -> every unit back to the
+      # job's runouts (Room settings changes them, without switching).
       def self.toggle(model = Sketchup.active_model)
         return if busy?
-        on?(model) ? Runouts.all_off(model) : show(model, nil)
+        on?(model) ? Runouts.all_off(model) : Runouts.all_on(model)
       end
 
-      # Window: every unit (targets nil) or just the selected units. Runouts,
-      # bottom facing and (every unit only) the ceiling height.
+      # Room settings (targets nil: every unit) or the right-click window for the selected units:
+      # runouts, bottom facing, drawer fronts and (every unit only) ceiling, depth and room size.
+      # Room settings never switches the scribes: with them off, the runouts are kept as the
+      # job's values for when they're switched on, and the units stay at 0.
       def self.show(model, targets)
         sel = targets && !targets.empty?
         units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities) | Depth.units(model.entities) | DrawerFront.units(model.entities))
         job = Runouts.job_values(model)
         first_r = units.find { |u| Runouts.unit?(u) }
         first_f = units.find { |u| Facing.has?(u) }
-        first_d = units.find { |u| DrawerFront.has?(u) }
+        first_d = units.find { |u| DrawerFront.has?(u, 'main') }
+        first_s = units.find { |u| DrawerFront.has?(u, 'small') }
+        scribes = on?(model)
         cur = sel && first_r ? Runouts::SIDES.to_h { |s, _, _| [s, Runouts.mm_of(first_r, s) || job[s]] } : job
         label = sel ? (targets.size == 1 ? Finder.label(targets.first) : "#{targets.size} selected units") : nil
         data = {
-          'title' => sel ? "Runouts & bottom facing - #{label}" : 'Scribes on - runouts for every unit',
+          'title' => sel ? "Runouts, facing & drawer fronts - #{label}" : 'Room settings',
+          'scribes_on' => scribes,
           'selection' => sel ? true : false,
           'sides' => Runouts::SIDES.map { |s, _, l| [s, l.sub(/\ARunout - /, '').sub(' (mm)', '')] },
           'values' => [0.0] + Runouts.values_list, 'current' => cur, 'job' => job,
           'has_runouts' => !first_r.nil?, 'has_facing' => !first_f.nil?,
           'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
-          'has_front' => !first_d.nil? || !sel, 'front' => (sel && first_d ? DrawerFront.of(first_d) : nil) || DrawerFront.mm(model), 'front_job' => DrawerFront.mm(model),
+          'has_front' => !first_d.nil? || !sel, 'front' => (sel && first_d ? DrawerFront.of(first_d, 'main') : nil) || DrawerFront.mm(model, 'main'), 'front_job' => DrawerFront.mm(model, 'main'),
+          'has_small' => !first_s.nil? || !sel, 'small' => (sel && first_s ? DrawerFront.of(first_s, 'small') : nil) || DrawerFront.mm(model, 'small'), 'small_job' => DrawerFront.mm(model, 'small'),
           'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm,
           'own' => TopOfUnit.own_height(units),
           'depth' => sel ? nil : Depth.job_values(model),
@@ -89,13 +96,16 @@ module HarryWardrobes
         }
         # Taller, and resizable: ceiling + bottom facing + five runouts didn't fit in 400 (Apply was cut off).
         # New key so SketchUp doesn't reuse the old remembered size.
-        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe_v2', width: 400, height: 640,
+        dlg = Dialog.open('scribe', title: sel ? 'HW - Runouts / facing / drawer fronts' : 'HW - Room settings', key: 'hw_scribe_v2', width: 400, height: 680,
                                     data: data, resizable: true, scrollable: false)
         dlg.add_action_callback('apply') do |_c, json|
           raw = JSON.parse(json)
           ceil = raw.delete('ceiling_height').to_f
           facing = raw.key?('facing') ? raw['facing'].to_f : nil
-          front = raw.key?('front') ? raw.delete('front').to_f : nil
+          front = {}
+          front['main'] = raw.delete('front').to_f if raw.key?('front')
+          front['small'] = raw.delete('small').to_f if raw.key?('small')
+          front = nil if front.empty?
           heights = raw.delete('own') || {}
           dep = raw.delete('depth')
           room_w = raw.delete('room_width').to_f
@@ -116,19 +126,20 @@ module HarryWardrobes
           unless sel
             Ops.run(model, 'Room size') { Room.apply(model, width: room_w, length: room_l, ceiling: ceil) }
           end
+          # Scribes off: keep the runouts as the job's values, leave the units at 0.
+          run = sel || scribes ? v : nil
           if sel
             Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / facing / drawer fronts updated on #{targets.size} unit(s).", facing: facing, front: front)
           else
-            Runouts.apply(model, units, v, 'Scribes on',
-                          "Scribes on: #{v ? Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ') + ' mm. ' : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm.",
+            Runouts.apply(model, units, run, 'Room settings',
+                          "Room settings: #{v ? "runouts #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm#{scribes ? '' : ' (kept for when scribes are switched on)'}. " : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm#{front ? ", drawer fronts #{front['main'].to_f.round} / small #{front['small'].to_f.round} mm" : ''}.",
                           ceiling: ceil, facing: facing, depth: !dep.nil?, front: front,
                           before: lambda {
-                            model.set_attribute(DICT, 'scribe_on', true)
                             model.set_attribute(DICT, 'scribe_values', JSON.generate(v)) if v
                             model.set_attribute(DICT, 'ceiling_mm', ceil)
                             model.set_attribute(DICT, 'depth_job', JSON.generate(dep)) if dep
                             model.set_attribute(DICT, 'facing_btm_mm', facing) if facing
-                            model.set_attribute(DICT, 'drawer_front_mm', front) if front
+                            front&.each { |k, val| model.set_attribute(DICT, DrawerFront::MODEL[k], val) }
                           })
           end
         end
