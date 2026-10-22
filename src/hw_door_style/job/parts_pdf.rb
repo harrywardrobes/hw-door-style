@@ -78,49 +78,42 @@ module HarryWardrobes
 
       def self.f(v) = PartsList.fmt(v)
 
-      def self.sheets?(g) = g['section'].to_s.empty? || g['section'] == 'sheets'
-
+      # The parts list: Timber (every board and length that isn't hardware - 18 mm by the
+      # strip width it's cut from, other boards, Timber / MDF lengths, drawer boxes), then
+      # Hardware (counted items and the handles). Worktops and the 22 mm panels are on the
+      # Door / Vinyl order, not here.
       def self.layout(d)
         doc = Doc.new(d)
         unless d['scribes_on']
           doc.page.text(M, doc.y, 'Scribes are OFF (every runout 0) - panel sizes may be wrong.', font: 'F2', size: 9)
           doc.instance_variable_set(:@y, doc.y - ROW - 4)
         end
-        # Boards: the sheet goods (18mm in strips, full sheets for the rest). Worktops, 22mm
-        # panels, bullnose and MDF / timber lengths are ordered elsewhere.
-        boards = d['groups'].select { |g| sheets?(g) }
-        unless boards.empty?
-          doc.heading('Boards', "18mm in cut and edged strips (next width up); full sheets for the rest. Other thicknesses: area + #{f(d['waste_pct'])}% waste")
-          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Full sheets for', 130, :left], ['Sheet', 90, :right], ['Full sheets', 60, :right]],
-                    boards.map do |g|
-                      why = g['strip_group'] ? Array(g['manual']).join(', ') : "#{format('%.2f', g['area_m2'])} m2"
-                      [g['material'], "#{f(g['thickness'])} mm", why.empty? ? '-' : why,
-                       g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : '-', g['sheets'].nil? ? 'ENTER' : g['sheets']]
-                    end)
-        end
-        strips = d['groups'].flat_map { |g| Array(g['strips']).map { |st| [g, st] } }
-        unless strips.empty?
-          doc.heading('Cut + Edged', 'each part uses the next width up, packed end to end along the strip')
-          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Strip', 110, :right], ['Qty', 45, :right]],
-                    strips.map { |g, st| [g['material'], "#{f(g['thickness'])} mm", "#{st['width']} x #{f(st['length'])}", st['count']] })
-        end
-        wt = d['groups'].select { |g| g['section'] == 'worktops' }
-        unless wt.empty?
-          doc.heading('Worktops', '22 / 25 mm worktops - ordered on their own, not in the MFC sheet count')
-          doc.table([['Material', nil, :left], ['Thickness', 60, :right], ['Parts', 45, :right], ['Sheet', 90, :right], ['Sheets', 60, :right]],
-                    wt.map { |g| [g['material'], "#{f(g['thickness'])} mm", g['count'], g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : '-', g['sheets'].nil? ? 'ENTER' : g['sheets']] })
-        end
-        d['groups'].each do |g|
-          next if %w[vinyl white_back].include?(g['section']) # on the Door / Vinyl order
-          doc.heading("#{g['material']} - #{f(g['thickness'])} mm#{g['section'] == 'worktops' ? ' (worktop)' : ''}", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['std_ok'] ? '' : ', thickness not in the standard list'}")
-          doc.table([['#', 26, :left], ['Name', nil, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right],
-                     ['Edge L1', 92, :left], ['Edge L2', 92, :left], ['Edge W1', 92, :left], ['Edge W2', 92, :left]],
-                    g['parts'].map { |p| [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], p['edges']['ymin'], p['edges']['ymax'], p['edges']['xmin'], p['edges']['xmax']] })
-        end
-        unless d['edging'].empty?
-          doc.heading('Edging', 'metres of tape (part lengths, no allowance)')
-          doc.table([['Edge', nil, :left], ['Board thickness', 90, :right], ['Edges', 50, :right], ['Metres', 60, :right]],
-                    d['edging'].map { |e| [e['material'], "#{f(e['height'])} mm", e['parts'], format('%.1f', e['metres'])] })
+        part_cols = [['#', 26, :left], ['Name', nil, :left], ['Length', 48, :right], ['Width', 48, :right], ['Qty', 30, :right],
+                     ['Edge L1', 84, :left], ['Edge L2', 84, :left], ['Edge W1', 84, :left], ['Edge W2', 84, :left]]
+        row = ->(p) { [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], p['edges']['ymin'], p['edges']['ymax'], p['edges']['xmin'], p['edges']['xmax']] }
+
+        doc.page.text(M, doc.y, 'TIMBER', font: 'F2', size: 13)
+        doc.instance_variable_set(:@y, doc.y - ROW - 4)
+        boards = d['groups'].reject { |g| %w[vinyl white_back worktops].include?(g['section']) }
+        boards.each do |g|
+          if g['strip_group']
+            # 18 mm: by strip width - "90 mm strips: 3 x 2800" over the parts cut from them
+            by_w = g['parts'].group_by { |p| p['strip_width'] }
+            widths = by_w.keys.compact.sort
+            doc.heading("#{g['material']} - #{f(g['thickness'])} mm", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}, cut and edged strips #{f(g['strips'].sum { |st| st['count'] })} in all")
+            widths.each do |w|
+              st = Array(g['strips']).find { |x| x['width'] == w } || {}
+              doc.heading("#{w} mm strips", "#{st['count']} x #{f(st['length'])} mm - #{by_w[w].sum { |p| p['qty'] }} pieces, packed end to end")
+              doc.table(part_cols, by_w[w].map(&row))
+            end
+            unless (full = by_w[nil] || []).empty?
+              doc.heading('Full sheet', "#{full.sum { |p| p['qty'] }} pieces wider than the widest strip#{g['sheets'] ? " - #{g['sheets']} sheet(s) #{g['sheet'] ? "#{f(g['sheet'][0])} x #{f(g['sheet'][1])}" : ''}" : ''}")
+              doc.table(part_cols, full.map(&row))
+            end
+          else
+            doc.heading("#{g['material']} - #{f(g['thickness'])} mm", "#{g['count']} parts#{g['grained'] ? ', grained' : ''}#{g['sheets'] ? ", #{g['sheets']} sheet(s)" : ''}")
+            doc.table(part_cols, g['parts'].map(&row))
+          end
         end
         tb = Array(d['timber_lines'])
         unless tb.empty?
@@ -131,19 +124,24 @@ module HarryWardrobes
         boxes = Array(d['drawer_boxes'])
         unless boxes.empty?
           doc.heading('Drawer boxes', 'internal cabinet width; runners in pairs, one pair per box')
-          doc.table([['#', 26, :left], ['Parent', 120, :left], ['Material', nil, :left], ['Int. cab width', 75, :right], ['Height', 50, :right], ['Runners', 170, :left], ['Qty', 30, :right]],
+          doc.table([['#', 26, :left], ['Parent', 120, :left], ['Material', nil, :left], ['Int. cab width', 75, :right], ['Height', 50, :right], ['Runners', 130, :left], ['Qty', 30, :right]],
                     boxes.map { |b| [b['number'], b['parent'], b['material'], b['width'] ? "#{b['width']} mm" : '-', b['height'] ? "#{b['height']} mm#{b['warn'] ? ' (!)' : ''}" : '-', b['runner'], b['qty']] })
         end
+
+        doc.need(ROW * 6)
+        doc.instance_variable_set(:@y, doc.y - 6)
+        doc.page.text(M, doc.y, 'HARDWARE', font: 'F2', size: 13)
+        doc.instance_variable_set(:@y, doc.y - ROW - 4)
         hws = Array(d['hardware_lines'])
         unless hws.empty?
-          doc.heading('Hardware', 'counted from the model, one line per item')
           doc.table([['#', 60, :left], ['Name', nil, :left], ['Qty', 40, :right]],
                     hws.map { |h| [h['numbers'].join(', '), h['name'], h['qty']] })
         end
-        unless d['handles'].empty?
-          doc.heading('Handles', 'from the Door style window')
+        hl = Array(d['handles'])
+        doc.heading('Handles', hl.empty? ? 'none on this job (n/a)' : 'from the Door style window')
+        unless hl.empty?
           doc.table([['Kind', 100, :left], ['Handle', nil, :left], ['SKU', 110, :left], ['Supplier', 90, :left], ['Qty', 40, :right]],
-                    d['handles'].map { |h| [h['kind'], h['name'], h['sku'], h['supplier'], h['qty']] })
+                    hl.map { |h| [h['kind'], h['name'], h['sku'], h['supplier'], h['qty']] })
         end
         doc.pages.each_with_index do |p, i|
           p.text(M, M - 14, "HW Door Style v#{d['version']} - parts list rules from OpenCutList (L'Air du Bois, GPL-3.0)", size: 7)

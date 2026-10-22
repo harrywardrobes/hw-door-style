@@ -54,7 +54,7 @@ module HarryWardrobes
       end
 
       # One worktop in the box (bx, by, bw, bh) on a PDF page, with dimensions and the key.
-      def self.draw_pdf(page, w, bx, by, bw, bh)
+      def self.draw_pdf(page, w, bx, by, bw, bh, key: true)
         l = w['length'].to_f
         d = w['depth'].to_f
         return if l <= 0 || d <= 0
@@ -84,8 +84,9 @@ module HarryWardrobes
         page.line(dx, y0, dx, y0 + rh, 0, 0.5)
         [y0, y0 + rh].each { |y| page.line(dx - 2.5, y, dx + 2.5, y, 0, 0.5) }
         page.text(dx + 5, y0 + rh / 2 - 3, "#{d.round}", font: 'F2', size: 9)
-        page.text(x0, y0 + rh + 8, "#{w['material']}  #{w['thickness']} mm", size: 8)
+        page.text(x0, y0 + rh + 8, "#{w['material']}  #{w['thickness']} mm", size: 8) if key
         page.text(x0 + rw / 2 - 10, y0 + 4, 'FRONT', size: 6.5) if rh > 24
+        return unless key
         # key
         ky = by + 4
         page.line(bx, ky + 3, bx + 22, ky + 3, 0, 2.2)

@@ -184,6 +184,11 @@ module HarryWardrobes
       def self.label(o, e, job)
         lw = o['page_width'] - o['margin_left'] - o['margin_right']
         lh = o['page_height'] - o['margin_top'] - o['margin_bottom']
+        if e['kind'] == 'divider'
+          hd = dots([lh / 5.0, 12].min)
+          return ['^XA', '^CI28', "^PW#{dots(o['page_width'])}", "^LL#{dots(o['page_height'])}", "^LH#{dots(o['margin_left'])},#{dots(o['margin_top'])}",
+                  "^FO0,#{dots(lh / 2.0) - hd / 2}^A0N,#{hd},#{hd}^FB#{dots(lw)},1,0,C,0^FD#{clean(e['name'].to_s)}^FS", '^XZ'].join("\n")
+        end
         min_unit = [lw / 12.0, lh / 12.0].min
         out = ['^XA', '^CI28', "^PW#{dots(o['page_width'])}", "^LL#{dots(o['page_height'])}", "^LH#{dots(o['margin_left'])},#{dots(o['margin_top'])}"]
         Array(o['layout']).each_with_index do |el, idx|

@@ -685,6 +685,13 @@ module HarryWardrobes
           end
           strips, manual = strip_group?(g) ? strips_for(g, parts) : [[], parts]
           in_strips = strips.flat_map { |st| st['numbers'] }
+          if strip_group?(g)
+            # the strip each part is cut from (its width), so the list and the labels run
+            # 90 mm, 160 mm, 300 mm... with the full-sheet parts last
+            by_num = strips.flat_map { |st| st['numbers'].map { |n| [n, st['width']] } }.to_h
+            parts.each { |p| p['strip_width'] = by_num[p['number']] }
+            parts = parts.sort_by { |p| [p['strip_width'] || 99_999, -p['length'].to_f, -p['width'].to_f, p['number'].to_s] }
+          end
           area = manual.sum { |p| p['area_m2'] }
           sheet = g['sheet']
           estimate = nil
@@ -726,7 +733,7 @@ module HarryWardrobes
       BOX_MIN_MM = 100
 
       def self.runner_label(mm)
-        mm ? "#{mm.round}mm #{Settings.get['drawer_runner_type'].to_s.strip.then { |t| t.empty? ? 'Drawer Runners' : t }}" : '-'
+        mm ? "#{mm.round}mm #{Settings.get['drawer_runner_type'].to_s.strip.then { |t| t.empty? ? 'Hook/Peg' : t.sub(/\s*Drawer Runners\z/i, '') }}" : '-'
       end
 
       def self.runner?(name)

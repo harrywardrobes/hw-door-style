@@ -49,8 +49,16 @@ module HarryWardrobes
             pr = Repair.problems(inst, kind)
             notes << "Needs Repair / re-run: #{pr.join(', ')}" unless pr.empty?
           end
+          pr = Styles.profile(style || 'flat') || {}
+          h_mm = h.to_f * 25.4
+          hole_mm = hinges.empty? ? [] : Hardware.hinge_heights(h_mm, hinges.size).map(&:round) # centres from the door bottom
           rows << {
             'unit' => path_label(path), 'item' => Finder.label(inst), 'top_id' => (path.first || inst).entityID,
+            'stile_mm' => (kind == :door ? pr['door_frame_mm'] : pr['drawer_stile_mm']).to_f.round,
+            'rail_mm' => (kind == :door ? pr['door_frame_mm'] : pr['drawer_frame_mm']).to_f.round,
+            'midrail_mm' => d.get_attribute(DICT, 'midrail') ? pr['midrail_centre_mm'].to_f.round : 0,
+            'midrail_w' => d.get_attribute(DICT, 'midrail') ? pr['midrail_width_mm'].to_f.round : 0,
+            'holes' => hole_mm,
             'kind' => kind_label(kind, d), 'kind_id' => kind.to_s, 'width' => Finder.mm_s(w), 'height' => Finder.mm_s(h),
             'style' => Styles.label(style || 'flat'),
             'midrail' => midrail_text(d, style),
@@ -64,6 +72,30 @@ module HarryWardrobes
         end
         rows.each_with_index { |r, i| r['n'] = i + 1 }
         rows
+      end
+
+      # The order as a supplier reads it: identical fronts on one line with a quantity.
+      # [{ 'qty', 'kind', 'style', 'width', 'height', 'hand', 'hinge_type', 'hinges', 'holes',
+      #    'stile_mm', 'rail_mm', 'midrail_mm', 'midrail_w', 'handles', 'pods' => ['T1', ...], 'hinge_mark', 'hinge_shade' }]
+      def self.order_lines(rows)
+        rows.group_by { |r| [r['kind'], r['style'], r['width'], r['height'], r['hand'], r['hinge_type'], r['hinges'], r['tip_on'], r['midrail_mm'], r['handles']] }
+            .map do |_k, list|
+          f = list.first
+          f.merge('qty' => list.size, 'pods' => list.map { |r| r['t'].to_s.empty? ? r['unit'] : r['t'] }.tally.map { |t, n| n > 1 ? "#{t} x#{n}" : t },
+                  'notes' => list.map { |r| r['notes'].to_s }.reject(&:empty?).uniq.join('; '))
+        end.sort_by { |l| [l['kind_id'] == 'door' ? 0 : (l['kind_id'] == 'ext_drawer' ? 1 : 2), -l['height'].to_f, -l['width'].to_f, l['hand'].to_s] }
+      end
+
+      # "H1: 100 (from top of door)" ... as HPP / Integral read the drilling: the upper
+      # holes from the top of the door, the lower ones from the bottom (the middle of three
+      # from the bottom).
+      def self.hole_lines(holes, height)
+        n = holes.size
+        return [] if n.zero?
+        holes.sort.reverse.each_with_index.map do |z, i|
+          from_top = i < n / 2
+          "H#{i + 1}: #{(from_top ? height.to_f - z : z).round} (from #{from_top ? 'top' : 'bottom'} of door)"
+        end
       end
 
       def self.totals(rows)
@@ -202,6 +234,7 @@ module HarryWardrobes
           x['t'] = tops[x['top_id']].to_s
           x['unit'] = x['t'].empty? ? x['unit'] : x['t']
         end
+        hinge_key = mark_hinges(r, Settings::HINGE_TYPES[Settings.job_hinge_type(model)])
         {
           'job' => File.basename(model.path.to_s, '.skp'),
           'head' => (RoomPlan.head(model, nil) rescue {}),
@@ -210,7 +243,9 @@ module HarryWardrobes
           'version' => VERSION,
           'last_export' => model.get_attribute(DICT, 'export_version', 0).to_i,
           'rows' => r, 'totals' => totals(r),
-          'hinge_key' => mark_hinges(r, Settings::HINGE_TYPES[Settings.job_hinge_type(model)]),
+          'colour' => (RoomPlan.colour_text(model, 'door') rescue '-'),
+          'lines' => order_lines(r),
+          'hinge_key' => hinge_key,
           'key' => (Products.key_text(r.map { |x| x['t'].to_s[/\A[A-Z]+/] }.compact) rescue ''),
           'runouts' => { 'on' => Pencil.on?(model), 'changed' => Runouts.report(model) }
         }

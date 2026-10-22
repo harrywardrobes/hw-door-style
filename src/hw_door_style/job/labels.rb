@@ -266,6 +266,7 @@ module HarryWardrobes
             mat = g ? Material.new(g['material'], 'sheet_good', nil, g['grained'], PartsList.length_s(g['thickness'])) : Material.new(p['material'], kind == 'timber' ? 'dimensional' : 'hardware', nil, false, '')
             e = {
               'kind' => kind, 'number' => p['number'], 't' => tops[inst['top']].to_s, 'name' => p['name'],
+              'strip_width' => kind == 'sheet' && g && PartsList.strip_group?(g) ? (p['strip_width'] || 0) : nil,
               'barcode' => barcode(room_id, p['number']), 'eids' => [inst['eid']].compact, 'length' => p['length_s'], 'width' => p['width_s'],
               'thickness' => p['thickness_s'], 'count' => p['qty'], 'position' => i + 1,
               'material_name' => mat.name, 'std_dimension' => mat.std_dimension, 'grained' => mat.grained ? true : false,
@@ -277,7 +278,7 @@ module HarryWardrobes
             out << e
           end
         end
-        by_t(out) + aggregates(agg.map { |p, _g, kind| [p, kind] }, tops, stock).map do |a|
+        with_dividers(by_width(out)) + aggregates(agg.map { |p, _g, kind| [p, kind] }, tops, stock).map do |a|
           a.merge('barcode' => barcode(room_id, "H#{a['agg_index']}"), 'number' => '', 't' => '', 'position' => 1, 'length' => '', 'width' => '', 'thickness' => '', 'material_name' => '',
                   'edges' => {}, 'edge_colors' => {}, 'custom' => layout.map { nil })
         end
@@ -303,6 +304,35 @@ module HarryWardrobes
 
       def self.by_t(list)
         list.sort_by { |e| [t_key(e['t']), e['number'].to_i, e['number'].to_s, e['position']] }
+      end
+
+      # The parts list's order: 18 mm parts by the strip width they're cut from (90, 160,
+      # 300... then full sheet), then the other boards, timber, hardware - and within a
+      # width, pod then part number.
+      def self.width_key(e)
+        w = e['strip_width']
+        [e['kind'] == 'sheet' ? 0 : (e['kind'] == 'timber' ? 2 : 3), w.nil? ? 1 : 0, w.to_i.zero? ? 99_999 : w.to_i]
+      end
+
+      def self.by_width(list)
+        list.sort_by { |e| [width_key(e), t_key(e['t']), e['number'].to_i, e['number'].to_s, e['position']] }
+      end
+
+      # A blank "---- 90 mm ----" label in front of each strip width, to split the pile.
+      def self.with_dividers(list)
+        out = []
+        last = :none
+        list.each do |e|
+          w = e['strip_width']
+          key = w.nil? ? :none : w.to_i
+          if key != :none && key != last
+            out << { 'kind' => 'divider', 'name' => w.to_i.zero? ? '----  FULL SHEET  ----' : "----  #{w.to_i} mm  ----", 'number' => '', 't' => '', 'barcode' => '',
+                     'length' => '', 'width' => '', 'thickness' => '', 'count' => 0, 'position' => 1, 'material_name' => '', 'edges' => {}, 'edge_colors' => {}, 'custom' => [] }
+          end
+          last = key
+          out << e
+        end
+        out
       end
 
       # OpenCutList LabelEntry.entry_order: "number>name>entity_named_path>entity_name>bin", "-" = descending.

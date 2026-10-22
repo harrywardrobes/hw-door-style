@@ -628,6 +628,8 @@ function barcodeSvg(payload, w, h, anchor){
 }
 function element(el, e, idx, minUnit, lw){
   var terms = el.formula.split('.'), anchor = el.anchor || 'middle', color = el.color || '#000000';
+  // a divider label ("---- 90 mm ----"): its text in the middle, nothing else
+  if (e.kind === 'divider') return terms[0] === 'part' && terms[1] === 'name' ? '<text x="0" y="0" font-size="' + (minUnit * 1.6) + '" text-anchor="middle" fill="' + color + '">' + esc(e.name) + '</text>' : '';
   if (terms[0] === 'barcode') return barcodeSvg(e.barcode, (el.width || 0.8) * (lw || minUnit * 12), el.size * minUnit * 1.6, anchor); // bars only
   if (terms[0] === 'thumbnail' && e.kind === 'aggregate') return '';
   if (terms[0] === 'thumbnail') {

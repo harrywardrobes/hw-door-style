@@ -6,9 +6,11 @@ module HarryWardrobes
     #
     #   1 Cover / Specification  customer, room, colours, door style, hinges, handles, fit week
     #   2 Product List           every pod (T / W / B / M) - loose items first - with doors and interior
-    #   3 Installation Plan      the plan scene, notes, Pod numbers; ceiling, top fascia, runouts, cornice
-    #   3b Door elevation        the doors and drawer fronts on each wall, with sizes (DoorView)
-    #   4 Panel list             Timber / MDF, Cut, Worktop, Facing - each part with the pods it's in
+    #   3 Door elevation         the doors and drawer fronts on each wall, with sizes (DoorView)
+    #   4 Renders                the job's render scenes (Settings > HubSpot > Pictures, "Renders")
+    #   5 Installation Plan      last, landscape: the plan scene, notes, Pod numbers; ceiling, top
+    #                            fascia, cornice, runouts along the bottom
+    # The parts list is its own PDF.
     #
     # Every page has the header: customer, drawing X<room id>, account HW<contact id>,
     # fit week (the Room's "Fit week" in HubSpot), room, date, page n of N.
@@ -18,7 +20,6 @@ module HarryWardrobes
       M = Pdf::MARGIN
       ROW = Pdf::ROW_H
       LOOSE_FIRST = %w[M T W B L F].freeze
-      PANEL_TYPES = ['Timber / MDF', 'Cut', 'Worktop', 'Facing'].freeze
 
       # Pages with the Room Plan header.
       class Doc < PartsPdf::Doc
@@ -153,14 +154,6 @@ module HarryWardrobes
         "#{r['size'][0]} #{r['type']}#{d}"
       end
 
-      # Timber / MDF (lengths), Cut, Worktop, Facing.
-      def self.panel_type(g, p)
-        return 'Worktop' if g['section'] == 'worktops'
-        return 'Facing' if p['name'] =~ /FACING/i
-        return 'Timber / MDF' if g['material'] =~ /TIMBER|2X1|PINE|MDF/i
-        'Cut'
-      end
-
       # --- pages ---------------------------------------------------------------------------
 
       # Door style for the cover: the doors' style ("Shaker"), with a note when anything else
@@ -197,7 +190,11 @@ module HarryWardrobes
         Colours::GROUPS.each { |id, label| kv.call(label, colour_text(model, id)) }
         kv.call('Door style', door_style_text(model, doors))
         kv.call('Hinges', Settings::HINGE_TYPES[Settings.job_hinge_type(model)])
-        PartsList.handles(model).each { |h| kv.call(h['kind'], "#{h['name']}#{h['sku'].empty? ? '' : " (#{h['sku']})"} x #{h['qty']}") }
+        hl = PartsList.handles(model)
+        ['Robe handle', 'Drawer handle', 'Interior handle'].each do |kind|
+          h = hl.find { |x| x['kind'] == kind }
+          kv.call(kind, h ? "#{h['name']}#{h['sku'].empty? ? '' : " (#{h['sku']})"} x #{h['qty']}" : 'n/a')
+        end
         doc.instance_variable_set(:@y, y)
       end
 
@@ -237,37 +234,94 @@ module HarryWardrobes
         end
       end
 
-      def self.plan_page(doc, model, hd, images)
-        doc.section('Installation Plan')
-        pg = doc.page
-        foot = M + 42
+      LW = Pdf::PAGE_H # the installation plan is landscape
+      LH = Pdf::PAGE_W
+
+      # The installation plan: landscape, the last page. The plan picture fills the page;
+      # along the bottom, large: main ceiling, top fascia, cornice, then the runouts.
+      def self.plan_page(doc, model, hd, images, sizes)
+        pg = Pdf::Page.new
+        doc.pages << pg
+        sizes[doc.pages.size - 1] = [LW, LH]
+        top = LH - M - 6
+        pg.text(M, top, 'Harry Wardrobes - Installation Plan', font: 'F2', size: 14)
+        right = [['Customer', hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']], ['Account', hd['account']], ['Fit week', hd['fit_week']]]
+        right.each_slice(3).with_index do |col, ci|
+          x = LW - M - 270 + ci * 135
+          col.each_with_index do |(k, v), i|
+            pg.text(x, top - i * 10, "#{k}:", font: 'F2', size: 7.5)
+            pg.text(x + 42, top - i * 10, v.to_s.empty? ? '-' : v.to_s, size: 7.5, max: 90)
+          end
+        end
+        pg.line(M, top - 32, LW - M, top - 32, 0.2, 1.2)
+        foot = M + 58
         if Plan.plan_page(model)
           jpg = File.join(Dir.tmpdir, "hw_room_plan_#{Process.pid}.jpg")
           Plan.picture(model, jpg)
           im = Pdf.jpeg(jpg)
           File.delete(jpg) rescue nil
           images['Im1'] = im
-          box_w = W - 2 * M
-          box_h = doc.y - foot - 6
+          box_w = LW - 2 * M
+          box_h = top - 40 - foot
           s = [box_w / im['w'], box_h / im['h']].min
-          pg.image('Im1', M + (box_w - im['w'] * s) / 2, foot + 4 + (box_h - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
+          pg.image('Im1', M + (box_w - im['w'] * s) / 2, foot + (box_h - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
         else
-          pg.text(M, doc.y, 'No plan scene in this model - add a scene named "top" or "plan" to show the installation plan here.', font: 'F2', size: 10)
+          pg.text(M, top - 60, 'No plan scene in this model - add a scene named "top" or "plan" to show the installation plan here.', font: 'F2', size: 10)
         end
         c = Ceiling.mm(model)
         fa = Plan.top_fascia(model)
-        items = [['Drawing', hd['drawing']], ['Main ceiling', c.positive? ? "#{c.round} mm" : '-'], ['Top fascia', fa ? "#{fa} mm" : '-'], ['Cornice', @cornice]]
-        pg.line(M, foot + 14, W - M, foot + 14, 0.2, 1)
-        x = M
-        widths = Pdf.fit_widths([90, 90, 90, nil], W - 2 * M, 60)
-        items.each_with_index do |(k, v), i|
-          w = widths[i]
-          pg.text(x, foot + 2, k, font: 'F2', size: 7.5)
-          pg.text(x, foot - 9, v.to_s.empty? ? '-' : v.to_s, size: 8, max: w - 6)
-          x += w
+        items = [['Main ceiling', c.positive? ? "#{c.round} mm" : '-'], ['Top fascia', fa ? "#{fa} mm" : '-'], ['Cornice', @cornice]]
+        v = Pencil.on?(model) ? Runouts.job_values(model) : nil
+        Runouts::SIDES.each { |sd, _k, l| items << ["#{l.sub(/\ARunout - /, '').sub(' (mm)', '').capitalize} runout", v ? "#{v[sd].round} mm" : 'OFF'] }
+        pg.line(M, foot - 6, LW - M, foot - 6, 0.2, 1)
+        cw = (LW - 2 * M) / items.size.to_f
+        items.each_with_index do |(k, val), i|
+          x = M + i * cw
+          pg.text(x, foot - 20, k, font: 'F2', size: 8.5, max: cw - 6)
+          pg.text(x, foot - 36, val.to_s.empty? ? '-' : val.to_s, font: 'F2', size: 13, max: cw - 6)
         end
-        pg.text(M, foot - 22, 'Scribes:', font: 'F2', size: 7.5)
-        pg.text(M + 36, foot - 22, runouts_text(model), size: 8, max: W - 2 * M - 36)
+      end
+
+      # The job's renders (the "Renders" scenes in Settings > HubSpot > Pictures), two to a page.
+      def self.render_pages(doc, model, images)
+        row = Array(Settings.get['hubspot_pictures']).find { |r| r['field'].to_s == 'render_1' || r['label'].to_s =~ /render/i } or return
+        names = Array(row['scenes']).select { |n| model.pages[n] }
+        return if names.empty?
+        view = model.active_view
+        was = model.pages.selected_page
+        cam = view.camera.then { |c| Sketchup::Camera.new(c.eye, c.target, c.up, c.perspective?, c.fov) }
+        po = model.options['PageOptions']
+        trans = po['ShowTransition']
+        po['ShowTransition'] = false
+        shots = names.filter_map do |n|
+          model.pages.selected_page = model.pages[n]
+          view.refresh
+          jpg = File.join(Dir.tmpdir, "hw_render_#{Process.pid}_#{images.size}.jpg")
+          ok = view.write_image(filename: jpg, width: 1600, height: (1600 * view.vpheight / view.vpwidth.to_f).round, antialias: true, compression: 0.85)
+          next unless ok && File.exist?(jpg)
+          im = Pdf.jpeg(jpg)
+          File.delete(jpg) rescue nil
+          key = "Im#{images.size + 2}"
+          images[key] = im
+          [n, key, im]
+        end
+        shots.each_slice(2) do |pair|
+          doc.section('Renders')
+          pg = doc.page
+          box_h = (doc.y - M - 6) / pair.size
+          pair.each_with_index do |(n, key, im), i|
+            top = doc.y - i * box_h
+            pg.text(M, top, n, font: 'F2', size: 9)
+            bw = W - 2 * M
+            bh = box_h - 18
+            s = [bw / im['w'], bh / im['h']].min
+            pg.image(key, M + (bw - im['w'] * s) / 2, top - 6 - bh + (bh - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
+          end
+        end
+      ensure
+        model.pages.selected_page = was if was
+        view.camera = cam if cam
+        po['ShowTransition'] = trans unless trans.nil?
       end
 
       # Door elevation, a page per wall.
@@ -281,41 +335,6 @@ module HarryWardrobes
         Log.error('room plan door elevation', e)
       end
 
-      # One list: every part by type (Timber / MDF, Cut, Worktop, Facing) with the pods it's
-      # in ("T1 x3, T2"); then the hardware and the doors / drawer fronts the same way.
-      def self.panel_page(doc, parts, tops, doors = [])
-        doc.section('Panel list')
-        by = Hash.new { |h, k| h[k] = [] }
-        pods = ->(insts) { insts.filter_map { |i| tops[i['top']] }.tally.map { |t, n| n > 1 ? "#{t} x#{n}" : t }.join(', ') }
-        parts['groups'].each do |g|
-          next if %w[vinyl white_back].include?(g['section'])
-          g['parts'].each do |p|
-            by[panel_type(g, p)] << [p['number'], p['name'], g['material'], f(p['thickness']), f(p['length']), f(p['width']), p['qty'], pods.call(Array(p['instances']))]
-          end
-        end
-        Array(parts['timber']).each do |t|
-          by['Timber / MDF'] << [t['number'], t['name'], t['material'], t['section'], f(t['length']), '-', t['qty'], pods.call(Array(t['instances']))]
-        end
-        PANEL_TYPES.each do |t|
-          next if by[t].empty?
-          doc.heading(t, "#{by[t].sum { |r| r[6].to_i }} piece(s)")
-          doc.table([['#', 30, :left], ['Part', nil, :left], ['Material', 120, :left], [t == 'Timber / MDF' ? 'Section' : 'Thk', 44, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right], ['Pods', 120, :left]], by[t])
-        end
-        hws = Array(parts['hardware']).reject { |h| h['drawer_box'] }
-        unless hws.empty?
-          lines = PartsList.hardware_lines(hws)
-          by_pod = hws.to_h { |h| [h['name'], pods.call(Array(h['instances']))] }
-          doc.heading('Hardware', "#{lines.sum { |l| l['qty'] }} piece(s)")
-          doc.table([['#', 40, :left], ['Item', nil, :left], ['Qty', 30, :right], ['Pods', 160, :left]],
-                    lines.map { |l| [l['numbers'].join(', '), l['name'], l['qty'], l['parts'].map { |n| by_pod[n] }.reject(&:empty?).uniq.join(', ')] })
-        end
-        unless doors.empty?
-          doc.heading('Doors / drawer fronts', "#{doors.size} - on the Door / Vinyl order")
-          doc.table([['Pod', 34, :left], ['Item', nil, :left], ['Kind', 90, :left], ['Style', 60, :left], ['W', 40, :right], ['H', 40, :right], ['Hand', 36, :left]],
-                    doors.map { |d| [tops[d['top_id']].to_s, d['item'], d['kind'], d['style'], d['width'], d['height'], d['hand']] })
-        end
-      end
-
       def self.layout(model, parts, fit: :fetch)
         rows, tops = Products.list(model)
         doors = Report.rows(model)
@@ -323,20 +342,26 @@ module HarryWardrobes
         hd = head(model, fit)
         @cornice = cornice(parts)
         images = {}
+        sizes = []
         doc = Doc.new(hd)
         doc.start
         spec_page(doc, model, hd, rows, doors, parts)
         product_page(doc, rows, info)
-        plan_page(doc, model, hd, images)
         door_pages(doc, model)
-        panel_page(doc, parts, tops, doors)
+        begin
+          render_pages(doc, model, images)
+        rescue StandardError => e
+          Log.error('room plan renders', e)
+        end
+        plan_page(doc, model, hd, images, sizes)
         key = Products.key_text(rows.map { |r| r['ref'] })
         doc.pages.each_with_index do |p, i|
+          pw = (sizes[i] || [W, H])[0]
           p.text(M, M - 14, "HW Door Style v#{VERSION}", size: 7)
-          p.text(M + 80, M - 14, key, size: 7, max: W - 2 * M - 160) unless key.empty?
-          p.text(W - M, M - 14, "Page #{i + 1} of #{doc.pages.size}", size: 7.5, font: 'F2', align: :right)
+          p.text(M + 80, M - 14, key, size: 7, max: pw - 2 * M - 160) unless key.empty?
+          p.text(pw - M, M - 14, "Page #{i + 1} of #{doc.pages.size}", size: 7.5, font: 'F2', align: :right)
         end
-        [doc.pages.map(&:to_s), images]
+        [doc.pages.map(&:to_s), images, sizes]
       end
 
       def self.version(dir, base, recorded)
@@ -351,9 +376,9 @@ module HarryWardrobes
         dir = File.dirname(model.path)
         base = File.basename(model.path, '.skp')
         v = version(dir, base, model.get_attribute(DICT, 'room_plan_version', 0))
-        pages, images = layout(model, parts)
+        pages, images, sizes = layout(model, parts)
         path = File.join(dir, "ROOM_PLAN_v#{v}_#{Report.safe_name(base)}.pdf")
-        File.binwrite(path, Pdf.document(pages, images: images))
+        File.binwrite(path, Pdf.document(pages, images: images, sizes: sizes))
         Ops.run(model, 'Record room plan export', transparent: true) { model.set_attribute(DICT, 'room_plan_version', v) }
         [path, v]
       end

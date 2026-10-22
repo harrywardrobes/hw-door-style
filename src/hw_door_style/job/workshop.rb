@@ -95,6 +95,11 @@ module HarryWardrobes
           out << { 'id' => 'hubspot', 'text' => 'This file isn\'t linked to its HubSpot customer - the PDFs and labels need the customer, account and drawing number.',
                    'fix' => 'Link it: pick the customer\'s project, then its Room (or Design Visit if it has none).' }
         end
+        nh = PartsList.handles(model).select { |h| h['name'].to_s.start_with?('(not chosen') }
+        unless nh.empty? || defined?(LibraryExport) && LibraryExport.master?(model)
+          out << { 'id' => 'handles', 'text' => "Handles not chosen: #{nh.map { |h| h['kind'].downcase }.join(', ')}.", 'info' => true,
+                   'fix' => 'Pick them in the Door style window (N/A when there are none).' }
+        end
         wrong = wrong_hinges(model)
         unless wrong.empty?
           out << { 'id' => 'hinges', 'text' => "#{wrong.size} door(s) have the wrong hinges: #{wrong.first(6).map { |w| "#{w[:label]} (#{w[:have]}, should be #{w[:want]})" }.join(', ')}#{wrong.size > 6 ? '...' : ''}.",
@@ -178,6 +183,8 @@ module HarryWardrobes
         unless HubSpotRoom.customer_link(model)
           out << 'Link this file to its HubSpot customer first (HubSpot > Link this file) - the PDFs and labels take the customer, account and drawing number from it.'
         end
+        nh = PartsList.handles(model).select { |h| h['name'].to_s.start_with?('(not chosen') }
+        out << "Handles not chosen: #{nh.map { |h| h['kind'].downcase }.join(', ')} - pick them in the Door style window (or N/A)." unless nh.empty?
         wh = wrong_hinges(model).size
         out << "#{wh} door(s) have the wrong hinges - redraw them (Before you start box, or right-click > Rebuild selected)." if wh.positive?
         unset = Runouts.unset(model)

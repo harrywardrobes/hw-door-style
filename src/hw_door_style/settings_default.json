@@ -2,7 +2,7 @@
   "top_door_height_mm": 460,
   "worktop_height_mm": 771,
   "export_csv": false,
-  "drawer_runner_type": "Hook/Peg Drawer Runners",
+  "drawer_runner_type": "Hook/Peg",
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [
     [
@@ -471,7 +471,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 15,
+  "settings_version": 16,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",
@@ -496,7 +496,7 @@
     "HINGE_TIP_ON": "TIP-ON",
     "OVAL_BRACKET": "Oval rail brackets",
     "OVAL_BRACKET_TOP": "Oval rail brackets (top)",
-    "SHELF_BRACKET": "Shelf pegs",
+    "SHELF_BRACKET": "Shelf brackets",
     "DRW_RUNNER_410": "Drawer runners 410mm",
     "DRW_BOX": "Drawer boxes",
     "CABLE_OUTLET_80": "Cable outlets 80mm",

@@ -15,19 +15,17 @@ module HarryWardrobes
       SIZE   = 8.0
       ROW_H  = 13.0
 
-      # key, label, width (pt), align
+      # The order lines: key, label, width (pt), align (Details is the flexible one).
       COLUMNS = [
-        ['n', '#', 18, :right], ['unit', 'Unit', 86, :left], ['item', 'Item', 70, :left],
-        ['kind', 'Kind', 46, :left], ['hand', 'Hand', 32, :left], ['width', 'W', 26, :right], ['height', 'H', 26, :right],
-        ['style', 'Style', 38, :left], ['midrail', 'Mid', 26, :left],
-        ['hinge_type', 'Hinge type', 62, :left], ['hinges', 'Hng', 24, :right],
-        ['tip_on', 'TIP', 22, :right], ['handles', 'Hdl', 24, :right], ['notes', 'Notes', nil, :left]
+        ['type', 'Type', 112, :left], ['size', 'Size', 68, :left],
+        ['thumb', '', 44, :left], ['details', 'Details', nil, :left], ['drilling', 'Drilling', 52, :left], ['pods', 'Pods', 74, :left]
       ].freeze
+      LINE_H = 9.5
 
       def self.clean(s)
         s.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
          .gsub(/[–—]/, '-').gsub(/[‘’]/, "'").gsub(/[“”]/, '"').gsub("×", 'x')
-         .gsub(/[^\x20-\x7E]/, '?')
+         .gsub('°', '').gsub(/[^\x20-\x7E]/, '?')
       end
 
       def self.width(s, font, size)
@@ -145,7 +143,7 @@ module HarryWardrobes
         y -= 16
         page.text(MARGIN, y, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
         y -= 12
-        meta = "Hinge type: #{data['hinge_type']}   |   Mid = mid-rail, SC = Soft Close, Hng = hinges, TIP = TIP-ON, Hdl = handles"
+        meta = "Colour: #{data['colour']}   |   Hinges: #{data['hinge_type']}   |   Heights are the door height; hole positions are hinge centres"
         page.text(MARGIN, y, meta, size: 9)
         key = Array(data['hinge_key'])
         unless key.empty?
@@ -187,6 +185,50 @@ module HarryWardrobes
         y - tallest - 10
       end
 
+      # The lines of the Details column - everything the supplier asks for.
+      def self.details(l, data)
+        out = ["Style: #{l['style']}. Colour: #{data['colour']}"]
+        out << "Component: #{l['kind']}#{l['midrail_mm'].to_i.positive? ? ' with centre rail' : ''}"
+        out << "Height: #{l['height']}mm. Width: #{l['width']}mm"
+        out << "Stile: #{l['stile_mm']}mm. Rail: #{l['rail_mm']}mm" if l['stile_mm'].to_i.positive?
+        out << "Centre rail from door bottom: #{l['midrail_mm']}mm (#{l['midrail_w']}mm wide)" if l['midrail_mm'].to_i.positive?
+        if l['hinges'].to_i.positive?
+          out << "Drilled: #{l['hand'] == 'RH' ? 'Right' : 'Left'}. #{l['hinges']} hinge holes - #{l['hinge_type'].to_s.sub('Soft Close', 'SC')}#{l['tip_on'].to_i.positive? ? ", #{l['tip_on']} TIP-ON" : ''}"
+          Report.hole_lines(l['holes'], l['height']).each { |h| out << h }
+        elsif l['tip_on'].to_i.positive?
+          out << "#{l['tip_on']} TIP-ON"
+        end
+        out << "Handles: #{l['handles']}" if l['handles'].to_i.positive?
+        out << "Note: #{l['notes']}" unless l['notes'].to_s.empty?
+        out
+      end
+
+      # A small front-on picture of the front: its frame (stile / rail), centre rail and
+      # the hinge holes on the hinged side.
+      def self.thumbnail(page, l, bx, by, bw, bh)
+        w = l['width'].to_f
+        h = l['height'].to_f
+        return if w <= 0 || h <= 0
+        s = [bw / w, bh / h].min
+        rw = w * s
+        rh = h * s
+        x = bx + (bw - rw) / 2
+        y = by + (bh - rh) / 2
+        page.rect(x, y, rw, rh, 0, 0.7)
+        st = l['stile_mm'].to_f * s
+        ra = l['rail_mm'].to_f * s
+        page.rect(x + st, y + ra, rw - 2 * st, rh - 2 * ra, 0.45, 0.4) if st.positive? && rw > 2 * st + 2 && rh > 2 * ra + 2
+        if l['midrail_mm'].to_f.positive?
+          mz = y + l['midrail_mm'].to_f * s
+          mw = l['midrail_w'].to_f * s / 2
+          page.rect_fill(x + st, mz - mw, rw - 2 * st, 2 * mw, 0.75) if mw.positive?
+        end
+        Array(l['holes']).each do |z|
+          hx = l['hand'] == 'RH' ? x + rw - 2.2 : x + 2.2
+          page.rect_fill(hx - 1.1, y + z * s - 1.1, 2.2, 2.2, 0)
+        end
+      end
+
       def self.layout(data)
         pages = []
         page = Page.new
@@ -194,32 +236,42 @@ module HarryWardrobes
         y = title_block(page, data)
         y = table_header(page, y)
 
-        if data['rows'].empty?
-          page.text(MARGIN, y, 'No doors or drawer fronts found.')
-        end
+        lines = Array(data['lines'])
+        page.text(MARGIN, y, 'No doors or drawer fronts found.') if lines.empty?
 
-        data['rows'].each do |r|
-          if y < MARGIN + 20
+        lines.each do |l|
+          det = details(l, data)
+          rh = [det.size * LINE_H + 14, 34].max
+          if y - rh < MARGIN + 10
             page = Page.new
             pages << page
             y = table_header(page, PAGE_H - MARGIN - 10)
           end
           x = MARGIN
-          columns.each do |key, _l, w, align|
-            v = r[key]
-            v = v.to_s.sub('Soft Close', 'SC') if key == 'hinge_type'
-            if key == 'hinge_type' && r['hinge_mark']
-              v = "#{r['hinge_mark']} #{v}"
-              # shade just the hinge text, not the row
-              page.rect_fill(x + 1, y - 3, [Pdf.width(Pdf.clean(v), 'F2', SIZE) + 4, w - 2].min, ROW_H - 2, r['hinge_shade'])
-            end
-            v = '' if v.nil? || (v.is_a?(Integer) && v.zero? && %w[hinges tip_on handles].include?(key))
+          columns.each do |key, _lab, w, align|
             tx = align == :right ? x + w - 3 : x + 3
-            page.text(tx, y, v.to_s, align: align, max: w - 6, **(key == 'hinge_type' && r['hinge_mark'] ? { font: 'F2' } : {}))
+            case key
+            when 'type' then page.text(tx, y, "#{l['qty']} x #{l['kind']}", font: 'F2', size: 9, max: w - 6)
+            when 'size' then page.text(tx, y, "#{l['height']} x #{l['width']}mm", max: w - 6)
+            when 'thumb' then thumbnail(page, l, x + 4, y - rh + 10, w - 8, rh - 10)
+            when 'details'
+              det.each_with_index do |t, i|
+                if l['hinge_mark'] && t.start_with?('Drilled')
+                  t = "#{l['hinge_mark']} #{t}"
+                  page.rect_fill(tx - 2, y - i * LINE_H - 3, [Pdf.width(Pdf.clean(t), 'F2', SIZE) + 4, w - 2].min, LINE_H, l['hinge_shade'])
+                  page.text(tx, y - i * LINE_H, t, font: 'F2', max: w - 6)
+                else
+                  page.text(tx, y - i * LINE_H, t, max: w - 6)
+                end
+              end
+            when 'drilling' then page.text(tx, y, l['hinges'].to_i.positive? ? "#{l['hand'] == 'RH' ? 'Right' : 'Left'} (#{l['hinges']})" : '-', max: w - 6)
+            when 'pods'
+              Array(l['pods']).each_slice(2).with_index { |ps, i| page.text(tx, y - i * LINE_H, ps.join(', '), size: 7.5, max: w - 6) }
+            end
             x += w
           end
-          page.line(MARGIN, y - 4, PAGE_W - MARGIN, y - 4)
-          y -= ROW_H
+          page.line(MARGIN, y - rh + 8, PAGE_W - MARGIN, y - rh + 8)
+          y -= rh
         end
 
         # 22mm (white back) panels and bullnose / cornice: ordered with the doors.
@@ -257,25 +309,58 @@ module HarryWardrobes
           end
         end
 
-        # Drawings: door elevations (one per wall) then worktops, two to a page, stacked.
+        # Drawings: door elevations (one per wall), two to a page, stacked.
         walls = Array(data['elevation'])
-        tops = Array(data['worktops'])
-        views = walls.map { |w| [:wall, w, DoorView.title(w, walls.size > 1)] } +
-                tops.each_with_index.map { |w, i| [:top, w, WorktopView.title(w, i, tops.size > 1)] }
-        views.each_slice(2) do |pair|
+        walls.each_slice(2) do |pair|
           pg = Page.new
           pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "v#{data['export_version']}", size: 9, align: :right)
           pg.text(MARGIN, PAGE_H - MARGIN - 26, head_line(data['head']), size: 8, max: PAGE_W - 2 * MARGIN)
           box_h = (PAGE_H - 2 * MARGIN - 34) / pair.size
-          pair.each_with_index do |(kind, w, title), i|
+          pair.each_with_index do |w, i|
             top = PAGE_H - MARGIN - 34 - i * box_h
-            pg.text(MARGIN, top - (i.zero? ? -22 : 14), "Harry Wardrobes - #{title}", font: 'F2', size: i.zero? ? 15 : 12)
+            pg.text(MARGIN, top - (i.zero? ? -22 : 14), "Harry Wardrobes - #{DoorView.title(w, walls.size > 1)}", font: 'F2', size: i.zero? ? 15 : 12)
             pg.line(MARGIN, top, PAGE_W - MARGIN, top, 0.7, 0.5) if i.positive?
-            by = top - box_h + 6
-            bh = box_h - (i.zero? ? 6 : 26)
-            kind == :wall ? DoorView.draw_pdf(pg, w, MARGIN, by, PAGE_W - 2 * MARGIN, bh) : WorktopView.draw_pdf(pg, w, MARGIN, by, PAGE_W - 2 * MARGIN, bh)
+            DoorView.draw_pdf(pg, w, MARGIN, top - box_h + 6, PAGE_W - 2 * MARGIN, box_h - (i.zero? ? 6 : 26))
           end
           pages << pg
+        end
+
+        # Worktop order: its own page(s) - a small drawing at the left, the details beside it.
+        tops = Array(data['worktops'])
+        unless tops.empty?
+          pg = nil
+          y = 0
+          row_h = 118
+          new_top_page = lambda do
+            pg = Page.new
+            pages << pg
+            pg.text(MARGIN, PAGE_H - MARGIN - 12, 'Harry Wardrobes - Worktop Order', font: 'F2', size: 15)
+            pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "v#{data['export_version']}", size: 9, align: :right)
+            pg.text(MARGIN, PAGE_H - MARGIN - 28, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
+            pg.text(MARGIN, PAGE_H - MARGIN - 40, "#{tops.size} worktop(s). Solid line = profiled edge, dashed = against a wall / not profiled. Sizes in mm.", size: 8.5)
+            pg.line(MARGIN, PAGE_H - MARGIN - 46, PAGE_W - MARGIN, PAGE_H - MARGIN - 46, 0.2, 1.2)
+            y = PAGE_H - MARGIN - 52
+          end
+          new_top_page.call
+          tops.each_with_index do |w, i|
+            new_top_page.call if y - row_h < MARGIN + 10
+            tw = 230
+            WorktopView.draw_pdf(pg, w, MARGIN, y - row_h + 6, tw, row_h - 12, key: false)
+            tx = MARGIN + tw + 16
+            ty = y - 14
+            pg.text(tx, ty, "#{i + 1}. #{w['pod'].to_s.empty? ? '' : "#{w['pod']} - "}#{w['name']}", font: 'F2', size: 11)
+            e = w['edges'] || {}
+            pro = e.select { |_k, v| v }.keys.join(', ')
+            [["Size", "#{w['length']} x #{w['depth']} x #{w['thickness']}mm (length x depth x thickness)"],
+             ["Colour", w['material'].to_s], ["Profiled edges", pro.empty? ? 'none' : pro],
+             ["Plain edges", e.reject { |_k, v| v }.keys.join(', ').then { |t| t.empty? ? 'none' : t }],
+             ["Qty", '1']].each_with_index do |(k, v), j|
+              pg.text(tx, ty - 16 - j * 12, "#{k}:", font: 'F2', size: 8.5)
+              pg.text(tx + 70, ty - 16 - j * 12, v, size: 8.5, max: PAGE_W - MARGIN - tx - 70)
+            end
+            pg.line(MARGIN, y - row_h + 2, PAGE_W - MARGIN, y - row_h + 2)
+            y -= row_h
+          end
         end
 
         pages.each_with_index do |p, i|
@@ -292,7 +377,8 @@ module HarryWardrobes
 
       # Page content streams -> PDF bytes.
       # images: { 'Im1' => Pdf.jpeg(path) } - drawn with Page#image.
-      def self.document(pages, images: {})
+      # sizes: [[w, h] or nil per page] - nil is A4 portrait (a landscape page is [PAGE_H, PAGE_W]).
+      def self.document(pages, images: {}, sizes: [])
         objs = []
         objs << '<< /Type /Catalog /Pages 2 0 R >>'
         first_img = 5 + pages.size * 2
@@ -303,7 +389,8 @@ module HarryWardrobes
         xo = images.keys.each_with_index.map { |n, k| "/#{n} #{first_img + k} 0 R" }.join(' ')
         res = "/Font << /F1 3 0 R /F2 4 0 R >>#{xo.empty? ? '' : " /XObject << #{xo} >>"}"
         pages.each_with_index do |c, i|
-          objs << "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 #{PAGE_W.to_i} #{PAGE_H.to_i}] " \
+          pw, ph = sizes[i] || [PAGE_W, PAGE_H]
+          objs << "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 #{pw.to_i} #{ph.to_i}] " \
                   "/Resources << #{res} >> /Contents #{6 + i * 2} 0 R >>"
           objs << "<< /Length #{c.bytesize} >>\nstream\n#{c}\nendstream"
         end

@@ -204,8 +204,14 @@ Dir.mktmpdir do |dir|
            'version' => '0.2.0', 'export_version' => 4,
            'rows' => Array.new(75) { |i| rows[0].merge('n' => i + 1, 'hand' => i.even? ? 'LH' : 'RH', 'unit' => "WARDROBE #{i / 4 + 1} > a very long unit path name that must be cut") } }
   data['rows'].each_with_index { |r, i| r['hinge_type'] = i % 9 == 0 ? 'Soft Close 155' : (i % 13 == 0 ? 'PTO 110' : 'Soft Close 110') }
+  data['rows'].each_with_index { |r, i| r.merge!('kind_id' => i % 5 == 4 ? 'ext_drawer' : 'door', 'kind' => i % 5 == 4 ? 'Drawer front' : 'Wardrobe Door', 'height' => i % 5 == 4 ? '228' : '2024', 'width' => i % 5 == 4 ? '596' : '400', 't' => "T#{i / 4 + 1}", 'stile_mm' => 95, 'rail_mm' => 95, 'midrail_mm' => i % 5 == 4 ? 0 : 815, 'midrail_w' => i % 5 == 4 ? 0 : 100, 'hinges' => i % 5 == 4 ? 0 : 4, 'holes' => i % 5 == 4 ? [] : [100, 708, 1316, 1924], 'handles' => 1) }
   data['totals'] = Report.totals(data['rows'])
   data['hinge_key'] = Report.mark_hinges(data['rows'], 'Soft Close 110')
+  data['lines'] = Report.order_lines(data['rows'])
+  data['colour'] = 'Super Matt Sage Green'
+  check 'order lines: identical fronts on one line with qty and pods; holes read from top then bottom', data['lines'].sum { |l| l['qty'] } == 75 && data['lines'].size < 20 && data['lines'].first['pods'].is_a?(Array) &&
+        Report.hole_lines([100, 708, 1316, 1924], 2024) == ['H1: 100 (from top of door)', 'H2: 708 (from top of door)', 'H3: 708 (from bottom of door)', 'H4: 100 (from bottom of door)'] &&
+        Report.hole_lines([100, 1012, 1924], 2024) == ['H1: 100 (from top of door)', 'H2: 1012 (from bottom of door)', 'H3: 100 (from bottom of door)']
   check 'odd hinges: usual one plain, others marked * / ** with grey shades', data['hinge_key'].map { |m, t, _s| [m, t] } == [['*', 'Soft Close 155'], ['**', 'PTO 110']] &&
         data['rows'][0]['hinge_mark'] == '*' && data['rows'][1]['hinge_mark'].nil? && Report.mark_hinges([{ 'hinge_type' => 'A' }, { 'hinge_type' => 'A' }]).empty?
   pdf = File.join(dir, 'DOOR_ORDER_v4_Smith Wardrobes.pdf')
@@ -218,7 +224,7 @@ Dir.mktmpdir do |dir|
                       { 'name' => 'EXT_DRW_WORKTOP', 'pod' => 'L1', 'length' => 700, 'depth' => 480, 'thickness' => 25, 'material' => 'Mussel', 'edges' => { 'front' => true, 'left' => false, 'right' => false, 'back' => false } }]
   data['elevation'] = [{ 'wall' => 'back wall', 'width' => 1000, 'height' => 2300, 'fronts' => [{ 'u0' => 0, 'u1' => 498, 'z0' => 0, 'z1' => 2300, 'panels' => [] }, { 'u0' => 502, 'u1' => 1000, 'z0' => 0, 'z1' => 2300, 'panels' => [] }], 'dims' => [], 'texts' => [], 'labels' => [] }]
   Pdf.write(pdf, data)
-  check 'door / vinyl order: 22mm section, two views on a page, worktop edges', File.binread(pdf).include?('Door / Vinyl Order') && File.binread(pdf).scan('/Type /Page ').size == 4
+  check 'door / vinyl order: lines, 22mm section, elevation page, worktop page', File.binread(pdf).include?('Door / Vinyl Order') && File.binread(pdf).include?('Worktop Order') && File.binread(pdf).scan('/Type /Page ').size == 4
   bytes = File.binread(pdf)
   check 'pdf header/footer', bytes.start_with?('%PDF-1.4') && bytes.rstrip.end_with?('%%EOF')
   check 'pdf multi-page', bytes.scan('/Type /Page ').size >= 2
@@ -750,17 +756,29 @@ tops = { 1 => 'T1', 2 => 'B1' }
 info = RP.by_ref(parts, doors, tops)
 check 'room plan: doors per ref with hands and 155 flagged', RP.door_text(info['T1']['doors']) == '2 x Shaker 2300 high (LH + RH) - 155 HINGES'
 check 'room plan: interior summary', RP.interior_text(info['T1']) == '3 shelves, 1 hanging rail, 1 internal drawer'
-check 'room plan: panel types', ['Cut', 'Facing', 'Timber / MDF', 'Worktop'] == parts['groups'].flat_map { |g| g['parts'].map { |p| RP.panel_type(g, p) } }.sort
 rows = [{ 't' => 'T1', 'ref' => 'T', 'num' => 1, 'type' => 'Wardrobe', 'size' => [1000, 598, 2400], 'depth' => 580, 'finished' => 598 },
         { 't' => 'B1', 'ref' => 'B', 'num' => 1, 'type' => 'Worktop', 'size' => [1200, 518, 771], 'depth' => 500, 'finished' => 518 }]
 check 'PDF customer: SURNAME, First names', RP.customer_name('Rebecca Jane', 'Williams') == 'WILLIAMS, Rebecca Jane' && RP.customer_name('', 'Smith') == 'SMITH'
 check 'room plan: unit description', RP.describe(rows[0]) == '1000 Wardrobe (580 deep / 598 overall)'
 hd = { 'customer' => 'WILLIAMS, Rebecca', 'room' => 'Master Bedroom', 'drawing' => 'X830735284436', 'account' => 'HW123456789', 'fit_week' => 'Week 44' }
 doc = RP::Doc.new(hd); doc.start
-RP.product_page(doc, rows, info); RP.panel_page(doc, parts, tops, doors)
-pdf = HarryWardrobes::DoorStyle::Pdf.document(doc.pages.map(&:to_s))
+RP.product_page(doc, rows, info)
+land = HarryWardrobes::DoorStyle::Pdf::Page.new; land.text(30, 30, 'landscape'); doc.pages << land
+pdf = HarryWardrobes::DoorStyle::Pdf.document(doc.pages.map(&:to_s), sizes: [nil, [842, 595]])
 File.binwrite(File.join(Dir.tmpdir, 'room_plan_test.pdf'), pdf)
-check 'room plan: pages render (product list, panel list with pods)', doc.pages.size == 2 && pdf.start_with?('%PDF')
+check 'room plan: product list renders; a landscape last page; no panel list', doc.pages.size == 2 && pdf.start_with?('%PDF') && pdf.include?('/MediaBox [0 0 842 595]') && pdf.include?('/MediaBox [0 0 595 842]') && !RP.respond_to?(:panel_page)
+
+PPDF = HarryWardrobes::DoorStyle::PartsPdf
+pd = { 'list_version' => 3, 'version' => 'test', 'head' => hd, 'scribes_on' => true, 'waste_pct' => 20, 'handles' => [], 'drawer_boxes' => [{ 'number' => 'DB', 'parent' => 'DRAWER_FITTED', 'material' => 'Interfit-Box-Light-Grey', 'width' => 664, 'height' => 150, 'runner' => '410mm Hook/Peg', 'qty' => 3 }],
+       'timber_lines' => [{ 'numbers' => ['9'], 'name' => '2X1', 'material' => 'Timber 2x1', 'section' => '21 x 44', 'length' => 2400, 'qty' => 2 }], 'hardware_lines' => [{ 'numbers' => ['H1'], 'name' => 'Hinges 110° soft close', 'qty' => 12 }, { 'numbers' => ['H2'], 'name' => 'Shelf brackets', 'qty' => 8 }],
+       'groups' => [{ 'material' => 'Light Grey', 'thickness' => 18, 'section' => 'sheets', 'strip_group' => true, 'count' => 6, 'sheets' => nil, 'sheet' => [2800, 2070], 'strips' => [{ 'width' => 90, 'length' => 2800, 'count' => 1 }, { 'width' => 300, 'length' => 2800, 'count' => 2 }],
+                     'parts' => [{ 'number' => 1, 'name' => 'FACING', 'length' => 2300, 'width' => 72, 'qty' => 2, 'strip_width' => 90, 'edges' => {} }, { 'number' => 2, 'name' => 'SHELF', 'length' => 900, 'width' => 280, 'qty' => 3, 'strip_width' => 300, 'edges' => {} }, { 'number' => 3, 'name' => 'BIG', 'length' => 2000, 'width' => 900, 'qty' => 1, 'strip_width' => nil, 'edges' => {} }] },
+                    { 'material' => 'Oak worktop', 'thickness' => 25, 'section' => 'worktops', 'count' => 1, 'parts' => [{ 'number' => 4, 'name' => 'WRKTP', 'length' => 1200, 'width' => 518, 'qty' => 1, 'edges' => {} }] }] }
+ppdf = HarryWardrobes::DoorStyle::Pdf.document(PPDF.layout(pd))
+File.binwrite(File.join(Dir.tmpdir, 'parts_list_test.pdf'), ppdf)
+pptxt = ppdf.scan(/\((.*?)\) Tj/).flatten.join(' ')
+check 'parts list: Timber then Hardware, 18mm by strip width, no boards / edging / worktops, no ? after the hinges', pptxt.include?('TIMBER') && pptxt.include?('HARDWARE') && pptxt.index('90 mm strips') < pptxt.index('300 mm strips') && pptxt.index('300 mm strips') < pptxt.index('Full sheet') && !pptxt.include?('WRKTP') && !pptxt.include?('Boards') && !pptxt.include?('Edging') && pptxt.include?('Hinges 110 soft close') && !pptxt.include?('110?') && pptxt.include?('410mm Hook/Peg')
+FileUtils.cp(File.join(Dir.tmpdir, 'parts_list_test.pdf'), ENV['PARTS_OUT']) if ENV['PARTS_OUT']
 
 puts "\n== Mid-rail line"
 require 'hw_door_style/job/midrail'

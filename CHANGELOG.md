@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.79.0 — 2026-10-22
+- Door / Vinyl order: one line per identical front with the quantity, a small picture of it, and everything the supplier asks for - style, colour, component, height, width, stile / rail, centre rail from the door bottom, drilled hand, hinge holes (H1... from top / bottom), hinge type, TIP-ON, handles - plus the pods it's in. The mid-rail column is gone (it's in the details). The door elevation stays; the worktops are on their own page(s), each with a small drawing at the left and its size, colour and profiled edges beside it.
+- Parts list: two sections - TIMBER (every board and length: 18 mm by the strip width it's cut from - 90, 160, 300... - then full-sheet parts, other boards, Timber / MDF lengths, drawer boxes) and HARDWARE (items, handles - "n/a" when there are none). Boards, Cut + Edged, Worktops, Edging and the 25 mm worktop list are gone. Runners read "410mm Hook/Peg"; hinge names lost their "?"; shelf pegs are shelf brackets.
+- Labels print in the parts list's order: 18 mm by strip width with a "---- 90 mm ----" divider label in front of each width (and one for the full-sheet parts), then the other boards and timber, hardware last.
+- Room Plan: the handles must be chosen (or N/A) before the pack is saved - the cover lists all three kinds, n/a when there are none. The job's renders (the "Renders" scenes) come after the door elevation; the Installation Plan is the last page, landscape, with the ceiling, fascia, cornice and runouts large along the bottom (no drawing number there). The panel list page is gone - the parts list is its own PDF.
+
 ## 0.78.3 — 2026-10-22
 - The master library file gets its plugin colours set up for OpenCutList too (0.78.1 left it out), so the Workshop reads the same there as in a job.
 
