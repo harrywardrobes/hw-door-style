@@ -284,11 +284,6 @@
       "letter": "B",
       "depth": "short"
     },
-    "CAB": {
-      "role": "skip",
-      "product": "Cabinet",
-      "letter": ""
-    },
     "INT_DRAWER": {
       "role": "internal",
       "product": "Internal drawers",
@@ -371,7 +366,8 @@
     "COVER_WITH_WORKTOP": {
       "role": "skip",
       "product": "Cover with worktop",
-      "letter": ""
+      "letter": "",
+      "depth": 256
     }
   },
   "product_depth_keys": [

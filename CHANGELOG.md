@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.81.2 — 2026-10-22
+- Component table: CAB retired (a bookcase with one compartment does the same job); COVER_WITH_WORKTOP rebuilt on the standard options (Width / Height, walls, runouts, job depth 256, exterior colour on the panel, worktop colour on the top, 2x1 timber frame) - in the library's Other group.
+
 ## 0.81.1 — 2026-10-22
 - Depth: wardrobe internals (int drawers, shoe pull-out) are never given the job depth - theirs is the runner's; a depth with a choice list is left to the component.
 
