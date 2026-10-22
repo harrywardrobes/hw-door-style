@@ -77,13 +77,7 @@ module HarryWardrobes
 
       # Any drawer inside the unit pulled open (onClick ANIMATE moved it)?
       def self.open?(unit)
-        open = false
-        Finder.each_instance(unit.definition.entities) do |i|
-          d = dc(i)
-          next unless d && d['onclick'].to_s =~ /ANIMATE/i
-          open ||= d['_onclick_state1'].to_s.to_i != 0 || d['y'].to_f.abs > 0.01
-        end
-        open
+        Drawers.open_ones(unit.definition.entities).any?
       end
 
       # Sets DRWR_BOX_THICKNESS on both dictionaries of each unit that needs it.
@@ -93,6 +87,8 @@ module HarryWardrobes
         res = { changed: [], open: [] }
         units(model).each do |u|
           next if (current_mm(u).to_f - mm).abs < 0.05
+          # open drawers are closed first (a box can't be resized half out)
+          Drawers.close(u.definition.entities) if open?(u)
           if open?(u)
             res[:open] << Finder.label(u)
             next

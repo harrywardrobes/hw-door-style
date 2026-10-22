@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.81.3 — 2026-10-22
+- Drawers: closing a drawer now also clears the end position its open animation leaves behind - before, Clean model / redraws closed it and the next redraw slid it straight back out, so the "drawers open" warning never went away. Applying colours closes any open drawers itself before resizing the boxes instead of asking you to.
+
 ## 0.81.2 — 2026-10-22
 - Component table: CAB retired (a bookcase with one compartment does the same job); COVER_WITH_WORKTOP rebuilt on the standard options (Width / Height, walls, runouts, job depth 256, exterior colour on the panel, worktop colour on the top, 2x1 timber frame) - in the library's Other group.
 

@@ -51,7 +51,7 @@ module HarryWardrobes
         end
         thick = result[:thick]
         lines << '' << "Box thickness updated on: #{thick[:changed].map { |u| Finder.label(u) }.uniq.join(', ')}" unless thick[:changed].empty?
-        lines << '' << "NOT updated (drawers open - close them and apply again): #{thick[:open].uniq.join(', ')}" unless thick[:open].empty?
+        lines << '' << "NOT updated (a drawer would not close): #{thick[:open].uniq.join(', ')}" unless thick[:open].empty?
         lines << '' << 'Check:' << result[:problems] unless result[:problems].empty?
         lines.flatten
       end
