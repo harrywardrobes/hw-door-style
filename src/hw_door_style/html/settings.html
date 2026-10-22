@@ -353,6 +353,8 @@
   <div class="lead">Export components (rocket) - library file only.</div>
   <fieldset><legend>Export components</legend>
     <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
+    <div class="f t"><span>Sub-folders</span><input type="text" id="export_folders"></div>
+    <div class="hint" style="margin-bottom:6px">Where each export goes, by its Pod letter from the Product list table: <code>T: T - Tall units, T_INTERNALS: T - Wardrobe internals, W: ..., B: ..., F: ..., OTHER: Other</code>. Internals go under T_INTERNALS; anything that isn't a product under OTHER.</div>
     <div class="f t"><span>Never export</span><input type="text" id="export_skip"></div>
     <div class="hint">Top-level components left out of the export list.</div>
     <div class="f t"><span>Template keeps</span><input type="text" id="template_keep"></div>
@@ -360,13 +362,18 @@
     <div class="f" style="grid-template-columns:150px 70px 70px 70px"><span>Template room (mm)</span><input type="number" id="room_w" placeholder="width"><input type="number" id="room_l" placeholder="length"><input type="number" id="room_c" placeholder="ceiling"></div>
     <div class="hint">The template's floor and ceiling are saved at this size (width, length, ceiling). Room setup still asks for each job's room, starting blank.</div>
   </fieldset>
+  <fieldset><legend>Local folder (works offline)</legend>
+    <div class="f t"><span>Folder on this computer</span><input type="text" id="local_folder"></div>
+    <div class="hint" style="margin-bottom:6px">Not on Google Drive. Every export also lands in <b>SketchUp Components</b> here (the current file of each component, the master and the templates, in the same sub-folders - no _old), and the + window uses it when Drive isn't reachable. <b>Settings backups</b> here gets a dated backup every time you press Save (the last 30 kept).</div>
+    <div><button type="button" onclick="$('localMsg').textContent = 'Copying...'; sketchup.mirrorAll()">Copy the library here now</button> <button type="button" onclick="sketchup.openLocal()">Open folder</button> <span id="localMsg" class="hint" style="margin:0"></span></div>
+  </fieldset>
   <fieldset><legend>Door order and parts list</legend>
     <div class="f c"><span>Also save CSV files (the PDF is always saved)</span><input type="checkbox" id="export_csv"></div>
     <div class="hint">Off: Export door order and the Workshop window save PDFs only (and send only the PDFs to HubSpot).</div>
   </fieldset>
   <fieldset><legend>Add component (+)</legend>
     <div class="f t"><span>Library folder</span><input type="text" id="library_folder"></div>
-    <div class="hint">The folder with WARDROBES, DRAWERS, BRIDGE... The latest version of each component is copied to this computer (AppData\HW Door Style\library) and kept up to date when the + window opens, so it opens straight away and works offline.</div>
+    <div class="hint">The library on Google Drive (T - Tall units, W - ..., Electrical Faceplates...). The latest version of each component is copied to this computer (AppData\HW Door Style\library) and kept up to date when the + window opens, so it opens straight away and works offline.</div>
   </fieldset>
 </section>
 
@@ -555,7 +562,7 @@ var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrai
 var LOWER_LISTS = ['survey_questions', 'product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', local_folder:'C:/Users/User/Documents/Harry Wardrobes', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
@@ -601,6 +608,8 @@ function load(s){
   $('label_display_names').value = Object.keys(ldn).map(function(k){ return k + ': ' + ldn[k]; }).join('\n');
   var prn = s.product_ref_names || {};
   $('product_ref_names').value = Object.keys(prn).map(function(k){ return k + ': ' + prn[k]; }).join(', ');
+  var xf = s.export_folders || {};
+  $('export_folders').value = Object.keys(xf).map(function(k){ return k + ': ' + xf[k]; }).join(', ');
   var dbc = s.depth_by_component || {};
   $('depth_by_component').value = Object.keys(dbc).map(function(k){ return k + ': ' + dbc[k]; }).join(', ');
   PC = Object.keys(s.product_components || {}).map(function(k){ var r = s.product_components[k] || {}; return { name: k, product: r.product || '', role: r.role || 'unit', letter: r.letter || '' }; });
@@ -674,6 +683,8 @@ function collect(){
   $('label_display_names').value.split('\n').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim(); if (k && v) o.label_display_names[k] = v; });
   o.product_ref_names = {};
   $('product_ref_names').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim(); if (k && v) o.product_ref_names[k] = v; });
+  o.export_folders = {};
+  $('export_folders').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim(); if (k && v) o.export_folders[k] = v; });
   o.depth_by_component = {};
   $('depth_by_component').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = parseFloat(x.slice(i + 1)); if (k && v > 0) o.depth_by_component[k] = v; });
   o.product_components = {};

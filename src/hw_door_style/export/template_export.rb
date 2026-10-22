@@ -120,6 +120,7 @@ module HarryWardrobes
         view.camera = cam
         model.description = desc if model.description != desc
         moved = old.reject { |p| File.expand_path(p) == File.expand_path(path) }.map { |p| File.basename(LibraryExport.move_to_old(model, p)) }
+        Local.mirror_file(path, root, moved)
         m = LibraryExport.meta(model)
         m[META_KEY] = { 'version' => v, 'file' => path, 'fingerprint' => fp, 'exported' => Time.now.strftime('%d/%m/%Y %H:%M') }
         Ops.run(model, 'Record template export', transparent: true) { LibraryExport.save_meta(model, m) }

@@ -203,6 +203,15 @@
   "box_thickness_follows_finish": true,
   "panel_22_mm": 22,
   "export_old_folder": "_old",
+  "export_folders": {
+    "T": "T - Tall units",
+    "T_INTERNALS": "T - Wardrobe internals",
+    "W": "W - Wall and bridge units",
+    "B": "B - Base units",
+    "F": "F - Facings",
+    "OTHER": "Other"
+  },
+  "local_folder": "C:/Users/User/Documents/Harry Wardrobes",
   "library_folder": "G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes",
   "plan_scenes": "top|plan",
   "plan_hidden_tags": "hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail",

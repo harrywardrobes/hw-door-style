@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.74.0 — 2026-10-22
+- Library folders follow the Pod letters: exports go to "T - Tall units", "T - Wardrobe internals", "W - Wall and bridge units", "B - Base units", "F - Facings" or "Other" by the component's row in the Product list table (Settings > Export > Sub-folders). The old guess-by-name is gone.
+- Local folder (Settings > Export): C:\Users\User\Documents\Harry Wardrobes by default, not on Drive. Every export (components, master, template) is also copied to "SketchUp Components" there - current files only, same sub-folders - and the + window falls back to it when Drive isn't reachable. "Copy the library here now" fills it the first time. Every Settings save also writes a dated backup to "Settings backups" there (last 30 kept); Download backup starts in that folder.
+
 ## 0.73.0 — 2026-10-22
 - Settings > Product list is one table, a row per component: its product name, what it is (Unit / Part of a product / Internal / Never a product) and its Pod letter - so a component is in exactly one place. It replaces the five overlapping lists (product types, joiners, internals, never products, reference letters). A component not in the table is ignored by the Product List. The letter key (T, W, B, F) sets the letters on offer and their order.
 

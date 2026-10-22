@@ -7,7 +7,7 @@ require 'extensions.rb'
 module HarryWardrobes
   module DoorStyle
     PLUGIN_ID = 'hw_door_style'.freeze
-    VERSION   = '0.73.0'.freeze
+    VERSION   = '0.74.0'.freeze
     PATH      = File.join(File.dirname(__FILE__), PLUGIN_ID).freeze
 
     MIN_SKETCHUP = 21 # SketchUp 2021; everything the plugin uses exists from here

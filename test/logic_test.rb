@@ -227,6 +227,8 @@ end
 # --- library export (file names, versions, _old)
 require 'tmpdir'
 require 'hw_door_style/export/library_export'
+require 'hw_door_style/job/products'
+require 'hw_door_style/core/local'
 LE = LibraryExport
 Dir.mktmpdir do |root|
   %w[_old WARDROBES DRAWERS BRIDGE BOOKCASE SHELVING _HW\ Door\ Style].each { |d| FileUtils.mkdir_p(File.join(root, d)) }
@@ -239,7 +241,7 @@ Dir.mktmpdir do |root|
   end
   model = Struct.new(:path).new(File.join(root, 'Components V17.skp'))
   check 'export: only in a "Components" file', LE.master?(model) && !LE.master?(Struct.new(:path).new(File.join(root, 'Smith job.skp')))
-  check 'export: folders skip _old and _HW Door Style, add MAIN COMPONENTS', LE.folders(model) == ['BOOKCASE', 'BRIDGE', 'DRAWERS', 'MAIN COMPONENTS', 'SHELVING', 'WARDROBES']
+  check 'export: folders skip _old and _HW Door Style, add the pod folders', LE.folders(model) == ['B - Base units', 'BOOKCASE', 'BRIDGE', 'DRAWERS', 'F - Facings', 'Other', 'SHELVING', 'T - Tall units', 'T - Wardrobe internals', 'W - Wall and bridge units', 'WARDROBES']
   w = LE.scan(model, 'WARDROBE')
   check 'export: WARDROBE finds WARDROBE_V1 -> next V2', w[:version] == 1 && w[:current].map { |p| File.basename(p) } == ['WARDROBE_V1.skp']
   check 'export: BRIDGE_FRAME next V6 (V5 current, older in _old)', LE.scan(model, 'BRIDGE_FRAME')[:version] == 5
@@ -249,7 +251,20 @@ Dir.mktmpdir do |root|
   check 'export: BOOKCASE_4 counts as V4', LE.scan(model, 'BOOKCASE')[:version] == 4
   check 'export: loose END_PAN in main folder found (V1)', LE.scan(model, 'END_PAN')[:current].size == 1
   check 'export: brand new component starts at V1', LE.scan(model, 'NEW_THING')[:version].zero?
-  check 'export: folder guesses', LE.guess_folder('WALK-IN', LE.folders(model)) == 'WARDROBES' && LE.guess_folder('EXT_DRAWER', LE.folders(model)) == 'DRAWERS' && LE.guess_folder('BULLNOSE', LE.folders(model)) == 'MAIN COMPONENTS'
+  check 'export: folder from the pod table', LE.folder_for('WALK-IN') == 'T - Tall units' && LE.folder_for('INT_DRAWER_PLUS') == 'T - Wardrobe internals' && LE.folder_for('EXT_DRAWER (Fitted)') == 'B - Base units' && LE.folder_for('BOX_SHELF') == 'W - Wall and bridge units' && LE.folder_for('FACING_BLOCK_L_HALF') == 'F - Facings' && LE.folder_for('BULLNOSE') == 'Other' && LE.folder_for('COVER_WITH_WORKTOP') == 'Other'
+  Dir.mktmpdir do |loc|
+    HarryWardrobes::DoorStyle::Settings.get['local_folder'] = loc
+    LOC = HarryWardrobes::DoorStyle::Local
+    File.write(File.join(root, 'WARDROBES', 'WARDROBE_V2.skp'), 'v2')
+    d1 = LOC.mirror_file(File.join(root, 'WARDROBES', 'WARDROBE_V1.skp'), root)
+    d2 = LOC.mirror_file(File.join(root, 'WARDROBES', 'WARDROBE_V2.skp'), root, ['WARDROBE_V1.skp'])
+    check 'local mirror: same sub-folder, older version dropped, outside the library ignored', d1 == File.join(loc, 'SketchUp Components', 'WARDROBES', 'WARDROBE_V1.skp') && File.exist?(d2) && !File.exist?(d1) && LOC.mirror_file('/elsewhere/x.skp', root).nil?
+    n = LOC.mirror_all(root)
+    check 'local mirror: everything current copied, nothing from _old', n > 3 && File.exist?(File.join(loc, 'SketchUp Components', 'Components V17.skp')) && !File.exist?(File.join(loc, 'SketchUp Components', '_old', 'BRIDGE_FRAME_V2.skp')) && !File.exist?(File.join(loc, 'SketchUp Components', 'Components V16.skb'))
+    b = LOC.backup_settings('x' => 1)
+    check 'settings backup written locally with the mark', b && File.exist?(b) && JSON.parse(File.read(b))[HarryWardrobes::DoorStyle::Settings::BACKUP_MARK] && b.start_with?(File.join(loc, 'Settings backups'))
+    HarryWardrobes::DoorStyle::Settings.get.delete('local_folder')
+  end
   moved = LE.move_to_old(model, File.join(root, 'WARDROBES', 'WARDROBE_V1.skp'))
   check 'export: old file moved to _old', File.exist?(moved) && File.dirname(moved) == File.join(root, '_old') && !File.exist?(File.join(root, 'WARDROBES', 'WARDROBE_V1.skp'))
   File.write(File.join(root, 'BRIDGE', 'BRIDGE_FRAME_V2.skp'), 'y')

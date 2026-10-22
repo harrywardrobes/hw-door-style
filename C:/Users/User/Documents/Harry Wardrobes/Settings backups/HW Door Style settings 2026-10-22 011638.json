@@ -1,0 +1,518 @@
+{
+  "hw_door_style_settings": "test",
+  "saved": "22/10/2026 01:16",
+  "door_names": [
+    "WRD_DOOR",
+    "LIN_DOOR",
+    "BRGFR_DOOR",
+    "WLK_DOOR",
+    "TPBX_DOOR",
+    "TPBX_DOOR_TOP",
+    "WST_DOOR",
+    "WST_DOOR_UPPER",
+    "WST_STABLE_PANEL"
+  ],
+  "fixed_panel_names": [
+    "WST_STABLE_PANEL"
+  ],
+  "no_midrail_names": [
+    "WST_DOOR_UPPER"
+  ],
+  "framed_drawer_units": [
+    "LINEN_PRESS"
+  ],
+  "ext_drawer_names": [
+    "DRW_FRONT"
+  ],
+  "int_drawer_names": [
+    "INT_DRW_FRONT"
+  ],
+  "top_door_height_mm": 460,
+  "worktop_height_mm": 771,
+  "export_csv": false,
+  "drawer_runner_type": "Hook/Peg Drawer Runners",
+  "default_hinge_type": "soft_close_110",
+  "hinge_rules": [
+    [
+      900,
+      2
+    ],
+    [
+      1600,
+      3
+    ],
+    [
+      2000,
+      4
+    ],
+    [
+      2400,
+      5
+    ],
+    [
+      99999,
+      6
+    ]
+  ],
+  "door_styles": [
+    {
+      "id": "flat",
+      "name": "Flat",
+      "handleless": false
+    },
+    {
+      "id": "shaker",
+      "name": "Shaker",
+      "handleless": false,
+      "door_frame_mm": 100,
+      "drawer_stile_mm": 100,
+      "drawer_frame_mm": 50,
+      "recess_mm": 6,
+      "min_panel_mm": 40,
+      "midrail_min_door_height_mm": 1500,
+      "midrail_centre_mm": 815,
+      "midrail_width_mm": 100
+    },
+    {
+      "id": "ascot",
+      "name": "Ascot",
+      "handleless": false,
+      "midrail_centre_mm": 820
+    },
+    {
+      "id": "esquire",
+      "name": "Esquire",
+      "handleless": false
+    },
+    {
+      "id": "halstead",
+      "name": "Halstead",
+      "handleless": false
+    },
+    {
+      "id": "juliette",
+      "name": "Juliette",
+      "handleless": false
+    },
+    {
+      "id": "keswick",
+      "name": "Keswick",
+      "handleless": false
+    },
+    {
+      "id": "sutton",
+      "name": "Sutton",
+      "handleless": false
+    },
+    {
+      "id": "vienna",
+      "name": "Vienna",
+      "handleless": false
+    },
+    {
+      "id": "cairo_traditional",
+      "name": "Cairo Traditional",
+      "handleless": false
+    },
+    {
+      "id": "caraway",
+      "name": "Caraway",
+      "handleless": false
+    },
+    {
+      "id": "avienda",
+      "name": "Avienda",
+      "handleless": true
+    }
+  ],
+  "default_door_styles": {
+    "door": "shaker",
+    "ext_drawer": "shaker",
+    "int_drawer": "flat"
+  },
+  "hinge_end_inset_mm": 100,
+  "handle_double_min_width_mm": 500,
+  "handles_on_internal_drawers": true,
+  "handles_on_pto_doors": false,
+  "door_tag": "DOOR",
+  "drawer_tag": "DRAWER_FRONT",
+  "door_view_tag": "door_elevation",
+  "hinge_tag": "hinges",
+  "hardware_material": "HARDWARE",
+  "hardware_tags": {
+    "hinges": [
+      "HINGE_SOFT_CLOSE_110",
+      "HINGE_SOFT_CLOSE_155",
+      "HINGE_PTO_110",
+      "HINGE_PTO_155",
+      "HINGE_TIP_ON"
+    ],
+    "shelf_brackets": [
+      "SHELF_BRACKET"
+    ],
+    "drawer_rails": [
+      "DRW_RUNNER_410"
+    ],
+    "cable_outlets": [
+      "CABLE_OUTLET_80"
+    ]
+  },
+  "ignore_component_folders": [
+    "Electrical Faceplates"
+  ],
+  "ignore_tags": [
+    "Sockets Switches and Plugs",
+    "Socket Cutout Construction Lines"
+  ],
+  "colour_groups": {
+    "door": [
+      "DOOR",
+      "DRAWER_FRONT"
+    ],
+    "exterior": [
+      "FACING",
+      "END_PAN",
+      "NOSING",
+      "FILLER",
+      "EXT_SH",
+      "BOOKCASE"
+    ],
+    "interior": [
+      "STL",
+      "SH",
+      "DIV",
+      "INT_DIV",
+      "FL",
+      "DRAWER",
+      "BACK",
+      "WALKIN"
+    ],
+    "worktop": [
+      "WORKTOP"
+    ]
+  },
+  "default_colours": {
+    "door": "Default",
+    "exterior": "Default",
+    "interior": "Default",
+    "worktop": "Default",
+    "drawer_box": "Windsor Oak",
+    "panels_22": "Default"
+  },
+  "drawer_box_parts": [
+    "DRW_BOX"
+  ],
+  "box_thickness_follows_finish": true,
+  "panel_22_mm": 22,
+  "export_old_folder": "_old",
+  "export_folders": {
+    "T": "T - Tall units",
+    "T_INTERNALS": "T - Wardrobe internals",
+    "W": "W - Wall and bridge units",
+    "B": "B - Base units",
+    "F": "F - Facings",
+    "OTHER": "Other"
+  },
+  "local_folder": "C:/Users/User/Documents/Harry Wardrobes",
+  "library_folder": "G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes",
+  "plan_scenes": "top|plan",
+  "plan_hidden_tags": "hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail",
+  "plan_notes_tag": "plan_notes",
+  "plan_dims_tag": "room_dims",
+  "label_tag_folder": "dimensions / labels",
+  "plan_note_offset_mm": 350,
+  "plan_dim_offset_mm": 250,
+  "plan_messages": [
+    "{size}mm FILLER",
+    "{size}mm BOXED LEG",
+    "25mm CLIP ON",
+    "CABLE PORT",
+    "{size}mm FACING",
+    "WORKTOP TO CEILING",
+    "BOOKCASE SHELVING {depth}mm DEEP",
+    "SCRIBE TO WALL",
+    "PANEL TO CEILING",
+    "SOCKET / SWITCH",
+    "RADIATOR",
+    "SKIRTING TO BE REMOVED",
+    "COVING",
+    "LIGHT TO BE MOVED"
+  ],
+  "product_components": {
+    "WARDROBE": {
+      "product": "Wardrobe",
+      "role": "unit",
+      "letter": "T"
+    },
+    "WARDROBE_STABLE": {
+      "product": "Stable wardrobe",
+      "role": "unit",
+      "letter": "T"
+    },
+    "WALK-IN": {
+      "product": "Walk-in",
+      "role": "unit",
+      "letter": "T"
+    },
+    "LINEN_PRESS": {
+      "product": "Linen press",
+      "role": "unit",
+      "letter": "T"
+    },
+    "TOPBOX": {
+      "product": "Top box wardrobe",
+      "role": "unit",
+      "letter": "T"
+    },
+    "BOOKCASE": {
+      "product": "Bookcase",
+      "role": "unit",
+      "letter": "T"
+    },
+    "BRIDGE_SKELETON": {
+      "product": "Bridge unit",
+      "role": "unit",
+      "letter": "W"
+    },
+    "BRIDGE_FRAME": {
+      "product": "Bridge unit",
+      "role": "joiner",
+      "letter": "W"
+    },
+    "BOX_SHELF": {
+      "product": "Box shelves",
+      "role": "joiner",
+      "letter": "W"
+    },
+    "WORKTOP": {
+      "product": "Worktop",
+      "role": "unit",
+      "letter": "B"
+    },
+    "EXT_DRAWER": {
+      "product": "Drawer unit",
+      "role": "unit",
+      "letter": "B"
+    },
+    "BXEND": {
+      "product": "Box end",
+      "role": "joiner",
+      "letter": "B"
+    },
+    "CAB": {
+      "product": "Cabinet",
+      "role": "unit",
+      "letter": "B"
+    },
+    "INT_DRAWER": {
+      "product": "Internal drawers",
+      "role": "internal",
+      "letter": "T"
+    },
+    "INT_DRAWER_PLUS": {
+      "product": "Internal drawers",
+      "role": "internal",
+      "letter": "T"
+    },
+    "SHOE_PULL_OUT": {
+      "product": "Shoe pull-out",
+      "role": "internal",
+      "letter": "T"
+    },
+    "FACING_BLOCK": {
+      "product": "Facing",
+      "role": "unit",
+      "letter": "F"
+    },
+    "BULLNOSE": {
+      "product": "Bullnose",
+      "role": "skip",
+      "letter": ""
+    },
+    "END_PAN": {
+      "product": "End panel",
+      "role": "skip",
+      "letter": ""
+    },
+    "FLOOR": {
+      "product": "Floor",
+      "role": "skip",
+      "letter": ""
+    },
+    "CEILING": {
+      "product": "Ceiling",
+      "role": "skip",
+      "letter": ""
+    },
+    "CABLE_OUTLET": {
+      "product": "Cable outlet",
+      "role": "skip",
+      "letter": ""
+    }
+  },
+  "product_depth_keys": [
+    "wall_depth",
+    "depth",
+    "cab_depth",
+    "depth_fl_div"
+  ],
+  "depth_default_mm": 580,
+  "depth_short_mm": 500,
+  "depth_short_components": [
+    "BRIDGE",
+    "WORKTOP",
+    "BXEND"
+  ],
+  "depth_by_component": {
+    "BOX_SHELF": 225,
+    "BOOKCASE": 475
+  },
+  "product_front_mm": 18,
+  "product_label_tag": "Pod_numbers",
+  "product_label_scenes": "top|plan",
+  "export_skip": [
+    "FLOOR",
+    "CEILING"
+  ],
+  "template_default": true,
+  "template_keep": [
+    "FLOOR",
+    "CEILING"
+  ],
+  "runout_values_mm": [
+    25,
+    50,
+    75,
+    100,
+    150
+  ],
+  "runout_defaults_mm": {
+    "floor": 25,
+    "ceiling": 25,
+    "left": 25,
+    "right": 25,
+    "back": 25
+  },
+  "facing_bottom_mm": 79,
+  "panels_22_default": "Frost White",
+  "colour_library": [
+
+  ],
+  "ocl_thicknesses_mm": [
+    18,
+    25
+  ],
+  "ocl_sheet_sizes": [
+    "2800x90",
+    "2800x160",
+    "2800x300",
+    "2800x500",
+    "2800x570",
+    "2800x610",
+    "2800x1000",
+    "2800x2070"
+  ],
+  "ocl_length_materials": [
+    "MDF",
+    "Timber 2x1"
+  ],
+  "ocl_doors_bought_in": true,
+  "ocl_bought_in_tag": "bought-in",
+  "parts_sheet_waste_pct": 20,
+  "strip_widths_mm": [
+    90,
+    160,
+    300,
+    500,
+    570,
+    610
+  ],
+  "strip_length_mm": 2800,
+  "strip_1000_colours": [
+    "Cashmere",
+    "Dust Grey",
+    "Frost White",
+    "Light Grey",
+    "Lissa Oak",
+    "Opera Walnut"
+  ],
+  "update_folder": "G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Harry Wardrobes\\_HW Door Style\\Updates",
+  "update_check_at_start": true,
+  "update_test_builds": true,
+  "hubspot_pictures": [
+    {
+      "field": "render_1",
+      "label": "Renders",
+      "scenes": [
+        "view 1",
+        "D internal"
+      ]
+    }
+  ],
+  "hubspot_picture_size": "1920x1080",
+  "hubspot_picture_format": "jpg",
+  "hubspot_picture_folder": "SURVEY RENDERS",
+  "hubspot_picture_mode": "replace",
+  "hubspot_files_folder": "/crm-properties-file-values",
+  "hubspot_required": {
+  },
+  "settings_version": 13,
+  "product_ref_names": {
+    "T": "Tall units",
+    "W": "Wall / bridge units",
+    "B": "Base units",
+    "F": "Facings"
+  },
+  "label_aggregate_names": [
+    "L_BRACKET",
+    "HINGE*",
+    "OVAL_BRACKET*",
+    "2X1*",
+    "TIMBER*",
+    "RUNNER*",
+    "DRAWER_BOX*"
+  ],
+  "label_display_names": {
+    "L_BRACKET": "L Brackets",
+    "HINGE_SOFT_CLOSE_110": "Hinges 110° soft close",
+    "HINGE_SOFT_CLOSE_155": "Hinges 155° soft close",
+    "HINGE_PTO_110": "Hinges 110° push to open",
+    "HINGE_PTO_155": "Hinges 155° push to open",
+    "HINGE_TIP_ON": "TIP-ON",
+    "OVAL_BRACKET": "Oval rail brackets",
+    "OVAL_BRACKET_TOP": "Oval rail brackets (top)",
+    "SHELF_BRACKET": "Shelf pegs",
+    "DRW_RUNNER_410": "Drawer runners 410mm",
+    "DRW_BOX": "Drawer boxes",
+    "CABLE_OUTLET_80": "Cable outlets 80mm",
+    "HANGING_RAIL_TOP": "Hanging rail",
+    "HANGING_RAIL_BTM": "Hanging rail"
+  },
+  "zebra_share": "ZEBRA",
+  "pdf_printer": "BROTHER - Harry Wardrobes",
+  "pdf_sides": "simplex",
+  "sumatra_path": "",
+  "label_layouts": {
+  },
+  "label_layout_active": "",
+  "survey_questions": [
+    "type_of_flooring",
+    "flooring_requirements",
+    "flooring_requirement_notes",
+    "bed_requirements",
+    "bed_requirement_notes",
+    "cutting_location",
+    "cutting_location_notes",
+    "internal_sides",
+    "internal_sides_description",
+    "notes"
+  ],
+  "hinge_defaults": {
+    "WST_DOOR": "soft_close_155"
+  },
+  "room_default_mm": {
+    "width": 4000,
+    "length": 3000,
+    "ceiling": 2400
+  }
+}

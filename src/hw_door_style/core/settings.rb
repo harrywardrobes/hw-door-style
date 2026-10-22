@@ -64,6 +64,7 @@ module HarryWardrobes
         FileUtils.mkdir_p(USER_DIR)
         File.write(USER_FILE, JSON.pretty_generate(hash.merge('settings_version' => SETTINGS_VERSION)))
         @settings = load
+        Local.backup_settings(hash) if defined?(Local)
       end
 
       # Back to the shipped defaults. keep: setting names to carry over
@@ -84,7 +85,7 @@ module HarryWardrobes
 
       def self.export_backup(hash)
         name = "HW_Door_Style_settings_#{Time.now.strftime('%Y-%m-%d')}.json"
-        file = UI.savepanel('Download settings backup', nil, name)
+        file = UI.savepanel('Download settings backup', (defined?(Local) && File.directory?(Local.backups) ? Local.backups : nil), name)
         return unless file
         file += '.json' unless file.downcase.end_with?('.json')
         out = { BACKUP_MARK => VERSION, 'saved' => Time.now.strftime('%d/%m/%Y %H:%M') }.merge(hash)

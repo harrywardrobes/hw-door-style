@@ -18,14 +18,22 @@ module HarryWardrobes
       META = 'hw_library_export'.freeze
       SKIP_DIRS = /\A(_|\.)/.freeze # _old, _HW Door Style, hidden folders
       MASTER_RE = /\AComponents V(\d+)\.(skp|skb)\z/i.freeze
-      MAIN = 'MAIN COMPONENTS'.freeze
-      GUESS = [
-        [/WARDROBE|\AWRD|WALK|\AWLK|LINEN|TOPBOX|TPBX/i, 'WARDROBES'],
-        [/DRAWER|DRW|SHOE/i, 'DRAWERS'],
-        [/BRIDGE|\ABRG/i, 'BRIDGE'],
-        [/BOOKCASE|\ABKS/i, 'BOOKCASE'],
-        [/SHELF|\ABXSH|\ACAB/i, 'SHELVING']
-      ].freeze
+
+      # Sub-folder for a component, from the Product list table: its Pod letter (T, W, B, F),
+      # internals under T_INTERNALS, everything else OTHER - names in Settings "export_folders".
+      def self.folder_for(name)
+        n = name.to_s.upcase
+        c = Products.cfg
+        key = case Products.role(n, c)
+              when 'unit', 'joiner' then Products.ref_of(n, c)
+              when 'internal' then 'T_INTERNALS'
+              else 'OTHER'
+              end
+        f = (Settings.get['export_folders'] || {})
+        f[key] || f['OTHER'] || 'Other'
+      end
+
+      def self.main = (Settings.get['export_folders'] || {})['OTHER'] || 'Other'
 
       # --- where things are ---------------------------------------------
 
@@ -44,7 +52,7 @@ module HarryWardrobes
       # Sub-folders a component can go in ('' = the main folder).
       def self.folders(model)
         dirs = Dir.children(root(model)).select { |d| File.directory?(File.join(root(model), d)) && d !~ SKIP_DIRS }.sort
-        (dirs | [MAIN]).sort
+        (dirs | (Settings.get['export_folders'] || {}).values.map(&:to_s).reject(&:empty?)).sort
       end
 
       def self.safe(name)
@@ -114,9 +122,8 @@ module HarryWardrobes
         model.set_attribute(META, 'components', JSON.generate(data))
       end
 
-      def self.guess_folder(name, folders)
-        GUESS.each { |re, f| return f if name =~ re && folders.include?(f) }
-        MAIN
+      def self.guess_folder(name, _folders = nil)
+        folder_for(name)
       end
 
       VOLATILE = /_error\z|\A_?onclick_state|\A_lastmodified|\A_?formatversion\z/i.freeze
@@ -166,9 +173,7 @@ module HarryWardrobes
         components(model).map do |name, inst|
           s = scan(model, name)
           rec = m[name] || {}
-          from_file = s[:current].map { |p| File.basename(File.dirname(p)) }.find { |f| fl.include?(f) }
-          folder = rec['folder'] if fl.include?(rec['folder'].to_s)
-          folder ||= from_file || guess_folder(name, fl)
+          folder = folder_for(name)
           v = s[:version] + 1
           status = if rec['fingerprint'].nil? then s[:current].empty? ? 'new' : 'not exported yet'
                    elsif rec['fingerprint'] == fingerprint(inst) then 'unchanged'
@@ -291,6 +296,7 @@ module HarryWardrobes
         end
 
         moved = s[:current].reject { |p| File.expand_path(p) == File.expand_path(path) }.map { |p| move_to_old(model, p) }
+        Local.mirror_file(path, root(model), moved.map { |p| File.basename(p) })
 
         m = meta(model)
         m[row['name']] = { 'folder' => row['folder'], 'version' => v, 'file' => path,
@@ -313,6 +319,7 @@ module HarryWardrobes
         moved = Dir.children(root(model)).select do |f|
           (md = MASTER_RE.match(f)) && md[1].to_i < n_new
         end.map { |f| File.basename(move_to_old(model, File.join(root(model), f))) }
+        Local.mirror_file(target, root(model), moved)
         { file: File.basename(target), moved: moved }
       end
 

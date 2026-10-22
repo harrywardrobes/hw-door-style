@@ -93,7 +93,11 @@ module HarryWardrobes
 
       # The library as it is now: latest .skp of each component.
       # [{ 'key', 'cat', 'name', 'ver', 'src', 'size', 'mtime' }]. Raises if the folder isn't there.
+      # The library on Drive - or, when that isn't reachable (offline), the local mirror.
       def self.scan(dir = root)
+        if !File.directory?(dir) && defined?(Local) && File.directory?(Local.mirror)
+          dir = Local.mirror
+        end
         raise Errno::ENOENT, dir unless File.directory?(dir)
         found = {}
         add = lambda do |cat, folder|

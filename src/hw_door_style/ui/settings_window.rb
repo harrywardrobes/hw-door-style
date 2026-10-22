@@ -97,6 +97,19 @@ module HarryWardrobes
           FileUtils.mkdir_p(Settings::USER_DIR)
           UI.openURL("file:///#{Settings::USER_DIR.tr('\\', '/')}")
         end
+        dlg.add_action_callback('mirrorAll') do |_c|
+          begin
+            n = Local.mirror_all(LibraryCache.root)
+            msg = "#{n} file(s) copied to #{Local.mirror}"
+          rescue StandardError => e
+            msg = "Couldn't copy: #{e.message}"
+          end
+          dlg.execute_script("$('localMsg').textContent = #{JSON.generate(msg)}")
+        end
+        dlg.add_action_callback('openLocal') do |_c|
+          FileUtils.mkdir_p(Local.root)
+          UI.openURL("file:///#{Local.root.tr('\\', '/')}")
+        end
         dlg.add_action_callback('oclSetup') do |_c, overwrite|
           if dirty
             UI.messagebox('Save your Settings first - the set-up uses the saved board sizes and tag.')
