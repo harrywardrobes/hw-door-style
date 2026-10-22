@@ -21,9 +21,9 @@ module HarryWardrobes
     module Swap
       # Options that mean the same thing under different names (base names, any prefix).
       ALIASES = [
-        %w[frame_width size_width frame_size cab_width],
-        %w[frame_height_ceiling frame_height ceiling_height size_height unit_height],
-        %w[wall_depth depth cab_depth],
+        %w[unit_width frame_width size_width frame_size cab_width],
+        %w[unit_height frame_height_ceiling frame_height ceiling_height size_height],
+        %w[unit_depth wall_depth depth cab_depth],
         %w[facing_left facing_width_l fllr_left filler_left],
         %w[facing_right facing_width_r fllr_right filler_right]
       ].freeze

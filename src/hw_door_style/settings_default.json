@@ -285,9 +285,9 @@
       "depth": "short"
     },
     "CAB": {
-      "role": "unit",
+      "role": "skip",
       "product": "Cabinet",
-      "letter": "B"
+      "letter": ""
     },
     "INT_DRAWER": {
       "role": "internal",
@@ -367,9 +367,15 @@
     },
     "INT_DRW_FRONT": {
       "role": "int_drawer"
+    },
+    "COVER_WITH_WORKTOP": {
+      "role": "skip",
+      "product": "Cover with worktop",
+      "letter": ""
     }
   },
   "product_depth_keys": [
+    "unit_depth",
     "wall_depth",
     "depth",
     "cab_depth",
@@ -388,13 +394,6 @@
     100,
     150
   ],
-  "runout_defaults_mm": {
-    "floor": 0,
-    "ceiling": 0,
-    "left": 0,
-    "right": 0,
-    "back": 0
-  },
   "facing_bottom_mm": 79,
   "drawer_front_mm": 228,
   "drawer_front_sm_mm": 142,
@@ -471,7 +470,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 16,
+  "settings_version": 17,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",

@@ -155,11 +155,11 @@ module HarryWardrobes
           v.nil? || v.to_s.strip.empty? ? nil : (v.to_f * Ceiling.mm_per(inst, k)).round
         end
         keys = Array(Settings.get['product_depth_keys']).map(&:to_s)
-        keys = %w[wall_depth depth cab_depth depth_fl_div] if keys.empty?
+        keys = %w[unit_depth wall_depth depth cab_depth depth_fl_div] if keys.empty?
         base = keys.find { |k| val.call(k) }
         return [nil, nil] unless base
         d = val.call(base)
-        f = val.call("#{base}_finished")
+        f = ["#{base}_finished", 'depth_finished', 'wall_depth_finished', 'cab_depth_finished'].uniq.lazy.map { |k| val.call(k) }.find { |x| x }
         f ||= d + Settings.get['product_front_mm'].to_f.round if Settings.get['product_front_mm'].to_f.positive?
         [d, f]
       end

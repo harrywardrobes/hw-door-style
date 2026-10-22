@@ -74,11 +74,11 @@ module HarryWardrobes
 
       # Every unit has the Doors dropdown (b01_doors: D / L / R).
       DOOR_UNITS = {
-        'WARDROBE'     => { width: 'frame_width', margin: 2 },
-        'WALK-IN'      => { width: 'frame_width', margin: 2 },
-        'LINEN_PRESS'  => { width: 'frame_width', margin: 2 },
-        'TOPBOX'       => { width: 'frame_width', margin: 2 },
-        'BRIDGE_FRAME' => { width: 'frame_size',  margin: 2 }
+        'WARDROBE'     => { width: 'unit_width', margin: 2 },
+        'WALK-IN'      => { width: 'unit_width', margin: 2 },
+        'LINEN_PRESS'  => { width: 'unit_width', margin: 2 },
+        'TOPBOX'       => { width: 'unit_width', margin: 2 },
+        'BRIDGE_FRAME' => { width: 'unit_width', margin: 2 }
       }.freeze
       DOOR_SIZES = [[300, 400], [450, 1300], [600, 2300]].freeze
 

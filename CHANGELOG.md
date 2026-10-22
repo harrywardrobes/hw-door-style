@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.81.0 — 2026-10-22
+- Components V39: one name for each option on every unit - Width / Height / Depth (`unit_width`, `unit_height`, `unit_depth`) and Facing width left / right - with consistent labels, and the values the plugin sets (Depth, Top door height, Worktop height, the bridge and facing-block heights) and the working values hidden from Component Options. The old names are still read on units placed from earlier versions (Replace with > Fresh copy brings a unit up to date).
+- Settings > Job: the five runout defaults are gone - every room starts at 0 and the runouts are measured in through Room settings (25 mm minimum).
+- Component table: CAB and COVER_WITH_WORKTOP are in the library's Other group (not products) with the standard options.
+
 ## 0.80.0 — 2026-10-22
 - Right-click > HW Door Style > Replace with (settings kept): swaps a placed unit for another library component of the same group - a wardrobe for a stable wardrobe, a fitted drawer unit for an unfitted one - or for a fresh copy of itself from the library. It goes in the same place with every option the new one also has carried across (width, height, depth, doors, walls, Top of unit, shelves, drawers, internals...; names that differ are paired up, "600mm" matched across lists, the wardrobe layouts and the stable wardrobe's rail type translated), then the job applied as the + window does (runouts, ceiling, facing, drawer fronts, door style, hinges, colours; a changed depth is kept) and its Pod number and joins kept.
 - Workshop "Before you start" checks: the ceiling height must be set; doors / drawer fronts never drawn in a style, or resized since they were drawn, are listed and drawn in one click (both stop the pack); units not at the job's runouts / ceiling / facing / drawer fronts can be set to the job (or left); components with no row in the component table, and a Wall left / right set where another unit actually sits, are pointed out. Parts with no colour now send you to the Colours window (the box no longer has its own colour pickers). Fixed: "Fix and reopen" always opened the Colours window.

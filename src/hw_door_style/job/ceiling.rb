@@ -13,7 +13,7 @@ module HarryWardrobes
     # top + gaps, its top at the ceiling; the skeleton sits under the frame.
     module Ceiling
       # The unit's height option, first match wins (base names; any section prefix).
-      HEIGHT_KEYS = %w[frame_height_ceiling frame_height ceiling_height size_height height].freeze
+      HEIGHT_KEYS = %w[unit_height frame_height_ceiling frame_height ceiling_height size_height height].freeze
 
       def self.mm(model = Sketchup.active_model)
         model.get_attribute(DICT, 'ceiling_mm', 0).to_f

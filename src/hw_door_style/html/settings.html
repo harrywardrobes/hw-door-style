@@ -284,14 +284,7 @@
   <fieldset><legend>Scribes (pencil)</legend>
     <div class="f t"><span>Dropdown values (mm)</span><input type="text" id="runout_values_mm"></div>
     <div class="hint" style="margin-bottom:6px">0 is always included. Every component's dropdown is updated the next time the pencil is used.</div>
-    <div class="row5">
-      <div class="f"><span>Floor</span><input type="number" id="rd_floor"></div>
-      <div class="f"><span>Ceiling</span><input type="number" id="rd_ceiling"></div>
-      <div class="f"><span>Back</span><input type="number" id="rd_back"></div>
-      <div class="f"><span>Left</span><input type="number" id="rd_left"></div>
-      <div class="f"><span>Right</span><input type="number" id="rd_right"></div>
-    </div>
-    <div class="hint">What a new room starts with (mm) - 0 means it has to be set in Room settings; the workshop pack can't be saved with any runout at 0.</div>
+    <div class="hint">Every room starts with all five runouts at 0 and they are measured in through Room settings (25 mm is the smallest that leaves the installer something to trim); the workshop pack can't be saved with any runout at 0.</div>
   </fieldset>
   <fieldset><legend>Bottom facing</legend>
     <div class="f" style="grid-template-columns:190px 80px"><span>Default bottom facing (mm)</span><input type="number" id="facing_bottom_mm"></div>
@@ -489,8 +482,6 @@ function load(s){
   var ht = s.hardware_tags || {};
   $('hardware_tags').value = Object.keys(ht).map(function(t){ return t + ': ' + (ht[t]||[]).join(', '); }).join('\n');
   $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
-  var rd = s.runout_defaults_mm || {};
-  SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 0 : rd[k]); });
   $('plan_messages').value = (s.plan_messages || []).join('\n');
   var ldn = s.label_display_names || {};
   $('label_display_names').value = Object.keys(ldn).map(function(k){ return k + ': ' + ldn[k]; }).join('\n');
@@ -560,8 +551,6 @@ function collect(){
   DEFAULT_ROWS.forEach(function(r){ o.default_colours[r[0]] = $('dc_' + r[0]).value; });
   o.panels_22_default = $('panels_22_default').value;
   o.runout_values_mm = $('runout_values_mm').value.split(',').map(function(x){ return parseFloat(x); }).filter(function(x){ return x > 0; });
-  o.runout_defaults_mm = {};
-  SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 0 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
   o.plan_messages = $('plan_messages').value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
   o.label_display_names = {};
@@ -649,10 +638,6 @@ function problems(){
   need('job', 'facing_bottom_mm', num('facing_bottom_mm') >= 0 && num('facing_bottom_mm') <= 300, 'Bottom facing must be 0-300 mm');
   var vals = $('runout_values_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
   need('job', 'runout_values_mm', vals.length > 0, 'Enter at least one runout value');
-  SIDES.forEach(function(k){
-    var v = num('rd_' + k);
-    need('job', 'rd_' + k, v === 0 || vals.indexOf(v) >= 0, k.charAt(0).toUpperCase() + k.slice(1) + ' default must be 0 or one of the dropdown values');
-  });
   var sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
   need('workshop', 'ocl_sheet_sizes', sizes.length > 0 && sizes.every(function(x){ return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(x); }), 'Stock sizes: length x width, e.g. 2800x2070');
   need('hubspot', 'hubspot_picture_size', /^\d{3,5}x\d{3,5}$/.test($('hubspot_picture_size').value.replace(/\s/g, '').toLowerCase()), 'Picture size: width x height in pixels, e.g. 1920x1080');

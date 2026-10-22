@@ -13,12 +13,15 @@ module HarryWardrobes
     #   Job       Scribe / runout window: the job's standard and short depth, set on every unit
     #   Unit      right-click > HW Door Style > Depth, or Component Options
     module Depth
-      KEY_RE = /\A[a-z]\d\d_(?:wall_)?depth\z/.freeze
+      KEY = 'unit_depth'.freeze # every library unit from V39 (hidden: set by the plugin)
+      KEY_RE = /\A[a-z]\d\d_(?:wall_)?depth\z/.freeze # older units: their visible Depth box
 
       def self.key(inst)
         return nil unless inst.respond_to?(:definition)
         d = inst.definition.attribute_dictionary(DC::DICT_NAME) or return nil
-        d.keys.select { |k| k =~ KEY_RE }.find { |k| d["_#{k}_access"].to_s.upcase == 'TEXTBOX' }
+        k = DC.key_in(d, KEY)
+        return k if k && d["_#{k}_access"].to_s.upcase != 'LIST'
+        d.keys.select { |k2| k2 =~ KEY_RE }.find { |k2| d["_#{k2}_access"].to_s.upcase == 'TEXTBOX' }
       end
 
       def self.has?(inst) = !key(inst).nil?

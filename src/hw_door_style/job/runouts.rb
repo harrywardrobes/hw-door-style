@@ -38,9 +38,9 @@ module HarryWardrobes
         Array(Settings.get['runout_values_mm']).map(&:to_f).select(&:positive?).uniq.sort
       end
 
+      # Every room starts at 0 on every side: the runouts are measured in through Room settings.
       def self.defaults
-        d = Settings.get['runout_defaults_mm'] || {}
-        SIDES.to_h { |s, _, _| [s, (d[s] || 0).to_f] }
+        SIDES.to_h { |s, _, _| [s, 0.0] }
       end
 
       # Last values used on this job (mm), else the Settings defaults.
