@@ -943,6 +943,24 @@ pl_html = File.read(File.join(DL::DIR, 'parts_list.html'))
 check 'Workshop: no "Before you start" box - blockers (red, Fix this) and advice (amber) at the top', !pl_html.include?('fixChecks') && !pl_html.include?('showChecks') && pl_html.include?('fixWarning') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/parts_list.rb')).include?("data['checks']")
 
 
+require 'hw_door_style/ui/component_picker' unless defined?(HarryWardrobes::DoorStyle::ComponentPicker)
+CP = HarryWardrobes::DoorStyle::ComponentPicker
+cp_dd = { 'a01_unit_width' => (600 / 25.4).to_s, '_a01_unit_width_access' => 'LIST', '_a01_unit_width_units' => 'STRING', '_a01_unit_width_formlabel' => 'Width (mm)',
+          '_a01_unit_width_options' => "&500mm=#{500 / 25.4}&600mm=#{600 / 25.4}&",
+          'a04_depth_manual' => '0', '_a04_depth_manual_access' => 'TEXTBOX', '_a04_depth_manual_units' => 'MILLIMETERS', '_a04_depth_manual_formlabel' => 'Depth - manual',
+          'a03_unit_depth' => '20', '_a03_unit_depth_access' => 'NONE',
+          'j01_runout_floor' => '1', '_j01_runout_floor_access' => 'TEXTBOX',
+          'b02_facing_btm' => '1', '_b02_facing_btm_access' => 'TEXTBOX',
+          'k04_shelves_left' => '5', '_k04_shelves_left_access' => 'TEXTBOX', '_k04_shelves_left_units' => 'STRING' }
+cp_def = Struct.new(:dd) { def attribute_dictionary(_n) = dd }.new(cp_dd)
+cp_f = CP.form(cp_def)
+check 'Add: settings asked before placing - the options a user sees, in order, lengths in mm, list at its default; hidden, runouts and job-set ones left out',
+      cp_f.map { |f| f['key'] } == %w[a01_unit_width a04_depth_manual k04_shelves_left] && cp_f[0]['list'] && cp_f[0]['value'] == (600 / 25.4).to_s &&
+      cp_f[0]['options'].map(&:first) == %w[500mm 600mm] && cp_f[1]['mm'] && cp_f[1]['value'] == '0' && cp_f[1]['label'] == 'Depth - manual' && cp_f[2]['value'] == '5' && !cp_f[2]['mm']
+cp_ph = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'component_picker.html'))
+check 'Add: a card opens its settings (form), Place sends only what changed', cp_ph.include?('sketchup.form(key)') && cp_ph.include?('sketchup.place(k, JSON.stringify(vals))')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

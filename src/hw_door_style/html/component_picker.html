@@ -33,6 +33,20 @@ h2 small { color:var(--muted); font-weight:normal; text-transform:none; letter-s
 #status { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); padding:7px 14px; font-size:11.5px; display:flex; justify-content:space-between; gap:10px; z-index:10; }
 #status.warn #st { color:var(--warn); }
 #status a { color:var(--accent); cursor:pointer; text-decoration:underline; white-space:nowrap; }
+#form { position:fixed; inset:0; background:rgba(30,35,40,.35); display:none; align-items:center; justify-content:center; z-index:20; padding:16px; }
+#form.on { display:flex; animation:hwFade .12s ease-out; }
+#form .box { background:#fff; border-radius:6px; box-shadow:0 8px 30px rgba(0,0,0,.25); width:100%; max-width:440px; max-height:100%; display:flex; flex-direction:column; border-top:4px solid var(--c, var(--accent)); }
+#form h3 { margin:0; padding:12px 16px 4px; font-size:14px; }
+#form .sub { padding:0 16px 8px; font-size:11px; color:var(--muted); }
+#form .fields { overflow-y:auto; padding:4px 16px 8px; border-top:1px solid var(--rule); }
+#form .f { display:grid; grid-template-columns:1fr 150px; gap:10px; align-items:center; padding:5px 0; border-bottom:1px solid var(--rule); font-size:11.5px; }
+#form .f.ch label { font-weight:600; }
+#form .f input, #form .f select { font:inherit; padding:4px 6px; border:1px solid var(--line); border-radius:3px; width:100%; box-sizing:border-box; }
+#form .f input:focus, #form .f select:focus { outline:none; border-color:var(--accent); }
+#form .btns { display:flex; justify-content:flex-end; gap:8px; padding:10px 16px; border-top:1px solid var(--line); }
+#form button { font:inherit; padding:6px 14px; border-radius:4px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+#form button.go { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+@keyframes hwFade { from { opacity:0; } to { opacity:1; } }
 </style></head>
 <body>
 <div id="top">
@@ -43,7 +57,12 @@ h2 small { color:var(--muted); font-weight:normal; text-transform:none; letter-s
   <div id="job"></div>
 </div>
 <div id="main"><div id="list"></div><div id="empty" style="display:none"></div></div>
-<div id="status"><span id="st">Click a picture - this window closes so you can click in the model to place it.</span><span><a onclick="sketchup.sync()">Check library</a> &nbsp; <a onclick="sketchup.openFolder()">Open library folder</a></span></div>
+<div id="status"><span id="st">Click a picture to choose its settings, then Place - this window closes so you can click in the model.</span><span><a onclick="sketchup.sync()">Check library</a> &nbsp; <a onclick="sketchup.openFolder()">Open library folder</a></span></div>
+<div id="form" onclick="if (event.target === this) closeForm()"><div class="box">
+  <h3 id="fTitle"></h3><div class="sub" id="fSub"></div>
+  <div class="fields" id="fFields"></div>
+  <div class="btns"><button onclick="closeForm()">Cancel</button><button class="go" onclick="placeForm()">Place</button></div>
+</div></div>
 <script>
 var D = /*DATA*/null;
 var only = '', picked = null;   // only: the one category shown ('' = all)
@@ -93,7 +112,42 @@ function draw(){
   else if (!list.length) { e.style.display = ''; e.textContent = 'Nothing matches "' + $('q').value + '".'; }
   else e.style.display = 'none';
 }
-function pick(key){ picked = key; draw(); sketchup.place(key); }
+function pick(key){ picked = key; draw(); status({ text: 'Opening its settings...' }); sketchup.form(key); }
+
+// Its settings before it is placed: change any, then Place (Enter) - Esc / Cancel goes back.
+var F = null;
+function showForm(o){
+  F = o;
+  var c = D.cards.filter(function(x){ return x.key === o.key; })[0];
+  $('form').querySelector('.box').style.setProperty('--c', c ? c.colour : '');
+  $('fTitle').textContent = o.label;
+  $('fSub').textContent = 'Change any settings, then Place and click in the model. The job (runouts, depth, colours, doors' + (o.ceiling ? ', ceiling ' + o.ceiling + ' mm on Scribed To Ceiling units' : '') + ') is set up after.';
+  $('fFields').innerHTML = o.fields.map(function(f, i){
+    var input = f.list ? '<select id="ff' + i + '">' + f.options.map(function(op){ return '<option value="' + esc(op[1]) + '"' + (op[1] === f.value ? ' selected' : '') + '>' + esc(op[0]) + '</option>'; }).join('') + '</select>'
+                       : '<input id="ff' + i + '" value="' + esc(f.value) + '"' + (f.mm ? ' inputmode="decimal"' : '') + '>';
+    return '<div class="f" id="fr' + i + '"><label for="ff' + i + '">' + esc(f.label) + '</label>' + input + '</div>';
+  }).join('');
+  o.fields.forEach(function(f, i){
+    var el = $('ff' + i);
+    el.addEventListener(f.list ? 'change' : 'input', function(){ $('fr' + i).className = 'f' + (el.value !== f.value ? ' ch' : ''); });
+  });
+  $('form').className = 'on';
+  status({ text: 'Settings for ' + o.label + ' - Place, then click in the model.' });
+  var first = $('ff0'); if (first) first.focus();
+}
+function closeForm(){ $('form').className = ''; F = null; picked = null; draw(); status({ text: 'Click a picture to choose its settings and place it.' }); $('q').focus(); }
+function placeForm(){
+  if (!F) return;
+  var vals = {};
+  F.fields.forEach(function(f, i){ var v = $('ff' + i).value; if (v !== f.value) vals[f.key] = v; });
+  var k = F.key; $('form').className = ''; F = null;
+  sketchup.place(k, JSON.stringify(vals));
+}
+document.addEventListener('keydown', function(e){
+  if (!F) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeForm(); }
+  if (e.key === 'Enter') { e.preventDefault(); placeForm(); }
+}, true);
 
 function drawJob(){
   var j = D.job || {};
@@ -111,7 +165,7 @@ function status(o){ $('st').textContent = o.text; $('status').className = o.warn
 $('q').addEventListener('input', draw);
 $('q').addEventListener('keydown', function(e){
   if (e.key === 'Enter') { var m = matches()[0]; if (m) pick(m.key); }
-  if (e.key === 'Escape') { $('q').value = ''; draw(); }
+  if (e.key === 'Escape' && !F) { $('q').value = ''; draw(); }
 });
 window.addEventListener('focus', function(){ sketchup.job(); });
 drawJob(); drawCats(); draw();

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.86.0 — 2026-10-22
+- Add: clicking a component opens its settings first (the Component Options you'd normally change - width, height, doors, walls, layout, drawers...) with the defaults filled in. Change any, then Place (or Enter) and click in the model; Cancel / Esc goes back. Changed settings are highlighted. What the job sets (runouts, depth, bottom facing, front heights, ceiling height on Scribed To Ceiling units, doors and colours) is still set up after placing, in the same undo step.
+
 ## 0.85.6 — 2026-10-22
 - Workshop Pack: guides (construction lines / points) anywhere in the model stop the pack; Fix this deletes them all in one undo step.
 - Library: DRAWER_FITTED_V15 - no 2x1 batten; the back of the 460 mm sides goes against the wall (worktop 460 + 18 + 9 = 487 with no scribe); the back scribe goes into the wall.

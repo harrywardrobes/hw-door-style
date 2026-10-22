@@ -48,7 +48,8 @@ module HarryWardrobes
                               data: data(model), utility: true)
         dlg.add_action_callback('ready') { |_c| sync(dlg) if @synced_at.nil? || Time.now - @synced_at > AUTO_SYNC_S }
         dlg.add_action_callback('sync') { |_c| sync(dlg) }
-        dlg.add_action_callback('place') { |_c, key| place(dlg, key.to_s) }
+        dlg.add_action_callback('form') { |_c, key| ask(dlg, key.to_s) }
+        dlg.add_action_callback('place') { |_c, key, vals| place(dlg, key.to_s, (JSON.parse(vals.to_s) rescue {})) }
         dlg.add_action_callback('setSetup') { |_c, on| Sketchup.write_default(Settings::PREFS, PREF, on ? true : false) }
         dlg.add_action_callback('openFolder') { |_c| UI.openURL("file:///#{LibraryCache.root}") }
         dlg.add_action_callback('job') { |_c| push(dlg, 'setJob', job_summary(Sketchup.active_model)) }
@@ -117,9 +118,92 @@ module HarryWardrobes
         Log.error('library sync', e)
       end
 
+      # --- its settings first ------------------------------------------------------
+
+      # Click a card: the component's options (what Component Options shows, less what the
+      # job sets - runouts, facing, depth, front heights) in the window to change before it is
+      # placed. Nothing to ask: placed straight away.
+      def self.ask(dlg, key)
+        model = Sketchup.active_model
+        e = LibraryCache.index[key]
+        unless e && File.exist?(e['file'].to_s)
+          return tell(dlg, 'That component is not on this computer yet - press Check library.')
+        end
+        fields = form(model.definitions.load(e['file']))
+        return place(dlg, key, {}) if fields.empty?
+        push(dlg, 'showForm', 'key' => key, 'label' => LibraryCache.pretty(e['name']), 'fields' => fields,
+                              'ceiling' => Ceiling.mm(model).positive? ? Ceiling.mm(model).round : nil)
+      rescue StandardError => err
+        Log.error('component settings', err)
+        place(dlg, key, {})
+      end
+
+      # The options to ask for: [{ key, label, list, options [[label, value]], value, mm }]
+      # (lengths in mm), in Component Options order.
+      def self.form(defn)
+        d = DC.dict(defn) or return []
+        d.keys.select { |k| k =~ Swap::KEY_RE && Swap::USER_ACCESS.include?(d["_#{k}_access"].to_s.upcase) }.sort.filter_map do |k|
+          base = Swap::KEY_RE.match(k)[1]
+          next if Swap::JOB_SET.include?(base) || base.start_with?('runout_')
+          list = d["_#{k}_access"].to_s.upcase == 'LIST'
+          len = Swap::LENGTH_UNITS.include?(d["_#{k}_units"].to_s.upcase)
+          mm = nil
+          v = d[k]
+          f = { 'key' => k, 'label' => (d["_#{k}_formlabel"] || base.tr('_', ' ')).to_s, 'list' => list, 'mm' => !list && len }
+          if list
+            f['options'] = Swap.parse_options(d["_#{k}_options"])
+            next if f['options'].empty?
+            hit = f['options'].find { |_, x| Swap.same?(x, v) }
+            f['value'] = hit ? hit[1] : f['options'][0][1]
+          else
+            n = Swap.num(v)
+            f['value'] = len && n ? PartsList.fmt((n * 25.4).round(1)) : v.to_s
+          end
+          f
+        end
+      end
+
+      # The values from the form on a new instance (before the job is set up on it). Lengths
+      # come in mm. A height worked out from the unit's stretched size (CURRENT("LenZ")) is
+      # stretched to (Ceiling.fit). Returns how many changed.
+      def self.apply_form(inst, vals)
+        d = DC.dict(inst.definition) or return 0
+        n = 0
+        height = nil
+        vals.each do |k, raw|
+          mm = nil
+          next unless Swap::USER_ACCESS.include?(d["_#{k}_access"].to_s.upcase)
+          len = Swap::LENGTH_UNITS.include?(d["_#{k}_units"].to_s.upcase)
+          if d["_#{k}_access"].to_s.upcase == 'LIST'
+            v = raw.to_s
+          elsif len
+            mm = Swap.num(raw) or next
+            v = mm / 25.4
+          else
+            v = raw.to_s.strip
+            next if v.empty?
+          end
+          next if Swap.same?(DC.read(inst, k), v)
+          if len && DC.formula_of(inst, k) =~ /CURRENT/i
+            height = mm if mm && k == Ceiling.height_key(inst)
+            next
+          end
+          cur = DC.get(inst.definition, k)
+          v = Swap.num(v) || v unless cur.is_a?(String)
+          inst.set_attribute(DC::DICT_NAME, k, cur.is_a?(String) ? v.to_s : DC.plain(v))
+          n += 1
+        end
+        if n.positive? || height
+          Drawers.close(inst.definition.entities)
+          DC.redraw(inst)
+        end
+        n += 1 if height && Ceiling.fit(inst, height)
+        n
+      end
+
       # --- placing ----------------------------------------------------------------
 
-      def self.place(dlg, key)
+      def self.place(dlg, key, vals = {})
         model = Sketchup.active_model
         e = LibraryCache.index[key]
         unless e && File.exist?(e['file'].to_s)
@@ -130,7 +214,7 @@ module HarryWardrobes
         # Not for a faceplate or anything else that isn't furniture - placed as it is.
         job = setup_on? && !LibraryCache.plain?(e['cat']) ? { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model), 'front' => DrawerFront.job(model) } : nil
         @watch&.stop
-        @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']))
+        @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']), vals)
         model.add_observer(@watch)
         # Out of the way so the model can be clicked; the result goes to SketchUp's status bar.
         # Closed first, then placed on the next tick with the model window in focus - placing
@@ -152,15 +236,15 @@ module HarryWardrobes
 
       # Told when the component is put down; sets it up once, then stops listening.
       class PlaceWatch < Sketchup::ModelObserver
-        def initialize(model, defn, job, dlg, label)
+        def initialize(model, defn, job, dlg, label, vals = {})
           super()
-          @model, @defn, @job, @dlg, @label = model, defn, job, dlg, label
+          @model, @defn, @job, @dlg, @label, @vals = model, defn, job, dlg, label, vals
         end
 
         def onPlaceComponent(inst)
           return unless inst.is_a?(Sketchup::ComponentInstance) && inst.definition == @defn
           stop
-          UI.start_timer(0, false) { ComponentPicker.after_place(@model, inst, @job, @dlg, @label) }
+          UI.start_timer(0, false) { ComponentPicker.after_place(@model, inst, @job, @dlg, @label, @vals) }
         end
 
         def stop
@@ -170,14 +254,20 @@ module HarryWardrobes
         end
       end
 
-      def self.after_place(model, inst, job, dlg, label)
+      def self.after_place(model, inst, job, dlg, label, vals = {})
         return unless inst.valid?
-        unless job
-          return tell(dlg, "#{label} placed (not set up to the job - the tick is off).")
-        end
         t = Time.now
+        set = 0
+        unless job
+          Ops.run(model, "Add #{label}", transparent: true) { set = apply_form(inst, vals) } unless vals.empty?
+          return tell(dlg, "#{label} placed#{set.positive? ? " with #{set} setting(s) changed" : ''} (not set up to the job - the tick is off).")
+        end
         notes = []
-        Ops.run(model, "Add #{label}", transparent: true) { notes = setup(model, inst, job) }
+        Ops.run(model, "Add #{label}", transparent: true) do
+          set = apply_form(inst, vals) unless vals.empty?
+          notes = setup(model, inst, job, redraw: set.positive?)
+        end
+        notes.unshift("#{set} setting(s) changed") if set.positive?
         tell(dlg, "#{label} placed and set up in #{(Time.now - t).round(1)} s: #{notes.join(', ')}.")
       rescue StandardError => e
         Log.error('set up placed component', e)
