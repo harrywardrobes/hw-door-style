@@ -268,9 +268,9 @@ function renderProducts(d){
 function looseInternals(d, P){
   var L = d.loose_internals || [];
   if (!L.length) return '';
-  var tall = P.filter(function(p){ return p.ref === 'T'; });
-  return '<div class="grp" style="margin-top:10px"><h3 style="color:var(--warn)">Not in a tall unit <span>' + L.length + ' wardrobe internal(s) with no Pod number</span></h3><table><tr><th>Internal</th><th class="n">x (mm)</th><th>Put it in</th></tr>' + L.map(function(l){
-    return '<tr><td>' + esc(l.name) + '</td><td class="n">' + l.x + '</td><td><select style="font-size:11px" onchange="if(this.value)setHost(\'' + esc(l.pid) + '\', this.value)"><option value="">Choose a tall unit...</option>' + tall.map(function(p){ return '<option value="' + esc(p.pid) + '">' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join('') + '</select></td></tr>';
+  return '<div class="grp" style="margin-top:10px"><h3 style="color:var(--warn)">Not in a unit <span>' + L.length + ' internal(s) with no Pod number</span></h3><table><tr><th>Internal</th><th class="n">x (mm)</th><th>Put it in</th></tr>' + L.map(function(l){
+    var tall = P.filter(function(p){ return p.ref === (l.letter || 'T'); });
+    return '<tr><td>' + esc(l.name) + '</td><td class="n">' + l.x + '</td><td><select style="font-size:11px" onchange="if(this.value)setHost(\'' + esc(l.pid) + '\', this.value)"><option value="">Choose a unit...</option>' + tall.map(function(p){ return '<option value="' + esc(p.pid) + '">' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join('') + '</select></td></tr>';
   }).join('') + '</table></div>';
 }
 function labelParts(r){

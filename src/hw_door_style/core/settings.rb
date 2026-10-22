@@ -27,11 +27,11 @@ module HarryWardrobes
 
       # Settings files carry this; a file from an older plugin isn't converted - unknown keys
       # are dropped and the shipped defaults fill the rest.
-      SETTINGS_VERSION = 12
+      SETTINGS_VERSION = 13
 
       # Settings whose shipped value replaced a saved one: a file older than the version
       # listed drops those keys, so the new default applies (the rest of the file is kept).
-      RESHIPPED = { 12 => %w[product_refs product_ref_names export_skip] }.freeze
+      RESHIPPED = { 12 => %w[product_ref_names export_skip], 13 => %w[product_components] }.freeze
 
       def self.clean(user, d)
         ver = user['settings_version'].to_i

@@ -33,16 +33,17 @@ module HarryWardrobes
       }.freeze
 
       # The group a library component is shown under: a plain category (faceplates) is its
-      # own group; a pod (a product type, or a name in product_refs) goes under its letter;
+      # own group; a pod (a unit or joiner in Settings > Product list) goes under its letter;
       # the rest (bullnose, ceiling, cover) under Other.
       def self.group(e)
         return e['cat'] if plain?(e['cat'])
         n = e['name'].to_s.upcase
         c = Products.cfg
-        return OTHER if Products.skip?(n, c)
-        return INTERNALS if Products.internal?(n, c)
-        return Products.ref_of(n, c) if Products.type_of(n, c) || c['refs'].keys.any? { |k| n == k || n.start_with?(k) }
-        OTHER
+        case Products.role(n, c)
+        when 'unit', 'joiner' then Products.ref_of(n, c)
+        when 'internal' then INTERNALS
+        else OTHER
+        end
       end
 
       def self.group_label(g)

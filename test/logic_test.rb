@@ -68,7 +68,7 @@ def mm(v); (v * 25.4).round(1); end
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
 check 'no team file yet', Settings.team_file.nil?
-check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 11, 'product_refs' => { 'EXT_DRAWER' => 'L' }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 11, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 12, 'product_refs' => { 'X' => 'T' } }, Settings.defaults)['product_refs'] == { 'X' => 'T' }
+check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 12, 'product_components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 12, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 13, 'product_components' => { 'X' => {} } }, Settings.defaults)['product_components'] == { 'X' => {} }
 Settings.team_file = 'G:/My Drive/team.json'
 check 'team file remembered', Settings.team_file == 'G:/My Drive/team.json'
 Dir.mktmpdir do |d|
@@ -661,6 +661,7 @@ check 'cards: grouped by pod letter (T, B, then Other), colour coded', cs.map { 
 check 'groups: internals under T - Wardrobe internals, box shelf W', LC.group('cat' => 'DRAWERS', 'name' => 'INT_DRAWER_PLUS') == LC::INTERNALS && LC.group('cat' => 'DRAWERS', 'name' => 'SHOE_PULL_OUT') == LC::INTERNALS && LC.group_label(LC::INTERNALS) == 'T - Wardrobe internals' && LC.group('cat' => 'SHELVING', 'name' => 'BOX_SHELF') == 'W' && LC.group('cat' => 'DRAWERS', 'name' => 'EXT_DRAWER (Fitted)') == 'B'
 check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
+check 'settings page: component table', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html')).include?('pcTable') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html')).include?('product_types')
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 
 puts "\n== Job template"
@@ -695,9 +696,10 @@ check 'scribe window sends the room size with the ceiling', File.read(File.join(
 puts "\n== Product list"
 require 'hw_door_style/job/products'
 PR = HarryWardrobes::DoorStyle::Products
-pc = { 'types' => { 'WARDROBE' => 'Wardrobe', 'INT_DRAWER' => 'Internal drawers', 'INT_DRAWER_PLUS' => 'Internal drawers+', 'BRIDGE_SKELETON' => 'Bridge unit' }, 'joiners' => %w[INT_DRAWER BOX_SHELF], 'skip' => %w[FACING_BLOCK BULLNOSE], 'prefix' => 'T' }
-check 'product types: exact, longer names, longest match wins', PR.type_of('WARDROBE', pc) == 'Wardrobe' && PR.type_of('WARDROBE_LEFT', pc) == 'Wardrobe' && PR.type_of('INT_DRAWER_PLUS', pc) == 'Internal drawers+' && PR.type_of('FLOOR', pc).nil?
-check 'joiners and skipped components', PR.joiner?('INT_DRAWER_PLUS', pc) && PR.joiner?('BOX_SHELF', pc) && !PR.joiner?('WARDROBE', pc) && PR.skip?('FACING_BLOCK_L_HALF', pc) && PR.skip?('BULLNOSE', pc) && !PR.skip?('WARDROBE', pc)
+pcc = { 'WARDROBE' => %w[Wardrobe unit T], 'INT_DRAWER' => ['Internal drawers', 'internal', 'T'], 'INT_DRAWER_PLUS' => ['Internal drawers+', 'internal', 'T'], 'BRIDGE_SKELETON' => ['Bridge unit', 'unit', 'W'], 'BOX_SHELF' => ['Box shelves', 'joiner', 'W'], 'EXT_DRAWER' => ['Drawer unit', 'unit', 'B'], 'FACING_BLOCK' => ['Facing', 'skip', ''], 'BULLNOSE' => ['Bullnose', 'skip', ''] }.to_h { |k, (pn, r, l)| [k, { 'product' => pn, 'role' => r, 'letter' => l }] }
+pc = { 'comps' => pcc, 'keys' => pcc.keys.sort_by { |x| -x.size } }
+check 'product types: exact, longer names, longest match wins', PR.type_of('WARDROBE', pc) == 'Wardrobe' && PR.type_of('WARDROBE_LEFT', pc) == 'Wardrobe' && PR.type_of('INT_DRAWER_PLUS', pc) == 'Internal drawers+' && PR.type_of('FLOOR', pc).nil? && PR.type_of('BULLNOSE', pc).nil?
+check 'roles: unit, joiner / internal, skipped', PR.unit?('WARDROBE', pc) && PR.joiner?('INT_DRAWER_PLUS', pc) && PR.internal?('INT_DRAWER_PLUS', pc) && PR.joiner?('BOX_SHELF', pc) && !PR.internal?('BOX_SHELF', pc) && !PR.joiner?('WARDROBE', pc) && PR.skip?('FACING_BLOCK_L_HALF', pc) && PR.skip?('BULLNOSE', pc) && !PR.skip?('WARDROBE', pc) && PR.role('NOT_LISTED', pc).nil?
 check 'Workshop has the Product List first', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html'), encoding: 'UTF-8') =~ /data-t="products" class="on">Product List/
 
 puts "\n== Depth"
@@ -706,9 +708,8 @@ DPT = HarryWardrobes::DoorStyle::Depth
 check 'Depth option names: wardrobe c01_depth and the others a03_wall_depth', %w[c01_depth a03_wall_depth].all? { |k| k =~ DPT::KEY_RE } && !('c01_depth_fl_div' =~ DPT::KEY_RE) && !('a04_depth_finished' =~ DPT::KEY_RE)
 
 puts "\n== Room Plan"
-pc2 = pc.merge('refs' => { 'BRIDGE' => 'W', 'EXT_DRAWER' => 'B', 'BOX_SHELF' => 'M' })
-check 'reference letters: W bridge, B drawers, M box shelves, T otherwise', PR.ref_of('BRIDGE_SKELETON', pc2) == 'W' && PR.ref_of('EXT_DRAWER_3', pc2) == 'B' && PR.ref_of('BOX_SHELF', pc2) == 'M' && PR.ref_of('WARDROBE', pc2) == 'T'
-check 'shipped refs: box shelf W, ext drawer B, no L or M, internals listed, ceiling never exported', PR.ref_of('BOX_SHELF') == 'W' && PR.ref_of('EXT_DRAWER') == 'B' && PR.order == %w[T W B F] && PR.internal?('SHOE_PULL_OUT') && PR.internal?('INT_DRAWER_PLUS') && PR.joiner?('INT_DRAWER') && !PR.internal?('BOX_SHELF') && HarryWardrobes::DoorStyle::Settings.names('export_skip').include?('CEILING')
+check 'reference letters: W bridge, B drawers, W box shelves, T otherwise', PR.ref_of('BRIDGE_SKELETON', pc) == 'W' && PR.ref_of('EXT_DRAWER_3', pc) == 'B' && PR.ref_of('BOX_SHELF', pc) == 'W' && PR.ref_of('WARDROBE', pc) == 'T'
+check 'shipped table: box shelf W, ext drawer B, letters T W B F, internals, skips, ceiling never exported', PR.ref_of('BOX_SHELF') == 'W' && PR.ref_of('EXT_DRAWER') == 'B' && PR.order == %w[T W B F] && PR.internal?('SHOE_PULL_OUT') && PR.internal?('INT_DRAWER_PLUS') && PR.joiner?('INT_DRAWER') && !PR.internal?('BOX_SHELF') && PR.unit?('CAB') && PR.skip?('END_PAN_HALF') && PR.skip?('CABLE_OUTLET_80') && PR.cfg['comps'].values.all? { |r| PR::ROLES.key?(r['role']) } && HarryWardrobes::DoorStyle::Settings.names('export_skip').include?('CEILING')
 require 'hw_door_style/job/pdf'
 require 'hw_door_style/job/parts_pdf'
 require 'hw_door_style/job/room_plan'

@@ -6,12 +6,11 @@ module HarryWardrobes
     # units, box shelf sections...), each with a Pod number - T1, T2... - that the Workshop
     # tabs and the floor plan refer to.
     #
-    #   products   components named in Settings "product_types" (name -> friendly type)
-    #   left out   Settings "product_skip" (facings, bullnose, end panels, floor, ceiling...)
-    #   joiners    Settings "product_joiners": parts that belong to another product when
-    #              they sit in it / under it (internal drawers in a wardrobe, a box end under a
-    #              worktop, the bridge frame on its skeleton). Box shelves / box ends next to
-    #              each other with no product to join make one section.
+    #   Settings "product_components" says what each component is: a unit (a product of its
+    #   own), a joiner (part of the product it sits in / under / on - a box end under a
+    #   worktop, the bridge frame on its skeleton; the same joiners next to each other with
+    #   no product to join make one section), an internal (only ever inside a unit of its
+    #   letter - int drawers in a wardrobe) or skipped (bullnose, end panels, floor...).
     #
     # Joins are automatic, and can be changed in the Workshop's Product List (stored on the
     # part: "own" or the product it belongs to). Pod numbers are given left to right the first
@@ -28,16 +27,23 @@ module HarryWardrobes
         (Settings.get['product_ref_names'] || {}).keys.map { |k| k.to_s.upcase }
       end
 
+      ROLES = { 'unit' => 'A product of its own', 'joiner' => 'Part of the product it sits in, under or on',
+                'internal' => 'Always inside a unit of its letter', 'skip' => 'Never a product' }.freeze
+
+      # Settings "product_components": NAME -> { product, role, letter }, one row per component.
+      #   unit      a product of its own, numbered with its letter (T1, W1...)
+      #   joiner    belongs to the product it sits in / under / on; alone it's a product of its
+      #             own (its letter); the same joiners next to each other make one section
+      #   internal  only ever part of a unit of its letter (int drawers in a T); alone = flagged
+      #   skip      never a product (bullnose, end panels, floor...)
+      # A component not in the table is ignored by the Product List.
       def self.cfg
         s = Settings.get
-        {
-          'types' => (s['product_types'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] },
-          'skip' => Settings.names('product_skip'),
-          'joiners' => Settings.names('product_joiners'),
-          'internals' => Settings.names('product_internals'),
-          'prefix' => s['product_prefix'].to_s.strip.empty? ? 'T' : s['product_prefix'].to_s.strip,
-          'refs' => (s['product_refs'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s.strip.upcase] }
-        }
+        rows = (s['product_components'] || {}).to_h do |k, v|
+          v = v.is_a?(Hash) ? v : {}
+          [k.to_s.upcase, { 'product' => v['product'].to_s, 'role' => ROLES.key?(v['role'].to_s) ? v['role'].to_s : 'unit', 'letter' => v['letter'].to_s.strip.upcase }]
+        end
+        { 'comps' => rows, 'keys' => rows.keys.sort_by { |x| -x.size } }
       end
 
       def self.base(e)
@@ -45,21 +51,33 @@ module HarryWardrobes
         n.sub(/#\d+\z/, '').strip.upcase
       end
 
-      # Friendly type for a component name (longest matching name first), or nil.
       # name is the component, or the component with more after "_", " " or "(" -
       # EXT_DRAWER, EXT_DRAWER_2, "EXT_DRAWER (Fitted)".
       def self.named?(name, x) = name == x || name.start_with?("#{x}_", "#{x} ", "#{x}(")
 
-      def self.type_of(name, c = cfg)
-        k = c['types'].keys.sort_by { |x| -x.size }.find { |x| named?(name, x) }
-        k && c['types'][k]
+      # The table row for a component name (longest matching name first), or nil.
+      def self.row(name, c = cfg)
+        k = c['keys'].find { |x| named?(name, x) }
+        k && c['comps'][k]
       end
 
-      # Reference letter: T tall, W wall / bridge, B base, F facings (Settings "product_refs"),
-      # else the number prefix (T).
+      def self.role(name, c = cfg) = row(name, c)&.fetch('role', nil)
+
+      # Friendly product name, or nil for a component that's not a product.
+      def self.type_of(name, c = cfg)
+        r = row(name, c)
+        r && r['role'] != 'skip' && !r['product'].empty? ? r['product'] : nil
+      end
+
+      def self.unit?(name, c = cfg) = role(name, c) == 'unit'
+      def self.joiner?(name, c = cfg) = %w[joiner internal].include?(role(name, c))
+      def self.internal?(name, c = cfg) = role(name, c) == 'internal'
+      def self.skip?(name, c = cfg) = role(name, c) == 'skip'
+
+      # Pod letter: the row's letter, else the first in the key (T).
       def self.ref_of(name, c = cfg)
-        k = c['refs'].keys.sort_by { |x| -x.size }.find { |x| name == x || name.start_with?(x) }
-        k && !c['refs'][k].empty? ? c['refs'][k] : c['prefix']
+        l = row(name, c)&.fetch('letter', '').to_s
+        l.empty? ? (order.first || 'T') : l
       end
 
       # The key for the reference letters: [[letter, meaning]] for the letters given (or all),
@@ -68,7 +86,7 @@ module HarryWardrobes
         names = (Settings.get['product_ref_names'] || {}).to_h { |k, v| [k.to_s.upcase, v.to_s] }
         ord = order
         list = (letters ? letters.map(&:to_s).uniq : names.keys).sort_by { |l| [ord.index(l) || 9, l] }
-        list.map { |l| [l, names[l] || (l == cfg['prefix'] ? 'Tall units' : '')] }
+        list.map { |l| [l, names[l] || ''] }
       end
 
       # "Key: T = Tall units, W = Wall / bridge units..." for a PDF footer.
@@ -77,26 +95,12 @@ module HarryWardrobes
         k.empty? ? '' : "Key: #{k.map { |l, n| n.empty? ? l : "#{l} = #{n}" }.join(',  ')}"
       end
 
-      def self.joiner?(name, c = cfg)
-        c['joiners'].any? { |j| named?(name, j) } || internal?(name, c)
-      end
-
-      # A wardrobe internal (int drawers, shoe pull-out - Settings "product_internals"): only
-      # ever part of a tall unit's pod, never a pod of its own.
-      def self.internal?(name, c = cfg)
-        Array(c['internals']).any? { |j| named?(name, j) }
-      end
-
-      def self.skip?(name, c = cfg)
-        c['skip'].any? { |j| name == j || name.start_with?("#{j}_") || name.start_with?(j) }
-      end
-
       # Every candidate in the model (top level, and inside plain groups): [[inst, name]].
       def self.candidates(ents, out = [], depth = 0)
         ents.each do |e|
           next unless (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) && e.visible?
           n = base(e)
-          if e.is_a?(Sketchup::Group) && depth < 3 && type_of(n).nil? && !joiner?(n)
+          if e.is_a?(Sketchup::Group) && depth < 3 && row(n).nil?
             candidates(e.entities, out, depth + 1)
           else
             out << [e, n]
@@ -162,17 +166,18 @@ module HarryWardrobes
       # Also returns { top-level instance entityID => T label } for the door order.
       def self.list(model, c = cfg)
         all = candidates(model.entities).reject { |_e, n| skip?(n, c) }
-        hosts = all.select { |e, n| type_of(n, c) && !joiner?(n, c) }
-        joiners = all.select { |e, n| joiner?(n, c) }
+        hosts = all.select { |_e, n| unit?(n, c) }
+        joiners = all.select { |_e, n| joiner?(n, c) }
         by_pid = (hosts + joiners).to_h { |e, _| [e.persistent_id.to_s, e] }
         groups = hosts.to_h { |e, n| [e, { 'host' => e, 'name' => n, 'members' => [] }] }
         loose = []
-        tall = hosts.select { |_e, n| ref_of(n, c) == c['prefix'] }
         @loose_internals = []
         joiners.each do |e, n|
           want = e.get_attribute(DICT, KEY_HOST)
           int = internal?(n, c)
-          auto = auto_host(e, int ? tall : hosts)
+          # an internal only joins a unit of its own letter (int drawers: a T)
+          tall = int ? hosts.select { |_h, hn| ref_of(hn, c) == ref_of(n, c) } : hosts
+          auto = auto_host(e, tall)
           host = if want == 'own' && !int then nil
                  elsif want && want != 'own' && by_pid[want] && groups[by_pid[want]] && (!int || tall.any? { |h, _| h == by_pid[want] }) then by_pid[want]
                  else auto
@@ -181,7 +186,7 @@ module HarryWardrobes
             groups[host]['members'] << { 'e' => e, 'name' => n, 'auto' => want.nil?, 'auto_host' => auto }
           elsif int
             # not inside any tall unit: not numbered - the Workshop checks say so
-            @loose_internals << { 'pid' => e.persistent_id.to_s, 'name' => e.respond_to?(:definition) ? e.definition.name : n, 'x' => mm(e.bounds.min.x) }
+            @loose_internals << { 'pid' => e.persistent_id.to_s, 'name' => e.respond_to?(:definition) ? e.definition.name : n, 'x' => mm(e.bounds.min.x), 'letter' => ref_of(n, c) }
           else
             loose << [e, n, want]
           end

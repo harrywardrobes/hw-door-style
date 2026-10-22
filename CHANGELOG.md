@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.73.0 — 2026-10-22
+- Settings > Product list is one table, a row per component: its product name, what it is (Unit / Part of a product / Internal / Never a product) and its Pod letter - so a component is in exactly one place. It replaces the five overlapping lists (product types, joiners, internals, never products, reference letters). A component not in the table is ignored by the Product List. The letter key (T, W, B, F) sets the letters on offer and their order.
+
 ## 0.72.3 — 2026-10-22
 - Settings > Product list: "Wardrobe internals" list added.
 
