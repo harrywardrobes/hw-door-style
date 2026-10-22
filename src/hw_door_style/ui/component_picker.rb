@@ -111,7 +111,7 @@ module HarryWardrobes
                     @syncing = false
                     push(dlg, 'setCards', 'cards' => LibraryCache.cards(idx), 'warn' => true,
                                           'note' => "Library folder not reachable - showing the copy on this computer. (#{LibraryCache.root})")
-                  }) { LibraryCache.scan }
+                  }, bg: true) { LibraryCache.scan }
       rescue StandardError => e
         @syncing = false
         Log.error('library sync', e)

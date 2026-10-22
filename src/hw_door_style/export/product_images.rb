@@ -68,11 +68,15 @@ module HarryWardrobes
         steps = todo.map do |p|
           ["Saving product pictures on this computer (#{p['name']})", lambda {
             begin
-              u = fetch(p)
-              n += 1
-              dlg.execute_script("#{js_fn}(#{JSON.generate(p['id'].to_s)}, #{JSON.generate(u)})") if dlg&.visible? && js_fn
+              fetch(p)
             rescue StandardError => e
               Log.error('product picture', e)
+              nil
+            end
+          }, :bg, lambda { |u|
+            if u
+              n += 1
+              dlg.execute_script("#{js_fn}(#{JSON.generate(p['id'].to_s)}, #{JSON.generate(u)})") if dlg&.visible? && js_fn
             end
             nil
           }]

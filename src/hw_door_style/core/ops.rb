@@ -15,6 +15,16 @@ module HarryWardrobes
       # commit the outer step instead of undoing it.
       class NestedStep < StandardError; end
 
+      # A number that changes whenever the model or the settings change (every committed,
+      # undone or redone step - counted by Pencil's model observer - and every Settings save).
+      # A tab keeps what it worked out and only works it out again when this has moved on.
+      def self.revision(model)
+        [(@rev ||= Hash.new(0))[model.object_id], @settings_rev.to_i]
+      end
+
+      def self.bump(model) = ((@rev ||= Hash.new(0))[model.object_id] += 1)
+      def self.bump_settings = (@settings_rev = @settings_rev.to_i + 1)
+
       def self.run(model, name, transparent: false)
         raise NestedStep, "'#{name}' would commit the test / export step it is inside" if @throwaway
         model.start_operation(name, true, false, transparent)

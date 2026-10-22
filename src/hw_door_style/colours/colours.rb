@@ -62,8 +62,13 @@ module HarryWardrobes
 
       def self.data_url(file)
         f = texture_path(file) or return nil
+        stamp = File.mtime(f).to_i
+        hit = (@urls ||= {})[f]
+        return hit[1] if hit && hit[0] == stamp
         mime = File.extname(f).downcase == '.png' ? 'image/png' : 'image/jpeg'
-        "data:#{mime};base64,#{[File.binread(f)].pack('m0')}"
+        url = "data:#{mime};base64,#{[File.binread(f)].pack('m0')}"
+        @urls[f] = [stamp, url]
+        url
       end
 
       # Library for the Settings editor (with texture previews).
@@ -271,7 +276,7 @@ module HarryWardrobes
         box_swatches = DrawerBox.library.to_h do |b|
           sw = { 'rgb' => b['rgb'] }
           f = b['texture'] && File.join(TEXTURES, b['texture'])
-          sw['img'] = "data:image/jpeg;base64,#{[File.binread(f)].pack('m0')}" if f && File.exist?(f)
+          sw['img'] = data_url(b['texture']) if f && File.exist?(f)
           [b['name'], sw]
         end
         swatches = library.to_h do |c|

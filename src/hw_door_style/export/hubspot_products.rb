@@ -111,14 +111,21 @@ module HarryWardrobes
         local
       end
 
+      # The product list on this computer - read once and kept until the file changes (the
+      # Doors page asks for it once per product). Don't change what it returns: it's shared.
       def self.local
-        File.exist?(FILE) ? JSON.parse(File.read(FILE, encoding: 'UTF-8')) : { 'products' => [], 'options' => {} }
+        return { 'products' => [], 'options' => {} } unless File.exist?(FILE)
+        stamp = [File.mtime(FILE).to_f, File.size(FILE)]
+        return @local[1] if @local && @local[0] == stamp
+        @local = [stamp, JSON.parse(File.read(FILE, encoding: 'UTF-8'))]
+        @local[1]
       rescue StandardError
         { 'products' => [], 'options' => {} }
       end
 
       def self.save_local(data)
         FileUtils.mkdir_p(File.dirname(FILE))
+        @local = nil
         File.write(FILE, JSON.pretty_generate(data))
       end
 
@@ -149,7 +156,7 @@ module HarryWardrobes
         ids.each_slice(100) do |part|
           HubSpot.post('/crm/v3/objects/products/batch/archive', { inputs: part.map { |i| { id: i } } })
         end
-        data = local
+        data = local.dup # the kept copy is shared
         data['products'] = Array(data['products']).reject { |p| ids.include?(p['id'].to_s) }
         save_local(data)
         ids.size
@@ -166,7 +173,7 @@ module HarryWardrobes
         id = form['id'].to_s
         r = id.empty? ? HubSpot.post('/crm/v3/objects/products', { properties: props }) : HubSpot.patch("/crm/v3/objects/products/#{id}", { properties: props })
         saved = r['properties'].to_h.slice(*PROPS).merge('id' => r['id'])
-        data = local
+        data = local.dup # the kept copy is shared
         data['products'] = Array(data['products']).reject { |p| p['id'].to_s == saved['id'].to_s } + [saved]
         data['products'].sort_by! { |p| p['name'].to_s.downcase }
         save_local(data)

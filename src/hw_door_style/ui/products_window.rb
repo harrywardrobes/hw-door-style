@@ -11,8 +11,8 @@ module HarryWardrobes
                                       width: 820, height: 600, data: { '_products' => ProductImages.with_images(HubSpotProducts.local) })
         dlg.add_action_callback('prodLoad') do |_c|
           made = []
-          Steps.run(dlg, [['Checking the Supplier and Category fields', -> { made = HubSpotProducts.ensure_fields }],
-                          ['Reading products from HubSpot', -> { HubSpotProducts.refresh! }]],
+          Steps.run(dlg, [['Checking the Supplier and Category fields', -> { HubSpotProducts.ensure_fields }, :bg, ->(r) { made = r }],
+                          ['Reading products from HubSpot', -> { HubSpotProducts.refresh! }, :bg]],
                     done: lambda { |_r|
                       dlg.execute_script("prodList(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'made' => made)})")
                       ProductImages.sync(dlg, HubSpotProducts.products)

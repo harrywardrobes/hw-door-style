@@ -156,9 +156,9 @@ module HarryWardrobes
       # Started once from ui/menus.rb at load; one ModelWatch serves every model.
 
       class ModelWatch < Sketchup::ModelObserver
-        def onTransactionCommit(model); Pencil.invalidate(model); end
-        def onTransactionUndo(model); Pencil.invalidate(model); end
-        def onTransactionRedo(model); Pencil.invalidate(model); end
+        def onTransactionCommit(model); Ops.bump(model); Pencil.invalidate(model); end
+        def onTransactionUndo(model); Ops.bump(model); Pencil.invalidate(model); end
+        def onTransactionRedo(model); Ops.bump(model); Pencil.invalidate(model); end
         def onTransactionAbort(model); Pencil.invalidate(model); end
       end
 

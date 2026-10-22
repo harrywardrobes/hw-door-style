@@ -83,16 +83,25 @@ module HarryWardrobes
         dlg.close unless pending?(name)
       end
 
+      FOCUS_MARK = '<!--HW-FOCUS-->'.freeze
+
+      # The page with the shared look, libraries and tab strip put in - worked out once per page
+      # (the files only change with an update; reset! forgets them).
+      def self.template(name)
+        (@tpl ||= {})[name.to_s] ||= begin
+          page = File.read(File.join(DIR, "#{name}.html"))
+          page = page.sub('<!--HW-->') { shared + FOCUS_MARK }
+          page = page.sub(/<body([^>]*)>/) { "<body class=\"hwTabbed\"#{Regexp.last_match(1)}>\n#{tab_strip(name)}" } if tabbed?(name)
+          # <!--VENDOR:file.js--> -> that bundled library inline (html/vendor; no CDN - the window may be offline)
+          page.gsub(/<!--VENDOR:([\w.\-]+)-->/) { "<script>\n#{File.read(File.join(DIR, 'vendor', Regexp.last_match(1)))}\n</script>" }
+        end
+      end
+
       # The page's HTML with the shared look and data filled in.
       def self.html(name, data = nil)
-        page = File.read(File.join(DIR, "#{name}.html"))
         f = (@focus ||= {}).delete(name.to_s)
         extra = f ? "\n<script>var HW_FOCUS = #{JSON.generate(f)};</script>" : ''
-        page = page.sub('<!--HW-->') { shared + extra }
-        page = page.sub(/<body([^>]*)>/) { "<body class=\"hwTabbed\"#{Regexp.last_match(1)}>\n#{tab_strip(name)}" } if tabbed?(name)
-        # <!--VENDOR:file.js--> -> that bundled library inline (html/vendor; no CDN - the window may be offline)
-        page = page.gsub(/<!--VENDOR:([\w.\-]+)-->/) { "<script>\n#{File.read(File.join(DIR, 'vendor', Regexp.last_match(1)))}\n</script>" }
-        page.sub('/*DATA*/null') { JSON.generate(data) }
+        template(name).sub(FOCUS_MARK) { extra }.sub('/*DATA*/null') { JSON.generate(data) }
       end
 
       # Opens html/<name>.html. id: one window per id (defaults to name).
@@ -151,6 +160,7 @@ module HarryWardrobes
       def self.reset!
         @shared = nil
         @icons = nil
+        @tpl = nil
       end
     end
   end

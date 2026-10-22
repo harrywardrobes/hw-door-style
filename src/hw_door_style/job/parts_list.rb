@@ -907,11 +907,26 @@ module HarryWardrobes
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
         fail_js = ->(e) { dlg.execute_script("failed(#{JSON.generate(e.message)})") }
+        render = ->() { dlg.execute_script("render(#{JSON.generate(data)})") }
         reload = lambda do
           Steps.run(dlg, [['Reading the parts in the model', build]],
-                    done: ->(_r) { dlg.execute_script("render(#{JSON.generate(data)})") }, fail: fail_js, count: false)
+                    done: lambda { |_r|
+                      @kept = { model: model, rev: Ops.revision(model), data: data, tops: tops_map }
+                      render.call
+                    }, fail: fail_js, count: false)
         end
-        dlg.add_action_callback('ready') { |_c| reload.call }
+        # Back to the Workshop with nothing changed since: the lists it made last time, at once.
+        quick = lambda do
+          k = @kept
+          if k && k[:model] == model && k[:rev] == Ops.revision(model)
+            data = k[:data]
+            tops_map = k[:tops]
+            render.call
+          else
+            reload.call
+          end
+        end
+        dlg.add_action_callback('ready') { |_c| quick.call }
         dlg.add_action_callback('refresh') { |_c| reload.call }
         # Fix this (a reason the Workshop Pack can't be saved yet)
         dlg.add_action_callback('fixBlocker') do |_c, json|

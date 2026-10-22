@@ -938,5 +938,11 @@ check 'Fix this: the page opens with the field to outline and the note; done() b
 pl_html = File.read(File.join(DL::DIR, 'parts_list.html'))
 check 'Workshop: no "Before you start" box - blockers (red, Fix this) and advice (amber) at the top', !pl_html.include?('fixChecks') && !pl_html.include?('showChecks') && pl_html.include?('fixWarning') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/parts_list.rb')).include?("data['checks']")
 
+
+# --- background steps (network / Drive off SketchUp's thread) -------------------------
+st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
+check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',
+      st_out.include?('[[:after, 42, true], [:main, true], [:done, [42, 7, "x"]]]') && st_out.include?('["no network"]') && st_out.lines.last.strip == '0'
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

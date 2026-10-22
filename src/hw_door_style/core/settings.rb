@@ -108,6 +108,7 @@ module HarryWardrobes
       # Saves: this computer's keys here, the rest to the team file (when Drive is there)
       # and the copy here; a dated backup in the local folder.
       def self.save(hash)
+        Ops.bump_settings if defined?(Ops)
         hash = hash.reject { |k, _| DERIVED.key?(k) }
         FileUtils.mkdir_p(USER_DIR)
         computer = hash.slice(*COMPUTER_KEYS)

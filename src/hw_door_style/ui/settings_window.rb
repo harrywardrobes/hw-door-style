@@ -186,8 +186,8 @@ module HarryWardrobes
         end
         dlg.add_action_callback('hsTest') do |_c|
           info = nil
-          steps = [['Connecting to HubSpot', -> { info = HubSpot.get('/account-info/v3/details') }]] +
-                  HubSpot::PROBES.map { |id, label, path| ["Checking #{label}", -> { HubSpot.probe(id, label, path) }] }
+          steps = [['Connecting to HubSpot', -> { HubSpot.get('/account-info/v3/details') }, :bg, ->(r) { info = r }]] +
+                  HubSpot::PROBES.map { |id, label, path| ["Checking #{label}", -> { HubSpot.probe(id, label, path) }, :bg] }
           Steps.run(dlg, steps,
                     done: ->(r) { dlg.execute_script("hsResult(#{JSON.generate('portal' => info['portalId'], 'region' => info['dataHostingLocation'], 'checks' => r.drop(1))})") },
                     fail: ->(e) { dlg.execute_script("hsResult(#{JSON.generate('error' => e.message)})") })
@@ -195,7 +195,7 @@ module HarryWardrobes
         dlg.add_action_callback('hsFields') do |_c|
           Steps.one(dlg, 'Reading the Room fields',
                     done: ->(f) { dlg.execute_script("hsFieldList(#{JSON.generate('fields' => f)})") },
-                    fail: ->(e) { dlg.execute_script("hsFieldList(#{JSON.generate('error' => e.message)})") }) { HubSpot.room_fields }
+                    fail: ->(e) { dlg.execute_script("hsFieldList(#{JSON.generate('error' => e.message)})") }, bg: true) { HubSpot.room_fields }
         end
         dlg.add_action_callback('surveyFields') do |_c|
           r = begin
@@ -219,7 +219,7 @@ module HarryWardrobes
         end
         dlg.add_action_callback('hsStages') do |_c|
           m = st = nil
-          Steps.run(dlg, [['Reading the Room fields', -> { m = HubSpotRoom.meta }], ['Reading the Room stages', -> { st = HubSpot.room_stages }]],
+          Steps.run(dlg, [['Reading the Room fields', -> { HubSpotRoom.meta }, :bg, ->(r) { m = r }], ['Reading the Room stages', -> { HubSpot.room_stages }, :bg, ->(r) { st = r }]],
                     done: lambda { |_r|
                       secs = HubSpotRoom::LAYOUT.map { |t, props| [t, props.select { |p| m[p] }.map { |p| [p, m[p]['label']] }] }
                       dlg.execute_script("hsStageList(#{JSON.generate('stages' => st, 'sections' => secs)})")

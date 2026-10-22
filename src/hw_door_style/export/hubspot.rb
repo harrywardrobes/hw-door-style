@@ -30,8 +30,10 @@ module HarryWardrobes
 
       # --- the key --------------------------------------------------------------
 
+      # Read once on SketchUp's thread and kept (requests run on a background thread, which
+      # mustn't call SketchUp); saving a new key replaces it.
       def self.key
-        Sketchup.read_default(Settings::PREFS, PREF, '').to_s.strip
+        @key ||= Sketchup.read_default(Settings::PREFS, PREF, '').to_s.strip
       end
 
       def self.key?
@@ -40,6 +42,7 @@ module HarryWardrobes
 
       def self.key=(value)
         Sketchup.write_default(Settings::PREFS, PREF, value.to_s.strip)
+        @key = value.to_s.strip
       end
 
       # "pat-eu1-…ab12" - enough to recognise the key, never the whole of it.
@@ -57,7 +60,7 @@ module HarryWardrobes
                     Errno::ECONNRESET, Errno::ECONNABORTED, Errno::EPIPE, Errno::ETIMEDOUT,
                     OpenSSL::SSL::SSLError].freeze
 
-      def self.request(method, path, body = nil, tries: 5)
+      def self.request(method, path, body = nil, tries: 3)
         raise Error, 'No HubSpot key saved (Settings > HubSpot).' unless key?
         uri = URI("#{BASE}#{path}")
         perform(tries) do
@@ -70,7 +73,7 @@ module HarryWardrobes
 
       # Sends the request the block builds (a new one each try) on the shared connection.
       # Returns the parsed JSON; raises HubSpot::Error with a plain-English message.
-      def self.perform(tries = 5, read_timeout: 30)
+      def self.perform(tries = 3, read_timeout: 20)
         1.upto(tries) do |attempt|
           begin
             req = yield
@@ -95,7 +98,7 @@ module HarryWardrobes
           @http = Net::HTTP.new(uri.host, uri.port)
           @http.use_ssl = true
           @http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-          @http.open_timeout = 15
+          @http.open_timeout = 10
           @http.keep_alive_timeout = 30
           @http.start
         end

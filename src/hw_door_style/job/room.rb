@@ -154,7 +154,7 @@ module HarryWardrobes
         end
         dlg.add_action_callback('search') do |_c, q|
           Steps.one(dlg, q.to_s.strip.empty? ? 'Reading recent projects' : "Searching HubSpot for \"#{q.to_s.strip}\"",
-                    done: ->(r) { js.call('projects', 'projects' => r) }, fail: ->(e) { js.call('projects', 'error' => e.message) }) { HubSpot.search_projects(q) }
+                    done: ->(r) { js.call('projects', 'projects' => r) }, fail: ->(e) { js.call('projects', 'error' => e.message) }, bg: true) { HubSpot.search_projects(q) }
         end
         dlg.add_action_callback('project') do |_c, pid|
           Steps.one(dlg, 'Reading the rooms and customer',

@@ -102,11 +102,16 @@ module HarryWardrobes
 
       # Items of each row: { kind => { 'total', 'override', 'styled' } }.
       def self.counts(model)
-        ROWS.to_h do |kind, _l, _h|
-          pairs = Finder.all_targets(model, [kind.to_sym])
+        rev = Ops.revision(model)
+        return @counts[:v] if @counts && @counts[:model] == model && @counts[:rev] == rev
+        all = Finder.all_targets(model, ROWS.map { |k, _l, _h| k.to_sym }).group_by { |_i, k| k.to_s }
+        v = ROWS.to_h do |kind, _l, _h|
+          pairs = all[kind] || []
           [kind, { 'total' => pairs.size, 'override' => pairs.count { |i, _| Converter.override?(i) },
                    'styled' => pairs.count { |i, _| i.definition.get_attribute(DICT, 'style') } }]
         end
+        @counts = { model: model, rev: rev, v: v }
+        v
       end
 
       def self.data(model = Sketchup.active_model)
@@ -169,7 +174,7 @@ module HarryWardrobes
                       dlg.execute_script("productsRefreshed(#{JSON.generate('choices' => handle_choices, 'at' => HubSpotProducts.local['at'])})")
                       ProductImages.sync(dlg, handle_product_list)
                     },
-                    fail: ->(e) { dlg.execute_script("productsRefreshed(#{JSON.generate('error' => e.message)})") }) { HubSpotProducts.refresh! }
+                    fail: ->(e) { dlg.execute_script("productsRefreshed(#{JSON.generate('error' => e.message)})") }, bg: true) { HubSpotProducts.refresh! }
         end
         dlg.add_action_callback('apply') do |_c, json|
           req = JSON.parse(json)

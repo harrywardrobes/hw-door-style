@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.83.2 — 2026-10-22
+- HubSpot no longer freezes SketchUp: every HubSpot call (the HubSpot tab, linking a file, product lists and pictures, the Settings checks, sending a Room) runs on a background thread while SketchUp and the window keep responding; a call that can't get through gives up after 3 tries (20 s each) instead of 5 x 30 s.
+- The HubSpot tab keeps what it read for 2 minutes - switching back to it is instant (the model is measured again only if it changed); after a send it reads fresh.
+- Faster tab switching: the Workshop keeps its lists and opens at once when nothing in the model or Settings has changed since (Refresh still recalculates); the Doors tab no longer re-reads the product file once per product (1.3 s -> instant) and counts the doors in one pass, kept until the model changes; colour pictures are encoded once; each page's HTML is put together once; the Add tab checks the library folder in the background.
+
 ## 0.83.1 — 2026-10-22
 - Job window: the tabs are a column of icons down the left (the window is 64 px wider to suit).
 

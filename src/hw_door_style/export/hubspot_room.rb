@@ -458,12 +458,12 @@ module HarryWardrobes
         dlg.add_action_callback('search') do |_c, q|
           Steps.one(dlg, q.to_s.strip.empty? ? 'Reading recent projects' : "Searching HubSpot for \"#{q.to_s.strip}\"",
                     done: ->(r) { dlg.execute_script("projects(#{JSON.generate('projects' => r)})") },
-                    fail: ->(e) { dlg.execute_script("projects(#{JSON.generate('error' => e.message)})") }) { HubSpot.search_projects(q) }
+                    fail: ->(e) { dlg.execute_script("projects(#{JSON.generate('error' => e.message)})") }, bg: true) { HubSpot.search_projects(q) }
         end
         dlg.add_action_callback('project') do |_c, pid|
           Steps.one(dlg, 'Reading the rooms and customer',
                     done: ->(r) { dlg.execute_script("rooms(#{JSON.generate(r)})") },
-                    fail: ->(e) { dlg.execute_script("rooms(#{JSON.generate('error' => e.message)})") }) { project_details(pid.to_s) }
+                    fail: ->(e) { dlg.execute_script("rooms(#{JSON.generate('error' => e.message)})") }, bg: true) { project_details(pid.to_s) }
         end
         dlg.add_action_callback('choose') do |_c, json|
           pick = JSON.parse(json)
@@ -616,6 +616,8 @@ module HarryWardrobes
         {}
       end
 
+      CARD_KEEP_S = 120
+
       def self.show_send
         return unless ready?
         model = Sketchup.active_model
@@ -627,19 +629,36 @@ module HarryWardrobes
         dlg = Dialog.open('hubspot_send', title: 'HW - HubSpot room', key: 'hw_hubspot_send2', width: 820, height: 760,
                                           data: { 'loading' => true, 'room' => l['room_name'] })
         m = calc = theirs = nil
-        load_card = lambda do
+        show_card = lambda do
+          data = { 'room' => theirs['hs_name'] || l['room_name'], 'customer' => l['customer'],
+                   'sections' => card_sections(m, calc, theirs), 'stage' => stage_info(theirs['hs_pipeline_stage']),
+                   'project' => !l['project_id'].to_s.empty?,
+                   'sent_at' => model.get_attribute(DICT, 'hs_sent_at', nil), 'scribes_on' => Pencil.on?(model) }
+          dlg.execute_script("init(#{JSON.generate(data)})")
+        end
+        fetch_card = lambda do
           Steps.run(dlg, [
-            ['Reading the HubSpot Room fields', -> { m = meta }],
+            ['Reading the HubSpot Room fields', -> { meta }, :bg, ->(r) { m = r }],
             ['Measuring this model (floor, hinges, handles, drawers)', -> { calc = calculated(model, m) }],
-            ['Reading the Room from HubSpot', -> { theirs = room_values(l['room_id'], m) }],
-            ['Reading the Room stages', -> { HubSpot.room_stages rescue [] }]
+            ['Reading the Room from HubSpot', -> { room_values(l['room_id'], m) }, :bg, ->(r) { theirs = r }],
+            ['Reading the Room stages', -> { HubSpot.room_stages rescue [] }, :bg]
           ], done: lambda { |_r|
-            data = { 'room' => theirs['hs_name'] || l['room_name'], 'customer' => l['customer'],
-                     'sections' => card_sections(m, calc, theirs), 'stage' => stage_info(theirs['hs_pipeline_stage']),
-                     'project' => !l['project_id'].to_s.empty?,
-                     'sent_at' => model.get_attribute(DICT, 'hs_sent_at', nil), 'scribes_on' => Pencil.on?(model) }
-            dlg.execute_script("init(#{JSON.generate(data)})")
+            @card = { room: l['room_id'], at: Time.now, rev: Ops.revision(model), model: model, m: m, calc: calc, theirs: theirs }
+            show_card.call
           }, fail: ->(e) { dlg.execute_script("loadFailed(#{JSON.generate(e.message)})") })
+        end
+        # Back on the tab within CARD_KEEP_S: what HubSpot said last time, at once (the model is
+        # measured again only if it changed). After a send, or later, it is read again.
+        load_card = lambda do
+          c = @card
+          if c && c[:room] == l['room_id'] && c[:model] == model && Time.now - c[:at] < CARD_KEEP_S
+            m = c[:m]
+            theirs = c[:theirs]
+            calc = c[:rev] == Ops.revision(model) ? c[:calc] : calculated(model, m)
+            show_card.call
+          else
+            fetch_card.call
+          end
         end
         dlg.add_action_callback('ready') { |_c| load_card.call }
         dlg.add_action_callback('openRoom') { |_c| open_record('listings', l['room_id']) }
@@ -648,7 +667,7 @@ module HarryWardrobes
           HubSpotPictures.show(lambda {
             Steps.one(dlg, 'Reading the pictures on the Room', done: lambda { |files|
               dlg.execute_script("filesUpdated(#{JSON.generate(files.slice(*FILE_FIELDS))})")
-            }, fail: ->(_e) {}) { HubSpot.read_one('listings', l['room_id'], FILE_FIELDS)['properties'] || {} }
+            }, fail: ->(_e) {}, bg: true) { HubSpot.read_one('listings', l['room_id'], FILE_FIELDS)['properties'] || {} }
           })
         end
         dlg.add_action_callback('send') do |_c, json|
@@ -657,12 +676,13 @@ module HarryWardrobes
           take = req['take'] || {}
           took = []
           steps = []
-          steps << ["Sending #{send.size} field(s) to HubSpot", -> { HubSpot.update_room(l['room_id'], send) }] unless send.empty?
+          steps << ["Sending #{send.size} field(s) to HubSpot", -> { HubSpot.update_room(l['room_id'], send) }, :bg] unless send.empty?
           steps << ['Updating this file', -> { took = take_values(model, take) }] unless take.empty?
           steps << ['Finishing', lambda {
             Ops.run(model, 'HubSpot: record send', transparent: true) { model.set_attribute(DICT, 'hs_sent_at', Time.now.strftime('%d/%m/%Y %H:%M')) }
           }]
           Steps.run(dlg, steps, done: lambda { |_r|
+            @card = nil # read fresh next time
             dlg.close
             msg = [send.empty? ? 'Nothing sent to HubSpot.' : "#{send.size} field(s) sent to HubSpot (#{l['room_name']})."]
             msg << "Into this file: #{took.join(', ')}." unless took.empty?
