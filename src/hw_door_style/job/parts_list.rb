@@ -932,24 +932,28 @@ module HarryWardrobes
                    else
                      reopen0
                    end
-          if req['runouts']
+          if req['runouts'] || req['ceiling']
             # measured in by hand: Room settings, not reopened (open the Workshop again after)
             dlg.close
             UI.start_timer(0.3, false) { Pencil.show(model, nil) }
             next
           end
           if req['colours']
-            # colours the plugin doesn't know: change them in the Colours window, then reopen
+            # colours the plugin doesn't know / job colours not applied: the Colours window, then reopen
             dlg.close
             UI.start_timer(0.3, false) { ColoursWindow.show }
             next
           end
           begin
             Workshop.fix_hinges(model) if req['hinges']
-            Workshop.set_job_colours(model, req['job_colours']) unless (req['job_colours'] || {}).empty?
+            Workshop.fix_unstyled(model) if req['unstyled']
+            Workshop.fix_stale(model) if req['stale']
             if req['scribes']
               dlg.execute_script("$('status').textContent = 'Turning scribes on...'")
               Workshop.scribes_on(model, reopen) or reopen.call
+            elsif req['jobdiff']
+              dlg.execute_script("$('status').textContent = 'Setting units to the job...'")
+              Workshop.fix_job_differences(model, reopen) or reopen.call
             else
               reopen.call
             end

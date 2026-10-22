@@ -125,6 +125,7 @@ module HarryWardrobes
           sub = cm.add_submenu('HW Door Style')
           if part
             Plan.menu(sub, part)
+            Swap.menu(sub, part) if Swap.swappable?(part)
             front_menu(sub, part) if part.is_a?(Sketchup::ComponentInstance)
             part_menu(sub, part) if part.is_a?(Sketchup::ComponentInstance)
             sub.add_separator unless deep.empty? && units.empty? && targets.empty?

@@ -848,5 +848,69 @@ check 'PDF printer found by Windows name, share name or \\\\pc\\share - never gu
       pp_try.call('BROTHER - Harry Wardrobes') == 'Brother HL-L5000D series' && pp_try.call('brother hl-l5000d series') == 'Brother HL-L5000D series' &&
       pp_try.call('\\\\OFFICE\\Brother MFC') == '\\\\OFFICE\\Brother MFC' && pp_try.call('Brother MFC') == '\\\\OFFICE\\Brother MFC' && pp_try.call('Brother') == :none
 
+
+# --- Replace with: options carried between components ------------------------------
+require 'hw_door_style/job/swap'
+SW = HarryWardrobes::DoorStyle::Swap
+sw_opt = ->(v, a, u, o = '') { { v: v, a: a, u: u, o: o } }
+WALL4 = '&FALSE%20%28div%29=FALSE&FALSE%20%28no%20div%29=NODIV&TRUE=TRUE&%2B9mm%20%28end%20panel%29=END&'
+WALL3 = '&FALSE=FALSE&TRUE%20%28no%20scribe%29=NOSCRIBE&TRUE%20%28scribed%29=TRUE&'
+WALL2 = '&TRUE=TRUE&FALSE=FALSE&'
+CABW_IN = '&300mm=11.811023622047244&400mm=15.748031496062992&600mm=23.62204724409449&'
+CABW_CM = '&300mm=30&400mm=40&600mm=60&'
+LAYOUT = '&Double%20hanging%20rail=DOUBLE&Single%20hanging%20rail=SINGLE&Single%20hanging%20rail%20%2B%20shelves=RAILSH&Shelved=SHELVED&'
+RAIL = '&None=0&Single=1&Double=2&'
+check 'Swap: dropdown options parsed with %20 and %28 unescaped',
+      SW.parse_options(WALL3) == [['FALSE', 'FALSE'], ['TRUE (no scribe)', 'NOSCRIBE'], ['TRUE (scribed)', 'TRUE']]
+check 'Swap: wall value aliases - no div / end panel = no wall, no scribe = wall; same value kept',
+      SW.convert(sw_opt.call('NODIV', 'LIST', 'STRING', WALL4), sw_opt.call('TRUE', 'LIST', 'STRING', WALL3)) == 'FALSE' &&
+      SW.convert(sw_opt.call('NOSCRIBE', 'LIST', 'STRING', WALL3), sw_opt.call('FALSE', 'LIST', 'STRING', WALL2)) == 'TRUE' &&
+      SW.convert(sw_opt.call('END', 'LIST', 'STRING', WALL4), sw_opt.call('FALSE', 'LIST', 'STRING', WALL2)) == 'FALSE' &&
+      SW.convert(sw_opt.call('TRUE', 'LIST', 'STRING', WALL2), sw_opt.call('FALSE', 'LIST', 'STRING', WALL4)) == 'TRUE'
+check 'Swap: widths matched by the "600mm" label across inch / cm lists, and from a textbox length',
+      SW.convert(sw_opt.call('23.62204724409449', 'LIST', 'STRING', CABW_IN), sw_opt.call('40', 'LIST', 'STRING', CABW_CM)) == '60' &&
+      SW.convert(sw_opt.call('60', 'LIST', 'STRING', CABW_CM), sw_opt.call('11.8', 'LIST', 'STRING', CABW_IN)) == '23.62204724409449' &&
+      SW.convert(sw_opt.call(600 / 25.4, 'TEXTBOX', 'MILLIMETERS'), sw_opt.call('40', 'LIST', 'STRING', CABW_CM)) == '60' &&
+      (SW.convert(sw_opt.call('60', 'LIST', 'STRING', CABW_CM), sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS')) - 600 / 25.4).abs < 1e-6 &&
+      SW.convert(sw_opt.call(610 / 25.4, 'TEXTBOX', 'MILLIMETERS'), sw_opt.call('40', 'LIST', 'STRING', CABW_CM)).nil?
+check 'Swap: counts and text copied; a length never goes into a count',
+      SW.convert(sw_opt.call('3', 'LIST', 'STRING', '&1=1&2=2&3=3&4=4&'), sw_opt.call('2', 'LIST', 'STRING', '&1=1&2=2&3=3&')) == '3' &&
+      SW.convert(sw_opt.call('5', 'LIST', 'STRING', '&1=1&2=2&3=3&4=4&5=5&'), sw_opt.call('2', 'LIST', 'STRING', '&1=1&2=2&3=3&')).nil? &&
+      SW.convert(sw_opt.call(4, 'TEXTBOX', 'INTEGER'), sw_opt.call(1, 'TEXTBOX', 'INTEGER')) == 4.0 &&
+      SW.convert(sw_opt.call(23.6, 'TEXTBOX', 'MILLIMETERS'), sw_opt.call(1, 'TEXTBOX', 'INTEGER')) == 23.6
+sw_src = {
+  'a01_frame_width' => sw_opt.call(1000 / 25.4, 'TEXTBOX', 'MILLIMETERS'), 'a02_frame_height_ceiling' => sw_opt.call(2200 / 25.4, 'TEXTBOX', 'MILLIMETERS'),
+  'b01_doors' => sw_opt.call('L', 'LIST', 'STRING', '&Double=D&Left%20%28single%29=L&Right%20%28single%29=R&'),
+  'c01_depth' => sw_opt.call(580 / 25.4, 'TEXTBOX', 'MILLIMETERS'), 'd01_facing_btm' => sw_opt.call(79 / 25.4, 'TEXTBOX', 'MILLIMETERS'),
+  'f02_sh_top_height' => sw_opt.call(1900 / 25.4, 'TEXTBOX', 'MILLIMETERS'),
+  'i01_wall_left' => sw_opt.call('NODIV', 'LIST', 'STRING', WALL4), 'i02_wall_right' => sw_opt.call('TRUE', 'LIST', 'STRING', WALL4),
+  'i04_top_of_unit' => sw_opt.call('2', 'LIST', 'STRING', '&Scribed=1&Custom=2&None=3&'), 'j01_runout_floor' => sw_opt.call(1, 'TEXTBOX', 'MILLIMETERS'),
+  'k01_int_div' => sw_opt.call('FALSE', 'LIST', 'STRING', WALL2), 'k03_layout_left' => sw_opt.call('RAILSH', 'LIST', 'STRING', LAYOUT), 'k04_shelves_left' => sw_opt.call('3', 'TEXTBOX', 'STRING')
+}
+sw_stable = {
+  'a01_frame_width' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'a02_frame_height_ceiling' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'),
+  'b05_stable_side' => sw_opt.call('1', 'LIST', 'FLOAT', '&Left=0&Right=1&'), 'c01_depth' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'),
+  'd01_facing_btm' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'f01_sh_no' => sw_opt.call(1, 'TEXTBOX', 'INTEGER'), 'f02_sh_top_height' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'),
+  'g07_rail_type' => sw_opt.call('2', 'LIST', 'STRING', RAIL), 'i01_wall_left' => sw_opt.call('FALSE', 'LIST', 'STRING', WALL4), 'i02_wall_right' => sw_opt.call('NODIV', 'LIST', 'STRING', WALL4),
+  'i04_top_of_unit' => sw_opt.call('1', 'LIST', 'STRING', '&Scribed=1&Custom=2&None=3&'), 'j01_runout_floor' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'zz_hidden' => sw_opt.call(1, 'NONE', 'FLOAT')
+}
+sw_plan = SW.plan(sw_src, sw_stable, from_name: 'WARDROBE', to_name: 'WARDROBE_STABLE')
+check 'Swap plan WARDROBE -> WARDROBE_STABLE: sizes, walls, top of unit, shelf top carried; layout -> rail type, shelves -> amount; facing / runouts / doors / hidden left',
+      (sw_plan['a01_frame_width'] - 1000 / 25.4).abs < 1e-6 && sw_plan['i01_wall_left'] == 'NODIV' && sw_plan['i02_wall_right'] == 'TRUE' && sw_plan['i04_top_of_unit'] == '2' &&
+      (sw_plan['f02_sh_top_height'] - 1900 / 25.4).abs < 1e-6 && sw_plan['g07_rail_type'] == '1' && sw_plan['f01_sh_no'] == 3.0 &&
+      !sw_plan.key?('d01_facing_btm') && !sw_plan.key?('j01_runout_floor') && !sw_plan.key?('b05_stable_side') && !sw_plan.key?('zz_hidden')
+sw_back = SW.plan(sw_stable.merge('f01_sh_no' => sw_opt.call(2, 'TEXTBOX', 'INTEGER')), sw_src, from_name: 'WARDROBE_STABLE', to_name: 'WARDROBE')
+check 'Swap plan back: rail type Double -> layout left Double, amount -> shelves left; the wardrobe\'s own doors option left',
+      sw_back['k03_layout_left'] == 'DOUBLE' && sw_back['k04_shelves_left'] == '2' && !sw_back.key?('b01_doors') && !sw_back.key?('k01_int_div')
+sw_bk = { 'a01_frame_width' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'a03_wall_depth' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'i01_wall_left' => sw_opt.call('TRUE', 'LIST', 'STRING', WALL2), 'f02_sh_top_height' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS') }
+sw_plan2 = SW.plan(sw_src, sw_bk, from_name: 'LINEN_PRESS', to_name: 'BOOKCASE')
+check 'Swap plan: depth alias (depth -> wall_depth), wall no-div -> FALSE; linen press shelf top (from its worktop) not carried',
+      (sw_plan2['a03_wall_depth'] - 580 / 25.4).abs < 1e-6 && sw_plan2['i01_wall_left'] == 'FALSE' && !sw_plan2.key?('f02_sh_top_height')
+sw_fit = { 'a01_cab_width' => sw_opt.call('15.748031496062992', 'LIST', 'STRING', CABW_IN), 'd05_facing_width_l' => sw_opt.call(70 / 25.4, 'TEXTBOX', 'MILLIMETERS'), 'h04_drwr_no' => sw_opt.call('3', 'LIST', 'STRING', '&1=1&2=2&3=3&4=4&5=5&') }
+sw_int = { 'a01_cab_width' => sw_opt.call('70', 'LIST', 'STRING', CABW_CM), 'd06_fllr_left' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'h04_drwr_no' => sw_opt.call('2', 'LIST', 'STRING', '&1=1&2=2&3=3&4=4&5=5&') }
+sw_plan3 = SW.plan(sw_fit, sw_int)
+check 'Swap plan DRAWER_FITTED -> INT_DRAWER: 400mm width across value sets, facing width -> filler, drawer count',
+      sw_plan3['a01_cab_width'] == '40' && (sw_plan3['d06_fllr_left'] - 70 / 25.4).abs < 1e-6 && sw_plan3['h04_drwr_no'] == '3'
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

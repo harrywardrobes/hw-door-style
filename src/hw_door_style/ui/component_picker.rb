@@ -186,16 +186,19 @@ module HarryWardrobes
 
       # The job's settings on one newly placed component (inside the caller's step).
       # Returns what was done, in words.
-      def self.setup(model, inst, job)
+      # depth: a depth to use instead of the job's (Replace with keeps a changed depth);
+      # redraw: true redraws every unit even when nothing here changed (options were set first).
+      def self.setup(model, inst, job, depth: nil, redraw: false)
         done = []
 
         # 1. sizes: runouts, bottom facing, ceiling - then one redraw (ceiling redraws itself)
         units = Runouts.unit?(inst) || Facing.has?(inst) || Depth.has?(inst) || Midrail.has?(inst) || DrawerFront.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities) | Depth.units(inst.definition.entities) | Midrail.units(inst.definition.entities) | DrawerFront.units(inst.definition.entities))
         units.each do |u|
-          changed = Runouts.unit?(u) && Runouts.set(u, job['runouts'])
+          changed = redraw
+          changed = Runouts.set(u, job['runouts']) || changed if Runouts.unit?(u)
           changed = Facing.set(u, job['facing']) || changed if Facing.has?(u)
           changed = Ceiling.set_worktop(u) || changed
-          changed = Depth.set(u, Depth.target(u, model)) || changed if Depth.has?(u)
+          changed = Depth.set(u, depth || Depth.target(u, model)) || changed if Depth.has?(u)
           changed = Midrail.set(u, Midrail.job_values(model)) || changed if Midrail.has?(u)
           changed = DrawerFront.set(u, job['front'] || DrawerFront.job(model)) || changed if DrawerFront.has?(u)
           changed = false if job['ceiling'].to_f.positive? && Ceiling.apply_to(u, job['ceiling'])

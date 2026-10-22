@@ -371,13 +371,6 @@ function showChecks(list){
   list.forEach(function(c){
     if (c.info) { h += '<div class="chk" style="color:var(--muted)">' + esc(c.text) + '</div>'; return; }
     h += '<div class="chk"><label><input type="checkbox" data-fix="' + c.id + '" checked style="width:auto;margin-top:2px"><span><b>' + esc(c.text) + '</b><br>' + esc(c.fix || '') + '</span></label>';
-    if (c.colours) h += '<table><tr><th>Colour</th><th class="n">Parts</th><th>Set up as</th></tr>' + c.colours.map(function(m, i){
-      return '<tr><td>' + esc(m.name) + (m.known ? ' <span class="hint" style="margin:0">(' + esc(m.known) + ')</span>' : '') + '</td><td class="n">' + m.count + '</td><td><select data-col="' + esc(m.name) + '">' +
-        [['sheet', 'Sheet good (board)'], ['hardware', 'Hardware'], ['', 'Leave out']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === m.default ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></td></tr>';
-    }).join('') + '</table>';
-    if (c.groups) h += '<table><tr><th>Colour</th><th>Job colour</th></tr>' + c.groups.map(function(g){
-      return '<tr><td>' + esc(g.label) + '</td><td><select data-grp="' + esc(g.id) + '">' + g.options.map(function(o){ return '<option value="' + esc(o[0]) + '"' + (o[0] === g.value ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select></td></tr>';
-    }).join('') + '</table>';
     h += '</div>';
   });
   h += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px"><button onclick="$(\'fixBack\').style.display=\'none\'">Not now</button><button class="primary" onclick="fixChecks()">Fix and reopen</button></div>';
@@ -385,11 +378,8 @@ function showChecks(list){
 }
 function fixChecks(){
   var on = function(id){ var c = document.querySelector('#fixBox input[data-fix="' + id + '"]'); return c && c.checked; };
-  var cols = {};
-  if (on('colours')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-col]'), function(s){ cols[s.getAttribute('data-col')] = s.value; });
-  var jc = {};
-  if (on('nocolour')) Array.prototype.forEach.call(document.querySelectorAll('#fixBox select[data-grp]'), function(s){ jc[s.getAttribute('data-grp')] = s.value; });
-  var req = JSON.stringify({ runouts: !!on('runouts'), scribes: !!on('scribes'), hinges: !!on('hinges'), hubspot: !!on('hubspot'), colours: cols, job_colours: jc });
+  var req = JSON.stringify({ runouts: !!on('runouts'), ceiling: !!on('ceiling'), scribes: !!on('scribes'), hinges: !!on('hinges'), hubspot: !!on('hubspot'),
+                             colours: !!(on('colours') || on('nocolour')), unstyled: !!on('unstyled'), stale: !!on('stale'), jobdiff: !!on('jobdiff') });
   $('fixBox').innerHTML = '<h3>Fixing...</h3><div class="hint">The Workshop window opens again when it\'s done.</div>';
   sketchup.fixChecks(req);
 }

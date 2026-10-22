@@ -122,6 +122,35 @@ module HarryWardrobes
           out << { 'id' => 'scribes', 'text' => 'Scribes are OFF (every runout 0) - panel sizes may be wrong.',
                    'fix' => "Turn scribes on for #{units.size} unit(s): #{Runouts::SIDES.map { |s, _, l| "#{l.sub(/\ARunout - /, '').sub(' (mm)', '')} #{v[s].round}" }.join(', ')} mm" }
         end
+        if Ceiling.mm(model) <= 0 && !master && units.any? { |u| Ceiling.up_to_ceiling?(u) }
+          out << { 'id' => 'ceiling', 'text' => 'Ceiling height not set for this room - units scribed to the ceiling are still at their library height.',
+                   'fix' => 'Open Room settings and enter it (the Workshop window closes; open it again after).' }
+        end
+        raw = unstyled_fronts(model)
+        unless raw.empty? || master
+          out << { 'id' => 'unstyled', 'text' => "#{raw.size} door(s) / drawer front(s) haven't been drawn in a door style yet, so they'd be missing from the Door / Vinyl order: #{raw.first(6).map { |i, _| Finder.label(i) }.join(', ')}#{raw.size > 6 ? '...' : ''}.",
+                   'fix' => 'Draw them in the job\'s style (as Follow the Door style window).' }
+        end
+        stale = stale_fronts(model)
+        unless stale.empty?
+          out << { 'id' => 'stale', 'text' => "#{stale.size} door(s) / drawer front(s) changed size after they were drawn (their unit was resized), so their frames and mid-rails are stretched: #{stale.first(6).map { |i, _| Finder.label(i) }.join(', ')}#{stale.size > 6 ? '...' : ''}.",
+                   'fix' => 'Draw them again at their new size (style kept).' }
+        end
+        diff = unset.empty? && !master ? job_differences(model, units) : []
+        unless diff.empty?
+          out << { 'id' => 'jobdiff', 'text' => "#{diff.size} unit(s) aren't at the job's settings: #{diff.first(5).map { |u, d| "#{Finder.label(u)} (#{d.join('; ')})" }.join(', ')}#{diff.size > 5 ? '...' : ''}.",
+                   'fix' => 'Set them to the job\'s runouts, ceiling, bottom facing and drawer fronts (untick to keep them as they are).' }
+        end
+        unknown = unknown_components(model)
+        unless unknown.empty?
+          out << { 'id' => 'unknown', 'info' => true,
+                   'text' => "Not in the component table (Settings > Components), so not a product and not checked: #{unknown.map { |n, c| c > 1 ? "#{n} x#{c}" : n }.join(', ')}. Add a row for each if they belong in the lists." }
+        end
+        walls = wall_clashes(model, units)
+        unless walls.empty?
+          out << { 'id' => 'walls', 'info' => true,
+                   'text' => "Wall set where another unit sits (a facing / scribe instead of a join): #{walls.map { |u, side, other| "#{Finder.label(u)} wall #{side} - #{Finder.label(other)} is there" }.first(6).join(', ')}#{walls.size > 6 ? '...' : ''}. Check the Wall left / right option on those units." }
+        end
         # a colour that isn't one of the plugin's (its own are set up in OpenCutList automatically)
         cols = Array(parts['untyped']).reject { |u| u['name'].empty? }
         unless cols.empty?
@@ -129,18 +158,98 @@ module HarryWardrobes
                    'fix' => 'Open the Colours window and change them to one of the plugin\'s colours (the Workshop closes; open it again after).' }
         end
         none = Array(parts['untyped']).find { |u| u['name'].empty? }
-        if none && !(defined?(LibraryExport) && LibraryExport.master?(model))
-          cur = Colours.job_choices(model)
-          dft = Colours.defaults
-          groups = Colours::GROUPS.reject { |id, _| %w[panels_22 drawer_box].include?(id) }.map do |id, label|
-            pick = [cur[id], dft[id]].find { |v| v && v != Colours::DEFAULT } || Colours::DEFAULT
-            door = [cur['door'], dft['door']].find { |v| v && v != Colours::DEFAULT }
-            dlabel = id != 'door' && door ? "#{Colours::DEFAULT} (#{door})" : Colours::DEFAULT
-            { 'id' => id, 'label' => label, 'value' => pick, 'options' => [[Colours::DEFAULT, dlabel]] + Colours.names_for(id).map { |n| [n, n] } }
-          end
+        if none && !master
           which = Array(parts['nocolour'])
           out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour (no job colour chosen for their group yet), so they're left out: #{which.first(8).join(', ')}#{which.size > 8 ? '...' : ''}.",
-                   'fix' => 'Apply the job colours (as the Colours window) - pick them below. Default on Exterior / Interior / Worktop = the door colour.', 'groups' => groups }
+                   'fix' => 'Open the Colours window and apply the job colours (the Workshop closes; open it again after).' }
+        end
+        out
+      end
+
+      # Doors / drawer fronts never drawn in a style (plain library fronts): [[inst, kind]].
+      def self.unstyled_fronts(model)
+        Finder.all_targets(model, Doors::STYLED_KINDS).reject { |i, _k| i.definition.get_attribute(DICT, 'style') || Finder.fixed?(i) }
+      end
+
+      # Styled fronts whose size changed since (unit resized without a redraw of the fronts).
+      def self.stale_fronts(model)
+        Doors.processed(model).select { |i, _k| !Finder.fixed?(i) && Doors.stale?(i) }
+      end
+
+      # Units whose runouts / ceiling / bottom facing / drawer fronts differ from the job:
+      # [[unit, ['left 50mm (job 25)', ...]]]. Deliberate changes show here too - untick them.
+      def self.job_differences(model, units)
+        units.filter_map do |u|
+          d = Runouts.differences(u, model)
+          d.empty? ? nil : [u, d]
+        end
+      end
+
+      # Sets those units to the job (as Room settings does), then after.
+      def self.fix_job_differences(model, after)
+        units = job_differences(model, Runouts.units(model.entities)).map(&:first)
+        return false if units.empty?
+        front = DrawerFront.job(model)
+        Runouts.apply(model, units, Runouts.expected(model), 'Job settings', "#{units.size} unit(s) set to the job's settings.",
+                      ceiling: Ceiling.mm(model).positive? ? Ceiling.mm(model) : nil, facing: Facing.mm(model), front: front, after: after)
+      end
+
+      # Draws the fronts that haven't been styled yet in the job's styles (one step).
+      def self.fix_unstyled(model)
+        pairs = unstyled_fronts(model)
+        return 0 if pairs.empty? || !Colours.door_colour_chosen?(model)
+        styles = DoorStyleWindow.job_styles(model)
+        Ops.run(model, 'Draw doors in the job style') do
+          pairs.group_by { |_i, k| styles[k.to_s] }.each { |style, ps| Converter.rebuild(model, ps, style, override: false, finish: false) }
+          door_tag = Tagger.tag_for(model, :door)
+          pairs.each do |i, k|
+            i.layer = door_tag if k == :door && i.layer != door_tag
+            Tagger.tag_item(i, k)
+          end
+          choices = Colours.job_choices(model).reject { |_k, v| v.nil? }
+          Colours.apply(model, choices, record: false) unless choices.empty?
+        end
+        pairs.size
+      end
+
+      # Draws the stale fronts again at their new size.
+      def self.fix_stale(model)
+        pairs = stale_fronts(model)
+        return 0 if pairs.empty?
+        Ops.run(model, 'Redraw resized fronts') { Converter.rebuild(model, pairs, nil, override: false, finish: false) }
+        pairs.size
+      end
+
+      # Top-level dynamic components that have no row in the component table (so the
+      # Product List and these checks don't know what they are): { name => count }.
+      def self.unknown_components(model)
+        c = Products.cfg
+        Products.candidates(model.entities).each_with_object(Hash.new(0)) do |(e, n), h|
+          next unless e.is_a?(Sketchup::ComponentInstance) && e.definition.attribute_dictionary(DC::DICT_NAME)
+          next if Products.row(n, c) || PartsList.ignored?([e])
+          h[n] += 1
+        end
+      end
+
+      WALL_TRUE = %w[TRUE NOSCRIBE].freeze
+
+      # Units with Wall left / right set where another unit actually sits: [[unit, 'left', other]].
+      def self.wall_clashes(model, units)
+        tol = 3.0 / 25.4
+        others = Products.candidates(model.entities).map(&:first).select { |e| e.respond_to?(:bounds) }
+        out = []
+        units.each do |u|
+          b = u.bounds
+          { 'left' => ->(o) { (o.max.x - b.min.x).abs <= tol }, 'right' => ->(o) { (o.min.x - b.max.x).abs <= tol } }.each do |side, touch|
+            v = DC.value(u, "wall_#{side}")
+            next unless v && WALL_TRUE.include?(v.to_s.strip.upcase)
+            hit = others.find do |o|
+              next false if o == u
+              ob = o.bounds
+              touch.call(ob) && ob.min.y < b.max.y - tol && ob.max.y > b.min.y + tol && ob.min.z < b.max.z - tol && ob.max.z > b.min.z + tol
+            end
+            out << [u, side, hit] if hit
+          end
         end
         out
       end
@@ -168,14 +277,6 @@ module HarryWardrobes
         pairs.size
       end
 
-      # Applies the job colours chosen in the checks box (the rest stay as they are).
-      def self.set_job_colours(model, picks)
-        choices = Colours.job_choices(model).transform_values { |v| v || Colours::DEFAULT }
-        choices['drawer_box'] = DrawerBox::DEFAULT if choices['drawer_box'] == Colours::DEFAULT
-        choices.merge!(picks.select { |k, _| choices.key?(k) })
-        ColoursWindow.apply(model, choices)
-      end
-
       # What stops the Workshop Pack being saved: anything that makes the lists wrong or
       # unfinished. A thickness outside the standard list is only a warning.
       def self.blockers(model, parts)
@@ -190,6 +291,11 @@ module HarryWardrobes
         unset = Runouts.unset(model)
         out << "Runouts not set: #{unset.join(', ')} still 0 mm - set them in Room settings." if !unset.empty? && !Runouts.units(model.entities).empty?
         out << 'Scribes are OFF - turn them on (every runout is 0).' if unset.empty? && !parts['scribes_on'] && !Runouts.units(model.entities).empty?
+        out << 'Ceiling height not set - enter it in Room settings.' if Ceiling.mm(model) <= 0 && Runouts.units(model.entities).any? { |u| Ceiling.up_to_ceiling?(u) }
+        un = unstyled_fronts(model).size
+        out << "#{un} door(s) / drawer front(s) not drawn in a door style yet - they'd be missing from the order (Before you start box, or Follow the Door style window)." if un.positive?
+        st = stale_fronts(model).size
+        out << "#{st} door(s) / drawer front(s) changed size after they were drawn - redraw them (Before you start box, or right-click > Rebuild selected)." if st.positive?
         li = Array(parts['loose_internals']).size
         out << "#{li} wardrobe internal(s) aren't inside a tall unit (no Pod number) - move them into their wardrobe." if li.positive?
         n = Array(parts['untyped']).sum { |u| u['count'].to_i }
