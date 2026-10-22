@@ -21,6 +21,10 @@ module HarryWardrobes
         d = inst.definition.attribute_dictionary(DC::DICT_NAME) or return nil
         # wardrobe internals (int drawers, shoe pull-out) keep their own depth (the runner's)
         return nil if Products.internal?(base(inst))
+        # a unit with a manual depth (fitted drawers): the job's depth goes in "job_depth" and
+        # the unit uses its manual one when that's set
+        j = DC.key_in(d, 'job_depth')
+        return j if j
         k = DC.key_in(d, KEY)
         # a depth with a choice list is the component's own business
         return k if k && d["_#{k}_access"].to_s.upcase != 'LIST' && d["_#{k}_options"].to_s.delete('&').strip.empty?

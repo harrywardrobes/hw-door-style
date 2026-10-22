@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.85.5 — 2026-10-22
+- Fitted drawer units: "Depth - manual (mm, 0 = worktop depth)" in Component Options - 0 follows the job's worktop / bridge depth (Room settings, 500), anything else is used instead, never under 460 mm. The plugin writes the job's depth to the unit's own job depth value, so a manual depth is never overwritten. Library: DRAWER_FITTED_V14.
+
 ## 0.85.4 — 2026-10-22
 - The unfitted drawer unit has its own depth in the component table: 460 mm sides, whatever the job's standard depth (Room settings no longer changes it). Library: DRAWER_UNFITTED_V8.
 

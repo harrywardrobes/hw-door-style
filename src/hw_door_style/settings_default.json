@@ -271,7 +271,8 @@
     "DRAWER_FITTED": {
       "role": "unit",
       "product": "Drawer unit",
-      "letter": "B"
+      "letter": "B",
+      "depth": "short"
     },
     "DRAWER_UNFITTED": {
       "role": "unit",
@@ -482,7 +483,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 19,
+  "settings_version": 20,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",
