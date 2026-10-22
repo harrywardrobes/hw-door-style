@@ -166,6 +166,25 @@ module HarryWardrobes
         Digest::MD5.hexdigest(parts.sort.join("\n"))
       end
 
+      # The fingerprint of the component as it goes into its file: Default colours, drawers
+      # shut, runouts 0 (done in a step that is undone again). So the job settings used in the
+      # master - scribes on, colours tried out, a drawer left open - don't mark every component
+      # "changed"; only a real edit to a component does.
+      def self.clean_fingerprint(model, inst)
+        fp = nil
+        Ops.throwaway(model, 'Check component') do
+          Colours.apply(model, Colours.all_default, root: inst, record: false, plain: true)
+          inst.material = nil
+          Drawers.close(inst.definition.entities)
+          DC.redraw(inst) if Runouts.set(inst, Runouts::ZERO)
+          fp = fingerprint(inst)
+        end
+        fp
+      rescue StandardError => e
+        Log.error('component fingerprint', e)
+        fingerprint(inst)
+      end
+
       # Rows for the window.
       def self.rows(model)
         m = meta(model)
@@ -176,7 +195,9 @@ module HarryWardrobes
           folder = folder_for(name)
           v = s[:version] + 1
           status = if rec['fingerprint'].nil? then s[:current].empty? ? 'new' : 'not exported yet'
-                   elsif rec['fingerprint'] == fingerprint(inst) then 'unchanged'
+                   elsif rec['fingerprint'] == clean_fingerprint(model, inst) then 'unchanged'
+                   # recorded before 0.87.1 (as the master was, not as the file): same rule as then
+                   elsif rec['fp'].nil? && rec['fingerprint'] == fingerprint(inst) then 'unchanged'
                    else 'changed'
                    end
           {
@@ -284,7 +305,7 @@ module HarryWardrobes
         s = scan(model, row['name'])
         v = s[:version] + 1
         path = File.join(dir, "#{row['name']}_V#{v}.skp")
-        before = fingerprint(inst)
+        before = nil
 
         Ops.throwaway(model, "Export #{row['name']}") do
           Colours.apply(model, Colours.all_default, root: inst, record: false, plain: true)
@@ -293,6 +314,7 @@ module HarryWardrobes
           # Library files always carry runouts at 0 (the job sets them with the pencil).
           DC.redraw(inst) if Runouts.set(inst, Runouts::ZERO)
           # Carry the instance's Dynamic Component values ("as drawn") into the file.
+          before = fingerprint(inst) # what goes into the file (see clean_fingerprint)
           if (dc = inst.attribute_dictionary('dynamic_attributes'))
             dc.each_pair { |k, val| inst.definition.set_attribute('dynamic_attributes', k, val) }
           end
@@ -306,7 +328,7 @@ module HarryWardrobes
 
         m = meta(model)
         m[row['name']] = { 'folder' => row['folder'], 'version' => v, 'file' => path,
-                           'fingerprint' => before, 'exported' => Time.now.strftime('%d/%m/%Y %H:%M') }
+                           'fingerprint' => before, 'fp' => 2, 'exported' => Time.now.strftime('%d/%m/%Y %H:%M') }
         Ops.run(model, 'Record component export', transparent: true) { save_meta(model, m) }
         { name: row['name'], file: path.sub(root(model) + File::SEPARATOR, ''), moved: moved.map { |p| File.basename(p) } }
       end

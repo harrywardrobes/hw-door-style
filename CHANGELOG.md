@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.87.1 — 2026-10-22
+- Export components: a component shows "changed" only when the component itself was edited. It's compared as it goes into its file (Default colours, drawers shut, runouts 0), so scribes, colours or an open drawer in the master no longer mark every component changed - only the changed ones are ticked.
+
 ## 0.87.0 — 2026-10-22
 - End panels have a Vinyl option (library END_PAN / END_PAN_HALF): "TRUE (vinyl)" (default) - the panel is the standard depth + its thickness (580 + 18 = 598) and goes on the Door / Vinyl order in its own "Vinyl end panels" section, not the sheet list; "FALSE (with nosing)" - 50 mm less (548), cut from sheet like any panel.
 - Workshop: a warning (amber) for an end panel set to "FALSE (with nosing)" with no bullnose touching it, naming the panel.
