@@ -885,6 +885,7 @@ sw_src = {
   'f02_sh_top_height' => sw_opt.call(1900 / 25.4, 'TEXTBOX', 'MILLIMETERS'),
   'i01_wall_left' => sw_opt.call('NODIV', 'LIST', 'STRING', WALL4), 'i02_wall_right' => sw_opt.call('TRUE', 'LIST', 'STRING', WALL4),
   'i04_top_of_unit' => sw_opt.call('2', 'LIST', 'STRING', '&Scribed=1&Custom=2&None=3&'), 'j01_runout_floor' => sw_opt.call(1, 'TEXTBOX', 'MILLIMETERS'),
+  'g07_rail_type' => sw_opt.call('2', 'NONE', 'STRING', RAIL), 'f01_sh_no' => sw_opt.call(1, 'NONE', 'INTEGER'), 'k00_int_label' => sw_opt.call('-----', 'VIEW', 'STRING'),
   'k01_int_div' => sw_opt.call('FALSE', 'LIST', 'STRING', WALL2), 'k03_layout_left' => sw_opt.call('RAILSH', 'LIST', 'STRING', LAYOUT), 'k04_shelves_left' => sw_opt.call('3', 'TEXTBOX', 'STRING')
 }
 sw_stable = {
@@ -895,7 +896,7 @@ sw_stable = {
   'i04_top_of_unit' => sw_opt.call('1', 'LIST', 'STRING', '&Scribed=1&Custom=2&None=3&'), 'j01_runout_floor' => sw_opt.call(0, 'TEXTBOX', 'MILLIMETERS'), 'zz_hidden' => sw_opt.call(1, 'NONE', 'FLOAT')
 }
 sw_plan = SW.plan(sw_src, sw_stable, from_name: 'WARDROBE', to_name: 'WARDROBE_STABLE')
-check 'Swap plan WARDROBE -> WARDROBE_STABLE: sizes, walls, top of unit, shelf top carried; layout -> rail type, shelves -> amount; facing / runouts / doors / hidden left',
+check 'Swap plan WARDROBE -> WARDROBE_STABLE: sizes, walls, top of unit, shelf top carried; layout -> rail type, shelves -> amount (the wardrobe\'s hidden rail / shelf options ignored); facing / runouts / doors / hidden left',
       (sw_plan['a01_frame_width'] - 1000 / 25.4).abs < 1e-6 && sw_plan['i01_wall_left'] == 'NODIV' && sw_plan['i02_wall_right'] == 'TRUE' && sw_plan['i04_top_of_unit'] == '2' &&
       (sw_plan['f02_sh_top_height'] - 1900 / 25.4).abs < 1e-6 && sw_plan['g07_rail_type'] == '1' && sw_plan['f01_sh_no'] == 3.0 &&
       !sw_plan.key?('d01_facing_btm') && !sw_plan.key?('j01_runout_floor') && !sw_plan.key?('b05_stable_side') && !sw_plan.key?('zz_hidden')

@@ -1,36 +1,10 @@
 {
   "hw_door_style_settings": "test",
-  "saved": "22/10/2026 01:16",
-  "door_names": [
-    "WRD_DOOR",
-    "LIN_DOOR",
-    "BRGFR_DOOR",
-    "WLK_DOOR",
-    "TPBX_DOOR",
-    "TPBX_DOOR_TOP",
-    "WST_DOOR",
-    "WST_DOOR_UPPER",
-    "WST_STABLE_PANEL"
-  ],
-  "fixed_panel_names": [
-    "WST_STABLE_PANEL"
-  ],
-  "no_midrail_names": [
-    "WST_DOOR_UPPER"
-  ],
-  "framed_drawer_units": [
-    "LINEN_PRESS"
-  ],
-  "ext_drawer_names": [
-    "DRW_FRONT"
-  ],
-  "int_drawer_names": [
-    "INT_DRW_FRONT"
-  ],
-  "top_door_height_mm": 460,
+  "saved": "22/10/2026 15:36",
+  "top_door_height_mm": 500,
   "worktop_height_mm": 771,
   "export_csv": false,
-  "drawer_runner_type": "Hook/Peg Drawer Runners",
+  "drawer_runner_type": "Hook/Peg",
   "default_hinge_type": "soft_close_110",
   "hinge_rules": [
     [
@@ -213,8 +187,6 @@
     "F": "F - Facings",
     "OTHER": "Other"
   },
-  "local_folder": "C:/Users/User/Documents/Harry Wardrobes",
-  "library_folder": "G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes",
   "plan_scenes": "top|plan",
   "plan_hidden_tags": "hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail",
   "plan_notes_tag": "plan_notes",
@@ -238,116 +210,162 @@
     "COVING",
     "LIGHT TO BE MOVED"
   ],
-  "product_components": {
+  "components": {
     "WARDROBE": {
-      "product": "Wardrobe",
       "role": "unit",
+      "product": "Wardrobe",
       "letter": "T"
     },
     "WARDROBE_STABLE": {
-      "product": "Stable wardrobe",
       "role": "unit",
+      "product": "Stable wardrobe",
       "letter": "T"
     },
     "WALK-IN": {
-      "product": "Walk-in",
       "role": "unit",
+      "product": "Walk-in",
       "letter": "T"
     },
     "LINEN_PRESS": {
-      "product": "Linen press",
       "role": "unit",
-      "letter": "T"
+      "product": "Linen press",
+      "letter": "T",
+      "framed": true
     },
     "TOPBOX": {
-      "product": "Top box wardrobe",
       "role": "unit",
+      "product": "Top box wardrobe",
       "letter": "T"
     },
     "BOOKCASE": {
-      "product": "Bookcase",
       "role": "unit",
-      "letter": "T"
+      "product": "Bookcase",
+      "letter": "T",
+      "depth": 475
     },
     "BRIDGE_SKELETON": {
-      "product": "Bridge unit",
       "role": "unit",
-      "letter": "W"
+      "product": "Bridge unit",
+      "letter": "W",
+      "depth": "short"
     },
     "BRIDGE_FRAME": {
-      "product": "Bridge unit",
       "role": "joiner",
-      "letter": "W"
+      "product": "Bridge unit",
+      "letter": "W",
+      "depth": "short"
     },
     "BOX_SHELF": {
-      "product": "Box shelves",
       "role": "joiner",
-      "letter": "W"
+      "product": "Box shelves",
+      "letter": "W",
+      "depth": 225
     },
     "WORKTOP": {
-      "product": "Worktop",
       "role": "unit",
+      "product": "Worktop",
+      "letter": "B",
+      "depth": "short"
+    },
+    "DRAWER_FITTED": {
+      "role": "unit",
+      "product": "Drawer unit",
       "letter": "B"
     },
-    "EXT_DRAWER": {
-      "product": "Drawer unit",
+    "DRAWER_UNFITTED": {
       "role": "unit",
+      "product": "Drawer unit",
       "letter": "B"
     },
     "BXEND": {
-      "product": "Box end",
       "role": "joiner",
-      "letter": "B"
+      "product": "Box end",
+      "letter": "B",
+      "depth": "short"
     },
     "CAB": {
-      "product": "Cabinet",
       "role": "unit",
+      "product": "Cabinet",
       "letter": "B"
     },
     "INT_DRAWER": {
-      "product": "Internal drawers",
       "role": "internal",
+      "product": "Internal drawers",
       "letter": "T"
     },
     "INT_DRAWER_PLUS": {
-      "product": "Internal drawers",
       "role": "internal",
+      "product": "Internal drawers",
       "letter": "T"
     },
     "SHOE_PULL_OUT": {
-      "product": "Shoe pull-out",
       "role": "internal",
+      "product": "Shoe pull-out",
       "letter": "T"
     },
     "FACING_BLOCK": {
-      "product": "Facing",
       "role": "unit",
+      "product": "Facing",
       "letter": "F"
     },
     "BULLNOSE": {
-      "product": "Bullnose",
       "role": "skip",
+      "product": "Bullnose",
       "letter": ""
     },
     "END_PAN": {
-      "product": "End panel",
       "role": "skip",
+      "product": "End panel",
       "letter": ""
     },
     "FLOOR": {
+      "role": "room",
       "product": "Floor",
-      "role": "skip",
       "letter": ""
     },
     "CEILING": {
+      "role": "room",
       "product": "Ceiling",
-      "role": "skip",
       "letter": ""
     },
     "CABLE_OUTLET": {
-      "product": "Cable outlet",
       "role": "skip",
+      "product": "Cable outlet",
       "letter": ""
+    },
+    "WRD_DOOR": {
+      "role": "door"
+    },
+    "LIN_DOOR": {
+      "role": "door"
+    },
+    "BRGFR_DOOR": {
+      "role": "door"
+    },
+    "WLK_DOOR": {
+      "role": "door"
+    },
+    "TPBX_DOOR": {
+      "role": "door"
+    },
+    "TPBX_DOOR_TOP": {
+      "role": "door"
+    },
+    "WST_DOOR": {
+      "role": "door"
+    },
+    "WST_DOOR_UPPER": {
+      "role": "door",
+      "no_midrail": true
+    },
+    "WST_STABLE_PANEL": {
+      "role": "fixed_panel"
+    },
+    "DRW_FRONT": {
+      "role": "ext_drawer"
+    },
+    "INT_DRW_FRONT": {
+      "role": "int_drawer"
     }
   },
   "product_depth_keys": [
@@ -358,27 +376,10 @@
   ],
   "depth_default_mm": 580,
   "depth_short_mm": 500,
-  "depth_short_components": [
-    "BRIDGE",
-    "WORKTOP",
-    "BXEND"
-  ],
-  "depth_by_component": {
-    "BOX_SHELF": 225,
-    "BOOKCASE": 475
-  },
   "product_front_mm": 18,
   "product_label_tag": "Pod_numbers",
   "product_label_scenes": "top|plan",
-  "export_skip": [
-    "FLOOR",
-    "CEILING"
-  ],
   "template_default": true,
-  "template_keep": [
-    "FLOOR",
-    "CEILING"
-  ],
   "runout_values_mm": [
     25,
     50,
@@ -387,16 +388,25 @@
     150
   ],
   "runout_defaults_mm": {
-    "floor": 25,
-    "ceiling": 25,
-    "left": 25,
-    "right": 25,
-    "back": 25
+    "floor": 0,
+    "ceiling": 0,
+    "left": 0,
+    "right": 0,
+    "back": 0
   },
   "facing_bottom_mm": 79,
+  "drawer_front_mm": 228,
+  "drawer_front_sm_mm": 142,
   "panels_22_default": "Frost White",
   "colour_library": [
-
+    {
+      "name": "Mine",
+      "rgb": [
+        1,
+        2,
+        3
+      ]
+    }
   ],
   "ocl_thicknesses_mm": [
     18,
@@ -436,16 +446,27 @@
     "Lissa Oak",
     "Opera Walnut"
   ],
-  "update_folder": "G:\\My Drive\\1_Gautier Design Ltd\\4_Assets\\SketchUp Components\\Harry Wardrobes\\_HW Door Style\\Updates",
-  "update_check_at_start": true,
-  "update_test_builds": true,
   "hubspot_pictures": [
     {
       "field": "render_1",
       "label": "Renders",
       "scenes": [
-        "view 1",
+        "D external",
         "D internal"
+      ]
+    },
+    {
+      "field": "floor_plan",
+      "label": "Survey Floor Plan",
+      "scenes": [
+        "S top"
+      ]
+    },
+    {
+      "field": "survey_door_dimensions_1",
+      "label": "Survey Door Dimensions",
+      "scenes": [
+        "S front internal"
       ]
     }
   ],
@@ -456,7 +477,7 @@
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {
   },
-  "settings_version": 13,
+  "settings_version": 16,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",
@@ -481,17 +502,13 @@
     "HINGE_TIP_ON": "TIP-ON",
     "OVAL_BRACKET": "Oval rail brackets",
     "OVAL_BRACKET_TOP": "Oval rail brackets (top)",
-    "SHELF_BRACKET": "Shelf pegs",
+    "SHELF_BRACKET": "Shelf brackets",
     "DRW_RUNNER_410": "Drawer runners 410mm",
     "DRW_BOX": "Drawer boxes",
     "CABLE_OUTLET_80": "Cable outlets 80mm",
     "HANGING_RAIL_TOP": "Hanging rail",
     "HANGING_RAIL_BTM": "Hanging rail"
   },
-  "zebra_share": "ZEBRA",
-  "pdf_printer": "BROTHER - Harry Wardrobes",
-  "pdf_sides": "simplex",
-  "sumatra_path": "",
   "label_layouts": {
   },
   "label_layout_active": "",

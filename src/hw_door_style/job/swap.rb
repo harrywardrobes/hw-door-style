@@ -137,8 +137,9 @@ module HarryWardrobes
       # { target key => value }. from_name / to_name: component names (for the worktop datum).
       def self.plan(src, dst, from_name: '', to_name: '')
         out = {}
-        by_base = ->(h) { h.keys.to_h { |k| [(KEY_RE.match(k) ? $1 : k), k] } }
-        sb = by_base.call(src)
+        # only what the user could see on the old unit counts (a hidden rails section on a
+        # wardrobe mustn't overwrite the stable wardrobe's visible rail type)
+        sb = src.select { |_k, o| USER_ACCESS.include?(o[:a].to_s.upcase) }.keys.to_h { |k| [(KEY_RE.match(k) ? $1 : k), k] }
         linen = WORKTOP_DATUM.include?(from_name.to_s.upcase) != WORKTOP_DATUM.include?(to_name.to_s.upcase)
         dst.each do |dk, d|
           next unless USER_ACCESS.include?(d[:a].to_s.upcase)
@@ -174,13 +175,24 @@ module HarryWardrobes
       # Can this be replaced: a top-level library unit (in the library index by name).
       def self.swappable?(inst)
         return false unless inst.is_a?(Sketchup::ComponentInstance) && inst.definition.attribute_dictionary(DC::DICT_NAME)
-        !library_entry(base(inst)).nil?
+        in_library?(base(inst))
       end
 
+      # The library's current version of a component, copied to this computer if need be.
       def self.library_entry(name)
-        LibraryCache.index.values.find { |e| e['name'].to_s.upcase == name.to_s.upcase && File.exist?(e['file'].to_s) }
-      rescue StandardError
+        e = LibraryCache.fresh(name)
+        e && File.exist?(e['file'].to_s) ? e : nil
+      rescue StandardError => err
+        Log.error('library entry', err)
         nil
+      end
+
+      # Is it a library component at all (by the copy on this computer - no library scan on
+      # every right-click)?
+      def self.in_library?(name)
+        LibraryCache.index.values.any? { |e| e['name'].to_s.upcase == name.to_s.upcase }
+      rescue StandardError
+        false
       end
 
       # Library components a unit can be swapped for: the same group (T, W, B...), itself
@@ -200,16 +212,17 @@ module HarryWardrobes
         m = sub.add_submenu('Replace with (settings kept)')
         list.each do |c|
           label = c['self'] ? "Fresh copy of #{c['label']} from the library" : c['label']
-          m.add_item(label) { replace(inst, c['key']) }
+          m.add_item(label) { replace(inst, c['name']) }
           m.add_separator if c['self'] && list.size > 1
         end
       end
 
-      # Swaps inst for the library component key, in one undo step. Returns the new instance.
-      def self.replace(inst, key)
+      # Swaps inst for the library component (by name), in one undo step. Returns the new instance.
+      def self.replace(inst, name)
         model = inst.model
-        e = LibraryCache.index[key]
-        return UI.messagebox('That component is not on this computer yet - open the + window and press Check library.') unless e && File.exist?(e['file'].to_s)
+        Sketchup.status_text = "Checking the library for #{LibraryCache.pretty(name)}..."
+        e = library_entry(name)
+        return UI.messagebox("#{LibraryCache.pretty(name)} isn't in the library (or the library folder isn't reachable).") unless e
         label = LibraryCache.pretty(e['name'])
         notes = []
         new_inst = nil
@@ -240,6 +253,7 @@ module HarryWardrobes
         carried = plan(options_of(old), options_of(new_inst), from_name: base(old), to_name: defn.name)
         carried.each do |k, v|
           cur = DC.get(defn, k)
+          v = v.to_i if v.is_a?(Float) && v == v.floor && !LENGTH_UNITS.include?(DC.get(defn, "_#{k}_units").to_s.upcase)
           new_inst.set_attribute(DC::DICT_NAME, k, cur.is_a?(String) ? v.to_s : DC.plain(v))
         end
         custom_depth = Depth.has?(old) && Depth.mm(old) && (Depth.mm(old) - Depth.target(old, model)).abs >= 1 ? Depth.mm(old) : nil

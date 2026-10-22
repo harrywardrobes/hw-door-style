@@ -188,6 +188,30 @@ module HarryWardrobes
         keys.each { |k| (e = idx.delete(k)) && drop_files(e) }
       end
 
+      # The up-to-date entry for one component, copied here first if the library has a
+      # newer version (or it was never copied): a quick scan of the library, then only that
+      # file. Entries that have gone from the library are dropped. nil when it isn't there.
+      def self.fresh(name)
+        idx = index
+        scanned = begin
+          scan
+        rescue StandardError
+          nil
+        end
+        want = ->(h) { h.values.find { |e| e['name'].to_s.upcase == name.to_s.upcase } }
+        return want.call(idx) unless scanned
+        get, gone = plan(scanned, idx)
+        forget(gone, idx)
+        e = scanned.find { |x| x['name'].to_s.upcase == name.to_s.upcase }
+        if e && get.any? { |g| g['key'] == e['key'] }
+          fetch(e, idx)
+          save_index(idx)
+        elsif !gone.empty?
+          save_index(idx)
+        end
+        e ? idx[e['key']] : nil
+      end
+
       # --- for the window --------------------------------------------------------
 
       def self.img(png)
