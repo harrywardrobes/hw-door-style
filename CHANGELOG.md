@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.87.2 — 2026-10-22
+- Export components: DC's scratch values ("_inst_x / _inst_z" - the last copy's position, which a hinge used in every unit keeps on its definition) are left out of the check, so changing the scribes on one unit doesn't mark the others changed.
+
 ## 0.87.1 — 2026-10-22
 - Export components: a component shows "changed" only when the component itself was edited. It's compared as it goes into its file (Default colours, drawers shut, runouts 0), so scribes, colours or an open drawer in the master no longer mark every component changed - only the changed ones are ticked.
 

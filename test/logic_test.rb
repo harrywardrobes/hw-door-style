@@ -1057,6 +1057,11 @@ check 'Door / vinyl order: vinyl end panels in their own section, not counted as
       vs.find { |x| x['title'] =~ /Bullnose/ }['rows'].map { |r| r[1] } == ['BULLNOSE_MOULDING'] && vs.find { |x| x['title'] =~ /end panels/ }['rows'].map { |r| r[1] } == ['END_PAN_PANEL']
 
 
+LEv = HarryWardrobes::DoorStyle::LibraryExport
+check 'Export check ignores DC scratch values (a shared hinge\'s last _inst_z), keeps the _inst__ formulas',
+      '_inst_z' =~ LEv::VOLATILE && '_inst_copies' =~ LEv::VOLATILE && !('_inst__z_formula' =~ LEv::VOLATILE) && !('a01_unit_width' =~ LEv::VOLATILE)
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

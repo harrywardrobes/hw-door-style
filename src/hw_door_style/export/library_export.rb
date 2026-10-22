@@ -126,7 +126,10 @@ module HarryWardrobes
         folder_for(name)
       end
 
-      VOLATILE = /_error\z|\A_?onclick_state|\A_lastmodified|\A_?formatversion\z/i.freeze
+      # DC's own scratch values: errors, click states, and "_inst_x / _inst_z..." - the last
+      # placed copy's values, which a part used in many places (a hinge) keeps on its definition
+      # and changes whenever any unit is redrawn. Not the "_inst__" formulas (two underscores).
+      VOLATILE = /_error\z|\A_?onclick_state|\A_lastmodified|\A_?formatversion\z|\A_inst_[^_]/i.freeze
 
       def self.attrs_sig(obj)
         d = obj.attribute_dictionary('dynamic_attributes')
