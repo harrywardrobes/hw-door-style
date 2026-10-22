@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.85.2 — 2026-10-22
+- Installation plan: the Pod numbers are bold lettering with just the number ("T1" - no depth / finished depth), reading upright whichever way the plan is turned; they and the dimensions are put on automatically whenever the plan picture is made (Floor Plan tab, Rotate, Update picture, Save Workshop Pack) if the model has changed since. The Pod numbers / Doors view / Re-dimension buttons are gone.
+- Rotate 90: the picture fits to what's on show (guide lines left out and hidden), so a turned plan no longer shrinks to a sliver; the turn is its own undo step.
+
 ## 0.85.1 — 2026-10-22
 - Room Plan product list: the rule under each pod sits under it again (it ran through the next pod's title).
 

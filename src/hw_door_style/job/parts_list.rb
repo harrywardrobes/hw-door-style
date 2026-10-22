@@ -258,6 +258,7 @@ module HarryWardrobes
         tags = Array(tags).map { |t| t.to_s.downcase }.reject(&:empty?)
         path.any? do |e|
           next true if defined?(Room) && Room.part?(e) # floor, ceiling, walls
+          next true if e.respond_to?(:get_attribute) && e.get_attribute(DICT, 'product_label') # Pod numbers drawn on the plan
           next true if tags.include?(e.layer.name.to_s.downcase)
           next false unless e.respond_to?(:definition)
           p = e.definition.path.to_s.tr('\\', '/').downcase
@@ -957,12 +958,6 @@ module HarryWardrobes
           Plan.rotate!(model)
           Steps.one(dlg, 'Turning the plan 90 degrees', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.data(model) }
         end
-        dlg.add_action_callback('planDims') do |_c|
-          Steps.one(dlg, 'Dimensioning the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.dimension(model); Plan.data(model) }
-        end
-        dlg.add_action_callback('planTs') do |_c|
-          Steps.one(dlg, 'Pod numbers on the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Products.label(model); Plan.data(model) }
-        end
         dlg.add_action_callback('planNote') do |_c, json|
           req = JSON.parse(json)
           Plan.edit(model, req['id'], req['text'])
@@ -992,9 +987,6 @@ module HarryWardrobes
           dlg.execute_script("jobInfo(#{JSON.generate(data ? data['job_info'] : JobInfo.get(model))})")
         end
         dlg.add_action_callback('renumberParts') { |_c| PartsList.renumber_parts(model); reload.call }
-        dlg.add_action_callback('doorView') do |_c|
-          Steps.one(dlg, 'Drawing the doors view', done: ->(r) { dlg.execute_script("doorViewMade(#{JSON.generate(r)})") }, fail: fail_js) { DoorView.build(model) }
-        end
         dlg.add_action_callback('labelPlan') do |_c|
           n = Products.label(model)
           dlg.execute_script("planLabelled(#{n})")

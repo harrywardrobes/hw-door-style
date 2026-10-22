@@ -285,28 +285,40 @@ module HarryWardrobes
 
       def self.label_tag(model) = Tags.get(model, 'product_label_tag')
 
-      # Text over the middle of each product, on its own tag, shown only in the plan scenes
-      # (Settings "product_label_scenes", e.g. "top"). Replaces the labels made last time.
+      LABEL_MM = 140 # height of the Pod number lettering on the plan
+
+      # The Pod number ("T1") in bold flat lettering over the middle of each product, on its
+      # own tag, shown only in the plan scenes (Settings "product_label_scenes"). It reads
+      # upright in the plan picture whichever way the plan is turned. Replaces the last ones.
+      # (Screen text can't be bold, so the lettering is drawn.)
       def self.label(model, rows = nil)
         rows ||= list(model).first
         tag = label_tag(model)
         pattern = Regexp.new(Settings.get['product_label_scenes'].to_s.strip.then { |s| s.empty? ? 'top|plan' : s }, Regexp::IGNORECASE)
         by_pid = candidates(model.entities).to_h { |e, _| [e.persistent_id.to_s, e] }
+        turn = defined?(Plan) ? Plan.rotation(model) : 0
+        ink = model.materials['HW plan ink'] || model.materials.add('HW plan ink')
+        ink.color = Sketchup::Color.new(0, 0, 0)
         n = 0
         Ops.run(model, 'Pod numbers on the plan') do
-          old = model.entities.grep(Sketchup::Text).select { |t| t.get_attribute(DICT, 'product_label') }
+          old = model.entities.select { |e| (e.is_a?(Sketchup::Text) || e.is_a?(Sketchup::Group)) && e.get_attribute(DICT, 'product_label') }
           model.entities.erase_entities(old) unless old.empty?
           rows.each do |r|
             h = by_pid[r['pid']] or next
             bb = Geom::BoundingBox.new
             bb.add(h.bounds)
             r['members'].each { |m| (e = by_pid[m['pid']]) && bb.add(e.bounds) }
-            pt = Geom::Point3d.new(bb.center.x, bb.center.y, bb.max.z + 1)
-            depth = r['depth'] ? " (#{r['depth']}#{r['finished'] ? "/#{r['finished']}" : ''})" : ''
-            t = model.entities.add_text("#{r['t']}#{depth}", pt)
-            t.layer = tag
-            t.display_leader = false
-            t.set_attribute(DICT, 'product_label', r['t'])
+            g = model.entities.add_group
+            g.entities.add_3d_text(r['t'].to_s, TextAlignCenter, 'Arial', true, false, LABEL_MM / 25.4, 0.0, 0.0, true, 0.0)
+            tb = g.bounds
+            # centred on the product, just above it, turned to read upright in the plan picture
+            t = Geom::Transformation.translation(Geom::Point3d.new(bb.center.x, bb.center.y, bb.max.z + 1) - tb.center)
+            t = Geom::Transformation.rotation(Geom::Point3d.new(bb.center.x, bb.center.y, 0), Z_AXIS, turn.degrees) * t if turn.positive?
+            g.transform!(t)
+            g.material = ink
+            g.layer = tag
+            g.name = r['t'].to_s
+            g.set_attribute(DICT, 'product_label', r['t'])
             n += 1
           end
           # Hidden everywhere except the plan scenes.

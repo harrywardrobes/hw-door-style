@@ -73,6 +73,11 @@ module HarryWardrobes
 
       # Saves the door order and the parts list (PDF each; CSV too if set in Settings). Returns [paths..., versions].
       def self.save(model, parts)
+        begin
+          Plan.refresh(model) if Plan.plan_page(model) # Pod numbers and dimensions up to date on the Room Plan
+        rescue StandardError => e
+          Log.error('plan refresh', e)
+        end
         door = Report.write_order(model, parts: parts)
         part = PartsList.export(model, parts)
         # One Room Plan PDF (cover, product list, installation plan, pod sheet, panel list).

@@ -160,7 +160,19 @@ module HarryWardrobes
       def self.rotation(model) = model.get_attribute(DICT, ROTATION, 0).to_i % 360
 
       def self.rotate!(model)
-        Ops.run(model, 'Rotate the plan', transparent: true) { model.set_attribute(DICT, ROTATION, (rotation(model) + 90) % 360) }
+        Ops.run(model, 'Rotate the plan') { model.set_attribute(DICT, ROTATION, (rotation(model) + 90) % 360) }
+        refresh(model, force: true) # the Pod numbers turn with it
+      end
+
+      # Pod numbers and dimensions on the plan, made again when the model has changed since
+      # last time (or force). Returns true when they were redone.
+      def self.refresh(model, force: false)
+        rev = Ops.revision(model)
+        return false if !force && @refreshed && @refreshed[0] == model && @refreshed[1] == rev
+        Products.label(model)
+        dimension(model)
+        @refreshed = [model, Ops.revision(model)]
+        true
       end
 
       def self.picture(model, path, width = 2400)
@@ -173,7 +185,7 @@ module HarryWardrobes
         opts = model.options['PageOptions']
         trans = opts['ShowTransition']
         ro = model.rendering_options
-        keep = %w[BackgroundColor DrawGround DrawHorizon DrawSky].to_h { |k| [k, (ro[k] rescue nil)] }
+        keep = %w[BackgroundColor DrawGround DrawHorizon DrawSky HideConstructionGeometry].to_h { |k| [k, (ro[k] rescue nil)] }
         begin
           opts['ShowTransition'] = false
           model.pages.selected_page = pg
@@ -183,6 +195,7 @@ module HarryWardrobes
           # white paper: no sky, ground or horizon
           ro['BackgroundColor'] = Sketchup::Color.new(255, 255, 255)
           %w[DrawGround DrawHorizon DrawSky].each { |k| ro[k] = false unless ro[k].nil? }
+          ro['HideConstructionGeometry'] = true # no guide lines on the plan
           # always in the middle: the scene's view direction, turned by the job's rotation, then
           # zoomed to what's on show with a margin
           v = view.camera
@@ -192,7 +205,12 @@ module HarryWardrobes
           cam2 = Sketchup::Camera.new(v.eye, v.target, up, v.perspective?, v.fov)
           cam2.height = v.height unless v.perspective?
           view.camera = cam2
-          view.zoom_extents
+          # fit to what's on show - not guide lines (endless) or anything hidden
+          shown = model.entities.select do |e|
+            e.is_a?(Sketchup::Drawingelement) && !e.is_a?(Sketchup::ConstructionLine) && !e.is_a?(Sketchup::ConstructionPoint) &&
+              e.visible? && e.layer.visible? && !(e.respond_to?(:definition) && e.definition.name =~ /\Aceiling\z/i)
+          end
+          shown.empty? ? view.zoom_extents : view.zoom(shown)
           view.zoom(0.92)
           h = (width * view.vpheight / view.vpwidth.to_f).round
           view.write_image(filename: path, width: width, height: h, antialias: true, compression: 0.9) or raise "Couldn't make the plan picture"
@@ -264,6 +282,7 @@ module HarryWardrobes
       # For the Workshop's Floor Plan tab: picture (data URL), notes, scene, ceiling / fascia.
       def self.data(model, with_picture: true)
         pg = plan_page(model)
+        refresh(model) if pg && with_picture
         out = { 'scene' => pg&.name, 'notes' => notes(model), 'messages' => messages, 'ceiling' => Ceiling.mm(model).round,
                 'fascia' => top_fascia(model), 'dims' => model.entities.grep(Sketchup::Dimension).count { |d| d.get_attribute(DICT, DIM) },
                 'last' => model.get_attribute(DICT, 'room_plan_version', 0).to_i }
