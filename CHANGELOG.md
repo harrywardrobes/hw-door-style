@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.83.3 — 2026-10-22
+- Fixed: tabs opening empty / slowly (the Product List blank). Swapping a page into the open window left the page unable to talk back to the plugin in SketchUp 2026 - it never got its data. Each tab now opens as a new window in the same place (sized to the page, centred) and the old one closes a moment later: Doors in under a second, the Workshop in a third of a second when nothing has changed.
+
 ## 0.83.2 — 2026-10-22
 - HubSpot no longer freezes SketchUp: every HubSpot call (the HubSpot tab, linking a file, product lists and pictures, the Settings checks, sending a Room) runs on a background thread while SketchUp and the window keep responding; a call that can't get through gives up after 3 tries (20 s each) instead of 5 x 30 s.
 - The HubSpot tab keeps what it read for 2 minutes - switching back to it is instant (the model is measured again only if it changed); after a send it reads fresh.

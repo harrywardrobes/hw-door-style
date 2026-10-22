@@ -120,23 +120,37 @@ module HarryWardrobes
         @open[id] = dlg
       end
 
-      # The one job window: a new page swapped into it (resized to the page, centred).
+      # The one job window. Each page is a NEW dialog under the same preferences key (so it
+      # opens where the last one was), sized to the page and centred; the previous page's
+      # dialog is closed a moment after the new one shows. (Swapping the HTML inside one
+      # dialog looked simpler, but after set_html on a live dialog the page's calls back to
+      # Ruby - ready, apply... - never arrive in SketchUp 2026, so the page stayed empty.)
       def self.open_tab(name, width, height, data)
-        @main = nil unless @main&.visible?
-        @main ||= UI::HtmlDialog.new(dialog_title: 'HW Door Style', preferences_key: MAIN_KEY, width: width, height: height,
-                                     resizable: true, scrollable: true, style: UI::HtmlDialog::STYLE_DIALOG)
-        dlg = @main
+        old = @main&.visible? ? @main : nil
+        dlg = UI::HtmlDialog.new(dialog_title: 'HW Door Style', preferences_key: MAIN_KEY, width: [width + STRIP_W, MIN_WIDTH].max, height: height,
+                                 resizable: true, scrollable: true, style: UI::HtmlDialog::STYLE_DIALOG)
         dlg.set_html(html(name, data))
-        dlg.set_size([width + STRIP_W, MIN_WIDTH].max, height)
-        dlg.center
         dlg.add_action_callback('cancel') { |_c| dlg.close unless done(name) }
         dlg.add_action_callback('hwTab') do |_c, id|
           show = SHOW[id.to_s] or next
           done(name) # anything waiting on this page is dropped - the user went elsewhere
           UI.start_timer(0.05, false) { show.call }
         end
+        @main = dlg
         @main_page = name
         @open[name] = dlg
+        # once the page has shown (its own show call), size it to the page, centre it, drop the old one
+        UI.start_timer(0.15, false) do
+          begin
+            if dlg.visible?
+              dlg.set_size([width + STRIP_W, MIN_WIDTH].max, height)
+              dlg.center
+            end
+          rescue StandardError
+            nil
+          end
+          old&.close
+        end
         dlg
       end
 
