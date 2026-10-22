@@ -975,6 +975,12 @@ check 'Workshop checks: components linked as [[pid|label]], shown as plain names
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'parts_list.html')).include?('sketchup.findRef(')
 
 
+require 'hw_door_style/export/opencutlist' unless defined?(HarryWardrobes::DoorStyle::OpenCutList)
+OCLm = HarryWardrobes::DoorStyle::OpenCutList
+check 'OpenCutList: every standard colour has 25 mm (worktops) on its list; "18 mm;22,5 mm" reads as numbers',
+      OCLm.mm_values('18 mm;22,5 mm') == [18.0, 22.5] && OCLm.thicknesses_for('Dust Grey').include?(25.0) && OCLm.thicknesses_for('Dust Grey').include?(18.0)
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

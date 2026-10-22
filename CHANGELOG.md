@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.86.3 — 2026-10-22
+- Workshop: no more "some parts are 25 mm, which isn't one of its standard thicknesses" on standard colours. Every library colour now always has 25 mm (worktops) as well as 18 mm on its OpenCutList list; the saved Settings list (just 18 on this computer) is replaced by the shipped 18 / 25 (settings_version 21), and a colour already in a model with an older list gets the missing standard thickness added when the Workshop opens (other thicknesses on it are kept).
+
 ## 0.86.2 — 2026-10-22
 - Workshop checks: the components each check is about are named in bold (up to 6, then "..."): wall / job-setting / extend warnings, doors not styled, resized or with the wrong hinges, loose internals. Click one: the window closes, the component is selected (its group opened if it's inside one) and the view zooms to it.
 

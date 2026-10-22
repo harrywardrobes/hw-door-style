@@ -64,10 +64,20 @@ module HarryWardrobes
         end
       end
 
+      # Every standard colour comes as 25 mm worktop as well as 18 mm board, whatever the
+      # Settings list says (an older saved list was just 18).
+      WORKTOP_MM = 25.0
+
       def self.thicknesses_for(colour_name)
         t = Array(Settings.get['ocl_thicknesses_mm']).map(&:to_f).select(&:positive?)
+        t << WORKTOP_MM
         t << Settings.get['panel_22_mm'].to_f if colour_name == Colours.panel_default
-        t
+        t.uniq
+      end
+
+      # "18 mm;25 mm" -> [18.0, 25.0]
+      def self.mm_values(s)
+        s.to_s.split(';').filter_map { |x| x[/\d+(?:[.,]\d+)?/]&.tr(',', '.')&.to_f }
       end
 
       # --- what the plugin would set ------------------------------------------------
@@ -195,7 +205,19 @@ module HarryWardrobes
         set = []
         desired.each do |name, want|
           mat = model.materials[name] or next
-          next unless state(mat, want) == :missing
+          st = state(mat, want)
+          if st == :different && want['type'] == SHEET && current(mat)['type'].to_i == SHEET
+            # a standard thickness missing from its list (set before it was standard): added,
+            # anything else on the list kept
+            have = mm_values(current(mat)['std_thicknesses'])
+            add = mm_values(want['std_thicknesses']).reject { |t| have.any? { |h| (h - t).abs < 0.01 } }
+            unless add.empty?
+              mat.set_attribute(DICT_NAME, 'std_thicknesses', thicknesses_s(have + add))
+              set << name
+            end
+            next
+          end
+          next unless st == :missing
           mat.set_attribute(DICT_NAME, 'type', want['type'])
           if want['type'] == SHEET
             mat.set_attribute(DICT_NAME, 'std_thicknesses', want['std_thicknesses'])
