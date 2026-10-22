@@ -117,14 +117,11 @@ module HarryWardrobes
           out << { 'id' => 'scribes', 'text' => 'Scribes are OFF (every runout 0) - panel sizes may be wrong.',
                    'fix' => "Turn scribes on for #{units.size} unit(s): #{Runouts::SIDES.map { |s, _, l| "#{l.sub(/\ARunout - /, '').sub(' (mm)', '')} #{v[s].round}" }.join(', ')} mm" }
         end
-        known = OpenCutList.desired
-        cols = Array(parts['untyped']).reject { |u| u['name'].empty? }.map do |u|
-          want = known[u['name']]
-          { 'name' => u['name'], 'count' => u['count'], 'known' => want ? want['why'] : nil,
-            'default' => want ? (want['type'] == OpenCutList::HARDWARE ? 'hardware' : 'sheet') : (u['name'] =~ /HARDWARE|INTERFIT|BLUM|STEEL|CHROME|ALUMIN/i ? 'hardware' : 'sheet') }
-        end
+        # a colour that isn't one of the plugin's (its own are set up in OpenCutList automatically)
+        cols = Array(parts['untyped']).reject { |u| u['name'].empty? }
         unless cols.empty?
-          out << { 'id' => 'colours', 'text' => "#{cols.sum { |c| c['count'] }} part(s) have a colour that isn't set up as a sheet good or hardware, so they're left out.", 'colours' => cols }
+          out << { 'id' => 'colours', 'text' => "#{cols.sum { |c| c['count'] }} part(s) have a colour the plugin doesn't know, so they're left out: #{cols.map { |c| "#{c['name']} (#{c['count']})" }.join(', ')}.",
+                   'fix' => 'Open the Colours window and change them to one of the plugin\'s colours (the Workshop closes; open it again after).' }
         end
         none = Array(parts['untyped']).find { |u| u['name'].empty? }
         if none && !(defined?(LibraryExport) && LibraryExport.master?(model))
@@ -198,33 +195,6 @@ module HarryWardrobes
           out << "#{g['material']}: no sheet size set - no board count." if !g['sheet'] && !g['strip_group']
         end
         out
-      end
-
-      # Sets the chosen colours up in OpenCutList (as Settings > Cut list would). choice: name =>
-      # 'sheet' / 'hardware' / '' (left as it is). One undo step.
-      def self.set_colours(model, choice)
-        known = OpenCutList.desired
-        n = 0
-        Ops.run(model, 'Set up colours (OpenCutList)') do
-          choice.each do |name, kind|
-            mat = model.materials[name] or next
-            next if kind.to_s.empty?
-            want = known[name]
-            want = nil if want && (want['type'] == OpenCutList::HARDWARE) != (kind == 'hardware')
-            want ||= if kind == 'hardware'
-                       { 'type' => OpenCutList::HARDWARE }
-                     else
-                       { 'type' => OpenCutList::SHEET, 'std_thicknesses' => OpenCutList.thicknesses_s(OpenCutList.thicknesses_for(name)),
-                         'std_sizes' => OpenCutList.sizes_s(OpenCutList.sheet_sizes), 'grained' => mat.texture ? true : false }
-                     end
-            mat.set_attribute(OpenCutList::DICT_NAME, 'type', want['type'])
-            if want['type'] == OpenCutList::SHEET
-              %w[std_thicknesses std_sizes grained].each { |k| mat.set_attribute(OpenCutList::DICT_NAME, k, want[k]) }
-            end
-            n += 1
-          end
-        end
-        n
       end
 
       # Scribes on for every unit with the job's runouts (as the Scribe window's Apply), then after.

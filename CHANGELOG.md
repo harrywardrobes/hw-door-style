@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.78.1 — 2026-10-22
+- A plugin colour is always ready for the cut list: when a job uses one of the plugin's colours (Colours window, or placing a unit), its OpenCutList settings are written on the spot, and the Workshop writes any that are still missing before it builds the lists. No more "set them up in OpenCutList" question for a known colour.
+- Workshop > Before you start: a colour the plugin doesn't know is listed by name, and the fix opens the Colours window to change it to a plugin colour.
+
 ## 0.78.0 — 2026-10-22
 - New rooms start with every runout at 0 (Settings > Job), so they have to be measured in by hand in Room settings. The first time they're set the scribes go on with them.
 - Workshop: "Runouts not set" is in the Before you start box (it opens Room settings) and the workshop pack can't be saved while any job runout is still 0.

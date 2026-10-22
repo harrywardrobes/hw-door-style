@@ -144,6 +144,7 @@ module HarryWardrobes
           m.texture.size = [size, size] if m.texture
         end
         m.set_attribute(DICT, 'library', true)
+        OpenCutList.ensure!(model) if defined?(OpenCutList)
         m
       end
 

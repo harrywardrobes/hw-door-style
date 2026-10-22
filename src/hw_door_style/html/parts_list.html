@@ -370,7 +370,7 @@ function showChecks(list){
   var h = '<h3>Before you start - ' + fixable.length + ' thing(s) to put right</h3><div class="hint" style="margin:0">Fix them in one click; the Workshop window then opens again with the corrected lists.</div>';
   list.forEach(function(c){
     if (c.info) { h += '<div class="chk" style="color:var(--muted)">' + esc(c.text) + '</div>'; return; }
-    h += '<div class="chk"><label><input type="checkbox" data-fix="' + c.id + '" checked style="width:auto;margin-top:2px"><span><b>' + esc(c.text) + '</b><br>' + esc(c.fix || 'Set them up in OpenCutList as below:') + '</span></label>';
+    h += '<div class="chk"><label><input type="checkbox" data-fix="' + c.id + '" checked style="width:auto;margin-top:2px"><span><b>' + esc(c.text) + '</b><br>' + esc(c.fix || '') + '</span></label>';
     if (c.colours) h += '<table><tr><th>Colour</th><th class="n">Parts</th><th>Set up as</th></tr>' + c.colours.map(function(m, i){
       return '<tr><td>' + esc(m.name) + (m.known ? ' <span class="hint" style="margin:0">(' + esc(m.known) + ')</span>' : '') + '</td><td class="n">' + m.count + '</td><td><select data-col="' + esc(m.name) + '">' +
         [['sheet', 'Sheet good (board)'], ['hardware', 'Hardware'], ['', 'Leave out']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === m.default ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></td></tr>';

@@ -331,6 +331,11 @@ module HarryWardrobes
       end
 
       def self.generate(model = Sketchup.active_model)
+        # a plugin colour that OpenCutList doesn't know yet is set up on the spot (never a question)
+        unless defined?(LibraryExport) && LibraryExport.master?(model)
+          set = OpenCutList.ensure!(model)
+          Log.info("OpenCutList settings written for #{set.join(', ')}") unless set.empty?
+        end
         opts = cutlist_options(model)
         @pieces = {} # entity id -> the placed piece, so part numbers can be kept on it
         found = []
@@ -927,10 +932,15 @@ module HarryWardrobes
             UI.start_timer(0.3, false) { Pencil.show(model, nil) }
             next
           end
+          if req['colours']
+            # colours the plugin doesn't know: change them in the Colours window, then reopen
+            dlg.close
+            UI.start_timer(0.3, false) { ColoursWindow.show }
+            next
+          end
           begin
             Workshop.fix_hinges(model) if req['hinges']
             Workshop.set_job_colours(model, req['job_colours']) unless (req['job_colours'] || {}).empty?
-            Workshop.set_colours(model, req['colours'] || {}) unless (req['colours'] || {}).empty?
             if req['scribes']
               dlg.execute_script("$('status').textContent = 'Turning scribes on...'")
               Workshop.scribes_on(model, reopen) or reopen.call

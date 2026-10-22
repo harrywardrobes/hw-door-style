@@ -188,6 +188,25 @@ module HarryWardrobes
         rep
       end
 
+      # Every plugin material in the model that OpenCutList knows nothing about yet gets the
+      # plugin's settings (a different setting of yours is left alone). Returns the names set.
+      # Called by the Colours window and the Workshop, so a known colour is always ready.
+      def self.ensure!(model)
+        set = []
+        desired.each do |name, want|
+          mat = model.materials[name] or next
+          next unless state(mat, want) == :missing
+          mat.set_attribute(DICT_NAME, 'type', want['type'])
+          if want['type'] == SHEET
+            mat.set_attribute(DICT_NAME, 'std_thicknesses', want['std_thicknesses'])
+            mat.set_attribute(DICT_NAME, 'std_sizes', want['std_sizes'])
+            mat.set_attribute(DICT_NAME, 'grained', want['grained'])
+          end
+          set << name
+        end
+        set
+      end
+
       # --- checks for the Cut list section ----------------------------------------------
 
       def self.warnings(model = Sketchup.active_model)
