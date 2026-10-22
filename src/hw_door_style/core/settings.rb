@@ -39,11 +39,11 @@ module HarryWardrobes
 
       # Settings files carry this; a file from an older plugin isn't converted - unknown keys
       # are dropped and the shipped defaults fill the rest.
-      SETTINGS_VERSION = 17
+      SETTINGS_VERSION = 18
 
       # Settings whose shipped value replaced a saved one: a file older than the version
       # listed drops those keys, so the new default applies (the rest of the file is kept).
-      RESHIPPED = { 12 => %w[product_ref_names], 13 => %w[product_components], 14 => %w[components], 15 => %w[runout_defaults_mm], 16 => %w[label_display_names drawer_runner_type], 17 => %w[components product_depth_keys] }.freeze
+      RESHIPPED = { 12 => %w[product_ref_names], 13 => %w[product_components], 14 => %w[components], 15 => %w[runout_defaults_mm], 16 => %w[label_display_names drawer_runner_type], 17 => %w[components product_depth_keys], 18 => %w[components] }.freeze
 
       def self.clean(user, d)
         ver = user['settings_version'].to_i
@@ -142,7 +142,7 @@ module HarryWardrobes
       ROLES = {
         'unit' => 'Unit - a product of its own', 'joiner' => 'Part of a product', 'internal' => 'Internal - inside a unit',
         'skip' => 'Never a product', 'door' => 'Door', 'ext_drawer' => 'Drawer front', 'int_drawer' => 'Internal drawer front',
-        'fixed_panel' => 'Fixed panel (flat, no hinges)', 'room' => 'Room (floor / ceiling)'
+        'fixed_panel' => 'Fixed panel (flat, no hinges)', 'room' => 'Room (floor / ceiling / walls)'
       }.freeze
 
       def self.components(s = get)

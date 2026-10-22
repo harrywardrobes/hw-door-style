@@ -196,6 +196,8 @@
     <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
     <div class="f" style="grid-template-columns:150px 70px 70px 70px"><span>Template room (mm)</span><input type="number" id="room_w" placeholder="width"><input type="number" id="room_l" placeholder="length"><input type="number" id="room_c" placeholder="ceiling"></div>
     <div class="hint">The job template (saved with the export, the Room rows only) has its floor and ceiling at this size - width, length, ceiling. Room setup still asks for each job's room, starting blank.</div>
+    <div class="f"><span>Wall thickness (mm)</span><input type="number" id="wall_thickness_mm" min="0" step="1" style="width:90px"></div>
+    <div class="hint">The back, left and right walls (back_wall / left_wall / right_wall) are sized round the floor with the room: this thick, floor to ceiling. Like the floor and ceiling they're never products, parts or exports.</div>
   </fieldset>
 </section>
 
@@ -429,7 +431,7 @@
 var S = /*DATA*/null;
 var LISTS = ['label_aggregate_names','drawer_box_parts'];
 var LOWER_LISTS = ['survey_questions', 'product_depth_keys'];
-var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','drawer_front_mm','drawer_front_sm_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
+var NUMS = ['wall_thickness_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','drawer_front_mm','drawer_front_sm_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
 var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', local_folder:'C:/Users/User/Documents/Harry Wardrobes', team_folder:'H:/Shared drives/Harry Wardrobes/8_SKETCHUP/HW Plugin', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];

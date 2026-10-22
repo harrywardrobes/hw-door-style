@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.84.0 — 2026-10-22
+- Room walls: back_wall, left_wall and right_wall are sized with the room whenever it's set (Room setup, Room settings): the back wall behind the floor and across the corners, left and right the floor's length, all floor to ceiling, Settings > Components "Wall thickness" thick (300 mm). Like the floor and ceiling they're Room rows in the component table - never products, parts, labels or library exports, and kept in the job template.
+- The parts list leaves every room part out by name, not just because it has no colour (a painted wall for a render no longer turns up as an unknown colour).
+
 ## 0.83.3 — 2026-10-22
 - Fixed: tabs opening empty / slowly (the Product List blank). Swapping a page into the open window left the page unable to talk back to the plugin in SketchUp 2026 - it never got its data. Each tab now opens as a new window in the same place (sized to the page, centred) and the old one closes a moment later: Doors in under a second, the Workshop in a third of a second when nothing has changed.
 

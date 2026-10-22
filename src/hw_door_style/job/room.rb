@@ -16,6 +16,15 @@ module HarryWardrobes
       PREF_JOBS = 'jobs_folder'.freeze
       FLOOR = /\Afloor\z/i.freeze
       CEILING = /\Aceiling\z/i.freeze
+      # The walls round the room: the back one behind the floor, left and right either side,
+      # each Settings "wall_thickness_mm" thick, floor to ceiling. Named back_wall / left_wall /
+      # right_wall (or with a space).
+      WALLS = { back: /\Aback[ _]wall\z/i, left: /\Aleft[ _]wall\z/i, right: /\Aright[ _]wall\z/i }.freeze
+
+      def self.wall_mm
+        v = Settings.get['wall_thickness_mm'].to_f
+        v.positive? ? v : 300.0
+      end
 
       # The size the template's floor and ceiling are saved at (Settings "room_default_mm").
       # Only the template: a new job's Room setup starts blank.
@@ -44,7 +53,20 @@ module HarryWardrobes
       end
 
       def self.parts(model)
-        { floor: part(model, FLOOR), ceiling: part(model, CEILING) }
+        { floor: part(model, FLOOR), ceiling: part(model, CEILING) }.merge(WALLS.to_h { |k, re| [k, part(model, re)] })
+      end
+
+      # Sizes a part to w x l x h (inches; nil = leave that one) with its corner at x, y, z.
+      def self.box(inst, w, l, h, x, y, z)
+        b = inst.bounds
+        s = [[w, b.width], [l, b.height], [h, b.depth]].map { |want, have| want && have > 0.001 ? want / have : 1.0 }
+        if s.any? { |v| (v - 1).abs > 1e-6 }
+          inst.transformation = Geom::Transformation.scaling(b.min, *s) * inst.transformation
+        end
+        b = inst.bounds
+        move = Geom::Vector3d.new(x - b.min.x, y - b.min.y, z - b.min.z)
+        inst.transform!(Geom::Transformation.translation(move)) if move.length > 0.0001
+        inst
       end
 
       # Stretches a part in X / Y (like the Scale tool, about its corner) and moves its
@@ -88,16 +110,38 @@ module HarryWardrobes
           z = r['ceiling'] ? (fb ? fb.max.z : 0) + r['ceiling'] / 25.4 : nil
           fit(p[:ceiling], w, l, x, y, z)
         end
+        walls(p, fb, r['ceiling'])
         model.set_attribute(DICT, KEY, JSON.generate(r))
         model.set_attribute(DICT, 'ceiling_mm', r['ceiling']) if r['ceiling']
         r
+      end
+
+      # The walls round the floor (fb: its bounds): back behind it (across the corners, so the
+      # room is closed in plan), left and right the floor's length, all from the floor's
+      # underside to the ceiling.
+      def self.walls(p, fb, ceiling_mm)
+        return unless fb
+        t = wall_mm / 25.4
+        z0 = fb.min.z
+        top = ceiling_mm ? fb.max.z + ceiling_mm.to_f / 25.4 : nil
+        h = ->(inst) { top ? top - z0 : inst.bounds.depth }
+        box(p[:back], fb.width + 2 * t, t, h.call(p[:back]), fb.min.x - t, fb.max.y, z0) if p[:back]
+        box(p[:left], t, fb.height, h.call(p[:left]), fb.min.x - t, fb.min.y, z0) if p[:left]
+        box(p[:right], t, fb.height, h.call(p[:right]), fb.max.x, fb.min.y, z0) if p[:right]
+      end
+
+      # A room part (floor, ceiling, a wall): never a product, a part or an export.
+      def self.part?(e)
+        return false unless e.respond_to?(:definition) || e.is_a?(Sketchup::Group)
+        n = base(e)
+        [FLOOR, CEILING, *WALLS.values].any? { |re| n =~ re || e.name.to_s =~ re }
       end
 
       # --- asking when a file is opened ------------------------------------------
 
       # Nothing in it but the template's floor / ceiling (a new job).
       def self.blank?(model)
-        model.path.to_s.empty? && model.entities.all? { |e| (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) && (base(e) =~ FLOOR || base(e) =~ CEILING) }
+        model.path.to_s.empty? && model.entities.all? { |e| (e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)) && part?(e) }
       end
 
       def self.ask?(model)

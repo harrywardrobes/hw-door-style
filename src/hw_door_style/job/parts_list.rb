@@ -257,6 +257,7 @@ module HarryWardrobes
         tags = Settings.get['ignore_tags']
         tags = Array(tags).map { |t| t.to_s.downcase }.reject(&:empty?)
         path.any? do |e|
+          next true if defined?(Room) && Room.part?(e) # floor, ceiling, walls
           next true if tags.include?(e.layer.name.to_s.downcase)
           next false unless e.respond_to?(:definition)
           p = e.definition.path.to_s.tr('\\', '/').downcase

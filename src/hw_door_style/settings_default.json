@@ -368,6 +368,21 @@
       "product": "Cover with worktop",
       "letter": "",
       "depth": 256
+    },
+    "BACK_WALL": {
+      "role": "room",
+      "product": "Back wall",
+      "letter": ""
+    },
+    "LEFT_WALL": {
+      "role": "room",
+      "product": "Left wall",
+      "letter": ""
+    },
+    "RIGHT_WALL": {
+      "role": "room",
+      "product": "Right wall",
+      "letter": ""
     }
   },
   "product_depth_keys": [
@@ -466,7 +481,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 17,
+  "settings_version": 18,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",
@@ -524,5 +539,6 @@
     "length": 3000,
     "ceiling": 2400
   },
-  "setup_done": ""
+  "setup_done": "",
+  "wall_thickness_mm": 300
 }
