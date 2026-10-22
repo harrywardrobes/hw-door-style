@@ -274,6 +274,9 @@ module HarryWardrobes
           new_inst.set_attribute(DC::DICT_NAME, k, cur.is_a?(String) ? v.to_s : DC.plain(v))
         end
         custom_depth = Depth.has?(old) && Depth.mm(old) && (Depth.mm(old) - Depth.target(old, model)).abs >= 1 ? Depth.mm(old) : nil
+        # the height as it was (a height worked out from the stretched size - CURRENT("LenZ") -
+        # isn't carried by its value: the new unit is stretched to it below)
+        old_height = Ceiling.height_key(old) ? Ceiling.height_mm(old) : nil
 
         # 2. plugin attributes (Pod number, joins, plan notes...) and the parts joined to it
         old_pid = old.persistent_id.to_s
@@ -290,6 +293,14 @@ module HarryWardrobes
         # 3. the job on it, as the + window does; then a depth that had been changed
         job = { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model), 'front' => DrawerFront.job(model) }
         notes = ComponentPicker.setup(model, new_inst, job, depth: custom_depth, redraw: !carried.empty?)
+        # height kept - unless it's scribed to the ceiling (the job's ceiling sets that)
+        if old_height.to_f.positive? && Ceiling.height_key(new_inst) && !(Ceiling.up_to_ceiling?(new_inst) && job['ceiling'].to_f.positive?)
+          cur = Ceiling.height_mm(new_inst)
+          if cur.nil? || (cur - old_height).abs >= 0.5
+            Ceiling.fit(new_inst, old_height)
+            notes << "height #{old_height.round} kept"
+          end
+        end
         line_up(new_inst, old_box)
         notes << "depth #{custom_depth.round} kept" if custom_depth && Depth.has?(new_inst)
         notes.unshift("#{carried.size} option(s) carried")

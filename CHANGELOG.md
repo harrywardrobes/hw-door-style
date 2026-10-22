@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.87.3 — 2026-10-22
+- Replace with: the height is kept. A height worked out from the unit's stretched size (the wardrobes' Height) was carried as a value only, which the component then worked out again - so the new unit came in at its own default (e.g. 2420). The new unit is now stretched to the old height. Units Scribed To Ceiling still take the job's ceiling height.
+
 ## 0.87.2 — 2026-10-22
 - Export components: DC's scratch values ("_inst_x / _inst_z" - the last copy's position, which a hinge used in every unit keeps on its definition) are left out of the check, so changing the scribes on one unit doesn't mark the others changed.
 
