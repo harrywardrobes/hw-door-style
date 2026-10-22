@@ -126,8 +126,10 @@ module HarryWardrobes
           unless sel
             Ops.run(model, 'Room size') { Room.apply(model, width: room_w, length: room_l, ceiling: ceil) }
           end
-          # Scribes off: keep the runouts as the job's values, leave the units at 0.
-          run = sel || scribes ? v : nil
+          # Scribes off: keep the runouts as the job's values, leave the units at 0 - unless this is
+          # the first time they're set (a new room starts at 0), when they go on straight away.
+          first = !sel && !scribes && Runouts.unset(model).size == Runouts::SIDES.size
+          run = sel || scribes || first ? v : nil
           if sel
             Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / facing / drawer fronts updated on #{targets.size} unit(s).", facing: facing, front: front)
           else
@@ -135,6 +137,7 @@ module HarryWardrobes
                           "Room settings: #{v ? "runouts #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm#{scribes ? '' : ' (kept for when scribes are switched on)'}. " : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm#{front ? ", drawer fronts #{front['main'].to_f.round} / small #{front['small'].to_f.round} mm" : ''}.",
                           ceiling: ceil, facing: facing, depth: !dep.nil?, front: front,
                           before: lambda {
+                            model.set_attribute(DICT, 'scribe_on', true) if first
                             model.set_attribute(DICT, 'scribe_values', JSON.generate(v)) if v
                             model.set_attribute(DICT, 'ceiling_mm', ceil)
                             model.set_attribute(DICT, 'depth_job', JSON.generate(dep)) if dep

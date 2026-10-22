@@ -40,7 +40,7 @@ module HarryWardrobes
 
       def self.defaults
         d = Settings.get['runout_defaults_mm'] || {}
-        SIDES.to_h { |s, _, _| [s, (d[s] || 25).to_f] }
+        SIDES.to_h { |s, _, _| [s, (d[s] || 0).to_f] }
       end
 
       # Last values used on this job (mm), else the Settings defaults.
@@ -179,6 +179,12 @@ module HarryWardrobes
             Doors.refit(model, inst)
           end
         end
+      end
+
+      # Sides whose job runout is still 0 (new rooms start at 0: they have to be set by hand).
+      def self.unset(model = Sketchup.active_model)
+        v = job_values(model)
+        SIDES.filter_map { |s, _, _| s if v[s].to_f <= 0 }
       end
 
       # Pencil pressed again: every unit back to the job's runouts (Room settings sets them).

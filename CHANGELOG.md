@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.78.0 — 2026-10-22
+- New rooms start with every runout at 0 (Settings > Job), so they have to be measured in by hand in Room settings. The first time they're set the scribes go on with them.
+- Workshop: "Runouts not set" is in the Before you start box (it opens Room settings) and the workshop pack can't be saved while any job runout is still 0.
+
 ## 0.77.1 — 2026-10-22
 - Room settings: the runouts are at the top of the window.
 

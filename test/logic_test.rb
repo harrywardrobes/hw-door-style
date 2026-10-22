@@ -282,7 +282,7 @@ require 'hw_door_style/job/ceiling'
 require 'hw_door_style/job/pencil'
 RO = Runouts
 PN = Pencil
-check 'runout defaults 25 all sides', RO.defaults.values.uniq == [25.0] && RO.defaults.keys == %w[floor ceiling left right back]
+check 'runout defaults 0 all sides (set by hand per room)', RO.defaults.values.uniq == [0.0] && RO.defaults.keys == %w[floor ceiling left right back]
 h = { 'j01_runout_floor' => '1', 'runout_ceiling' => '2', 'a01_frame_width' => 3, 'zz_runout_back' => 4 }
 check 'prefixed key found', DC.key_in(h, 'runout_floor') == 'j01_runout_floor' && DC.key_in(h, 'frame_width') == 'a01_frame_width'
 check 'plain key still found', DC.key_in(h, 'runout_ceiling') == 'runout_ceiling'
@@ -682,6 +682,7 @@ check 'settings page: 7 tabs, General first, component table, no products editor
 sc = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html'))
 check 'drawer front height: pencil field, job default 228, module loaded with the plugin', sc.include?('id="front"') && sc.include?('o.front') && HarryWardrobes::DoorStyle::Settings.defaults['drawer_front_mm'] == 228 && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'main.rb')).include?('job/drawer_front')
 check 'room settings: small drawer fronts row, room icon, pencil is on/off', sc.include?('id="small"') && File.exist?(File.join(HarryWardrobes::DoorStyle::PATH, 'icons/room.svg')) && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'ui/menus.rb')).include?(':pencil, :room') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/pencil.rb')).include?('Runouts.all_on(model)') && HarryWardrobes::DoorStyle::Settings.defaults['drawer_front_sm_mm'] == 142
+check 'new rooms: every runout 0 by default; workshop blocks on unset runouts', HarryWardrobes::DoorStyle::Settings.defaults['runout_defaults_mm'].values.all?(&:zero?) && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/workshop.rb')).include?('Runouts not set') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')).include?("runouts: !!on('runouts')")
 check 'products and setup pages wired up', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/products.html')).include?('sketchup.prodSave') && %w[sketchup.fix sketchup.finish setChecks].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/setup.html')).include?(w) }
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 

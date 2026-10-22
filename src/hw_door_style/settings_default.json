@@ -389,11 +389,11 @@
     150
   ],
   "runout_defaults_mm": {
-    "floor": 25,
-    "ceiling": 25,
-    "left": 25,
-    "right": 25,
-    "back": 25
+    "floor": 0,
+    "ceiling": 0,
+    "left": 0,
+    "right": 0,
+    "back": 0
   },
   "facing_bottom_mm": 79,
   "drawer_front_mm": 228,
@@ -471,7 +471,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 14,
+  "settings_version": 15,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",

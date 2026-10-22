@@ -921,6 +921,12 @@ module HarryWardrobes
                    else
                      reopen0
                    end
+          if req['runouts']
+            # measured in by hand: Room settings, not reopened (open the Workshop again after)
+            dlg.close
+            UI.start_timer(0.3, false) { Pencil.show(model, nil) }
+            next
+          end
           begin
             Workshop.fix_hinges(model) if req['hinges']
             Workshop.set_job_colours(model, req['job_colours']) unless (req['job_colours'] || {}).empty?

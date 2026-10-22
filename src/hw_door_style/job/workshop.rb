@@ -106,7 +106,13 @@ module HarryWardrobes
           out << { 'id' => 'internals', 'text' => "#{loose.size} wardrobe internal(s) aren't inside a tall unit, so they have no Pod number: #{loose.map { |l| "#{l['name']} at x #{l['x']}" }.first(6).join(', ')}#{loose.size > 6 ? '...' : ''}. Move each into its wardrobe, or put it in one on the Product List tab." }
         end
         units = Runouts.units(model.entities)
-        if !parts['scribes_on'] && !units.empty?
+        unset = Runouts.unset(model)
+        master = defined?(LibraryExport) && LibraryExport.master?(model)
+        if !unset.empty? && !units.empty? && !master
+          out << { 'id' => 'runouts', 'text' => "Runouts not set for this room: #{unset.join(', ')} still 0 mm.",
+                   'fix' => 'Open Room settings to measure them in (the Workshop window closes; open it again after).' }
+        end
+        if unset.empty? && !parts['scribes_on'] && !units.empty?
           v = Runouts.job_values(model)
           out << { 'id' => 'scribes', 'text' => 'Scribes are OFF (every runout 0) - panel sizes may be wrong.',
                    'fix' => "Turn scribes on for #{units.size} unit(s): #{Runouts::SIDES.map { |s, _, l| "#{l.sub(/\ARunout - /, '').sub(' (mm)', '')} #{v[s].round}" }.join(', ')} mm" }
@@ -177,7 +183,9 @@ module HarryWardrobes
         end
         wh = wrong_hinges(model).size
         out << "#{wh} door(s) have the wrong hinges - redraw them (Before you start box, or right-click > Rebuild selected)." if wh.positive?
-        out << 'Scribes are OFF - turn them on (every runout is 0).' if !parts['scribes_on'] && !Runouts.units(model.entities).empty?
+        unset = Runouts.unset(model)
+        out << "Runouts not set: #{unset.join(', ')} still 0 mm - set them in Room settings." if !unset.empty? && !Runouts.units(model.entities).empty?
+        out << 'Scribes are OFF - turn them on (every runout is 0).' if unset.empty? && !parts['scribes_on'] && !Runouts.units(model.entities).empty?
         li = Array(parts['loose_internals']).size
         out << "#{li} wardrobe internal(s) aren't inside a tall unit (no Pod number) - move them into their wardrobe." if li.positive?
         n = Array(parts['untyped']).sum { |u| u['count'].to_i }

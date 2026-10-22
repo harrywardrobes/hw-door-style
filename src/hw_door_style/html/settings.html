@@ -291,7 +291,7 @@
       <div class="f"><span>Left</span><input type="number" id="rd_left"></div>
       <div class="f"><span>Right</span><input type="number" id="rd_right"></div>
     </div>
-    <div class="hint">Defaults used the first time the pencil is pressed on a job (mm).</div>
+    <div class="hint">What a new room starts with (mm) - 0 means it has to be set in Room settings; the workshop pack can't be saved with any runout at 0.</div>
   </fieldset>
   <fieldset><legend>Bottom facing</legend>
     <div class="f" style="grid-template-columns:190px 80px"><span>Default bottom facing (mm)</span><input type="number" id="facing_bottom_mm"></div>
@@ -490,7 +490,7 @@ function load(s){
   $('hardware_tags').value = Object.keys(ht).map(function(t){ return t + ': ' + (ht[t]||[]).join(', '); }).join('\n');
   $('runout_values_mm').value = (s.runout_values_mm || []).join(', ');
   var rd = s.runout_defaults_mm || {};
-  SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 25 : rd[k]); });
+  SIDES.forEach(function(k){ $('rd_'+k).value = (rd[k] == null ? 0 : rd[k]); });
   $('plan_messages').value = (s.plan_messages || []).join('\n');
   var ldn = s.label_display_names || {};
   $('label_display_names').value = Object.keys(ldn).map(function(k){ return k + ': ' + ldn[k]; }).join('\n');
@@ -561,7 +561,7 @@ function collect(){
   o.panels_22_default = $('panels_22_default').value;
   o.runout_values_mm = $('runout_values_mm').value.split(',').map(function(x){ return parseFloat(x); }).filter(function(x){ return x > 0; });
   o.runout_defaults_mm = {};
-  SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 25 : v; });
+  SIDES.forEach(function(k){ var v = parseFloat($('rd_'+k).value); o.runout_defaults_mm[k] = isNaN(v) ? 0 : v; });
   o.colour_library = LIB.map(function(c){ var d = { name: String(c.name || '').trim() || 'Colour', rgb: c.rgb }; if (c.texture) { d.texture = c.texture; d.size_mm = c.size_mm || 600; } if (c.only) d.only = c.only; return d; });
   o.plan_messages = $('plan_messages').value.split('\n').map(function(x){ return x.trim(); }).filter(Boolean);
   o.label_display_names = {};
