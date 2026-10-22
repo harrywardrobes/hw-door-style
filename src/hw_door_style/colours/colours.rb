@@ -176,7 +176,10 @@ module HarryWardrobes
 
       def self.group_tags
         g = Settings.get['colour_groups'] || {}
-        g.transform_values { |list| Array(list).map { |t| t.to_s.strip.upcase } }
+        out = g.transform_values { |list| Array(list).map { |t| t.to_s.strip.upcase } }
+        # the fronts' own tags are always the door colour (the stable panel's tag too)
+        out['door'] = (Array(out['door']) + [Settings.get['door_tag'], Settings.get['drawer_tag'], Settings.get['fixed_panel_tag'] || 'STABLE_PANEL'].compact.map { |t| t.to_s.strip.upcase }).uniq
+        out
       end
 
       # The tag of the other copies of the same part next to it (same parent, same part name),

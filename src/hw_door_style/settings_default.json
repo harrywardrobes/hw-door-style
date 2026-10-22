@@ -107,6 +107,7 @@
   "handles_on_internal_drawers": true,
   "handles_on_pto_doors": false,
   "door_tag": "DOOR",
+  "fixed_panel_tag": "STABLE_PANEL",
   "drawer_tag": "DRAWER_FRONT",
   "door_view_tag": "door_elevation",
   "hinge_tag": "hinges",

@@ -207,9 +207,8 @@ module HarryWardrobes
         styles = DoorStyleWindow.job_styles(model)
         Ops.run(model, 'Draw doors in the job style') do
           pairs.group_by { |_i, k| styles[k.to_s] }.each { |style, ps| Converter.rebuild(model, ps, style, override: false, finish: false) }
-          door_tag = Tagger.tag_for(model, :door)
           pairs.each do |i, k|
-            i.layer = door_tag if k == :door && i.layer != door_tag
+            Tagger.tag_instance(i, k)
             Tagger.tag_item(i, k)
           end
           choices = Colours.job_choices(model).reject { |_k, v| v.nil? }

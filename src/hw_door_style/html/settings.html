@@ -233,6 +233,7 @@
   <fieldset><legend>Tags (Apply tags)</legend>
     <div class="f t"><span>Doors</span><input type="text" id="door_tag"></div>
     <div class="f t"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
+    <div class="f t"><span>Fixed panels (stable panel)</span><input type="text" id="fixed_panel_tag"></div>
     <div class="f t"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
     <div class="hint">Applied to the faces and edges inside each component.</div>
     <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4"></textarea></div>
@@ -433,7 +434,7 @@ var LISTS = ['label_aggregate_names','drawer_box_parts'];
 var LOWER_LISTS = ['survey_questions', 'product_depth_keys'];
 var NUMS = ['wall_thickness_mm','hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','drawer_front_mm','drawer_front_sm_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', local_folder:'C:/Users/User/Documents/Harry Wardrobes', team_folder:'H:/Shared drives/Harry Wardrobes/8_SKETCHUP/HW Plugin', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', fixed_panel_tag:'STABLE_PANEL', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', local_folder:'C:/Users/User/Documents/Harry Wardrobes', team_folder:'H:/Shared drives/Harry Wardrobes/8_SKETCHUP/HW Plugin', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]

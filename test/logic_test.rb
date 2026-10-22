@@ -1075,6 +1075,14 @@ check 'Colours: a DC copy made on Layer0 takes its twin\'s tag (so it gets its c
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'colours', 'colours.rb')).include?('if inst.layer == layer0 && (t = sibling_tag(inst, sib))')
 
 
+require 'hw_door_style/doors/tagger' unless defined?(HarryWardrobes::DoorStyle::Tagger)
+TGt = HarryWardrobes::DoorStyle::Tagger
+check 'Tags: doors DOOR, external and internal drawer fronts DRAWER_FRONT (not DOOR), the stable panel its own tag; all three in the door colour',
+      TGt.tag_name(:door) == 'DOOR' && TGt.tag_name(:ext_drawer) == 'DRAWER_FRONT' && TGt.tag_name(:int_drawer) == 'DRAWER_FRONT' &&
+      HarryWardrobes::DoorStyle::Settings.defaults['fixed_panel_tag'] == 'STABLE_PANEL' &&
+      HarryWardrobes::DoorStyle::Colours.group_tags['door'].include?('STABLE_PANEL') && HarryWardrobes::DoorStyle::Colours.group_tags['door'].include?('DRAWER_FRONT')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

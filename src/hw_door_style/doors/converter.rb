@@ -148,7 +148,7 @@ module HarryWardrobes
       def self.rebuild_definition(model, defn, job, instances, hinge_type, cache)
         ents = defn.entities
         w, t, h = job[:size]
-        tag = Tagger.tag_for(model, job[:kind])
+        tag = Tagger.tag_for(model, job[:kind], job[:inst])
 
         doomed = ents.select do |e|
           e.is_a?(Sketchup::Face) || e.is_a?(Sketchup::Edge) ||
@@ -157,7 +157,7 @@ module HarryWardrobes
         end
         ents.erase_entities(doomed) unless doomed.empty?
 
-        sdef, info = slab_definition(model, job[:style], job[:draw_kind] || job[:kind], w, t, h, cache, no_midrail: job[:plain])
+        sdef, info = slab_definition(model, job[:style], job[:draw_kind] || job[:kind], w, t, h, cache, no_midrail: job[:plain], tag: tag)
         si = ents.add_instance(sdef, Geom::Transformation.new)
         si.layer = tag
         si.set_attribute(DICT, 'role', 'style')
@@ -191,8 +191,12 @@ module HarryWardrobes
       end
 
       # One slab definition per (style, kind, size), shared between wrappers.
-      def self.slab_definition(model, style, kind, w, t, h, cache, no_midrail: false)
-        key = [style, kind, [w, t, h].map { |v| (v * 25.4 * 10).round }, Styles.signature(style), no_midrail ? 'nomid' : nil].compact.flatten.join('|')
+      # tag: the front's tag (its geometry goes on it too - a door and the stable panel the same
+      # size don't share a slab).
+      def self.slab_definition(model, style, kind, w, t, h, cache, no_midrail: false, tag: nil)
+        tag ||= Tagger.tag_for(model, kind)
+        key = [style, kind, [w, t, h].map { |v| (v * 25.4 * 10).round }, Styles.signature(style), no_midrail ? 'nomid' : nil,
+               tag.name == Tagger.tag_name(kind) ? nil : tag.name].compact.flatten.join('|')
         return cache[key] if cache[key]
 
         existing = model.definitions.find do |d|
@@ -214,7 +218,7 @@ module HarryWardrobes
         d.set_attribute(DICT, 'note', info[:note])
         d.description = "#{Styles.label(info[:style])} #{Finder.mm_s(w)} x #{Finder.mm_s(h)} mm"
         slab_attrs([d], kind, info[:style], w, t, h)
-        Tagger.tag_geometry(d.entities, Tagger.tag_for(model, kind))
+        Tagger.tag_geometry(d.entities, tag)
         OpenCutList.mark_new_part(d) # bought-in: off the cutting diagrams
         cache[key] = [d, info]
       end

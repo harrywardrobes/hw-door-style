@@ -316,9 +316,8 @@ module HarryWardrobes
             pairs.group_by { |_i, k| styles[k.to_s] }.each do |style, ps|
               Converter.rebuild(model, ps, style, override: false, finish: false)
             end
-            door_tag = Tagger.tag_for(model, :door)
             pairs.each do |i, k|
-              i.layer = door_tag if k == :door && i.layer != door_tag
+              Tagger.tag_instance(i, k)
               Tagger.tag_item(i, k)
             end
             Tagger.tag_hardware(model, definitions_in(inst))

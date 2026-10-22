@@ -42,8 +42,27 @@ module HarryWardrobes
         model.layers[name] || model.layers.add(name)
       end
 
-      def self.tag_for(model, kind)
-        layer(model, kind == :door ? Settings.get['door_tag'] : Settings.get['drawer_tag'])
+      # The tag for a front: doors DOOR, drawer fronts (external and internal) DRAWER_FRONT, a
+      # fixed panel (the stable panel) its own (Settings "fixed_panel_tag") - so hiding the doors
+      # hides only the doors (and their hinges).
+      def self.tag_name(kind, inst = nil)
+        if kind == :door && inst && Finder.fixed?(inst)
+          n = Settings.get['fixed_panel_tag'].to_s.strip
+          return n.empty? ? 'STABLE_PANEL' : n
+        end
+        kind == :door ? Settings.get['door_tag'] : Settings.get['drawer_tag']
+      end
+
+      def self.tag_for(model, kind, inst = nil)
+        layer(model, tag_name(kind, inst))
+      end
+
+      # The front itself on its tag. True if it changed.
+      def self.tag_instance(inst, kind)
+        tag = tag_for(inst.model, kind, inst)
+        return false if inst.layer == tag
+        inst.layer = tag
+        true
       end
 
       # Faces and edges only. Returns the number of entities changed.
@@ -60,7 +79,7 @@ module HarryWardrobes
 
       # Raw geometry in the item's definition, plus our nested style part and its geometry.
       def self.tag_item(inst, kind)
-        tag = tag_for(inst.model, kind)
+        tag = tag_for(inst.model, kind, inst)
         d = inst.definition
         n = tag_geometry(d.entities, tag)
         d.entities.grep(Sketchup::ComponentInstance).each do |c|
@@ -75,13 +94,10 @@ module HarryWardrobes
       def self.tag_all(model)
         seen = {}
         n = 0
-        door_tag = tag_for(model, :door)
         Finder.all_targets(model, [:door, :ext_drawer, :int_drawer]).each do |inst, kind|
-          # The door itself on DOOR too, so hiding DOOR (e.g. scene "D internal") hides its hinges.
-          if kind == :door && inst.layer != door_tag
-            inst.layer = door_tag
-            n += 1
-          end
+          # The front itself on its tag too: doors on DOOR (so hiding DOOR, e.g. scene "D internal",
+          # hides their hinges), drawer fronts on DRAWER_FRONT, the stable panel on its own.
+          n += 1 if tag_instance(inst, kind)
           next if seen[inst.definition.entityID]
           seen[inst.definition.entityID] = true
           n += tag_item(inst, kind)

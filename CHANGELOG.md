@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.88.2 — 2026-10-23
+- Tags: external drawer fronts go on DRAWER_FRONT (they were on DOOR, so hiding the doors hid them too); the stable panel goes on its own tag, STABLE_PANEL (Settings > Tags > Fixed panels) - its geometry too. Doors stay on DOOR with their hinges. Both tags take the door colour.
+
 ## 0.88.1 — 2026-10-23
 - Colours: the extra copies Dynamic Components make of a part (e.g. the knee hole's back panel pieces) are made on Layer0, so they got no colour. When colours are applied, a copy on Layer0 now takes the tag of the other copies of the same part beside it (when they all share one), then its colour - and it shows / hides with that tag in the scenes.
 
