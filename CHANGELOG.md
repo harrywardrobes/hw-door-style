@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.77.1 — 2026-10-22
+- Room settings: the runouts are at the top of the window.
+
 ## 0.77.0 — 2026-10-22
 - The pencil (Scribes on / off) is a plain switch: pressed sets every runout to 0, pressed again puts the job's runouts back - no window.
 - New Room settings button (cog with the pencil in front, next to it): runouts, bottom facing, drawer fronts, small drawer fronts, ceiling height, depth and room size for the whole job. It never switches the scribes: with them off, the runouts you set are kept for when you switch them on.
