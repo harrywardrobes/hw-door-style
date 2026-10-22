@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.83.0 — 2026-10-22
+- One job window: Add, Colours, Doors, Room settings, Workshop and HubSpot are tabs (icons along the top) of a single window - opening any of them (toolbar, menu, right-click, Fix this) swaps the page into that window, which resizes to the page, stays centred and fades in. Settings, Export and the other tools stay separate windows. (SketchUp can't lock the model while a window is open; the one window keeps the job's pages together and on top.)
+- Workshop: the "Before you start" box is gone - the red list at the top (with Fix this) replaces it; what used to be its non-blocking items (units not at the job's settings - with Fix this, components not in the table, a wall set where another unit sits) sit under it in amber with the other advice.
+- Fix this: after the page's Apply has finished (runouts, colours, doors, handles, sheet sizes, HubSpot link) - or Cancel - the Workshop comes back by itself with the lists recalculated.
+
 ## 0.82.0 — 2026-10-22
 - Workshop: when the Workshop Pack can't be saved, every reason is listed at the top in red, each with a Fix this button. It opens the window that puts it right with the field to fill in outlined and a note saying what to do: handles → Door style window (the handle pickers), runouts / ceiling → Room settings (those rows), colours → Colours window (the job colours not chosen), sheet sizes → Settings > Workshop, HubSpot link → the link window. Sheets to enter and loose internals jump to that tab in the Workshop; redraws (unstyled / resized doors, wrong hinges) and scribes on are done straight away. Pressing Save Workshop Pack while it's blocked flashes the list. The yellow Check box now only holds warnings that don't stop the pack.
 

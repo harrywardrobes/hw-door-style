@@ -901,8 +901,8 @@ module HarryWardrobes
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
           data['job_info'] = JobInfo.get(model)
           data['pdfs'] = Workshop.pdfs(model)
-          data['checks'] = (Workshop.checks(model, data) rescue (Log.error('workshop checks', $!); []))
           data['blockers'] = Workshop.blockers(model, data)
+          data['warnings'] = Workshop.warnings(model, data)
           label_parts.call
         end
         dlg = Dialog.open('parts_list', title: 'HW - Workshop', key: 'hw_parts_list', width: 1060, height: 740, data: nil)
@@ -913,68 +913,13 @@ module HarryWardrobes
         end
         dlg.add_action_callback('ready') { |_c| reload.call }
         dlg.add_action_callback('refresh') { |_c| reload.call }
-        # The checks prompt: fix what was ticked in one go, then open the window again.
-        dlg.add_action_callback('fixChecks') do |_c, json|
-          req = JSON.parse(json)
-          reopen0 = lambda do
-            dlg.close
-            UI.start_timer(0.3, false) { PartsList.show }
-          end
-          # linking to HubSpot last (its own window); the Workshop reopens after it either way
-          reopen = if req['hubspot']
-                     lambda do
-                       dlg.close
-                       UI.start_timer(0.3, false) do
-                         PartsList.show
-                         HubSpotRoom.show_pick(:link, after: -> { PartsList.show })
-                       end
-                     end
-                   else
-                     reopen0
-                   end
-          if req['runouts'] || req['ceiling']
-            # measured in by hand: Room settings, not reopened (open the Workshop again after)
-            dlg.close
-            UI.start_timer(0.3, false) { Pencil.show(model, nil) }
-            next
-          end
-          if req['colours']
-            # colours the plugin doesn't know / job colours not applied: the Colours window, then reopen
-            dlg.close
-            UI.start_timer(0.3, false) { ColoursWindow.show }
-            next
-          end
-          begin
-            Workshop.fix_hinges(model) if req['hinges']
-            Workshop.fix_unstyled(model) if req['unstyled']
-            Workshop.fix_stale(model) if req['stale']
-            if req['scribes']
-              dlg.execute_script("$('status').textContent = 'Turning scribes on...'")
-              Workshop.scribes_on(model, reopen) or reopen.call
-            elsif req['jobdiff']
-              dlg.execute_script("$('status').textContent = 'Setting units to the job...'")
-              Workshop.fix_job_differences(model, reopen) or reopen.call
-            else
-              reopen.call
-            end
-          rescue StandardError => e
-            Log.error('workshop fix', e)
-            fail_js.call(e)
-          end
-        end
         # Fix this (a reason the Workshop Pack can't be saved yet)
         dlg.add_action_callback('fixBlocker') do |_c, json|
           req = JSON.parse(json.to_s) rescue {}
-          reopen = lambda do
-            dlg.close
-            UI.start_timer(0.3, false) { PartsList.show }
-          end
+          reopen = -> { PartsList.show } # the Workshop page back (swapped into the job window)
           begin
             r = Workshop.fix_blocker(model, req['id'].to_s, req['arg'], reopen)
-            case r
-            when :reload then reload.call
-            when :closed then dlg.close
-            end
+            reload.call if r == :reload
           rescue StandardError => e
             Log.error('workshop fix this', e)
             fail_js.call(e)

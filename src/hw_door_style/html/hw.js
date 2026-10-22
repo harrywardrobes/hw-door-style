@@ -38,8 +38,12 @@ function hwFocus(f){
       var b = document.createElement('div');
       b.id = 'hwNote';
       b.innerHTML = '<span>' + esc(f.note) + '</span><button onclick="this.parentNode.parentNode.removeChild(this.parentNode)">OK</button>';
-      document.body.insertBefore(b, document.body.firstChild);
+      var tabs = document.getElementById('hwTabs');
+      if (tabs) tabs.parentNode.insertBefore(b, tabs.nextSibling); else document.body.insertBefore(b, document.body.firstChild);
     }
   }, 100);
 }
 window.addEventListener('load', function(){ if (typeof HW_FOCUS !== 'undefined') hwFocus(HW_FOCUS); });
+
+// The job window's tabs: the page is swapped in place (ui/dialog.rb).
+function hwTab(id){ if (document.body.classList.contains('hwBusy')) return; document.body.style.opacity = '.4'; sketchup.hwTab(id); }

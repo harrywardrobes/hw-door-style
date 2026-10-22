@@ -111,7 +111,8 @@ module HarryWardrobes
           room_w = raw.delete('room_width').to_f
           room_l = raw.delete('room_length').to_f
           v = data['has_runouts'] ? raw.transform_values(&:to_f).slice(*Runouts::KEYS.keys) : nil
-          dlg.close
+          Dialog.leave(dlg, 'scribe')
+          fin = -> { Dialog.done('scribe') } # back to the Workshop (Fix this)
           # Units with their own height (Custom Scribe Height / No Upper Facing): set the ones you changed.
           changed = data['own'].select { |o| heights[o['id'].to_s].to_f.positive? && (heights[o['id'].to_s].to_f - o['height']).abs >= 1 }
           unless changed.empty?
@@ -130,12 +131,14 @@ module HarryWardrobes
           # the first time they're set (a new room starts at 0), when they go on straight away.
           first = !sel && !scribes && Runouts.unset(model).size == Runouts::SIDES.size
           run = sel || scribes || first ? v : nil
-          if sel
-            Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / facing / drawer fronts updated on #{targets.size} unit(s).", facing: facing, front: front)
+          if (sel ? targets : units).empty?
+            fin.call
+          elsif sel
+            Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / facing / drawer fronts updated on #{targets.size} unit(s).", facing: facing, front: front, after: fin)
           else
             Runouts.apply(model, units, run, 'Room settings',
                           "Room settings: #{v ? "runouts #{Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ')} mm#{scribes ? '' : ' (kept for when scribes are switched on)'}. " : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm#{front ? ", drawer fronts #{front['main'].to_f.round} / small #{front['small'].to_f.round} mm" : ''}.",
-                          ceiling: ceil, facing: facing, depth: !dep.nil?, front: front,
+                          ceiling: ceil, facing: facing, depth: !dep.nil?, front: front, after: fin,
                           before: lambda {
                             model.set_attribute(DICT, 'scribe_on', true) if first
                             model.set_attribute(DICT, 'scribe_values', JSON.generate(v)) if v

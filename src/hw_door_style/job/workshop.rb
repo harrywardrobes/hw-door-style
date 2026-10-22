@@ -85,83 +85,24 @@ module HarryWardrobes
         { 'files' => [door[1], door[0], part[1], part[0]].compact, 'plan' => plan&.first, 'door_v' => door[2], 'parts_v' => part[2], 'plan_v' => plan&.last }
       end
 
-      # --- checks when the window opens, fixed with one click ------------------------------
-
-      # What can be put right straight away: scribes off (turned on with the job's runouts) and
-      # colours not set up in OpenCutList (parts left out of the lists). [{ id, text, ... }]
-      def self.checks(model, parts)
+      # --- advice: things worth a look that don't stop the pack ---------------------------
+      # [{ id, text, arg, fix }] - listed under the blockers in the Workshop (amber); fix = a
+      # Fix this button (fix_blocker handles it).
+      def self.warnings(model, parts)
         out = []
-        if !HubSpotRoom.customer_link(model) && !model.path.to_s.empty? && !(defined?(LibraryExport) && LibraryExport.master?(model))
-          out << { 'id' => 'hubspot', 'text' => 'This file isn\'t linked to its HubSpot customer - the PDFs and labels need the customer, account and drawing number.',
-                   'fix' => 'Link it: pick the customer\'s project, then its Room (or Design Visit if it has none).' }
-        end
-        nh = PartsList.handles(model).select { |h| h['name'].to_s.start_with?('(not chosen') }
-        unless nh.empty? || defined?(LibraryExport) && LibraryExport.master?(model)
-          out << { 'id' => 'handles', 'text' => "Handles not chosen: #{nh.map { |h| h['kind'].downcase }.join(', ')}.", 'info' => true,
-                   'fix' => 'Pick them in the Door style window (N/A when there are none).' }
-        end
-        wrong = wrong_hinges(model)
-        unless wrong.empty?
-          out << { 'id' => 'hinges', 'text' => "#{wrong.size} door(s) have the wrong hinges: #{wrong.first(6).map { |w| "#{w[:label]} (#{w[:have]}, should be #{w[:want]})" }.join(', ')}#{wrong.size > 6 ? '...' : ''}.",
-                   'fix' => 'Redraw those doors with the right hinges (style kept).' }
-        end
-        loose = Array(parts['loose_internals'])
-        loose = [] if defined?(LibraryExport) && LibraryExport.master?(model) # the library's own copies sit alone
-        unless loose.empty?
-          out << { 'id' => 'internals', 'text' => "#{loose.size} wardrobe internal(s) aren't inside a tall unit, so they have no Pod number: #{loose.map { |l| "#{l['name']} at x #{l['x']}" }.first(6).join(', ')}#{loose.size > 6 ? '...' : ''}. Move each into its wardrobe, or put it in one on the Product List tab." }
-        end
-        units = Runouts.units(model.entities)
-        unset = Runouts.unset(model)
         master = defined?(LibraryExport) && LibraryExport.master?(model)
-        if !unset.empty? && !units.empty? && !master
-          out << { 'id' => 'runouts', 'text' => "Runouts not set for this room: #{unset.join(', ')} still 0 mm.",
-                   'fix' => 'Open Room settings to measure them in (the Workshop window closes; open it again after).' }
-        end
-        if unset.empty? && !parts['scribes_on'] && !units.empty?
-          v = Runouts.job_values(model)
-          out << { 'id' => 'scribes', 'text' => 'Scribes are OFF (every runout 0) - panel sizes may be wrong.',
-                   'fix' => "Turn scribes on for #{units.size} unit(s): #{Runouts::SIDES.map { |s, _, l| "#{l.sub(/\ARunout - /, '').sub(' (mm)', '')} #{v[s].round}" }.join(', ')} mm" }
-        end
-        if Ceiling.mm(model) <= 0 && !master && units.any? { |u| Ceiling.up_to_ceiling?(u) }
-          out << { 'id' => 'ceiling', 'text' => 'Ceiling height not set for this room - units scribed to the ceiling are still at their library height.',
-                   'fix' => 'Open Room settings and enter it (the Workshop window closes; open it again after).' }
-        end
-        raw = unstyled_fronts(model)
-        unless raw.empty? || master
-          out << { 'id' => 'unstyled', 'text' => "#{raw.size} door(s) / drawer front(s) haven't been drawn in a door style yet, so they'd be missing from the Door / Vinyl order: #{raw.first(6).map { |i, _| Finder.label(i) }.join(', ')}#{raw.size > 6 ? '...' : ''}.",
-                   'fix' => 'Draw them in the job\'s style (as Follow the Door style window).' }
-        end
-        stale = stale_fronts(model)
-        unless stale.empty?
-          out << { 'id' => 'stale', 'text' => "#{stale.size} door(s) / drawer front(s) changed size after they were drawn (their unit was resized), so their frames and mid-rails are stretched: #{stale.first(6).map { |i, _| Finder.label(i) }.join(', ')}#{stale.size > 6 ? '...' : ''}.",
-                   'fix' => 'Draw them again at their new size (style kept).' }
-        end
-        diff = unset.empty? && !master ? job_differences(model, units) : []
+        units = Runouts.units(model.entities)
+        diff = Runouts.unset(model).empty? && !master ? job_differences(model, units) : []
         unless diff.empty?
-          out << { 'id' => 'jobdiff', 'text' => "#{diff.size} unit(s) aren't at the job's settings: #{diff.first(5).map { |u, d| "#{Finder.label(u)} (#{d.join('; ')})" }.join(', ')}#{diff.size > 5 ? '...' : ''}.",
-                   'fix' => 'Set them to the job\'s runouts, ceiling, bottom facing and drawer fronts (untick to keep them as they are).' }
+          out << { 'id' => 'jobdiff', 'fix' => true, 'text' => "#{diff.size} unit(s) aren't at the job's settings (fine if deliberate): #{diff.first(5).map { |u, d| "#{Finder.label(u)} (#{d.join('; ')})" }.join(', ')}#{diff.size > 5 ? '...' : ''}." }
         end
         unknown = unknown_components(model)
         unless unknown.empty?
-          out << { 'id' => 'unknown', 'info' => true,
-                   'text' => "Not in the component table (Settings > Components), so not a product and not checked: #{unknown.map { |n, c| c > 1 ? "#{n} x#{c}" : n }.join(', ')}. Add a row for each if they belong in the lists." }
+          out << { 'id' => 'unknown', 'fix' => false, 'text' => "Not in the component table (Settings > Components), so not a product and not checked: #{unknown.map { |n, c| c > 1 ? "#{n} x#{c}" : n }.join(', ')}." }
         end
         walls = wall_clashes(model, units)
         unless walls.empty?
-          out << { 'id' => 'walls', 'info' => true,
-                   'text' => "Wall set where another unit sits (a facing / scribe instead of a join): #{walls.map { |u, side, other| "#{Finder.label(u)} wall #{side} - #{Finder.label(other)} is there" }.first(6).join(', ')}#{walls.size > 6 ? '...' : ''}. Check the Wall left / right option on those units." }
-        end
-        # a colour that isn't one of the plugin's (its own are set up in OpenCutList automatically)
-        cols = Array(parts['untyped']).reject { |u| u['name'].empty? }
-        unless cols.empty?
-          out << { 'id' => 'colours', 'text' => "#{cols.sum { |c| c['count'] }} part(s) have a colour the plugin doesn't know, so they're left out: #{cols.map { |c| "#{c['name']} (#{c['count']})" }.join(', ')}.",
-                   'fix' => 'Open the Colours window and change them to one of the plugin\'s colours (the Workshop closes; open it again after).' }
-        end
-        none = Array(parts['untyped']).find { |u| u['name'].empty? }
-        if none && !master
-          which = Array(parts['nocolour'])
-          out << { 'id' => 'nocolour', 'text' => "#{none['count']} part(s) have no colour (no job colour chosen for their group yet), so they're left out: #{which.first(8).join(', ')}#{which.size > 8 ? '...' : ''}.",
-                   'fix' => 'Open the Colours window and apply the job colours (the Workshop closes; open it again after).' }
+          out << { 'id' => 'walls', 'fix' => false, 'text' => "Wall set where another unit sits (a facing / scribe instead of a join): #{walls.map { |u, side, other| "#{Finder.label(u)} wall #{side} - #{Finder.label(other)} is there" }.first(6).join(', ')}#{walls.size > 6 ? '...' : ''}. Check Wall left / right on those units." }
         end
         out
       end
@@ -324,37 +265,39 @@ module HarryWardrobes
                 .select { |id| (cur[id].nil? || cur[id] == Colours::DEFAULT) && (id == 'door' || !door) }
       end
 
-      # Fix this: what to do for one blocker. Returns :reload (fixed here - the Workshop
-      # recalculates), :closed (another window opened - the Workshop closed), or :tab (the
-      # Workshop's own page handles it).
+      # Fix this: what to do for one blocker / warning. Returns :reload (fixed here - the
+      # Workshop recalculates), :page (another page opened with the field highlighted; the
+      # Workshop comes back by itself when that page is done), :busy (a batch is running and
+      # brings the Workshop back after), or :tab (the Workshop's own page handles it).
       def self.fix_blocker(model, id, arg, reopen)
+        back = { back: reopen }
         case id
         when 'hubspot'
           HubSpotRoom.show_pick(:link, after: reopen)
-          :closed
+          :page
         when 'handles'
           Dialog.focus_next('door_style', sel: Array(arg).map { |k| "#hr_#{k}" },
-                                          note: 'Choose the highlighted handle(s) - or N/A when there are none - then Apply. Open the Workshop again after.')
+                                          note: 'Choose the highlighted handle(s) - or N/A when there are none - then Apply; the Workshop comes back.', **back)
           DoorStyleWindow.show(model)
-          :closed
+          :page
         when 'runouts', 'ceiling'
           sel = id == 'ceiling' ? ['#ceiling'] : Array(arg).map { |s| "#s_#{s}" }
-          Dialog.focus_next('scribe', sel: sel, note: id == 'ceiling' ? 'Enter the ceiling height, then Apply. Open the Workshop again after.' :
-                                                     'Measure in the highlighted runout(s) (25 mm minimum), then Apply. Open the Workshop again after.')
+          Dialog.focus_next('scribe', sel: sel, note: id == 'ceiling' ? 'Enter the ceiling height, then Apply; the Workshop comes back.' :
+                                                     'Measure in the highlighted runout(s) (25 mm minimum), then Apply; the Workshop comes back.', **back)
           Pencil.show(model, nil)
-          :closed
+          :page
         when 'colours', 'nocolour'
           groups = id == 'nocolour' ? Array(arg) : []
           Dialog.focus_next('colours', sel: groups.map { |g| "#sel_#{g}" },
-                                       note: id == 'nocolour' ? 'Choose the highlighted job colour(s), then Apply. Open the Workshop again after.' :
-                                                                "Parts are painted #{Array(arg).join(', ')}, which isn't one of the plugin's colours: choose the job colours here and Apply (it repaints them). Open the Workshop again after.")
+                                       note: id == 'nocolour' ? 'Choose the highlighted job colour(s), then Apply; the Workshop comes back.' :
+                                                                "Parts are painted #{Array(arg).join(', ')}, which isn't one of the plugin's colours: choose the job colours here and Apply (it repaints them); the Workshop comes back.", **back)
           ColoursWindow.show
-          :closed
+          :page
         when 'unstyled'
           unless Colours.door_colour_chosen?(model)
-            Dialog.focus_next('colours', sel: ['#sel_door'], note: 'Choose the door colour first, then Apply - the doors are then drawn in the job style from the Workshop.')
+            Dialog.focus_next('colours', sel: ['#sel_door'], note: 'Choose the door colour first, then Apply; the Workshop comes back and draws the doors from there.', **back)
             ColoursWindow.show
-            return :closed
+            return :page
           end
           fix_unstyled(model)
           :reload
@@ -366,12 +309,14 @@ module HarryWardrobes
           :reload
         when 'scribes'
           scribes_on(model, reopen) ? :busy : :reload
+        when 'jobdiff'
+          fix_job_differences(model, reopen) ? :busy : :reload
         when 'nosheet', 'too_big'
           Dialog.focus_next('settings', js: "show('workshop')", sel: ['#ocl_sheet_sizes'],
-                                        note: id == 'nosheet' ? "Add the sheet size for #{arg} (e.g. 2800x2070), then Save. Open the Workshop again after." :
-                                                                "Check the sheet sizes for #{arg} - a part is bigger than every size listed. Save, then open the Workshop again.")
+                                        note: id == 'nosheet' ? "Add the sheet size for #{arg} (e.g. 2800x2070), then Save; the Workshop updates." :
+                                                                "Check the sheet sizes for #{arg} - a part is bigger than every size listed. Save; the Workshop updates.", **back)
           SettingsWindow.show
-          :closed
+          :page
         else
           :tab # internals, sheets: on the Workshop's own tabs
         end

@@ -688,7 +688,7 @@ check 'settings page: 7 tabs, General first, component table, no products editor
 sc = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html'))
 check 'drawer front height: pencil field, job default 228, module loaded with the plugin', sc.include?('id="front"') && sc.include?('o.front') && HarryWardrobes::DoorStyle::Settings.defaults['drawer_front_mm'] == 228 && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'main.rb')).include?('job/drawer_front')
 check 'room settings: small drawer fronts row, room icon, pencil is on/off', sc.include?('id="small"') && File.exist?(File.join(HarryWardrobes::DoorStyle::PATH, 'icons/room.svg')) && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'ui/menus.rb')).include?(':pencil, :room') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/pencil.rb')).include?('Runouts.all_on(model)') && HarryWardrobes::DoorStyle::Settings.defaults['drawer_front_sm_mm'] == 142
-check 'new rooms: every runout 0 by default; workshop blocks on unset runouts', !HarryWardrobes::DoorStyle::Settings.defaults.key?('runout_defaults_mm') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html')).include?('rd_floor') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/workshop.rb')).include?('Runouts not set') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')).include?("runouts: !!on('runouts')")
+check 'new rooms: every runout 0 by default; workshop blocks on unset runouts', !HarryWardrobes::DoorStyle::Settings.defaults.key?('runout_defaults_mm') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html')).include?('rd_floor') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/workshop.rb')).include?('Runouts not set') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/workshop.rb')).include?("when 'runouts', 'ceiling'")
 check 'products and setup pages wired up', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/products.html')).include?('sketchup.prodSave') && %w[sketchup.fix sketchup.finish setChecks].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/setup.html')).include?(w) }
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 
@@ -922,6 +922,21 @@ pl_js = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.ht
 in_window = %w[sheets internals].select { |i| pl_js.include?("b.id === '#{i}'") }
 check "Workshop blockers: each (#{wk_ids.size}) has a Fix this - another window or this window's tab",
       wk_ids.size >= 14 && (wk_ids - wk_fix - in_window).empty? && pl_js.include?('Fix this') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/hw.js')).include?('function hwFocus')
+
+
+# --- one job window with tabs; Fix this comes back ----------------------------------
+require 'hw_door_style/ui/dialog'
+DL = HarryWardrobes::DoorStyle::Dialog
+tab_pages = DL::TABS.map { |t| t[1] }
+check 'job window tabs: Add, Colours, Doors, Room, Workshop, HubSpot - each page exists with a body and an icon; Settings and Export are not tabs',
+      tab_pages == %w[component_picker colours door_style scribe parts_list hubspot_send] && DL::TABS.all? { |t| File.exist?(File.join(DL::DIR, "#{t[1]}.html")) && File.exist?(File.join(HarryWardrobes::DoorStyle::PATH, 'icons', "#{t[3]}.svg")) } &&
+      !DL.tabbed?('settings') && !DL.tabbed?('export') && DL.html('scribe', {}).include?('id="hwTabs"') && !DL.html('settings', {}).include?('id="hwTabs"')
+DL.focus_next('colours', sel: ['#sel_door'], note: 'pick', back: -> { $came_back = true })
+html_f = DL.html('colours', {})
+check 'Fix this: the page opens with the field to outline and the note; done() brings the Workshop back once (Cancel or Apply), then nothing waits',
+      html_f.include?('HW_FOCUS') && html_f.include?('#sel_door') && DL.pending?('colours') && DL.done('colours') && !DL.pending?('colours') && !DL.done('colours')
+pl_html = File.read(File.join(DL::DIR, 'parts_list.html'))
+check 'Workshop: no "Before you start" box - blockers (red, Fix this) and advice (amber) at the top', !pl_html.include?('fixChecks') && !pl_html.include?('showChecks') && pl_html.include?('fixWarning') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/parts_list.rb')).include?("data['checks']")
 
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

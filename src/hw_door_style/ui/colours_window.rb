@@ -13,8 +13,9 @@ module HarryWardrobes
           choices = JSON.parse(json)
           begin
             result = apply(model, choices)
-            dlg.close
+            Dialog.leave(dlg, 'colours')
             UI.messagebox("Colours applied.\n\n#{summary(model, choices, result).join("\n")}")
+            Dialog.done('colours')
           rescue StandardError => e
             UI.messagebox("Colours not applied (undone).\n\n#{e.message}")
             Log.error('colours', e)

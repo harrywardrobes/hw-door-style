@@ -23,6 +23,17 @@ body.hwBusy button { pointer-events:none; opacity:.55; }
 /* Workshop > Fix this */
 .hwFocus { outline:3px solid #e67e22 !important; outline-offset:2px; border-radius:3px; animation:hwPulse 1s ease-in-out 4; }
 @keyframes hwPulse { 50% { outline-color:#f6c28b; } }
-#hwNote { position:sticky; top:0; z-index:60; display:flex; gap:10px; align-items:center; background:#fff4e6; border:1px solid #f0b47a; border-left:4px solid #e67e22; color:#7a3f06; padding:7px 10px; margin:0 0 8px; font-size:12px; }
+#hwNote { position:sticky; top:44px; z-index:60; display:flex; gap:10px; align-items:center; background:#fff4e6; border:1px solid #f0b47a; border-left:4px solid #e67e22; color:#7a3f06; padding:7px 10px; margin:0 0 8px; font-size:12px; }
 #hwNote span { flex:1; }
 #hwNote button { flex:none; }
+
+/* the job window's tabs (Dialog::TABS) */
+body { animation:hwIn .18s ease-out; }
+@keyframes hwIn { from { opacity:0; } to { opacity:1; } }
+#hwTabs { display:flex; gap:2px; align-items:stretch; margin:-2px -2px 10px; padding:0 4px; border-bottom:1px solid var(--line); background:#f5f6f5; position:sticky; top:0; z-index:40; }
+#hwTabs a { display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 12px 5px; font-size:10.5px; color:var(--muted); cursor:pointer; border-bottom:3px solid transparent; user-select:none; min-width:64px; }
+#hwTabs a svg { width:20px; height:20px; fill:currentColor; }
+#hwTabs a:hover { color:var(--ink); background:#eceeed; }
+#hwTabs a.on { color:var(--accent); border-bottom-color:var(--accent); font-weight:600; background:#fff; }
+body.hwBusy #hwTabs a { pointer-events:none; opacity:.5; }
+@media print { #hwTabs { display:none; } }

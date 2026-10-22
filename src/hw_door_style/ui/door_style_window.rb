@@ -210,6 +210,7 @@ module HarryWardrobes
           end
           steps << ['Tags and colours', -> { step.call { Converter.finish(model) } }] unless work.empty?
           Steps.run(dlg, steps, done: lambda { |_r|
+            next if Dialog.done('door_style') # back to the Workshop (Fix this)
             dlg.execute_script("applied(#{JSON.generate('data' => data(model), 'items' => items, 'notes' => notes.uniq)})")
           }, fail: lambda { |e|
             Log.error('door style', e)

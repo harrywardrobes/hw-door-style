@@ -233,6 +233,7 @@ module HarryWardrobes
             save(JSON.parse(json), pending)
             close.call
             Doors.offer_rebuild
+            Dialog.done('settings')
           rescue StandardError => e
             UI.messagebox("Settings not saved: #{e.message}")
             Log.error('settings', e)
