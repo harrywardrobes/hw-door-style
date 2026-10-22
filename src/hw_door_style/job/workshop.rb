@@ -113,6 +113,10 @@ module HarryWardrobes
         unless ext.empty?
           out << { 'id' => 'wallextend', 'fix' => false, 'text' => "Wall set but its extend is 0 mm (floor / shelves won't reach into the scribe): #{ext.map { |u, side| "#{ref(u)} wall #{side}" }.first(6).join(', ')}#{ext.size > 6 ? '...' : ''}. Check Wall left / right: extend on those units." }
         end
+        parts['groups'].each do |g|
+          next unless g['ask'] && !g['sheets'].nil? && g['sheets'].to_i.zero?
+          out << { 'id' => 'sheets', 'fix' => true, 'arg' => g['gid'], 'text' => "#{g['material']} #{PartsList.fmt(g['thickness'])} mm: part(s) #{Array(g['manual']).join(', ')} need a full sheet, but Full sheets is 0 - nothing would be ordered for them (fine if you have an offcut)." }
+        end
         ovh = overhang_zero(units)
         unless ovh.empty?
           out << { 'id' => 'overhang', 'fix' => false, 'text' => "Wall set \"with overhang\" but its overhang is 0 mm: #{ovh.map { |u, side| "#{ref(u)} #{side}" }.first(6).join(', ')}#{ovh.size > 6 ? '...' : ''}. Enter the Overhang - left / right, or choose \"no overhang\"." }

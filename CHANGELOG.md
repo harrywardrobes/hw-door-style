@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.86.9 — 2026-10-22
+- Workshop > Sheet goods: the part numbers under "Needs full sheets" are links - click one to scroll to that part in the list below, outlined for a few seconds; the parts needing a full sheet are shaded in their list all the time.
+- Full sheets set to 0 for a material that has parts needing a full sheet: an amber warning (Fix this takes you to the box) - the Workshop Pack can still be saved. An empty box still has to be filled in.
+
 ## 0.86.8 — 2026-10-22
 - Workshop: a warning (amber) for a unit with Wall left / right set to "FALSE (with overhang)" or "TRUE (with overhang)" but that side's Overhang at 0 mm (the knee hole worktop), naming the unit and side - like the wardrobes' wall extend check.
 - Library: WORKTOP_KNEE_HOLE_V4 - its width option reads "Opening width (mm)".

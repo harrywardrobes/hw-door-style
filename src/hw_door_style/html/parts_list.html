@@ -32,6 +32,9 @@
   .warnbox.advice { max-height:110px; overflow:auto; }
   .warnbox.advice .brow { display:flex; align-items:center; gap:10px; padding:3px 0; border-top:1px solid #f5e4c2; }
   .warnbox.advice .brow:first-of-type { margin-top:4px; }
+  a.plink { color:var(--accent); font-weight:600; text-decoration:underline; text-underline-offset:2px; }
+  tr.fullrow td { background:#fff6e5; }
+  tr.fullrow td.num { box-shadow:inset 3px 0 0 #e67e22; font-weight:600; }
   .warnbox.flash { animation:hwPulse .6s ease-in-out 3; outline:3px solid #c0392b; }
   .bad { color:#a33; }
   .edge { font-size:10.5px; color:#3b4a44; }
@@ -191,7 +194,7 @@ function render(d){
   var wb = d.groups.filter(function(g){ return g.section === 'white_back'; });
   wb.forEach(function(g){
     dh += '<div class="grp" style="margin-top:10px"><h3>22mm (White Back) <span>' + esc(g.material) + ' - ' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;, ordered with the doors</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
-      g.parts.map(function(p){ return '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n"><b>' + p.qty + '</b></td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
+      g.parts.map(function(p){ return '<tr id="' + rowId(g, p.number) + '"' + (g.ask && g.manual.indexOf(p.number) >= 0 ? ' class="fullrow" title="Needs a full sheet"' : '') + '><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n"><b>' + p.qty + '</b></td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
   });
   var vin = d.groups.filter(function(g){ return g.section === 'vinyl'; });
   if (vin.length) dh += '<div class="grp" style="margin-top:10px"><h3>Bullnose / cornice <span>ordered with the doors</span></h3><table><tr><th>#</th><th>Name</th><th>Colour</th><th class="n">Thickness</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th></tr>' +
@@ -227,11 +230,20 @@ function render(d){
   $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
   renderLabels(d);
 }
+// A part's row in its group's table (the "Needs full sheets" links go to it).
+function rowId(g, n){ return 'pr_' + String(g.gid).replace(/[^A-Za-z0-9]/g, '_') + '_' + String(n).replace(/[^A-Za-z0-9]/g, '_'); }
+function goPart(id){
+  var r = $(id); if (!r) return;
+  Array.prototype.forEach.call(document.querySelectorAll('tr.hwFocus'), function(e){ e.classList.remove('hwFocus'); });
+  r.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  r.classList.add('hwFocus');
+  setTimeout(function(){ r.classList.remove('hwFocus'); }, 4500);
+}
 // Boards table (+ strips + parts per group) for a list of groups.
 function boards(groups, sheetGoods){
   var h = '<div class="grp">' + (sheetGoods ? '<h3>Boards <span>18mm goes into cut and edged strips (next width up); full sheets only for what doesn\'t fit. Other thicknesses: part area + ' + f(D.waste_pct) + '% waste. Change any count - it\'s kept with the file.</span></h3>' : '<h3>Worktops <span>22 / 25 mm worktops - ordered on their own, not in the MFC sheet count. Change any count - it\'s kept with the file.</span></h3>') + '<table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Parts</th><th>Strips</th><th>Needs full sheets</th><th class="n">Sheet</th><th class="n">Full sheets</th></tr>' +
     groups.map(function(g){
-      var need = g.ask ? '<span class="' + (g.sheets == null ? 'bad' : '') + '">' + esc(g.manual.join(', ')) + '</span>' : (g.strip_group ? '<span style="color:var(--muted)">none</span>' : '<span style="color:var(--muted)">' + g.area_m2.toFixed(2) + ' m&sup2;</span>');
+      var need = g.ask ? '<span class="' + (g.sheets == null || g.sheets === 0 ? 'bad' : '') + '">' + g.manual.map(function(n){ return '<a href="#" class="plink" title="Show this part in the list below" onclick="goPart(\'' + rowId(g, n) + '\');return false">' + esc(n) + '</a>'; }).join(', ') + '</span>' : (g.strip_group ? '<span style="color:var(--muted)">none</span>' : '<span style="color:var(--muted)">' + g.area_m2.toFixed(2) + ' m&sup2;</span>');
       var box = '<input type="number" min="0" step="1" class="sheetIn" data-gid="' + esc(g.gid) + '" value="' + (g.sheets == null ? '' : g.sheets) + '" placeholder="' + (g.ask ? 'enter' : '') + '" title="' + (g.estimate != null && g.ask ? 'Estimate from area: ' + g.estimate : '') + '" style="width:60px;text-align:right' + (g.ask && g.sheets == null ? ';border-color:#c0392b;background:#fdf1f0' : '') + '">' + (g.entered ? ' <span class="hint" style="margin:0" title="Entered by you">&#9998;</span>' : '');
       return '<tr><td>' + esc(g.material) + (g.grained ? ' <span style="color:var(--muted)">(grained)</span>' : '') + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + g.count + '</td><td>' + (g.strips.length ? g.strips.map(function(st){ return st.count + ' x ' + st.width; }).join(', ') : '-') + '</td><td>' + need + '</td><td class="n">' + (g.sheet ? f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '-') + '</td><td class="n">' + box + '</td></tr>';
     }).join('') + '</table></div>';

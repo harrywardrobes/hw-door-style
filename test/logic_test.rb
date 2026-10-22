@@ -1028,6 +1028,12 @@ check 'Workshop warning: Wall "with overhang" with its overhang at 0 (left on th
       ozr.map { |u, s| [oz.index(u), s] } == [[0, 'left'], [1, 'right']]
 
 
+pl_h = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'parts_list.html'))
+check 'Sheet goods: the parts needing a full sheet link to their row below (highlighted); 0 full sheets is a warning, not a blocker',
+      pl_h.include?('onclick="goPart(') && pl_h.include?('tr.fullrow') && pl_h.include?("return g.ask && g.sheets == null;") &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'workshop.rb')).include?("next unless g['ask'] && !g['sheets'].nil? && g['sheets'].to_i.zero?")
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',
