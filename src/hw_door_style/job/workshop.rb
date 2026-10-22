@@ -113,7 +113,25 @@ module HarryWardrobes
         unless ext.empty?
           out << { 'id' => 'wallextend', 'fix' => false, 'text' => "Wall set but its extend is 0 mm (floor / shelves won't reach into the scribe): #{ext.map { |u, side| "#{ref(u)} wall #{side}" }.first(6).join(', ')}#{ext.size > 6 ? '...' : ''}. Check Wall left / right: extend on those units." }
         end
+        ovh = overhang_zero(units)
+        unless ovh.empty?
+          out << { 'id' => 'overhang', 'fix' => false, 'text' => "Wall set \"with overhang\" but its overhang is 0 mm: #{ovh.map { |u, side| "#{ref(u)} #{side}" }.first(6).join(', ')}#{ovh.size > 6 ? '...' : ''}. Enter the Overhang - left / right, or choose \"no overhang\"." }
+        end
         out
+      end
+
+      # Units with Wall left / right "... (with overhang)" (FALSE_OH / TRUE_OH) but its
+      # "Overhang - left / right" at 0: [[unit, 'left']].
+      def self.overhang_zero(units)
+        units.each_with_object([]) do |u, out|
+          %w[left right].each do |side|
+            v = DC.value(u, "wall_#{side}")
+            next unless v && v.to_s.strip.upcase.end_with?('_OH')
+            x = DC.value(u, "overhang_#{side}")
+            next if x.nil? || x.to_s.strip.empty?
+            out << [u, side] if x.to_f.abs < 0.01
+          end
+        end
       end
 
       # Units with Wall left / right TRUE but "Wall left / right: extend" at 0: [[unit, 'left']].

@@ -1021,6 +1021,13 @@ check 'Internal drawer fronts: interior colour on the model (Colours.apply) and 
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'pdf.rb')).include?("Colour: \#{l['colour'] || data['colour']}")
 
 
+oz = [we_u.new({ 'i01_wall_left' => 'FALSE_OH', 'a06_overhang_left' => '0', 'i02_wall_right' => 'TRUE_OH', 'a07_overhang_right' => (30 / 25.4).to_s }),
+      we_u.new({ 'i01_wall_left' => 'TRUE', 'a06_overhang_left' => '0', 'i02_wall_right' => 'TRUE_OH', 'a07_overhang_right' => '0' })]
+ozr = WS_.overhang_zero(oz)
+check 'Workshop warning: Wall "with overhang" with its overhang at 0 (left on the first, right on the second; "no overhang" not checked)',
+      ozr.map { |u, s| [oz.index(u), s] } == [[0, 'left'], [1, 'right']]
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.86.8 — 2026-10-22
+- Workshop: a warning (amber) for a unit with Wall left / right set to "FALSE (with overhang)" or "TRUE (with overhang)" but that side's Overhang at 0 mm (the knee hole worktop), naming the unit and side - like the wardrobes' wall extend check.
+- Library: WORKTOP_KNEE_HOLE_V4 - its width option reads "Opening width (mm)".
+
 ## 0.86.7 — 2026-10-22
 - Internal drawer fronts take the Interior colour (not the Door / Drawer colour) - in the model and on the door order's line for them. External drawer fronts and doors are unchanged.
 
