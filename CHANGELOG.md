@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.85.6 — 2026-10-22
+- Workshop Pack: guides (construction lines / points) anywhere in the model stop the pack; Fix this deletes them all in one undo step.
+- Library: DRAWER_FITTED_V15 - no 2x1 batten; the back of the 460 mm sides goes against the wall (worktop 460 + 18 + 9 = 487 with no scribe); the back scribe goes into the wall.
+
 ## 0.85.5 — 2026-10-22
 - Fitted drawer units: "Depth - manual (mm, 0 = worktop depth)" in Component Options - 0 follows the job's worktop / bridge depth (Room settings, 500), anything else is used instead, never under 460 mm. The plugin writes the job's depth to the unit's own job depth value, so a manual depth is never overwritten. Library: DRAWER_FITTED_V14.
 

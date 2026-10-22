@@ -257,7 +257,22 @@ module HarryWardrobes
           add.call('too_big', "#{name}: part(s) #{Array(g['too_big']).join(', ')} are bigger than the sheet.", g['material']) unless Array(g['too_big']).empty?
           add.call('nosheet', "#{g['material']}: no sheet size set - no board count.", g['material']) if !g['sheet'] && !g['strip_group']
         end
+        g = guides(model).size
+        add.call('guides', "#{g} guide line(s) / point(s) in the model - Fix this deletes them all.") if g.positive?
         out
+      end
+
+      # Every guide (construction line or point) in the model, at the top level and inside
+      # every group / component.
+      def self.guides(model)
+        lists = [model.entities] + model.definitions.reject(&:image?).map(&:entities)
+        lists.flat_map { |es| es.select { |e| e.is_a?(Sketchup::ConstructionLine) || e.is_a?(Sketchup::ConstructionPoint) } }
+      end
+
+      def self.delete_guides(model)
+        Ops.run(model, 'Delete all guides') do
+          guides(model).group_by(&:parent).each { |par, es| par.entities.erase_entities(es) }
+        end
       end
 
       def self.blocker_texts(model, parts) = blockers(model, parts).map { |b| b['text'] }
@@ -308,6 +323,9 @@ module HarryWardrobes
           :reload
         when 'stale'
           fix_stale(model)
+          :reload
+        when 'guides'
+          delete_guides(model)
           :reload
         when 'hinges'
           fix_hinges(model)
