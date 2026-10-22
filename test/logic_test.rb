@@ -1062,6 +1062,15 @@ check 'Export check ignores DC scratch values (a shared hinge\'s last _inst_z), 
       '_inst_z' =~ LEv::VOLATILE && '_inst_copies' =~ LEv::VOLATILE && !('_inst__z_formula' =~ LEv::VOLATILE) && !('a01_unit_width' =~ LEv::VOLATILE)
 
 
+require 'hw_door_style/core/no_scale'
+NS = HarryWardrobes::DoorStyle::NoScale
+ns_d = Struct.new(:dd) { def attribute_dictionary(_n) = dd }.new({ '_a02_unit_height_formula' => 'ROUND(CURRENT(&quot;LenZ&quot;), 1)', '_height_formula' => 'ROUND(CURRENT("LenZ"), 1)',
+                                                                  '_inst__x_formula' => 'CURRENT("LenX")', '_lenx_formula' => 'parent!W', '_a01_width_formula' => 'ROUND(CURRENT(&quot;LenX&quot;) * 10) / 10' })
+check 'No stretching: sizes worked out from the stretched size are found (any quoting); _inst__ and normal formulas left',
+      NS.current_keys(ns_d) == { 'a02_unit_height' => 'LENZ', 'height' => 'LENZ', 'a01_width' => 'LENX' } &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export', 'library_export.rb')).include?('NoScale.fix!(model)')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

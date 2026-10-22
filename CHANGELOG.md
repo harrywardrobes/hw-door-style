@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.88.0 — 2026-10-23
+- No stretching (NoScale): library components can't be resized with the Scale tool any more - every size is a typed option. Export components: Clean model hides the scale handles and turns any size worked out from the stretched size (CURRENT("LenZ")...) into a typed one, and an export is locked while a component can still be stretched.
+- Library (Components V39): scale handles hidden on all 16 components that had them; heights typed on the wardrobes, walk-in, linen press, box ends and facing blocks (Height (mm) now shows on the facing blocks and box ends), the shoe pull-out's width and depth typed. Nothing changed size.
+
 ## 0.87.3 — 2026-10-22
 - Replace with: the height is kept. A height worked out from the unit's stretched size (the wardrobes' Height) was carried as a value only, which the component then worked out again - so the new unit came in at its own default (e.g. 2420). The new unit is now stretched to the old height. Units Scribed To Ceiling still take the job's ceiling height.
 

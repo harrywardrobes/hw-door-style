@@ -246,6 +246,8 @@ module HarryWardrobes
           # every component its own copy of its parts (Unshare) - before the colours, so the
           # copies are cleaned too
           report[:copies] = Unshare.fix!(model)[:copies]
+          # no stretching: scale handles hidden, sizes typed (NoScale)
+          report[:unscaled] = NoScale.fix!(model).size
           report[:painted] = Colours.apply(model, Colours.all_default, plain: true).values.sum
           report[:closed] = Drawers.close(model.entities)
           st = styled(model)
@@ -269,8 +271,9 @@ module HarryWardrobes
         open = Drawers.open_ones(model.entities)
         styled = styled(model).size
         shared = Unshare.shared(model).map(&:name)
-        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'styled' => styled, 'shared' => shared,
-          'ok' => painted.zero? && open.empty? && styled.zero? && shared.empty? }
+        scaled = NoScale.issues(model).map { |d, _w| d.name }
+        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'styled' => styled, 'shared' => shared, 'scaled' => scaled,
+          'ok' => painted.zero? && open.empty? && styled.zero? && shared.empty? && scaled.empty? }
       end
 
       def self.not_clean_message(c)
@@ -279,6 +282,8 @@ module HarryWardrobes
         bits << "#{c['open']} drawer(s) are open" if c['open'].positive?
         bits << "#{c['styled']} door(s) / drawer front(s) aren't flat" if c['styled'].to_i.positive?
         sh = Array(c['shared'])
+        sc = Array(c['scaled'])
+        bits << "#{sc.size} component(s) can still be stretched (#{sc.first(6).join(', ')}#{sc.size > 6 ? '...' : ''}) - Clean model hides their scale handles and makes their sizes typed" unless sc.empty?
         bits << "#{sh.size} part(s) are shared between components (#{sh.first(6).join(', ')}#{sh.size > 6 ? '...' : ''}) - Clean model gives each component its own copy" unless sh.empty?
         "Clean the model first: #{bits.join(' and ')}. Press Clean model, check it over, then export."
       end
@@ -378,7 +383,7 @@ module HarryWardrobes
           begin
             r = clean_model(model, purge.to_s == 'true')
             msg = "Model cleaned (one undo step): #{r[:painted]} parts set to Default colour, " \
-                  "#{r[:flat]} doors / drawer fronts set to Flat, #{r[:closed].size} drawers closed, #{r[:copies]} shared part(s) copied per component, #{r[:purged_components]} unused components purged " \
+                  "#{r[:flat]} doors / drawer fronts set to Flat, #{r[:closed].size} drawers closed, #{r[:copies]} shared part(s) copied per component, #{r[:unscaled].to_i} component(s) made unstretchable, #{r[:purged_components]} unused components purged " \
                   "(materials kept). Check it over, then export."
             dlg.execute_script("load(#{JSON.generate(payload(model))}); note(#{JSON.generate(msg)})")
           rescue StandardError => e

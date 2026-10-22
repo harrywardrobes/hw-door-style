@@ -93,7 +93,7 @@ function load(d){
   var c = d.clean || { ok: true };
   $('cstate').className = 'cstate ' + (c.ok ? 'yes' : 'no');
   $('cstate').textContent = c.ok ? 'Model is clean - every colour Default, every drawer closed. Ready to export.'
-    : 'Not clean yet: ' + [c.painted ? c.painted + ' part(s) still have a colour' : '', c.open ? c.open + ' drawer(s) open' + (c.open_names && c.open_names.length ? ' (' + c.open_names.join(', ') + ')' : '') : '', c.styled ? c.styled + ' door(s) / drawer front(s) not flat' : '', (c.shared && c.shared.length) ? c.shared.length + ' part(s) shared between components (' + c.shared.slice(0, 6).join(', ') + ')' : ''].filter(Boolean).join(', ') + '. Export is locked until you press Clean model.';
+    : 'Not clean yet: ' + [c.painted ? c.painted + ' part(s) still have a colour' : '', c.open ? c.open + ' drawer(s) open' + (c.open_names && c.open_names.length ? ' (' + c.open_names.join(', ') + ')' : '') : '', c.styled ? c.styled + ' door(s) / drawer front(s) not flat' : '', (c.shared && c.shared.length) ? c.shared.length + ' part(s) shared between components (' + c.shared.slice(0, 6).join(', ') + ')' : '', (c.scaled && c.scaled.length) ? c.scaled.length + ' component(s) can be stretched (' + c.scaled.slice(0, 6).join(', ') + ')' : ''].filter(Boolean).join(', ') + '. Export is locked until you press Clean model.';
   $('goAll').disabled = $('goSel').disabled = !c.ok;
   $('goAll').title = $('goSel').title = c.ok ? '' : 'Clean the model first';
   var h = '';
