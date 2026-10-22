@@ -114,7 +114,7 @@ module HarryWardrobes
         UI.add_context_menu_handler do |cm|
           # (front_menu below: right-click > HW Door Style > Front type)
           targets = Doors.selection_targets
-          units = Runouts.selected | Facing.selected
+          units = Runouts.selected | Facing.selected | DrawerFront.selected
           deep = Depth.selected
           sel = Sketchup.active_model.selection
           part = sel.size == 1 && (sel.first.is_a?(Sketchup::ComponentInstance) || sel.first.is_a?(Sketchup::Group)) ? sel.first : nil
@@ -131,7 +131,7 @@ module HarryWardrobes
             sub.add_separator unless units.empty? && targets.empty?
           end
           unless units.empty?
-            sub.add_item(units.size == 1 ? 'Runouts / bottom facing (this unit)...' : "Runouts / bottom facing (#{units.size} units)...") do
+            sub.add_item(units.size == 1 ? 'Runouts / facing / drawer fronts (this unit)...' : "Runouts / facing / drawer fronts (#{units.size} units)...") do
               Pencil.show(Sketchup.active_model, units)
             end
             next if targets.empty?

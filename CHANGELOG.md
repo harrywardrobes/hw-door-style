@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.76.0 — 2026-10-22
+- Drawer front height is a job value, like the bottom facing: one height for every drawer unit (fitted / unfitted, internal drawers, internal drawers plus), set in the pencil window for the whole model or per unit by right-click > Runouts / facing / drawer fronts; a unit that differs is flagged in the Summary. Default 228 (Settings > Job). It's hidden from Component Options, and the drawer box height follows it in the components (front - 78 mm, so 150; the linen press, whose fronts follow its mid-rail, gets 175).
+- New units placed from the + window get the job's drawer front height.
+
 ## 0.75.2 — 2026-10-22
 - The external drawer units are DRAWER_FITTED and DRAWER_UNFITTED (were "EXT_DRAWER (Fitted)" / "(Un-fitted)") - both B, Drawer unit, in the component table.
 

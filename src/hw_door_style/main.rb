@@ -21,7 +21,7 @@ module HarryWardrobes
       core/log core/settings core/dc core/finder core/ops core/drawers
       doors/styles doors/tagger doors/hardware doors/drawer_box doors/converter doors/repair doors/actions
       colours/colours
-      job/runouts job/ceiling job/facing job/pencil job/pdf job/report
+      job/runouts job/ceiling job/facing job/drawer_front job/pencil job/pdf job/report
       export/library_export export/opencutlist export/hubspot
       ui/dialog core/batch core/steps core/scenes core/updater ui/colours_window ui/door_style_window ui/settings_window ui/products_window ui/setup
       export/hubspot_room export/hubspot_pictures export/hubspot_products export/supplier_import export/product_images

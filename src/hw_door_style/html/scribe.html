@@ -25,6 +25,7 @@
 <div id="roomRow" class="row" style="display:none"><label>Room size</label><div><div style="display:flex;gap:6px"><input type="number" id="room_w" min="0" step="1" placeholder="width" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><input type="number" id="room_l" min="0" step="1" placeholder="length" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"></div><div class="hint" style="margin-top:3px" id="roomHint">Width (left-right) x length (into the room), mm. Sizes the floor and ceiling; the ceiling moves to the ceiling height.</div></div></div>
 <div id="depRow" class="row" style="display:none"><label>Depth</label><div><div style="display:flex;gap:6px"><input type="number" id="dep_std" min="100" step="1" title="Standard" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><input type="number" id="dep_short" min="100" step="1" title="Bridge units, worktops, box ends" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"></div><div class="hint" style="margin-top:3px">Back wall to the back of the facing (mm): standard / bridge units + worktops. Set on every unit (finished depth adds the facing / door).</div></div></div>
 <div id="facRow" class="row" style="display:none"><label>Bottom facing</label><div><input type="number" id="facing" min="0" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="facHint">Plinth height under the units (mm)</div></div></div>
+<div id="frontRow" class="row" style="display:none"><label>Drawer fronts</label><div><input type="number" id="front" min="50" step="1" style="width:100%;font:inherit;padding:3px 4px;border:1px solid #c9ced3;border-radius:3px"><div class="hint" style="margin-top:3px" id="frontHint">Drawer front height (mm) - every drawer unit; the box is 78 mm less. The linen press follows its mid-rail.</div></div></div>
 <div id="runHead" style="font-weight:600;font-size:12px;margin-top:10px">Runouts (scribe allowance)</div>
 <div id="rows"></div>
 <div id="ownBox" style="display:none;margin-top:10px">
@@ -55,6 +56,11 @@ if (D.has_facing) {
   document.getElementById('facRow').style.display = '';
   document.getElementById('facing').value = Math.round(D.facing);
   if (D.selection && Math.abs(D.facing - D.facing_job) > 0.3) document.getElementById('facHint').textContent = 'Plinth height under the unit (mm) - job: ' + Math.round(D.facing_job) + ' mm';
+}
+if (D.has_front) {
+  document.getElementById('frontRow').style.display = '';
+  document.getElementById('front').value = Math.round(D.front);
+  if (D.selection && Math.abs(D.front - D.front_job) > 0.3) document.getElementById('frontHint').textContent = 'Drawer front height (mm) - job: ' + Math.round(D.front_job) + ' mm';
 }
 if (D.ceiling !== null && D.ceiling !== undefined) {
   document.getElementById('ceilRow').style.display = '';
@@ -91,6 +97,11 @@ function apply(){ var o = {};
     var f = parseFloat(document.getElementById('facing').value);
     if (!(f >= 0)) { document.getElementById('facHint').textContent = 'Enter the bottom facing height (mm)'; document.getElementById('facing').focus(); return; }
     o.facing = f;
+  }
+  if (D.has_front) {
+    var fr = parseFloat(document.getElementById('front').value);
+    if (!(fr >= 50)) { document.getElementById('frontHint').textContent = 'Enter the drawer front height (mm)'; document.getElementById('front').focus(); return; }
+    o.front = fr;
   }
   if (D.has_runouts !== false) D.sides.forEach(function(s){ o[s[0]] = parseFloat(document.getElementById('s_'+s[0]).value); });
   var own = {}; Array.prototype.forEach.call(document.querySelectorAll('[data-own]'), function(i){ own[i.getAttribute('data-own')] = parseFloat(i.value); }); o.own = own;

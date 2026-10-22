@@ -396,6 +396,7 @@
     "back": 25
   },
   "facing_bottom_mm": 79,
+  "drawer_front_mm": 228,
   "panels_22_default": "Frost White",
   "colour_library": [],
   "ocl_thicknesses_mm": [

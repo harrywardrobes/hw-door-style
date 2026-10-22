@@ -679,6 +679,8 @@ check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their 
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
 sh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html'))
 check 'settings page: 7 tabs, General first, component table, no products editor', sh.scan(/<a data-s="(\w+)"/).flatten == %w[general components doors colours job workshop hubspot] && sh.include?('pcTable') && !sh.include?('prodDraw') && !sh.include?('product_types') && !sh.include?('door_names')
+sc = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html'))
+check 'drawer front height: pencil field, job default 228, module loaded with the plugin', sc.include?('id="front"') && sc.include?('o.front') && HarryWardrobes::DoorStyle::Settings.defaults['drawer_front_mm'] == 228 && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'main.rb')).include?('job/drawer_front')
 check 'products and setup pages wired up', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/products.html')).include?('sketchup.prodSave') && %w[sketchup.fix sketchup.finish setChecks].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/setup.html')).include?(w) }
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 

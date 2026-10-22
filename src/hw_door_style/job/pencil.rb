@@ -67,10 +67,11 @@ module HarryWardrobes
       # bottom facing and (every unit only) the ceiling height.
       def self.show(model, targets)
         sel = targets && !targets.empty?
-        units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities) | Depth.units(model.entities))
+        units = sel ? targets : (Runouts.units(model.entities) | Facing.units(model.entities) | Depth.units(model.entities) | DrawerFront.units(model.entities))
         job = Runouts.job_values(model)
         first_r = units.find { |u| Runouts.unit?(u) }
         first_f = units.find { |u| Facing.has?(u) }
+        first_d = units.find { |u| DrawerFront.has?(u) }
         cur = sel && first_r ? Runouts::SIDES.to_h { |s, _, _| [s, Runouts.mm_of(first_r, s) || job[s]] } : job
         label = sel ? (targets.size == 1 ? Finder.label(targets.first) : "#{targets.size} selected units") : nil
         data = {
@@ -80,6 +81,7 @@ module HarryWardrobes
           'values' => [0.0] + Runouts.values_list, 'current' => cur, 'job' => job,
           'has_runouts' => !first_r.nil?, 'has_facing' => !first_f.nil?,
           'facing' => (sel && first_f ? Facing.of(first_f) : nil) || Facing.mm(model), 'facing_job' => Facing.mm(model),
+          'has_front' => !first_d.nil? || !sel, 'front' => (sel && first_d ? DrawerFront.of(first_d) : nil) || DrawerFront.mm(model), 'front_job' => DrawerFront.mm(model),
           'ceiling' => sel ? nil : Ceiling.mm(model), 'top_door' => Ceiling.top_door_mm,
           'own' => TopOfUnit.own_height(units),
           'depth' => sel ? nil : Depth.job_values(model),
@@ -87,12 +89,13 @@ module HarryWardrobes
         }
         # Taller, and resizable: ceiling + bottom facing + five runouts didn't fit in 400 (Apply was cut off).
         # New key so SketchUp doesn't reuse the old remembered size.
-        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe_v2', width: 400, height: 600,
+        dlg = Dialog.open('scribe', title: 'HW - Scribe / runout', key: 'hw_scribe_v2', width: 400, height: 640,
                                     data: data, resizable: true, scrollable: false)
         dlg.add_action_callback('apply') do |_c, json|
           raw = JSON.parse(json)
           ceil = raw.delete('ceiling_height').to_f
           facing = raw.key?('facing') ? raw['facing'].to_f : nil
+          front = raw.key?('front') ? raw.delete('front').to_f : nil
           heights = raw.delete('own') || {}
           dep = raw.delete('depth')
           room_w = raw.delete('room_width').to_f
@@ -114,17 +117,18 @@ module HarryWardrobes
             Ops.run(model, 'Room size') { Room.apply(model, width: room_w, length: room_l, ceiling: ceil) }
           end
           if sel
-            Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / bottom facing updated on #{targets.size} unit(s).", facing: facing)
+            Runouts.apply(model, targets, v, 'Runouts (selected)', "Runouts / facing / drawer fronts updated on #{targets.size} unit(s).", facing: facing, front: front)
           else
             Runouts.apply(model, units, v, 'Scribes on',
                           "Scribes on: #{v ? Runouts::SIDES.map { |s, _, _| "#{s} #{v[s].round}" }.join(', ') + ' mm. ' : ''}Ceiling #{ceil.round} mm, top doors #{Ceiling.top_door_mm.round} mm, bottom facing #{facing.to_f.round} mm.",
-                          ceiling: ceil, facing: facing, depth: !dep.nil?,
+                          ceiling: ceil, facing: facing, depth: !dep.nil?, front: front,
                           before: lambda {
                             model.set_attribute(DICT, 'scribe_on', true)
                             model.set_attribute(DICT, 'scribe_values', JSON.generate(v)) if v
                             model.set_attribute(DICT, 'ceiling_mm', ceil)
                             model.set_attribute(DICT, 'depth_job', JSON.generate(dep)) if dep
                             model.set_attribute(DICT, 'facing_btm_mm', facing) if facing
+                            model.set_attribute(DICT, 'drawer_front_mm', front) if front
                           })
           end
         end

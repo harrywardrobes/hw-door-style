@@ -147,12 +147,12 @@ module HarryWardrobes
           next if v.nil? || (v - exp[s]).abs <= TOL
           "#{s} #{v.round}mm (job #{exp[s].round})"
         end
-        out.concat(Ceiling.differences(inst, model)).concat(Facing.differences(inst, model))
+        out.concat(Ceiling.differences(inst, model)).concat(Facing.differences(inst, model)).concat(DrawerFront.differences(inst, model))
       end
 
       # Every unit that differs from the job: [[label, [differences]]].
       def self.report(model = Sketchup.active_model)
-        (units(model.entities) | Facing.units(model.entities)).filter_map do |u|
+        (units(model.entities) | Facing.units(model.entities) | DrawerFront.units(model.entities)).filter_map do |u|
           d = differences(u, model)
           [Finder.label(u), d] unless d.empty?
         end
@@ -163,11 +163,12 @@ module HarryWardrobes
       # Applies values (and optionally the ceiling height) to units, one undo
       # step with a progress window. values: { side => mm } or nil.
       # facing: bottom facing (mm) for units that have the option.
-      def self.apply(model, units, values, title, done_msg, before: nil, after: nil, ceiling: nil, facing: nil, depth: false)
+      def self.apply(model, units, values, title, done_msg, before: nil, after: nil, ceiling: nil, facing: nil, depth: false, front: nil)
         return UI.messagebox('No units with runout settings found.') if units.empty?
         Batch.run(model, units, title, done: done_msg, before: before, after: after) do |inst|
           changed = values ? set(inst, values) : false
           changed = Facing.set(inst, facing) || changed if facing
+          changed = DrawerFront.set(inst, front) || changed if front
           changed = Ceiling.set_worktop(inst) || changed
           changed = Depth.set(inst, Depth.target(inst, model)) || changed if depth && Depth.has?(inst)
           # The ceiling step redraws itself; otherwise redraw once for the runouts.

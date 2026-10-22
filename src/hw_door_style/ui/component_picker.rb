@@ -128,7 +128,7 @@ module HarryWardrobes
         defn = model.definitions.load(e['file'])
         # Scribes on / off as the model is NOW (the new unit's own runouts mustn't decide it).
         # Not for a faceplate or anything else that isn't furniture - placed as it is.
-        job = setup_on? && !LibraryCache.plain?(e['cat']) ? { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model) } : nil
+        job = setup_on? && !LibraryCache.plain?(e['cat']) ? { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model), 'front' => DrawerFront.mm(model) } : nil
         @watch&.stop
         @watch = PlaceWatch.new(model, defn, job, dlg, LibraryCache.pretty(e['name']))
         model.add_observer(@watch)
@@ -190,13 +190,14 @@ module HarryWardrobes
         done = []
 
         # 1. sizes: runouts, bottom facing, ceiling - then one redraw (ceiling redraws itself)
-        units = Runouts.unit?(inst) || Facing.has?(inst) || Depth.has?(inst) || Midrail.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities) | Depth.units(inst.definition.entities) | Midrail.units(inst.definition.entities))
+        units = Runouts.unit?(inst) || Facing.has?(inst) || Depth.has?(inst) || Midrail.has?(inst) || DrawerFront.has?(inst) ? [inst] : (Runouts.units(inst.definition.entities) | Facing.units(inst.definition.entities) | Depth.units(inst.definition.entities) | Midrail.units(inst.definition.entities) | DrawerFront.units(inst.definition.entities))
         units.each do |u|
           changed = Runouts.unit?(u) && Runouts.set(u, job['runouts'])
           changed = Facing.set(u, job['facing']) || changed if Facing.has?(u)
           changed = Ceiling.set_worktop(u) || changed
           changed = Depth.set(u, Depth.target(u, model)) || changed if Depth.has?(u)
           changed = Midrail.set(u, Midrail.job_values(model)) || changed if Midrail.has?(u)
+          changed = DrawerFront.set(u, job['front'] || DrawerFront.mm(model)) || changed if DrawerFront.has?(u)
           changed = false if job['ceiling'].to_f.positive? && Ceiling.apply_to(u, job['ceiling'])
           next unless changed
           Drawers.close(u.definition.entities)
