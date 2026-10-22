@@ -953,6 +953,10 @@ module HarryWardrobes
         dlg.add_action_callback('planLoad') do |_c|
           Steps.one(dlg, 'Making the plan picture', done: ->(d) { plan_js.call(d) }, fail: ->(e) { plan_js.call('error' => e.message, 'notes' => Plan.notes(model)) }) { Plan.data(model) }
         end
+        dlg.add_action_callback('planRotate') do |_c|
+          Plan.rotate!(model)
+          Steps.one(dlg, 'Turning the plan 90 degrees', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.data(model) }
+        end
         dlg.add_action_callback('planDims') do |_c|
           Steps.one(dlg, 'Dimensioning the plan', done: ->(d) { plan_js.call(d) }, fail: fail_js) { Plan.dimension(model); Plan.data(model) }
         end

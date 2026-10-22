@@ -154,6 +154,15 @@ module HarryWardrobes
       # --- picture + PDF --------------------------------------------------------------------
 
       # The plan scene as a JPEG (the scene / camera showing now is put back).
+      ROTATION = 'plan_rotation'.freeze
+
+      # The job's plan turned by 0 / 90 / 180 / 270 degrees (Workshop > Floor Plan > Rotate 90).
+      def self.rotation(model) = model.get_attribute(DICT, ROTATION, 0).to_i % 360
+
+      def self.rotate!(model)
+        Ops.run(model, 'Rotate the plan', transparent: true) { model.set_attribute(DICT, ROTATION, (rotation(model) + 90) % 360) }
+      end
+
       def self.picture(model, path, width = 2400)
         pg = plan_page(model) or raise "No plan scene - add a scene whose name has \"#{s['plan_scenes'].to_s.empty? ? 'top or plan' : s['plan_scenes']}\" (e.g. S top)."
         view = model.active_view
@@ -163,15 +172,32 @@ module HarryWardrobes
         cam.height = c.height unless c.perspective?
         opts = model.options['PageOptions']
         trans = opts['ShowTransition']
+        ro = model.rendering_options
+        keep = %w[BackgroundColor DrawGround DrawHorizon DrawSky].to_h { |k| [k, (ro[k] rescue nil)] }
         begin
           opts['ShowTransition'] = false
           model.pages.selected_page = pg
           [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| l.visible = true }
           hidden = hidden_tags(model).select(&:visible?)
           hidden.each { |l| l.visible = false }
+          # white paper: no sky, ground or horizon
+          ro['BackgroundColor'] = Sketchup::Color.new(255, 255, 255)
+          %w[DrawGround DrawHorizon DrawSky].each { |k| ro[k] = false unless ro[k].nil? }
+          # always in the middle: the scene's view direction, turned by the job's rotation, then
+          # zoomed to what's on show with a margin
+          v = view.camera
+          up = v.up
+          r = rotation(model)
+          up = Geom::Transformation.rotation(v.target, v.direction, -r.degrees) * up if r.positive?
+          cam2 = Sketchup::Camera.new(v.eye, v.target, up, v.perspective?, v.fov)
+          cam2.height = v.height unless v.perspective?
+          view.camera = cam2
+          view.zoom_extents
+          view.zoom(0.92)
           h = (width * view.vpheight / view.vpwidth.to_f).round
           view.write_image(filename: path, width: width, height: h, antialias: true, compression: 0.9) or raise "Couldn't make the plan picture"
         ensure
+          keep.each { |k, val| (ro[k] = val) unless val.nil? }
           Array(hidden).each { |l| l.visible = true if l.valid? }
           model.pages.selected_page = was_page if was_page
           view.camera = cam

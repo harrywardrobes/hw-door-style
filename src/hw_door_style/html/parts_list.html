@@ -297,7 +297,7 @@ function planData(p){
     '<span class="hint" style="margin:0;flex:1">' + (p.scene ? 'Plan scene: <b>' + esc(p.scene) + '</b>' : '<span class="bad">No plan scene - add a scene named e.g. "S top"</span>') +
     (p.ceiling ? ' &middot; CEILING ' + p.ceiling + 'mm' : '') + (p.fascia ? ' &middot; TOP FASCIA ' + p.fascia + 'mm' : '') + (p.last ? ' &middot; last saved v' + p.last : '') + '</span>' +
     '<button onclick="planBusy(\'planTs\')">Pod numbers on the plan</button><button onclick="planBusy(\'doorView\')" title="Doors and drawer fronts on each wall, flat with their sizes, in a Doors scene (made again each time)">Doors view</button><button onclick="planBusy(\'planDims\')" title="Room and each product\'s width, made again each time">' + (p.dims ? 'Re-dimension' : 'Dimension the plan') + '</button>' +
-    '<button onclick="planBusy(\'planLoad\')">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
+    '<button onclick="planBusy(\'planRotate\')" title="Turns the plan a quarter turn (kept with the file - the Room Plan PDF follows it)">Rotate 90&deg;</button><button onclick="planBusy(\'planLoad\')">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
   if (p.error) h += '<div class="warnbox">' + esc(p.error) + '</div>';
   h += '<div style="display:flex;gap:12px;align-items:flex-start">';
   h += '<div style="flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;background:#fff;text-align:center">' + (p.img ? '<img src="' + p.img + '" style="max-width:100%;max-height:560px">' : '<div class="hint" style="padding:30px">No picture yet.</div>') + '</div>';

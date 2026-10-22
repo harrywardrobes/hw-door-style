@@ -56,10 +56,9 @@ module HarryWardrobes
           top = H - M - 6
           page.text(M, top, 'Harry Wardrobes - Room Plan', font: 'F2', size: 14)
           page.text(M, top - 15, @title, font: 'F2', size: 11)
-          right = [["Customer", hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']],
-                   ['Account', hd['account']], ['Fit week', hd['fit_week']]]
+          right = [["Customer", hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']]]
           right.each_slice(3).with_index do |col, ci|
-            x = W - M - 270 + ci * 135
+            x = W - M - 135 + ci * 135
             col.each_with_index do |(k, v), i|
               page.text(x, top - i * 10, "#{k}:", font: 'F2', size: 7.5)
               page.text(x + 42, top - i * 10, v.to_s.empty? ? '-' : v.to_s, size: 7.5, max: 90)
@@ -90,6 +89,7 @@ module HarryWardrobes
         l = HubSpotRoom.customer_link(model) || {}
         j = (JobInfo.get(model) rescue {}) || {}
         { 'customer' => customer_name(j['customer_first'], j['customer_last']),
+          'first' => j['customer_first'].to_s.strip, 'last' => j['customer_last'].to_s.strip,
           'address' => l['address'].to_s,
           'room' => j['room_name'].to_s.empty? ? l['room_name'].to_s : j['room_name'].to_s,
           'drawing' => j['room_id'].to_s.empty? ? '' : "X#{j['room_id']}",
@@ -193,7 +193,7 @@ module HarryWardrobes
         hl = PartsList.handles(model)
         ['Robe handle', 'Drawer handle', 'Interior handle'].each do |kind|
           h = hl.find { |x| x['kind'] == kind }
-          kv.call(kind, h ? "#{h['name']}#{h['sku'].empty? ? '' : " (#{h['sku']})"} x #{h['qty']}" : 'n/a')
+          kv.call(kind, h ? h['name'] : 'n/a')
         end
         doc.instance_variable_set(:@y, y)
       end
@@ -244,10 +244,11 @@ module HarryWardrobes
         doc.pages << pg
         sizes[doc.pages.size - 1] = [LW, LH]
         top = LH - M - 6
-        pg.text(M, top, 'Harry Wardrobes - Installation Plan', font: 'F2', size: 14)
-        right = [['Customer', hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']], ['Account', hd['account']], ['Fit week', hd['fit_week']]]
+        title = [hd['room'].to_s.strip.upcase, hd['customer'].to_s.strip].reject(&:empty?).join(' - ')
+        pg.text(M, top, title.empty? ? 'INSTALLATION PLAN' : title, font: 'F2', size: 16, max: LW - 2 * M - 150)
+        right = [['Drawing', hd['drawing']]]
         right.each_slice(3).with_index do |col, ci|
-          x = LW - M - 270 + ci * 135
+          x = LW - M - 135 + ci * 135
           col.each_with_index do |(k, v), i|
             pg.text(x, top - i * 10, "#{k}:", font: 'F2', size: 7.5)
             pg.text(x + 42, top - i * 10, v.to_s.empty? ? '-' : v.to_s, size: 7.5, max: 90)
@@ -309,13 +310,12 @@ module HarryWardrobes
           doc.section('Renders')
           pg = doc.page
           box_h = (doc.y - M - 6) / pair.size
-          pair.each_with_index do |(n, key, im), i|
+          pair.each_with_index do |(_n, key, im), i|
             top = doc.y - i * box_h
-            pg.text(M, top, n, font: 'F2', size: 9)
             bw = W - 2 * M
-            bh = box_h - 18
+            bh = box_h - 8
             s = [bw / im['w'], bh / im['h']].min
-            pg.image(key, M + (bw - im['w'] * s) / 2, top - 6 - bh + (bh - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
+            pg.image(key, M + (bw - im['w'] * s) / 2, top - bh + (bh - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
           end
         end
       ensure
@@ -357,8 +357,11 @@ module HarryWardrobes
         key = Products.key_text(rows.map { |r| r['ref'] })
         doc.pages.each_with_index do |p, i|
           pw = (sizes[i] || [W, H])[0]
-          p.text(M, M - 14, "HW Door Style v#{VERSION}", size: 7)
-          p.text(M + 80, M - 14, key, size: 7, max: pw - 2 * M - 160) unless key.empty?
+          p.text(M, M - 14, "HW #{VERSION}", size: 7)
+          unless key.empty?
+            k = Pdf.fit(key, 'F1', 7, pw - 2 * M - 160)
+            p.text((pw - Pdf.width(k, 'F1', 7)) / 2, M - 14, k, size: 7)
+          end
           p.text(pw - M, M - 14, "Page #{i + 1} of #{doc.pages.size}", size: 7.5, font: 'F2', align: :right)
         end
         [doc.pages.map(&:to_s), images, sizes]

@@ -224,7 +224,11 @@ Dir.mktmpdir do |dir|
                       { 'name' => 'EXT_DRW_WORKTOP', 'pod' => 'L1', 'length' => 700, 'depth' => 480, 'thickness' => 25, 'material' => 'Mussel', 'edges' => { 'front' => true, 'left' => false, 'right' => false, 'back' => false } }]
   data['elevation'] = [{ 'wall' => 'back wall', 'width' => 1000, 'height' => 2300, 'fronts' => [{ 'u0' => 0, 'u1' => 498, 'z0' => 0, 'z1' => 2300, 'panels' => [] }, { 'u0' => 502, 'u1' => 1000, 'z0' => 0, 'z1' => 2300, 'panels' => [] }], 'dims' => [], 'texts' => [], 'labels' => [] }]
   Pdf.write(pdf, data)
-  check 'door / vinyl order: lines, 22mm section, elevation page, worktop page', File.binread(pdf).include?('Door / Vinyl Order') && File.binread(pdf).include?('Worktop Order') && File.binread(pdf).scan('/Type /Page ').size == 4
+  dtxt = File.binread(pdf).scan(/\((.*?)\) Tj/).flatten.join(' ')
+check 'door / vinyl order: FIRST - LAST - DOORS (else DOOR / VINYL ORDER); items by style across; DRILLED LEFT / RIGHT; no hinges / totals blocks, pods or account; HW footer; 22mm panels on a page of their own; elevation and worktop pages',
+      dtxt.include?('DOOR / VINYL ORDER') && Pdf.doors_title({ 'first' => 'Rebecca', 'last' => 'Williams' }) == 'REBECCA - WILLIAMS - DOORS' && dtxt.include?('ITEMS BY STYLE') && dtxt.include?('DRILLED LEFT') && dtxt.include?('DRILLED RIGHT') &&
+      !dtxt.include?('TOTALS') && !dtxt.include?('Different hinges') && !dtxt.include?('Pods') && !dtxt.include?('Account') && !dtxt.include?('hinge holes') && dtxt.include?('HW 0.2.0') && !dtxt.include?('HW Door Style') &&
+      dtxt.include?('Worktop order') && File.binread(pdf).scan('/Type /Page ').size == 5
   bytes = File.binread(pdf)
   check 'pdf header/footer', bytes.start_with?('%PDF-1.4') && bytes.rstrip.end_with?('%%EOF')
   check 'pdf multi-page', bytes.scan('/Type /Page ').size >= 2
@@ -777,7 +781,7 @@ pd = { 'list_version' => 3, 'version' => 'test', 'head' => hd, 'scribes_on' => t
 ppdf = HarryWardrobes::DoorStyle::Pdf.document(PPDF.layout(pd))
 File.binwrite(File.join(Dir.tmpdir, 'parts_list_test.pdf'), ppdf)
 pptxt = ppdf.scan(/\((.*?)\) Tj/).flatten.join(' ')
-check 'parts list: Timber then Hardware, 18mm by strip width, no boards / edging / worktops, no ? after the hinges', pptxt.include?('TIMBER') && pptxt.include?('HARDWARE') && pptxt.index('90 mm strips') < pptxt.index('300 mm strips') && pptxt.index('300 mm strips') < pptxt.index('Full sheet') && !pptxt.include?('WRKTP') && !pptxt.include?('Boards') && !pptxt.include?('Edging') && pptxt.include?('Hinges 110 soft close') && !pptxt.include?('110?') && pptxt.include?('410mm Hook/Peg')
+check 'parts list: boards, then Hardware, then drawer boxes; no TIMBER heading; 18mm by strip width; no boards / edging / worktops; no ? after the hinges', !pptxt.include?('TIMBER') && pptxt.include?('Hardware') && pptxt.index('Hardware') < pptxt.index('Drawer boxes') && pptxt.index('Full sheet') < pptxt.index('Hardware') && pptxt.index('90 mm strips') < pptxt.index('300 mm strips') && pptxt.index('300 mm strips') < pptxt.index('Full sheet') && !pptxt.include?('WRKTP') && !pptxt.include?('Boards') && !pptxt.include?('Edging') && pptxt.include?('Hinges 110 soft close') && !pptxt.include?('110?') && pptxt.include?('410mm Hook/Peg')
 FileUtils.cp(File.join(Dir.tmpdir, 'parts_list_test.pdf'), ENV['PARTS_OUT']) if ENV['PARTS_OUT']
 
 puts "\n== Mid-rail line"

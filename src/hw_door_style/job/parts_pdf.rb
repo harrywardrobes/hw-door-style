@@ -78,10 +78,17 @@ module HarryWardrobes
 
       def self.f(v) = PartsList.fmt(v)
 
-      # The parts list: Timber (every board and length that isn't hardware - 18 mm by the
-      # strip width it's cut from, other boards, Timber / MDF lengths, drawer boxes), then
-      # Hardware (counted items and the handles). Worktops and the 22 mm panels are on the
-      # Door / Vinyl order, not here.
+      # An edge material in short: "EDGE 0.8mm ABS" -> "0.8 ABS"; blank when the edge is bare.
+      def self.edge(name)
+        n = name.to_s.strip
+        return '' if n.empty?
+        m = n.match(/(\d+(?:[.,]\d+)?)\s*mm\s*([A-Za-z]+)/i)
+        m ? "#{m[1].tr(',', '.')} #{m[2].upcase}" : n.sub(/\AEDGE\s*/i, '')
+      end
+
+      # The parts list: every board and length (18 mm by the strip width it's cut from, other
+      # boards, Timber / MDF lengths), then Hardware (counted items, the handles), then the
+      # drawer boxes. Worktops and the 22 mm panels are on the Door / Vinyl order, not here.
       def self.layout(d)
         doc = Doc.new(d)
         unless d['scribes_on']
@@ -89,11 +96,9 @@ module HarryWardrobes
           doc.instance_variable_set(:@y, doc.y - ROW - 4)
         end
         part_cols = [['#', 26, :left], ['Name', nil, :left], ['Length', 48, :right], ['Width', 48, :right], ['Qty', 30, :right],
-                     ['Edge L1', 84, :left], ['Edge L2', 84, :left], ['Edge W1', 84, :left], ['Edge W2', 84, :left]]
-        row = ->(p) { [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], p['edges']['ymin'], p['edges']['ymax'], p['edges']['xmin'], p['edges']['xmax']] }
+                     ['L1', 40, :left], ['L2', 40, :left], ['W1', 40, :left], ['W2', 40, :left]]
+        row = ->(p) { [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], *%w[ymin ymax xmin xmax].map { |k| edge(p['edges'][k]) }] }
 
-        doc.page.text(M, doc.y, 'TIMBER', font: 'F2', size: 13)
-        doc.instance_variable_set(:@y, doc.y - ROW - 4)
         boards = d['groups'].reject { |g| %w[vinyl white_back worktops].include?(g['section']) }
         boards.each do |g|
           if g['strip_group']
@@ -121,19 +126,10 @@ module HarryWardrobes
           doc.table([['#', 40, :left], ['Name', nil, :left], ['Material', 120, :left], ['Section', 80, :right], ['Length', 60, :right], ['Qty', 40, :right]],
                     tb.map { |t| [t['numbers'].join(', '), t['name'], t['material'], t['section'], f(t['length']), t['qty']] })
         end
-        boxes = Array(d['drawer_boxes'])
-        unless boxes.empty?
-          doc.heading('Drawer boxes', 'internal cabinet width; runners in pairs, one pair per box')
-          doc.table([['#', 26, :left], ['Parent', 120, :left], ['Material', nil, :left], ['Int. cab width', 75, :right], ['Height', 50, :right], ['Runners', 130, :left], ['Qty', 30, :right]],
-                    boxes.map { |b| [b['number'], b['parent'], b['material'], b['width'] ? "#{b['width']} mm" : '-', b['height'] ? "#{b['height']} mm#{b['warn'] ? ' (!)' : ''}" : '-', b['runner'], b['qty']] })
-        end
 
-        doc.need(ROW * 6)
-        doc.instance_variable_set(:@y, doc.y - 6)
-        doc.page.text(M, doc.y, 'HARDWARE', font: 'F2', size: 13)
-        doc.instance_variable_set(:@y, doc.y - ROW - 4)
         hws = Array(d['hardware_lines'])
         unless hws.empty?
+          doc.heading('Hardware', 'counted from the model')
           doc.table([['#', 60, :left], ['Name', nil, :left], ['Qty', 40, :right]],
                     hws.map { |h| [h['numbers'].join(', '), h['name'], h['qty']] })
         end
@@ -143,8 +139,14 @@ module HarryWardrobes
           doc.table([['Kind', 100, :left], ['Handle', nil, :left], ['SKU', 110, :left], ['Supplier', 90, :left], ['Qty', 40, :right]],
                     hl.map { |h| [h['kind'], h['name'], h['sku'], h['supplier'], h['qty']] })
         end
+        boxes = Array(d['drawer_boxes'])
+        unless boxes.empty?
+          doc.heading('Drawer boxes', 'internal cabinet width; runners in pairs, one pair per box')
+          doc.table([['#', 26, :left], ['Parent', 120, :left], ['Material', nil, :left], ['Int. cab width', 75, :right], ['Height', 50, :right], ['Runners', 130, :left], ['Qty', 30, :right]],
+                    boxes.map { |b| [b['number'], b['parent'], b['material'], b['width'] ? "#{b['width']} mm" : '-', b['height'] ? "#{b['height']} mm#{b['warn'] ? ' (!)' : ''}" : '-', b['runner'], b['qty']] })
+        end
         doc.pages.each_with_index do |p, i|
-          p.text(M, M - 14, "HW Door Style v#{d['version']} - parts list rules from OpenCutList (L'Air du Bois, GPL-3.0)", size: 7)
+          p.text(M, M - 14, "HW #{d['version']} - parts list rules from OpenCutList (L'Air du Bois, GPL-3.0)", size: 7)
           p.text(W - M, M - 14, "Page #{i + 1} of #{doc.pages.size}", size: 7, align: :right)
         end
         doc.pages.map(&:to_s)

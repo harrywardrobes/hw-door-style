@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.85.0 — 2026-10-22
+- Door / Vinyl order: titled with the customer - "REBECCA - WILLIAMS - DOORS"; the different-hinges key, the Hinges and Totals blocks and the Pods column are gone; Items by style runs across the page with the bullnose / cornice count; the Drilling column just says DRILLED LEFT / DRILLED RIGHT (blank when not drilled); no handle count per line and no hinge holes on the small pictures; the 22mm panels start a new page.
+- All three PDFs: footer "HW 0.85.0" with the Pod letter key centred; the account and fit week are left off the page headers (they stay on the Room Plan cover).
+- Room Plan: handles by name only (no SKU or quantity); no headings over the renders; the Installation Plan is titled "ROOM - Customer" in bold.
+- Installation plan picture: white background, always centred on what's shown, and a Rotate 90 button on the Workshop's Floor Plan tab (kept with the file; the PDF follows it).
+- Parts list: no TIMBER heading; Hardware is a heading like the others and the drawer boxes come after it; edges read "0.8 ABS" in narrow L1 / L2 / W1 / W2 columns at the right.
+
 ## 0.84.0 — 2026-10-22
 - Room walls: back_wall, left_wall and right_wall are sized with the room whenever it's set (Room setup, Room settings): the back wall behind the floor and across the corners, left and right the floor's length, all floor to ceiling, Settings > Components "Wall thickness" thick (300 mm). Like the floor and ceiling they're Room rows in the component table - never products, parts, labels or library exports, and kept in the job template.
 - The parts list leaves every room part out by name, not just because it has no colour (a painted wall for a render no longer turns up as an unknown colour).

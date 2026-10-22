@@ -18,7 +18,7 @@ module HarryWardrobes
       # The order lines: key, label, width (pt), align (Details is the flexible one).
       COLUMNS = [
         ['type', 'Type', 112, :left], ['size', 'Size', 68, :left],
-        ['thumb', '', 44, :left], ['details', 'Details', nil, :left], ['drilling', 'Drilling', 52, :left], ['pods', 'Pods', 74, :left]
+        ['thumb', '', 44, :left], ['details', 'Details', nil, :left], ['drilling', 'Drilling', 78, :left]
       ].freeze
       LINE_H = 9.5
 
@@ -113,11 +113,32 @@ module HarryWardrobes
         ws.map { |w| w || free }
       end
 
-      # "Customer: WILLIAMS, Rebecca   |   Room: ...   |   Drawing: X...   |   Account: HW..." (RoomPlan.head).
+      # "Customer: WILLIAMS, Rebecca   |   Room: ...   |   Drawing: X..." (RoomPlan.head). The
+      # account and fit week are on the Room Plan cover only.
       def self.head_line(hd)
         hd ||= {}
-        [['Customer', hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']], ['Account', hd['account']]]
+        [['Customer', hd['customer']], ['Room', hd['room']], ['Drawing', hd['drawing']]]
           .map { |k, v| "#{k}: #{v.to_s.empty? ? '-' : v}" }.join('   |   ')
+      end
+
+      # "REBECCA - WILLIAMS - DOORS" (the customer's first and last name), else "DOOR / VINYL ORDER".
+      def self.doors_title(hd)
+        hd ||= {}
+        names = [hd['first'], hd['last']].map { |n| n.to_s.strip }.reject(&:empty?)
+        (names.empty? ? 'Door / Vinyl order' : "#{names.join(' - ')} - Doors").upcase
+      end
+
+      # The footer on every page: "HW 0.84.0", the Pod letter key in the middle, the page number.
+      def self.footer(pages, data)
+        key = data['key'].to_s
+        pages.each_with_index do |p, i|
+          p.text(MARGIN, MARGIN - 14, "HW #{data['version']}", size: 7)
+          unless key.empty?
+            k = Pdf.fit(key, 'F1', 7, PAGE_W - 2 * MARGIN - 160)
+            p.text((PAGE_W - Pdf.width(k, 'F1', 7)) / 2, MARGIN - 14, k, size: 7)
+          end
+          p.text(PAGE_W - MARGIN, MARGIN - 14, "Page #{i + 1} of #{pages.size}", size: 7, align: :right)
+        end
       end
 
       def self.columns
@@ -138,51 +159,44 @@ module HarryWardrobes
 
       def self.title_block(page, data)
         y = PAGE_H - MARGIN - 12
-        page.text(MARGIN, y, 'Harry Wardrobes - Door / Vinyl Order', font: 'F2', size: 15)
+        page.text(MARGIN, y, doors_title(data['head']), font: 'F2', size: 15, max: PAGE_W - 2 * MARGIN - 90)
         page.text(PAGE_W - MARGIN, y, "Version v#{data['export_version']}", font: 'F2', size: 12, align: :right)
         y -= 16
         page.text(MARGIN, y, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
         y -= 12
         meta = "Colour: #{data['colour']}   |   Hinges: #{data['hinge_type']}   |   Heights are the door height; hole positions are hinge centres"
         page.text(MARGIN, y, meta, size: 9)
-        key = Array(data['hinge_key'])
-        unless key.empty?
-          y -= 12
-          page.text(MARGIN, y, 'Different hinges (shaded):', font: 'F2', size: 9)
-          x = MARGIN + Pdf.width('Different hinges (shaded):', 'F2', 9) + 8
-          key.each do |mark, type, shade|
-            label = "#{mark} #{type}"
-            wdt = Pdf.width(label, 'F2', 9) + 8
-            page.rect_fill(x - 3, y - 3, wdt, 12, shade)
-            page.text(x + 1, y, label, font: 'F2', size: 9)
-            x += wdt + 6
-          end
-        end
         y -= 8
         page.line(MARGIN, y, PAGE_W - MARGIN, y, 0.2, 1.2)
-        y -= 16
-
-        t = data['totals']
-        blocks = [
-          ['Items by style', t['by_style'].map { |k, v| [k, v] }],
-          ['Hinges', t['hinges'].map { |k, v| [k, v] }],
-          ['Totals', [['Items', t['items']], ['TIP-ON', t['tip_on']], ['Handles / knobs', t['handles']]]]
-        ]
-        bw = (PAGE_W - 2 * MARGIN) / 3.0
-        tallest = 0
-        blocks.each_with_index do |(title, pairs), i|
-          bx = MARGIN + i * bw
-          by = y
-          page.text(bx, by, title.upcase, font: 'F2', size: 7.5)
-          by -= 11
-          pairs.each do |k, v|
-            page.text(bx, by, k.to_s, size: 8.5, max: bw - 60)
-            page.text(bx + bw - 24, by, v.to_s, font: 'F2', size: 8.5, align: :right)
-            by -= 11
+        y -= 14
+        # items by style, across the page (and the bullnose / cornice lengths)
+        items = data['totals']['by_style'].map { |k, v| [k, v] }
+        bull = bullnose_count(data)
+        items << ['Bullnose / cornice', bull] if bull.positive?
+        unless items.empty?
+          page.text(MARGIN, y, 'ITEMS BY STYLE', font: 'F2', size: 7.5)
+          x = MARGIN + Pdf.width('ITEMS BY STYLE', 'F2', 7.5) + 12
+          items.each do |k, v|
+            label = "#{k}: "
+            wl = Pdf.width(Pdf.clean(label), 'F1', 8.5)
+            wv = Pdf.width(v.to_s, 'F2', 8.5)
+            if x + wl + wv > PAGE_W - MARGIN
+              y -= 11
+              x = MARGIN + Pdf.width('ITEMS BY STYLE', 'F2', 7.5) + 12
+            end
+            page.text(x, y, label, size: 8.5)
+            page.text(x + wl, y, v.to_s, font: 'F2', size: 8.5)
+            x += wl + wv + 16
           end
-          tallest = [tallest, y - by].max
+          y -= 8
         end
-        y - tallest - 10
+        y - 10
+      end
+
+      # Bullnose / cornice pieces on the order (the vinyl section's quantities).
+      def self.bullnose_count(data)
+        sec = Array(data['vinyl']).find { |v| v['title'].to_s =~ /bullnose/i } or return 0
+        sec['rows'].sum { |r| r.last.to_i }
       end
 
       # The lines of the Details column - everything the supplier asks for.
@@ -193,18 +207,16 @@ module HarryWardrobes
         out << "Stile: #{l['stile_mm']}mm. Rail: #{l['rail_mm']}mm" if l['stile_mm'].to_i.positive?
         out << "Centre rail from door bottom: #{l['midrail_mm']}mm (#{l['midrail_w']}mm wide)" if l['midrail_mm'].to_i.positive?
         if l['hinges'].to_i.positive?
-          out << "Drilled: #{l['hand'] == 'RH' ? 'Right' : 'Left'}. #{l['hinges']} hinge holes - #{l['hinge_type'].to_s.sub('Soft Close', 'SC')}#{l['tip_on'].to_i.positive? ? ", #{l['tip_on']} TIP-ON" : ''}"
+          out << "Hinges: #{l['hinge_type'].to_s.sub('Soft Close', 'SC')}#{l['tip_on'].to_i.positive? ? ", #{l['tip_on']} TIP-ON" : ''}"
           Report.hole_lines(l['holes'], l['height']).each { |h| out << h }
         elsif l['tip_on'].to_i.positive?
           out << "#{l['tip_on']} TIP-ON"
         end
-        out << "Handles: #{l['handles']}" if l['handles'].to_i.positive?
         out << "Note: #{l['notes']}" unless l['notes'].to_s.empty?
         out
       end
 
-      # A small front-on picture of the front: its frame (stile / rail), centre rail and
-      # the hinge holes on the hinged side.
+      # A small front-on picture of the front: its frame (stile / rail) and centre rail.
       def self.thumbnail(page, l, bx, by, bw, bh)
         w = l['width'].to_f
         h = l['height'].to_f
@@ -222,10 +234,6 @@ module HarryWardrobes
           mz = y + l['midrail_mm'].to_f * s
           mw = l['midrail_w'].to_f * s / 2
           page.rect_fill(x + st, mz - mw, rw - 2 * st, 2 * mw, 0.75) if mw.positive?
-        end
-        Array(l['holes']).each do |z|
-          hx = l['hand'] == 'RH' ? x + rw - 2.2 : x + 2.2
-          page.rect_fill(hx - 1.1, y + z * s - 1.1, 2.2, 2.2, 0)
         end
       end
 
@@ -255,18 +263,9 @@ module HarryWardrobes
             when 'size' then page.text(tx, y, "#{l['height']} x #{l['width']}mm", max: w - 6)
             when 'thumb' then thumbnail(page, l, x + 4, y - rh + 10, w - 8, rh - 10)
             when 'details'
-              det.each_with_index do |t, i|
-                if l['hinge_mark'] && t.start_with?('Drilled')
-                  t = "#{l['hinge_mark']} #{t}"
-                  page.rect_fill(tx - 2, y - i * LINE_H - 3, [Pdf.width(Pdf.clean(t), 'F2', SIZE) + 4, w - 2].min, LINE_H, l['hinge_shade'])
-                  page.text(tx, y - i * LINE_H, t, font: 'F2', max: w - 6)
-                else
-                  page.text(tx, y - i * LINE_H, t, max: w - 6)
-                end
-              end
-            when 'drilling' then page.text(tx, y, l['hinges'].to_i.positive? ? "#{l['hand'] == 'RH' ? 'Right' : 'Left'} (#{l['hinges']})" : '-', max: w - 6)
-            when 'pods'
-              Array(l['pods']).each_slice(2).with_index { |ps, i| page.text(tx, y - i * LINE_H, ps.join(', '), size: 7.5, max: w - 6) }
+              det.each_with_index { |t, i| page.text(tx, y - i * LINE_H, t, max: w - 6) }
+            when 'drilling'
+              page.text(tx, y, l['hand'] == 'RH' ? 'DRILLED RIGHT' : 'DRILLED LEFT', font: 'F2', max: w - 6) if l['hinges'].to_i.positive?
             end
             x += w
           end
@@ -277,7 +276,7 @@ module HarryWardrobes
         # 22mm (white back) panels and bullnose / cornice: ordered with the doors.
         Array(data['vinyl']).each do |sec|
           next if sec['rows'].empty?
-          if y < MARGIN + 60
+          if sec['title'].to_s =~ /22\s*mm/i || y < MARGIN + 60 # the 22mm panels start a page of their own
             page = Page.new
             pages << page
             y = PAGE_H - MARGIN - 10
@@ -318,7 +317,7 @@ module HarryWardrobes
           box_h = (PAGE_H - 2 * MARGIN - 34) / pair.size
           pair.each_with_index do |w, i|
             top = PAGE_H - MARGIN - 34 - i * box_h
-            pg.text(MARGIN, top - (i.zero? ? -22 : 14), "Harry Wardrobes - #{DoorView.title(w, walls.size > 1)}", font: 'F2', size: i.zero? ? 15 : 12)
+            pg.text(MARGIN, top - (i.zero? ? -22 : 14), DoorView.title(w, walls.size > 1), font: 'F2', size: i.zero? ? 15 : 12)
             pg.line(MARGIN, top, PAGE_W - MARGIN, top, 0.7, 0.5) if i.positive?
             DoorView.draw_pdf(pg, w, MARGIN, top - box_h + 6, PAGE_W - 2 * MARGIN, box_h - (i.zero? ? 6 : 26))
           end
@@ -334,7 +333,7 @@ module HarryWardrobes
           new_top_page = lambda do
             pg = Page.new
             pages << pg
-            pg.text(MARGIN, PAGE_H - MARGIN - 12, 'Harry Wardrobes - Worktop Order', font: 'F2', size: 15)
+            pg.text(MARGIN, PAGE_H - MARGIN - 12, 'Worktop order', font: 'F2', size: 15)
             pg.text(PAGE_W - MARGIN, PAGE_H - MARGIN - 12, "v#{data['export_version']}", size: 9, align: :right)
             pg.text(MARGIN, PAGE_H - MARGIN - 28, head_line(data['head']), size: 9, max: PAGE_W - 2 * MARGIN)
             pg.text(MARGIN, PAGE_H - MARGIN - 40, "#{tops.size} worktop(s). Solid line = profiled edge, dashed = against a wall / not profiled. Sizes in mm.", size: 8.5)
@@ -363,11 +362,7 @@ module HarryWardrobes
           end
         end
 
-        pages.each_with_index do |p, i|
-          p.text(MARGIN, MARGIN - 14, "HW Door Style v#{data['version']}", size: 7)
-          p.text(MARGIN + 80, MARGIN - 14, data['key'].to_s, size: 7, max: PAGE_W - 2 * MARGIN - 160) unless data['key'].to_s.empty?
-          p.text(PAGE_W - MARGIN, MARGIN - 14, "Page #{i + 1} of #{pages.size}", size: 7, align: :right)
-        end
+        footer(pages, data)
         pages.map(&:to_s)
       end
 
