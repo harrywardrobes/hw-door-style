@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.78.3 — 2026-10-22
+- The master library file gets its plugin colours set up for OpenCutList too (0.78.1 left it out), so the Workshop reads the same there as in a job.
+
 ## 0.78.2 — 2026-10-22
 - The plugin's colours are set up for OpenCutList as soon as a job file is opened (and on Setup), so the Workshop is ready without changing a colour first.
 

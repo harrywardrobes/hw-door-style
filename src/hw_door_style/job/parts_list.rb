@@ -331,11 +331,10 @@ module HarryWardrobes
       end
 
       def self.generate(model = Sketchup.active_model)
-        # a plugin colour that OpenCutList doesn't know yet is set up on the spot (never a question)
-        unless defined?(LibraryExport) && LibraryExport.master?(model)
-          set = OpenCutList.ensure!(model)
-          Log.info("OpenCutList settings written for #{set.join(', ')}") unless set.empty?
-        end
+        # a plugin colour that OpenCutList doesn't know yet is set up on the spot (never a
+        # question) - the master library too, so its Workshop checks read the same as a job's
+        set = OpenCutList.ensure!(model)
+        Log.info("OpenCutList settings written for #{set.join(', ')}") unless set.empty?
         opts = cutlist_options(model)
         @pieces = {} # entity id -> the placed piece, so part numbers can be kept on it
         found = []

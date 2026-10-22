@@ -209,9 +209,9 @@ module HarryWardrobes
 
       # When a job file is opened (or a new one started): its plugin colours are set up for
       # OpenCutList straight away, so the Workshop is ready without changing a colour first.
-      # One transparent step, only when something was missing; never on the master library.
+      # One transparent step, only when something was missing.
       def self.ensure_on_open(model)
-        return if model.nil? || !model.valid? || (defined?(LibraryExport) && LibraryExport.master?(model))
+        return if model.nil? || !model.valid?
         missing = desired.any? { |name, want| (mat = model.materials[name]) && state(mat, want) == :missing }
         return unless missing
         Ops.run(model, 'OpenCutList settings for the plugin colours', transparent: true) { ensure!(model) }
