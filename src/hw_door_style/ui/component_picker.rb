@@ -254,18 +254,27 @@ module HarryWardrobes
         end
       end
 
+      # Library units drop to the floor by themselves (their Z is "0" - not the bridge units,
+      # box shelves or the worktop); clicked on top of something, it's redrawn straight away.
+      def self.to_floor(inst)
+        return false unless DC.get(inst.definition, '_inst__z_formula').to_s.strip == '0' && inst.transformation.origin.z.abs > 0.01
+        DC.redraw(inst)
+        true
+      end
+
       def self.after_place(model, inst, job, dlg, label, vals = {})
         return unless inst.valid?
         t = Time.now
         set = 0
         unless job
-          Ops.run(model, "Add #{label}", transparent: true) { set = apply_form(inst, vals) } unless vals.empty?
+          Ops.run(model, "Add #{label}", transparent: true) { set = apply_form(inst, vals); to_floor(inst) }
           return tell(dlg, "#{label} placed#{set.positive? ? " with #{set} setting(s) changed" : ''} (not set up to the job - the tick is off).")
         end
         notes = []
         Ops.run(model, "Add #{label}", transparent: true) do
           set = apply_form(inst, vals) unless vals.empty?
           notes = setup(model, inst, job, redraw: set.positive?)
+          to_floor(inst)
         end
         notes.unshift("#{set} setting(s) changed") if set.positive?
         tell(dlg, "#{label} placed and set up in #{(Time.now - t).round(1)} s: #{notes.join(', ')}.")

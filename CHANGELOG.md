@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.86.11 — 2026-10-22
+- Library: every unit sits on the floor when placed (its Z is 0, like the drawer units) - wardrobes, linen press, top box, walk-in, bookcase, box ends, end panels, facings, bullnose, cover with worktop and the wardrobe internals. Not the bridge frame, bridge skeleton or box shelf; the knee hole worktop still sits at the worktop height.
+- Add: a unit clicked onto something above the floor drops straight to the floor when it's placed.
+
 ## 0.86.10 — 2026-10-22
 - Labels: the hardware labels print first (grouped hardware, then any one-per-piece hardware), then the boards by strip width with their dividers, then timber; the grouped timber labels last.
 - Zebra: the divider label ("---- 90 mm ----", "---- FULL SHEET ----") was printed 12 mm high and ran off both edges - its text now shrinks to fit across the label.
