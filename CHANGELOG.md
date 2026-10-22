@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.83.1 — 2026-10-22
+- Job window: the tabs are a column of icons down the left (the window is 64 px wider to suit).
+
 ## 0.83.0 — 2026-10-22
 - One job window: Add, Colours, Doors, Room settings, Workshop and HubSpot are tabs (icons along the top) of a single window - opening any of them (toolbar, menu, right-click, Fix this) swaps the page into that window, which resizes to the page, stays centred and fades in. Settings, Export and the other tools stay separate windows. (SketchUp can't lock the model while a window is open; the one window keeps the job's pages together and on top.)
 - Workshop: the "Before you start" box is gone - the red list at the top (with Fix this) replaces it; what used to be its non-blocking items (units not at the job's settings - with Fix this, components not in the table, a wall set where another unit sits) sit under it in amber with the other advice.

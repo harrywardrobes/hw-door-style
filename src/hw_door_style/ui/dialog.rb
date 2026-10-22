@@ -15,7 +15,8 @@ module HarryWardrobes
     module Dialog
       DIR = File.join(PATH, 'html')
       MAIN_KEY = 'hw_main_v1'.freeze
-      MIN_WIDTH = 560 # room for the tab strip
+      STRIP_W = 64 # the column of tabs down the left
+      MIN_WIDTH = 520
 
       # [tab id, page name, label, icon file]; what opens each is in SHOW (looked up when
       # pressed, so this file needs nothing loaded before it).
@@ -88,7 +89,7 @@ module HarryWardrobes
         f = (@focus ||= {}).delete(name.to_s)
         extra = f ? "\n<script>var HW_FOCUS = #{JSON.generate(f)};</script>" : ''
         page = page.sub('<!--HW-->') { shared + extra }
-        page = page.sub(/<body[^>]*>/) { "#{Regexp.last_match(0)}\n#{tab_strip(name)}" } if tabbed?(name)
+        page = page.sub(/<body([^>]*)>/) { "<body class=\"hwTabbed\"#{Regexp.last_match(1)}>\n#{tab_strip(name)}" } if tabbed?(name)
         # <!--VENDOR:file.js--> -> that bundled library inline (html/vendor; no CDN - the window may be offline)
         page = page.gsub(/<!--VENDOR:([\w.\-]+)-->/) { "<script>\n#{File.read(File.join(DIR, 'vendor', Regexp.last_match(1)))}\n</script>" }
         page.sub('/*DATA*/null') { JSON.generate(data) }
@@ -117,7 +118,7 @@ module HarryWardrobes
                                      resizable: true, scrollable: true, style: UI::HtmlDialog::STYLE_DIALOG)
         dlg = @main
         dlg.set_html(html(name, data))
-        dlg.set_size([width, MIN_WIDTH].max, height)
+        dlg.set_size([width + STRIP_W, MIN_WIDTH].max, height)
         dlg.center
         dlg.add_action_callback('cancel') { |_c| dlg.close unless done(name) }
         dlg.add_action_callback('hwTab') do |_c, id|

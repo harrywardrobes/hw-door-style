@@ -38,8 +38,7 @@ function hwFocus(f){
       var b = document.createElement('div');
       b.id = 'hwNote';
       b.innerHTML = '<span>' + esc(f.note) + '</span><button onclick="this.parentNode.parentNode.removeChild(this.parentNode)">OK</button>';
-      var tabs = document.getElementById('hwTabs');
-      if (tabs) tabs.parentNode.insertBefore(b, tabs.nextSibling); else document.body.insertBefore(b, document.body.firstChild);
+      document.body.insertBefore(b, document.body.firstChild);
     }
   }, 100);
 }
