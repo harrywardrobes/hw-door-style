@@ -397,6 +397,9 @@
   "depth_default_mm": 580,
   "depth_short_mm": 500,
   "product_front_mm": 18,
+  "product_flags": {
+    "backs": "Back Panel"
+  },
   "product_label_tag": "Pod_numbers",
   "product_label_scenes": "top|plan",
   "template_default": true,

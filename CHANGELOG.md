@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.86.6 — 2026-10-22
+- Product list: yes / no options shown with a product when on (Settings "product_flags", shipped: Backs -> "Back Panel: Yes") - in the Workshop's Product list and the Room Plan's product list.
+- Wall left / right "FALSE (with overhang)" counts as no wall and "TRUE (with overhang)" as a wall everywhere the plugin reads walls (worktop edge profiles, Replace with, wall checks).
+- Library (WORKTOP_KNEE_HOLE): Wall left / right are FALSE / TRUE, each with or without overhang (a wall scribes in by the runout; "with overhang" adds the overhang mm on that side); Backs (TRUE by default) shows the knee-hole back panel - full width, floor to the underside of the worktop, in front of the back batten, exterior colour; the knee-hole filler takes the exterior colour too.
+
 ## 0.86.5 — 2026-10-22
 - The worktop is now WORKTOP_KNEE_HOLE (component table row renamed, same settings: Worktop, B, short depth; settings_version 22). Library: battens follow the worktop (wall to wall under it, 44 x 21, one at the back wall, one behind the knee-hole filler at the front, whatever the depth), the filler follows the width and depth, and new options "Overhang - left / right (mm, no wall only)" (0 by default) widen the worktop board only, on a side with no wall.
 - Part names: SketchUp names a copy of a part ending in digits without them ("CABLE_OUTLET_#2", "DRW_RUNNER_#3"), so the plugin didn't know them as cable outlets / runners. The plugin now reads the part's real name from the component (DC.base_name) everywhere it goes by name, and copies made per component are named "<part>#n".

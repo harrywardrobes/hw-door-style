@@ -217,7 +217,7 @@ module HarryWardrobes
         list = rows.sort_by { |r| [LOOSE_FIRST.index(r['ref']) || 9, r['num']] }
         list.each do |r|
           i = info[r['t']]
-          lines = [['Doors', door_text(i['doors'])], ['Interior', interior_text(i)]].reject { |_k, v| v.to_s.empty? }
+          lines = ([['Doors', door_text(i['doors'])], ['Interior', interior_text(i)]] + Array(r['flags'])).reject { |_k, v| v.to_s.empty? }
           doc.need(ROW * (lines.size + 2))
           pg = doc.page
           y = doc.y

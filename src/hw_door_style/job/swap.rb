@@ -31,7 +31,7 @@ module HarryWardrobes
       # Dropdown values that mean the same as a plainer one on another component
       # (the wall options: "FALSE (no div)" and "+9mm (end panel)" are not a wall; "TRUE
       # (no scribe)" is a wall).
-      VALUE_ALIASES = { 'NODIV' => 'FALSE', 'END' => 'FALSE', 'NOSCRIBE' => 'TRUE' }.freeze
+      VALUE_ALIASES = { 'NODIV' => 'FALSE', 'END' => 'FALSE', 'NOSCRIBE' => 'TRUE', 'FALSE_OH' => 'FALSE', 'TRUE_OH' => 'TRUE' }.freeze
 
       # Options translated between two components: [from base, to base, { value => value }]
       # (both ways are listed).

@@ -164,6 +164,16 @@ module HarryWardrobes
         [d, f]
       end
 
+      # Yes / no options shown with a product (Settings "product_flags": option base name =>
+      # label), only when on: "Back Panel: Yes". [[label, 'Yes']]
+      def self.flags(inst)
+        return [] unless inst.respond_to?(:definition) && inst.definition.attribute_dictionary('dynamic_attributes')
+        (Settings.get['product_flags'] || {}).filter_map do |base, label|
+          v = DC.value(inst, base.to_s)
+          [label.to_s, 'Yes'] if v && %w[TRUE YES 1 1.0].include?(v.to_s.strip.upcase)
+        end
+      end
+
       # The products: [{ 't', 'num', 'type', 'name', 'size', 'depth', 'finished', 'pid', 'members' => [...] }]
       # with every member (the product itself first) as { 'pid', 'name', 'auto', 'host' }.
       # Also returns { top-level instance entityID => T label } for the door order.
@@ -220,7 +230,7 @@ module HarryWardrobes
           type = type_of(p['name'], c) || (p['name'] =~ /SHELF/ ? 'Box shelves' : p['name'] =~ /BXEND/ ? 'Box end' : p['name'].tr('_', ' ').capitalize)
           {
             't' => t, 'ref' => p['ref'], 'num' => p['num'], 'type' => type, 'name' => "#{type} #{mm(h.bounds.width)}",
-            'size' => [mm(bb.width), mm(bb.height), mm(bb.depth)], 'depth' => d, 'finished' => f,
+            'size' => [mm(bb.width), mm(bb.height), mm(bb.depth)], 'depth' => d, 'finished' => f, 'flags' => flags(h),
             'pid' => h.persistent_id.to_s, 'component' => h.respond_to?(:definition) ? h.definition.name : h.name,
             'x' => mm(bb.min.x),
             'members' => p['members'].map do |m|

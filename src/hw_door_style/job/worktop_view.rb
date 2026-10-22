@@ -13,7 +13,8 @@ module HarryWardrobes
     module WorktopView
       def self.mm(v) = v.to_f * 25.4
 
-      def self.truthy?(v) = !v.nil? && !%w[FALSE 0 0.0 NO].include?(v.to_s.strip.upcase) && !v.to_s.strip.empty?
+      # "FALSE (with overhang)" (FALSE_OH) is no wall too.
+      def self.truthy?(v) = !v.nil? && !%w[FALSE 0 0.0 NO].include?(v.to_s.strip.upcase) && !v.to_s.strip.upcase.start_with?('FALSE') && !v.to_s.strip.empty?
 
       # The unit option (instance value, else the definition's), by its key or nil.
       def self.option(unit, base)

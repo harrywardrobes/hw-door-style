@@ -194,7 +194,7 @@ module HarryWardrobes
         end
       end
 
-      WALL_TRUE = %w[TRUE NOSCRIBE].freeze
+      WALL_TRUE = %w[TRUE NOSCRIBE TRUE_OH].freeze
 
       # Units with Wall left / right set where another unit actually sits: [[unit, 'left', other]].
       def self.wall_clashes(model, units)

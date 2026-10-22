@@ -1005,6 +1005,17 @@ check 'Part names without the copy number - SketchUp\'s "CABLE_OUTLET_#2" (trail
       DCb.base_name(ubn.new('DOOR#10', 'Something else')) == 'DOOR' && DCb.base_name(ubn.new('WARDROBE', nil)) == 'WARDROBE'
 
 
+PRf = HarryWardrobes::DoorStyle::Products
+pf_u = Struct.new(:vals) { def definition = self; def attribute_dictionary(_n) = vals; def get_attribute(_d, k, x = nil) = vals.fetch(k, x) }
+check 'Product list: "Back Panel: Yes" when the unit\'s Backs is TRUE, nothing when FALSE or no Backs option',
+      PRf.flags(pf_u.new({ 'i08_backs' => 'TRUE' })) == [['Back Panel', 'Yes']] && PRf.flags(pf_u.new({ 'i08_backs' => 'FALSE' })).empty? && PRf.flags(pf_u.new({ 'a01_unit_width' => '1' })).empty?
+require 'hw_door_style/job/worktop_view' unless defined?(HarryWardrobes::DoorStyle::WorktopView)
+WV = HarryWardrobes::DoorStyle::WorktopView
+check 'Wall "FALSE (with overhang)" is no wall, "TRUE (with overhang)" is a wall (worktop edges, swaps, checks)',
+      (WV.nil? || (!WV.truthy?('FALSE_OH') && WV.truthy?('TRUE_OH') && !WV.truthy?('FALSE') && WV.truthy?('TRUE'))) &&
+      HarryWardrobes::DoorStyle::Swap::VALUE_ALIASES['FALSE_OH'] == 'FALSE' && WS_::WALL_TRUE.include?('TRUE_OH')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',
