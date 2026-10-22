@@ -981,6 +981,23 @@ check 'OpenCutList: every standard colour has 25 mm (worktops) on its list; "18 
       OCLm.mm_values('18 mm;22,5 mm') == [18.0, 22.5] && OCLm.thicknesses_for('Dust Grey').include?(25.0) && OCLm.thicknesses_for('Dust Grey').include?(18.0)
 
 
+require 'hw_door_style/core/unshare'
+US = HarryWardrobes::DoorStyle::Unshare
+UDef = Struct.new(:name, :dd, :entities, :instances) { def attribute_dictionary(_n) = dd }
+UInst = Struct.new(:dd) { def attribute_dictionary(_n) = dd }
+u_hinge = UDef.new('HINGE', {}, [], [UInst.new({}), UInst.new({})])
+u_outlet = UDef.new('OUTLET', {}, [], [UInst.new({ '_hidden_formula' => 'X', '_lenx_formula' => '1' }), UInst.new({ '_hidden_formula' => 'Y' })])
+u_shelf = UDef.new('SHELF', { '_hidden_formula' => 'parent!A', '_inst__x_formula' => '0' }, [], [UInst.new({}), UInst.new({})])
+u_box = UDef.new('BOX', {}, [Struct.new(:definition).new(u_shelf)], [UInst.new({})])
+check 'Unshare: only plain hardware stays shared (no rules in it or below, same formulas wherever it is used) - a part with rules, or used with different formulas, gets its own copy',
+      US.plain_hardware?(u_hinge) && !US.plain_hardware?(u_outlet) && !US.plain_hardware?(u_shelf) && !US.plain_hardware?(u_box) &&
+      US.own_rules?(u_shelf) && !US.own_rules?(UDef.new('X', { '_inst__x_formula' => '0' }, [], []))
+pl_src = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'parts_list.rb'))
+check 'Parts list: a part\'s own copy ("SHELF#2") is listed with the part (same name, size) - not by definition', pl_src.include?("pid = [name, l_mm, w_mm, th_mm, flipped].join('|')") && pl_src.include?("defn.name.sub(/#\\d+\\z/, '')")
+le_src = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export', 'library_export.rb'))
+check 'Library export: Clean model makes the copies; export locked while a part is shared', le_src.include?('Unshare.fix!(model)') && le_src.include?('shared.empty?')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

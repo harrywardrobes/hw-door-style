@@ -365,11 +365,12 @@ module HarryWardrobes
           size, axes = oriented(bounds, scale_of(t))
           l_mm, w_mm, th_mm = size.map { |v| r1(v) }
           flipped = opts['flipped_detection'] && !defn.get_attribute(OCL, 'symmetrical', false) && flipped?(t.xaxis, t.yaxis, t.zaxis)
-          name = defn.name
+          # a part's own copy in another component ("SHELF#2") is the same part
+          name = defn.name.sub(/#\d+\z/, '')
           if opts['dynamic_attributes_name'] && (dn = inst.get_attribute('dynamic_attributes', 'name'))
             name = dn.to_s
           end
-          pid = [defn.entityID, (opts['dynamic_attributes_name'] ? name : ''), l_mm, w_mm, th_mm, flipped].join('|')
+          pid = [name, l_mm, w_mm, th_mm, flipped].join('|')
           case type
           when TYPE_SHEET_GOOD
             std = mm_list(mat.get_attribute(OCL, 'std_thicknesses', ''))

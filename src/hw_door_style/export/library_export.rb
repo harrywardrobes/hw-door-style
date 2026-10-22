@@ -217,8 +217,11 @@ module HarryWardrobes
       # Clean the master in place (one undo step): colours Default, doors and drawer fronts
       # flat, drawers closed, optionally purge unused components (materials are never purged).
       def self.clean_model(model, purge)
-        report = { painted: 0, closed: [], purged_components: 0, flat: 0 }
+        report = { painted: 0, closed: [], purged_components: 0, flat: 0, copies: 0 }
         Ops.run(model, 'Clean model for export') do
+          # every component its own copy of its parts (Unshare) - before the colours, so the
+          # copies are cleaned too
+          report[:copies] = Unshare.fix!(model)[:copies]
           report[:painted] = Colours.apply(model, Colours.all_default, plain: true).values.sum
           report[:closed] = Drawers.close(model.entities)
           st = styled(model)
@@ -241,8 +244,9 @@ module HarryWardrobes
         painted = Colours.apply(model, Colours.all_default, record: false, plain: true, dry: true).values.sum
         open = Drawers.open_ones(model.entities)
         styled = styled(model).size
-        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'styled' => styled,
-          'ok' => painted.zero? && open.empty? && styled.zero? }
+        shared = Unshare.shared(model).map(&:name)
+        { 'painted' => painted, 'open' => open.size, 'open_names' => open.first(8), 'styled' => styled, 'shared' => shared,
+          'ok' => painted.zero? && open.empty? && styled.zero? && shared.empty? }
       end
 
       def self.not_clean_message(c)
@@ -250,6 +254,8 @@ module HarryWardrobes
         bits << "#{c['painted']} part(s) still have a colour" if c['painted'].positive?
         bits << "#{c['open']} drawer(s) are open" if c['open'].positive?
         bits << "#{c['styled']} door(s) / drawer front(s) aren't flat" if c['styled'].to_i.positive?
+        sh = Array(c['shared'])
+        bits << "#{sh.size} part(s) are shared between components (#{sh.first(6).join(', ')}#{sh.size > 6 ? '...' : ''}) - Clean model gives each component its own copy" unless sh.empty?
         "Clean the model first: #{bits.join(' and ')}. Press Clean model, check it over, then export."
       end
 
@@ -347,7 +353,7 @@ module HarryWardrobes
           begin
             r = clean_model(model, purge.to_s == 'true')
             msg = "Model cleaned (one undo step): #{r[:painted]} parts set to Default colour, " \
-                  "#{r[:flat]} doors / drawer fronts set to Flat, #{r[:closed].size} drawers closed, #{r[:purged_components]} unused components purged " \
+                  "#{r[:flat]} doors / drawer fronts set to Flat, #{r[:closed].size} drawers closed, #{r[:copies]} shared part(s) copied per component, #{r[:purged_components]} unused components purged " \
                   "(materials kept). Check it over, then export."
             dlg.execute_script("load(#{JSON.generate(payload(model))}); note(#{JSON.generate(msg)})")
           rescue StandardError => e

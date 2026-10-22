@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.86.4 — 2026-10-22
+- No nested part is shared between two library components any more (Unshare): a part used in two components could be changed by the other one (the stable wardrobe's top shelf hid itself because of the wardrobe's; the worktop's battens because of the unfitted drawer's). Only plain hardware with no rules stays shared (hinges, drawer boxes). Export components: Clean model gives every component its own copies, and an export is locked while any part is still shared.
+- The stable wardrobe's own top-shelf rule is gone again (it has its own shelf now).
+- Parts list: a part's own copy ("SHELF_MID#2") is listed as the same part - grouped by name and size, not by SketchUp definition - so the cut list reads the same.
+- Library (Components V39): 64 own copies made; every component exported (DRAWER_FITTED_V16, DRAWER_UNFITTED_V11, WARDROBE_V24, WARDROBE_STABLE_V13, WORKTOP_V12...).
+
 ## 0.86.3 — 2026-10-22
 - Workshop: no more "some parts are 25 mm, which isn't one of its standard thicknesses" on standard colours. Every library colour now always has 25 mm (worktops) as well as 18 mm on its OpenCutList list; the saved Settings list (just 18 on this computer) is replaced by the shipped 18 / 25 (settings_version 21), and a colour already in a model with an older list gets the missing standard thickness added when the Workshop opens (other thicknesses on it are kept).
 
