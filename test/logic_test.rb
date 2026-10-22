@@ -67,7 +67,7 @@ def mm(v); (v * 25.4).round(1); end
 
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
-check 'team file sits in the library folder', Settings.team_file('library_folder' => 'G:/Lib').tr('\\', '/') == 'G:/Lib/_HW Door Style/Team settings/settings.json'
+check 'team file is settings.json in the team folder (shared drive)', Settings.team_file('team_folder' => 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin').tr('\\', '/') == 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin/settings.json' && Settings.defaults['team_folder'].start_with?('H:/Shared drives/Harry Wardrobes/8_SKETCHUP')
 check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 14, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} }
 Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')

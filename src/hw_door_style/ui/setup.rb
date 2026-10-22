@@ -89,13 +89,13 @@ module HarryWardrobes
       def self.team
         f = Settings.team_file
         if f.nil?
-          row('team', 'Team settings', 'fail', 'No library folder, so no team settings.')
+          row('team', 'Team settings', 'fail', 'No team settings folder set (Settings > General).', 'Choose folder...')
         elsif File.exist?(f)
           row('team', 'Team settings', 'ok', "Shared with the team from #{f}")
-        elsif File.directory?(LibraryCache.root)
-          row('team', 'Team settings', 'warn', "No team settings file yet - this computer's settings become the team's.", 'Make it')
+        elsif File.directory?(File.dirname(f))
+          row('team', 'Team settings', 'warn', "No settings.json in #{File.dirname(f)} yet - this computer's settings become the team's.", 'Make it')
         else
-          row('team', 'Team settings', 'warn', "Drive isn't reachable - the copy on this computer is used.")
+          row('team', 'Team settings', 'warn', "#{File.dirname(f)} isn't reachable - the copy on this computer is used.", 'Choose folder...')
         end
       end
 
@@ -182,7 +182,12 @@ module HarryWardrobes
             Updater.install(r[:path])
           end
         when 'team'
-          Settings.save(Settings.get) # writes the team file from this computer's settings
+          if Settings.team_file && File.directory?(File.dirname(Settings.team_file))
+            Settings.save(Settings.get) # writes the team file from this computer's settings
+          else
+            d = UI.select_directory(title: 'The team settings folder on the shared drive (8_SKETCHUP\\HW Plugin)')
+            Settings.save(Settings.get.merge('team_folder' => d.tr('\\', '/'))) if d
+          end
         when 'pdf', 'zebra'
           list = PdfPrint.printers || []
           names = id == 'zebra' ? list.reject { |_n, s| s.empty? }.map { |_n, s| s } : list.map { |n, _s| n }

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.75.1 — 2026-10-22
+- Team settings live on the shared drive: H:\\Shared drives\\Harry Wardrobes\\8_SKETCHUP\\HW Plugin\\settings.json (General > Team settings folder), not in the component library.
+
 ## 0.75.0 — 2026-10-22
 - Settings reorganised into seven tabs: General (this computer: folders, printers, SumatraPDF, updates, backups, developer), Components, Doors & hardware, Colours, Job, Workshop, HubSpot. "Open settings folder", "Load team settings" and the separate "Hidden on the plan" box are gone.
 - One component table (Settings > Components) now also says which components are doors, drawer fronts, internal drawer fronts and fixed panels, which doors have no mid-rail, which units frame their drawer fronts like doors, each component's depth (standard / bridge-worktop / own mm) and the room parts (floor, ceiling) kept in the template and never exported. The old name lists are gone.

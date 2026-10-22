@@ -5,7 +5,7 @@ module HarryWardrobes
   module DoorStyle
     # Where settings live:
     #   <plugin>/settings_default.json          shipped defaults (replaced on update)
-    #   <library>/_HW Door Style/Team settings/settings.json
+    #   <team_folder>/settings.json             (H:\Shared drives\Harry Wardrobes\8_SKETCHUP\HW Plugin)
     #                                           the TEAM settings - the shared ones (doors,
     #                                           colours, components...) - the source of truth
     #                                           when Drive is reachable; every Save writes it
@@ -20,10 +20,10 @@ module HarryWardrobes
       USER_FILE     = File.join(USER_DIR, 'settings.json')
       COMPUTER_FILE = File.join(USER_DIR, 'computer.json')
       PREFS         = 'HW Door Style'.freeze # Sketchup.read_default section
-      TEAM_REL      = ['_HW Door Style', 'Team settings', 'settings.json'].freeze
+      TEAM_NAME     = 'settings.json'.freeze
 
       # Settings that belong to one computer, not the team.
-      COMPUTER_KEYS = %w[library_folder local_folder update_folder update_check_at_start update_test_builds
+      COMPUTER_KEYS = %w[library_folder local_folder team_folder update_folder update_check_at_start update_test_builds
                          pdf_printer pdf_sides zebra_share sumatra_path setup_done].freeze
 
       HINGE_TYPES = {
@@ -58,11 +58,11 @@ module HarryWardrobes
         {}
       end
 
-      # The team file, from the library folder on this computer (nil when no folder is set).
+      # The team file: Settings "team_folder" (this computer's path to the shared drive folder).
       def self.team_file(computer = nil)
         computer ||= File.exist?(COMPUTER_FILE) ? read_json(COMPUTER_FILE) : {}
-        lib = (computer['library_folder'] || defaults['library_folder']).to_s.strip
-        lib.empty? ? nil : File.join(lib.tr('\\', '/'), *TEAM_REL)
+        dir = (computer['team_folder'] || defaults['team_folder']).to_s.strip
+        dir.empty? ? nil : File.join(dir.tr('\\', '/'), TEAM_NAME)
       end
 
       def self.team_reachable?

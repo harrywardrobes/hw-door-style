@@ -112,7 +112,9 @@
   <fieldset><legend>This computer</legend>
     <div class="hint" style="margin-top:0;margin-bottom:6px">Everything in this box belongs to this computer only - it isn't in the team settings or a backup.</div>
     <div class="f t"><span>Library folder (Drive)</span><input type="text" id="library_folder"></div>
-    <div class="hint" style="margin-bottom:6px">The component library on Google Drive. The team settings live in its <code>_HW Door Style\Team settings</code> folder and the updates in <code>_HW Door Style\Updates</code>.</div>
+    <div class="hint" style="margin-bottom:6px">The component library on Google Drive (the updates are in its <code>_HW Door Style\Updates</code> folder).</div>
+    <div class="f t"><span>Team settings folder</span><input type="text" id="team_folder"></div>
+    <div class="hint" style="margin-bottom:6px">On the shared drive. The shared settings (every tab but this box) are saved here as settings.json on every Save and read back when Settings opens.</div>
     <div class="f t"><span>Local folder</span><input type="text" id="local_folder"></div>
     <div class="hint" style="margin-bottom:6px">Not on Drive. <b>SketchUp Components</b> here is a copy of the library's current files (every export lands in both; the + window uses it when Drive isn't reachable). <b>Settings backups</b> here gets a dated backup on every Save (the last 30 kept).</div>
     <div class="btnrow" style="margin-top:0"><button type="button" onclick="$('localMsg').textContent = 'Copying...'; sketchup.mirrorAll()">Copy the library here now</button><button type="button" onclick="sketchup.openLocal()">Open local folder</button><button type="button" onclick="sketchup.setup()">Run setup again</button><span id="localMsg" class="hint" style="margin:0;align-self:center"></span></div>
@@ -434,7 +436,7 @@ var LISTS = ['label_aggregate_names','drawer_box_parts'];
 var LOWER_LISTS = ['survey_questions', 'product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
-var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', local_folder:'C:/Users/User/Documents/Harry Wardrobes', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
+var TEXTS = { plan_hidden_tags:'hinges, shelf_brackets, drawer_rails, cable_outlets, cable_outlet, hanging_rail', zebra_share:'ZEBRA', pdf_printer:'BROTHER - Harry Wardrobes', sumatra_path:'', door_tag:'DOOR', drawer_tag:'DRAWER_FRONT', hinge_tag:'hinges', hardware_material:'HARDWARE', export_old_folder:'_old', plan_scenes:'top|plan', plan_notes_tag:'plan_notes', plan_dims_tag:'room_dims', label_tag_folder:'dimensions / labels', product_label_tag:'Pod_numbers', local_folder:'C:/Users/User/Documents/Harry Wardrobes', team_folder:'H:/Shared drives/Harry Wardrobes/8_SKETCHUP/HW Plugin', product_label_scenes:'top|plan', drawer_runner_type:'Hook/Peg Drawer Runners', library_folder:'G:/My Drive/1_Gautier Design Ltd/4_Assets/SketchUp Components/Harry Wardrobes' };
 var GROUPS = ['door','exterior','interior','worktop'];
 var SIDES = ['floor','ceiling','back','left','right'];
 var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
@@ -743,7 +745,7 @@ function renderInfo(){
     return '<h4>' + esc(e.title) + '</h4><ul>' + e.items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
   }).join('') || '<div class="hint">No notes.</div>';
   updInfo(S._update || {});
-  $('teamLine').textContent = S._team_file ? (S._team_ok ? 'Team settings: ' + S._team_file : 'Team settings file not reachable (' + S._team_file + ') - using the copy on this computer.') : 'No library folder set - team settings off.';
+  $('teamLine').textContent = S._team_file ? (S._team_ok ? 'Team settings: ' + S._team_file : 'Team settings file not reachable (' + S._team_file + ') - using the copy on this computer.') : 'No team settings folder set.';
   if (S._setup_note) { $('setupLine').style.display = ''; $('setupLine').textContent = S._setup_note; }
 }
 
