@@ -50,8 +50,8 @@ module HarryWardrobes
             notes << "Needs Repair / re-run: #{pr.join(', ')}" unless pr.empty?
           end
           pr = Styles.profile(style || 'flat') || {}
-          h_mm = h.to_f * 25.4
-          hole_mm = hinges.empty? ? [] : Hardware.hinge_heights(h_mm, hinges.size).map(&:round) # centres from the door bottom
+          # hinge centres from the door bottom, mm (hinge_heights works in inches, as the model)
+          hole_mm = hinges.empty? ? [] : Hardware.hinge_heights(h.to_f, hinges.size).map { |z| (z * 25.4).round }
           rows << {
             'unit' => path_label(path), 'item' => Finder.label(inst), 'top_id' => (path.first || inst).entityID,
             'stile_mm' => (kind == :door ? pr['door_frame_mm'] : pr['drawer_stile_mm']).to_f.round,

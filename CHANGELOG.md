@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.79.1 — 2026-10-22
+- Door order: hinge hole positions in mm (0.79.0 printed them in inches).
+
 ## 0.79.0 — 2026-10-22
 - Door / Vinyl order: one line per identical front with the quantity, a small picture of it, and everything the supplier asks for - style, colour, component, height, width, stile / rail, centre rail from the door bottom, drilled hand, hinge holes (H1... from top / bottom), hinge type, TIP-ON, handles - plus the pods it's in. The mid-rail column is gone (it's in the details). The door elevation stays; the worktops are on their own page(s), each with a small drawing at the left and its size, colour and profiled edges beside it.
 - Parts list: two sections - TIMBER (every board and length: 18 mm by the strip width it's cut from - 90, 160, 300... - then full-sheet parts, other boards, Timber / MDF lengths, drawer boxes) and HARDWARE (items, handles - "n/a" when there are none). Boards, Cut + Edged, Worktops, Edging and the 25 mm worktop list are gone. Runners read "410mm Hook/Peg"; hinge names lost their "?"; shelf pegs are shelf brackets.
