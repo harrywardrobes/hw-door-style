@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.85.4 — 2026-10-22
+- The unfitted drawer unit has its own depth in the component table: 460 mm sides, whatever the job's standard depth (Room settings no longer changes it). Library: DRAWER_UNFITTED_V8.
+
 ## 0.85.3 — 2026-10-22
 - Replace with: the new unit is lined up on the old one's back-left-bottom corner (in its own axes, so on any wall), not its origin - components with their origin in different places swap in the right spot.
 - Library (Components V39): drawer units (DRAWER_FITTED_V12, DRAWER_UNFITTED_V7) have their origin at the back-left corner on the wall line, like the wardrobes and worktops, and sit on the floor by themselves; the fitted unit's cable outlet is back (Left / Centre / Right); the unfitted unit has no cable outlet option and always has its worktop.
