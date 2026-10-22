@@ -961,6 +961,15 @@ cp_ph = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'component_
 check 'Add: a card opens its settings (form), Place sends only what changed', cp_ph.include?('sketchup.form(key)') && cp_ph.include?('sketchup.place(k, JSON.stringify(vals))')
 
 
+require 'hw_door_style/job/workshop' unless defined?(HarryWardrobes::DoorStyle::Workshop)
+WS_ = HarryWardrobes::DoorStyle::Workshop
+we_u = Struct.new(:vals) { def definition = self; def attribute_dictionary(_n) = vals; def get_attribute(_d, k, x = nil) = vals.fetch(k, x) }
+we_list = [we_u.new({ 'i01_wall_left' => 'TRUE', 'i06_wall_left_extend' => '0', 'i02_wall_right' => 'TRUE', 'i07_wall_right_extend' => (25 / 25.4).to_s }),
+           we_u.new({ 'i01_wall_left' => 'NODIV', 'i06_wall_left_extend' => '0', 'i02_wall_right' => 'TRUE' })]
+we = WS_.wall_no_extend(we_list) rescue [$!]
+check 'Workshop warning: Wall TRUE with its extend at 0 (left only here: right extends 25, NODIV is no wall, no extend option is skipped)', we.map(&:last) == ['left'] && we.first.first.equal?(we_list[0])
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

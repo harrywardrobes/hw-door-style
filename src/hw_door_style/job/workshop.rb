@@ -109,7 +109,24 @@ module HarryWardrobes
         unless walls.empty?
           out << { 'id' => 'walls', 'fix' => false, 'text' => "Wall set where another unit sits (a facing / scribe instead of a join): #{walls.map { |u, side, other| "#{Finder.label(u)} wall #{side} - #{Finder.label(other)} is there" }.first(6).join(', ')}#{walls.size > 6 ? '...' : ''}. Check Wall left / right on those units." }
         end
+        ext = wall_no_extend(units)
+        unless ext.empty?
+          out << { 'id' => 'wallextend', 'fix' => false, 'text' => "Wall set but its extend is 0 mm (floor / shelves won't reach into the scribe): #{ext.map { |u, side| "#{Finder.label(u)} wall #{side}" }.first(6).join(', ')}#{ext.size > 6 ? '...' : ''}. Check Wall left / right: extend on those units." }
+        end
         out
+      end
+
+      # Units with Wall left / right TRUE but "Wall left / right: extend" at 0: [[unit, 'left']].
+      def self.wall_no_extend(units)
+        units.each_with_object([]) do |u, out|
+          %w[left right].each do |side|
+            v = DC.value(u, "wall_#{side}")
+            next unless v && WALL_TRUE.include?(v.to_s.strip.upcase)
+            x = DC.value(u, "wall_#{side}_extend")
+            next if x.nil? || x.to_s.strip.empty?
+            out << [u, side] if x.to_f.abs < 0.01
+          end
+        end
       end
 
       # Doors / drawer fronts never drawn in a style (plain library fronts): [[inst, kind]].

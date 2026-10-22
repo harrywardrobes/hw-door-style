@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.86.1 — 2026-10-22
+- Workshop: a warning (amber) for any unit with Wall left / right set to TRUE but its "Wall left / right: extend" at 0 mm, naming the unit and side.
+
 ## 0.86.0 — 2026-10-22
 - Add: clicking a component opens its settings first (the Component Options you'd normally change - width, height, doors, walls, layout, drawers...) with the defaults filled in. Change any, then Place (or Enter) and click in the model; Cancel / Esc goes back. Changed settings are highlighted. What the job sets (runouts, depth, bottom facing, front heights, ceiling height on Scribed To Ceiling units, doors and colours) is still set up after placing, in the same undo step.
 
