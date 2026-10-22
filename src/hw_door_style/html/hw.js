@@ -14,3 +14,32 @@ function hwBusy(o){
   el.querySelector('.t span:last-child').textContent = any ? '' : Math.min(o.done + 1, o.total) + ' of ' + o.total;
   el.querySelector('.fill').style.width = any ? '' : Math.round(100 * o.done / o.total) + '%';
 }
+
+// Workshop > Fix this: outline what needs filling in (HW_FOCUS from Dialog.focus_next), scroll to
+// it and say what to do in a banner. Waits for the page to draw it (up to 5 s); the outline goes
+// once the field is changed.
+function hwFocus(f){
+  if (!f) return;
+  if (f.js) { try { (new Function(f.js))(); } catch(e) {} }
+  var tries = 0;
+  var t = setInterval(function(){
+    var els = [];
+    (f.sel || []).forEach(function(s){ try { Array.prototype.forEach.call(document.querySelectorAll(s), function(e){ els.push(e); }); } catch(e) {} });
+    if (!els.length && ++tries < 50) return;
+    clearInterval(t);
+    if (f.js) { try { (new Function(f.js))(); } catch(e) {} }
+    els.forEach(function(e){
+      e.classList.add('hwFocus');
+      var off = function(){ e.classList.remove('hwFocus'); };
+      e.addEventListener('change', off); e.addEventListener('input', off);
+    });
+    if (els[0]) { try { els[0].scrollIntoView({ block: 'center' }); if (els[0].focus) els[0].focus(); } catch(e) {} }
+    if (f.note) {
+      var b = document.createElement('div');
+      b.id = 'hwNote';
+      b.innerHTML = '<span>' + esc(f.note) + '</span><button onclick="this.parentNode.parentNode.removeChild(this.parentNode)">OK</button>';
+      document.body.insertBefore(b, document.body.firstChild);
+    }
+  }, 100);
+}
+window.addEventListener('load', function(){ if (typeof HW_FOCUS !== 'undefined') hwFocus(HW_FOCUS); });

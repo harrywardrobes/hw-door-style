@@ -278,36 +278,103 @@ module HarryWardrobes
       end
 
       # What stops the Workshop Pack being saved: anything that makes the lists wrong or
-      # unfinished. A thickness outside the standard list is only a warning.
+      # unfinished (a thickness outside the standard list is only a warning). Each is
+      # { 'id', 'text', 'arg' } - the Workshop lists them at the top with a Fix this button that
+      # opens the window to put it right (fix_blocker below) with the field highlighted.
       def self.blockers(model, parts)
         out = []
-        unless HubSpotRoom.customer_link(model)
-          out << 'Link this file to its HubSpot customer first (HubSpot > Link this file) - the PDFs and labels take the customer, account and drawing number from it.'
-        end
+        add = ->(id, text, arg = nil) { out << { 'id' => id, 'text' => text, 'arg' => arg } }
+        add.call('hubspot', "This file isn't linked to its HubSpot customer (the PDFs and labels need the customer, account and drawing number).") unless HubSpotRoom.customer_link(model)
         nh = PartsList.handles(model).select { |h| h['name'].to_s.start_with?('(not chosen') }
-        out << "Handles not chosen: #{nh.map { |h| h['kind'].downcase }.join(', ')} - pick them in the Door style window (or N/A)." unless nh.empty?
-        wh = wrong_hinges(model).size
-        out << "#{wh} door(s) have the wrong hinges - redraw them (Before you start box, or right-click > Rebuild selected)." if wh.positive?
+        add.call('handles', "Handles not chosen: #{nh.map { |h| h['kind'].downcase }.join(', ')} (or set them N/A).", nh.map { |h| h['key'] }) unless nh.empty?
+        units = Runouts.units(model.entities)
         unset = Runouts.unset(model)
-        out << "Runouts not set: #{unset.join(', ')} still 0 mm - set them in Room settings." if !unset.empty? && !Runouts.units(model.entities).empty?
-        out << 'Scribes are OFF - turn them on (every runout is 0).' if unset.empty? && !parts['scribes_on'] && !Runouts.units(model.entities).empty?
-        out << 'Ceiling height not set - enter it in Room settings.' if Ceiling.mm(model) <= 0 && Runouts.units(model.entities).any? { |u| Ceiling.up_to_ceiling?(u) }
+        add.call('runouts', "Runouts not set: #{unset.join(', ')} still 0 mm.", unset) if !unset.empty? && !units.empty?
+        add.call('scribes', 'Scribes are OFF - every runout is 0 on the units.') if unset.empty? && !parts['scribes_on'] && !units.empty?
+        add.call('ceiling', 'Ceiling height not set for this room.') if Ceiling.mm(model) <= 0 && units.any? { |u| Ceiling.up_to_ceiling?(u) }
+        cols = Array(parts['untyped']).reject { |u| u['name'].empty? }
+        add.call('colours', "#{cols.sum { |c| c['count'].to_i }} part(s) have a colour the plugin doesn't know: #{cols.map { |c| c['name'] }.join(', ')}.", cols.map { |c| c['name'] }) unless cols.empty?
+        none = Array(parts['untyped']).find { |u| u['name'].empty? }
+        add.call('nocolour', "#{none['count']} part(s) have no colour - a job colour isn't chosen yet.", unset_colour_groups(model)) if none
         un = unstyled_fronts(model).size
-        out << "#{un} door(s) / drawer front(s) not drawn in a door style yet - they'd be missing from the order (Before you start box, or Follow the Door style window)." if un.positive?
+        add.call('unstyled', "#{un} door(s) / drawer front(s) not drawn in a door style yet - they'd be missing from the order.") if un.positive?
         st = stale_fronts(model).size
-        out << "#{st} door(s) / drawer front(s) changed size after they were drawn - redraw them (Before you start box, or right-click > Rebuild selected)." if st.positive?
+        add.call('stale', "#{st} door(s) / drawer front(s) changed size after they were drawn.") if st.positive?
+        wh = wrong_hinges(model).size
+        add.call('hinges', "#{wh} door(s) have the wrong hinges.") if wh.positive?
         li = Array(parts['loose_internals']).size
-        out << "#{li} wardrobe internal(s) aren't inside a tall unit (no Pod number) - move them into their wardrobe." if li.positive?
-        n = Array(parts['untyped']).sum { |u| u['count'].to_i }
-        out << "#{n} part(s) are left out (no colour, or a colour not set up as a sheet good or hardware)." if n.positive?
+        add.call('internals', "#{li} wardrobe internal(s) aren't inside a tall unit (no Pod number).") if li.positive?
         parts['groups'].each do |g|
           next if %w[vinyl white_back].include?(g['section'])
           name = "#{g['material']} #{PartsList.fmt(g['thickness'])} mm"
-          out << "#{name}: enter the full sheets needed (Sheet goods tab)." if g['ask'] && g['sheets'].nil?
-          out << "#{name}: part(s) #{Array(g['too_big']).join(', ')} are bigger than the sheet." unless Array(g['too_big']).empty?
-          out << "#{g['material']}: no sheet size set - no board count." if !g['sheet'] && !g['strip_group']
+          add.call('sheets', "#{name}: enter the full sheets needed.", g['gid']) if g['ask'] && g['sheets'].nil?
+          add.call('too_big', "#{name}: part(s) #{Array(g['too_big']).join(', ')} are bigger than the sheet.", g['material']) unless Array(g['too_big']).empty?
+          add.call('nosheet', "#{g['material']}: no sheet size set - no board count.", g['material']) if !g['sheet'] && !g['strip_group']
         end
         out
+      end
+
+      def self.blocker_texts(model, parts) = blockers(model, parts).map { |b| b['text'] }
+
+      # Colour groups still on Default with no door colour to fall back on (door first).
+      def self.unset_colour_groups(model)
+        cur = Colours.job_choices(model)
+        door = cur['door'] && cur['door'] != Colours::DEFAULT
+        Colours::GROUPS.map(&:first).reject { |id| %w[panels_22 drawer_box].include?(id) }
+                .select { |id| (cur[id].nil? || cur[id] == Colours::DEFAULT) && (id == 'door' || !door) }
+      end
+
+      # Fix this: what to do for one blocker. Returns :reload (fixed here - the Workshop
+      # recalculates), :closed (another window opened - the Workshop closed), or :tab (the
+      # Workshop's own page handles it).
+      def self.fix_blocker(model, id, arg, reopen)
+        case id
+        when 'hubspot'
+          HubSpotRoom.show_pick(:link, after: reopen)
+          :closed
+        when 'handles'
+          Dialog.focus_next('door_style', sel: Array(arg).map { |k| "#hr_#{k}" },
+                                          note: 'Choose the highlighted handle(s) - or N/A when there are none - then Apply. Open the Workshop again after.')
+          DoorStyleWindow.show(model)
+          :closed
+        when 'runouts', 'ceiling'
+          sel = id == 'ceiling' ? ['#ceiling'] : Array(arg).map { |s| "#s_#{s}" }
+          Dialog.focus_next('scribe', sel: sel, note: id == 'ceiling' ? 'Enter the ceiling height, then Apply. Open the Workshop again after.' :
+                                                     'Measure in the highlighted runout(s) (25 mm minimum), then Apply. Open the Workshop again after.')
+          Pencil.show(model, nil)
+          :closed
+        when 'colours', 'nocolour'
+          groups = id == 'nocolour' ? Array(arg) : []
+          Dialog.focus_next('colours', sel: groups.map { |g| "#sel_#{g}" },
+                                       note: id == 'nocolour' ? 'Choose the highlighted job colour(s), then Apply. Open the Workshop again after.' :
+                                                                "Parts are painted #{Array(arg).join(', ')}, which isn't one of the plugin's colours: choose the job colours here and Apply (it repaints them). Open the Workshop again after.")
+          ColoursWindow.show
+          :closed
+        when 'unstyled'
+          unless Colours.door_colour_chosen?(model)
+            Dialog.focus_next('colours', sel: ['#sel_door'], note: 'Choose the door colour first, then Apply - the doors are then drawn in the job style from the Workshop.')
+            ColoursWindow.show
+            return :closed
+          end
+          fix_unstyled(model)
+          :reload
+        when 'stale'
+          fix_stale(model)
+          :reload
+        when 'hinges'
+          fix_hinges(model)
+          :reload
+        when 'scribes'
+          scribes_on(model, reopen) ? :busy : :reload
+        when 'nosheet', 'too_big'
+          Dialog.focus_next('settings', js: "show('workshop')", sel: ['#ocl_sheet_sizes'],
+                                        note: id == 'nosheet' ? "Add the sheet size for #{arg} (e.g. 2800x2070), then Save. Open the Workshop again after." :
+                                                                "Check the sheet sizes for #{arg} - a part is bigger than every size listed. Save, then open the Workshop again.")
+          SettingsWindow.show
+          :closed
+        else
+          :tab # internals, sheets: on the Workshop's own tabs
+        end
       end
 
       # Scribes on for every unit with the job's runouts (as the Scribe window's Apply), then after.

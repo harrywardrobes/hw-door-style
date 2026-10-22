@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.82.0 — 2026-10-22
+- Workshop: when the Workshop Pack can't be saved, every reason is listed at the top in red, each with a Fix this button. It opens the window that puts it right with the field to fill in outlined and a note saying what to do: handles → Door style window (the handle pickers), runouts / ceiling → Room settings (those rows), colours → Colours window (the job colours not chosen), sheet sizes → Settings > Workshop, HubSpot link → the link window. Sheets to enter and loose internals jump to that tab in the Workshop; redraws (unstyled / resized doors, wrong hinges) and scribes on are done straight away. Pressing Save Workshop Pack while it's blocked flashes the list. The yellow Check box now only holds warnings that don't stop the pack.
+
 ## 0.81.3 — 2026-10-22
 - Drawers: closing a drawer now also clears the end position its open animation leaves behind - before, Clean model / redraws closed it and the next redraw slid it straight back out, so the "drawers open" warning never went away. Applying colours closes any open drawers itself before resizing the boxes instead of asking you to.
 

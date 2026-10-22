@@ -913,5 +913,15 @@ sw_plan3 = SW.plan(sw_fit, sw_int)
 check 'Swap plan DRAWER_FITTED -> INT_DRAWER: 400mm width across value sets, facing width -> filler, drawer count',
       sw_plan3['a01_cab_width'] == '40' && (sw_plan3['d06_fllr_left'] - 70 / 25.4).abs < 1e-6 && sw_plan3['h04_drwr_no'] == '3'
 
+
+# --- Workshop: every reason the pack is blocked has a Fix this route ------------------
+wk_src = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/workshop.rb'))
+wk_ids = wk_src[/def self\.blockers.*?\n      end\n/m].scan(/add\.call\('(\w+)'/).flatten.uniq
+wk_fix = wk_src[/def self\.fix_blocker.*?\n      end\n/m].scan(/when ((?:'\w+'(?:, )?)+)/).flatten.join(' ').scan(/'(\w+)'/).flatten
+pl_js = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html'))
+in_window = %w[sheets internals].select { |i| pl_js.include?("b.id === '#{i}'") }
+check "Workshop blockers: each (#{wk_ids.size}) has a Fix this - another window or this window's tab",
+      wk_ids.size >= 14 && (wk_ids - wk_fix - in_window).empty? && pl_js.include?('Fix this') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/hw.js')).include?('function hwFocus')
+
 puts $fail.zero? ? "\nAll checks passed" : "\n#{$fail} check(s) FAILED"
 exit($fail.zero? ? 0 : 1)

@@ -808,7 +808,7 @@ module HarryWardrobes
          ['interior_handle', 'interior_handle_sku', 'interior_handle_supplier', 'Interior handle', c['h_int']]].filter_map do |k, sku, sup, label, qty|
           n = names[k].to_s
           next if n.casecmp?('n/a') || (n.empty? && qty.to_i.zero?)
-          { 'kind' => label, 'name' => n.empty? ? '(not chosen - Door style)' : n, 'sku' => names[sku].to_s,
+          { 'key' => k, 'kind' => label, 'name' => n.empty? ? '(not chosen - Door style)' : n, 'sku' => names[sku].to_s,
             'supplier' => names[sup].to_s.empty? ? '' : HubSpotProducts.supplier_label(names[sup]), 'qty' => qty.to_i }
         end
       rescue StandardError => e
@@ -959,6 +959,24 @@ module HarryWardrobes
             end
           rescue StandardError => e
             Log.error('workshop fix', e)
+            fail_js.call(e)
+          end
+        end
+        # Fix this (a reason the Workshop Pack can't be saved yet)
+        dlg.add_action_callback('fixBlocker') do |_c, json|
+          req = JSON.parse(json.to_s) rescue {}
+          reopen = lambda do
+            dlg.close
+            UI.start_timer(0.3, false) { PartsList.show }
+          end
+          begin
+            r = Workshop.fix_blocker(model, req['id'].to_s, req['arg'], reopen)
+            case r
+            when :reload then reload.call
+            when :closed then dlg.close
+            end
+          rescue StandardError => e
+            Log.error('workshop fix this', e)
             fail_js.call(e)
           end
         end
@@ -1136,7 +1154,7 @@ module HarryWardrobes
         pack = nil
         dlg.add_action_callback('save') do |_c, json|
           req = (JSON.parse(json.to_s) rescue {}).merge('range' => '')
-          blocked = Workshop.blockers(model, data)
+          blocked = Workshop.blocker_texts(model, data)
           next fail_js.call(StandardError.new("The Workshop Pack can't be saved yet: #{blocked.join(' ')}")) unless blocked.empty?
           out = nil
           steps = [['Saving the door order, parts list and Room Plan', -> { out = Workshop.save(model, data) }],

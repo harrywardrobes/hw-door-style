@@ -24,6 +24,12 @@
   .grp h3 { font-size:12.5px; margin:6px 0 4px; display:flex; gap:10px; align-items:baseline; }
   .grp h3 span { color:var(--muted); font-weight:normal; font-size:11px; }
   .warnbox { background:#fff6e5; border:1px solid #f0d9a8; color:#7a5300; padding:6px 10px; border-radius:4px; font-size:11.5px; margin-bottom:8px; }
+  .warnbox.block { background:#fdf1f0; border-color:#e6b0aa; border-left:4px solid #c0392b; color:#7b241c; max-height:170px; overflow:auto; }
+  .warnbox.block .brow { display:flex; align-items:center; gap:10px; padding:3px 0; border-top:1px solid #f3d3cf; }
+  .warnbox.block .brow:first-of-type { margin-top:4px; }
+  .warnbox.block .brow span { flex:1; }
+  .warnbox.block .brow button { flex:none; font-size:11px; padding:2px 10px; }
+  .warnbox.flash { animation:hwPulse .6s ease-in-out 3; outline:3px solid #c0392b; }
   .bad { color:#a33; }
   .edge { font-size:10.5px; color:#3b4a44; }
   .swatch { display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:-1px; margin-right:3px; border:1px solid rgba(0,0,0,.2); }
@@ -168,16 +174,11 @@ function render(d){
   D = d; if (HS && HS !== 'loading') { HS = null; if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'hubspot') { HS = 'loading'; sketchup.hubspot(); } }
   $('status').textContent = '';
   var w = [];
-  if (!d.scribes_on) w.push('Scribes are OFF (every runout 0) - panel sizes may be wrong. Press the Scribe / runout button first.');
-  if (d.skipped.no_type) w.push(d.skipped.no_type + ' part(s) have a colour that isn\'t set up as a sheet good or hardware (Settings > Cut list) and are left out.');
   d.groups.forEach(function(g){
     if (g.section === 'vinyl' || g.section === 'white_back') return; // ordered with the doors - no sheet count
     if (!g.std_ok) w.push(g.material + ': some parts are ' + f(g.thickness) + ' mm, which isn\'t one of its standard thicknesses.');
-    if (g.too_big.length) w.push(g.material + ' ' + f(g.thickness) + ' mm: part(s) ' + g.too_big.join(', ') + ' are bigger than the sheet.');
-    if (g.ask && g.sheets == null) w.push(g.material + ' ' + f(g.thickness) + ' mm: part(s) ' + g.manual.join(', ') + ' are too wide (or long) for the strips - enter the full sheets needed (Sheet goods tab).');
-    if (!g.sheet && !g.strip_group) w.push(g.material + ': no sheet size set - no board count.');
   });
-  $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
+  renderWarns(d, w);
   renderProducts(d);
   // door order (the door summary)
   var dd = d.door, t = dd.totals;
@@ -217,7 +218,7 @@ function render(d){
     '<tr><td></td><td><b>Total</b></td><td></td><td></td><td></td><td></td><td class="n"><b>' + dbx.reduce(function(a, x){ return a + x.qty; }, 0) + '</b></td></tr></table>' +
     '<div class="hint">One pair of runners per box. Internal cabinet width = box width + the box clearance each side.</div>' : '<div class="hint">No drawer boxes found.</div>';
   dbx.forEach(function(x){ if (x.warn) w.push(x.parent + ': drawer box ' + x.height + ' mm high - under 100 mm (Drawer Boxes tab).'); });
-  $('warns').innerHTML = w.length ? '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>' : '';
+  renderWarns(d, w);
   var hwl = d.hardware_lines || [];
   var hw = hwl.length ? '<div class="grp"><h3>From the model <span>one line per item (names from Settings &gt; Labels &gt; Label names)</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Qty</th></tr>' +
     hwl.map(function(x){ return '<tr title="' + esc(x.parts.join(', ')) + '"><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
@@ -268,7 +269,7 @@ function renderProducts(d){
 function looseInternals(d, P){
   var L = d.loose_internals || [];
   if (!L.length) return '';
-  return '<div class="grp" style="margin-top:10px"><h3 style="color:var(--warn)">Not in a unit <span>' + L.length + ' internal(s) with no Pod number</span></h3><table><tr><th>Internal</th><th class="n">x (mm)</th><th>Put it in</th></tr>' + L.map(function(l){
+  return '<div class="grp" id="looseBox" style="margin-top:10px"><h3 style="color:var(--warn)">Not in a unit <span>' + L.length + ' internal(s) with no Pod number</span></h3><table><tr><th>Internal</th><th class="n">x (mm)</th><th>Put it in</th></tr>' + L.map(function(l){
     var tall = P.filter(function(p){ return p.ref === (l.letter || 'T'); });
     return '<tr><td>' + esc(l.name) + '</td><td class="n">' + l.x + '</td><td><select style="font-size:11px" onchange="if(this.value)setHost(\'' + esc(l.pid) + '\', this.value)"><option value="">Choose a unit...</option>' + tall.map(function(p){ return '<option value="' + esc(p.pid) + '">' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join('') + '</select></td></tr>';
   }).join('') + '</table></div>';
@@ -327,16 +328,41 @@ function renderLabels(d){
   jobInfo(d.job_info);
   renderPdfs(d.pdfs || []);
   showChecks(d.checks || []);
-  var bl = d.blockers || []; $('packBtn').style.opacity = bl.length ? '.5' : ''; $('packBtn').title = bl.length ? 'Fix first: ' + bl.join(' ') : 'Makes the PDFs (Door / Vinyl order, parts list, Room Plan) and the labels, ready to check and send';
+  var bl = d.blockers || []; $('packBtn').style.opacity = bl.length ? '.5' : ''; $('packBtn').title = bl.length ? 'Fix the ' + bl.length + ' thing(s) listed at the top first' : 'Makes the PDFs (Door / Vinyl order, parts list, Room Plan) and the labels, ready to check and send';
   labelParts({ parts: d.label_parts, stock: d.timber_stock });
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
+}
+// Top of the window: what stops the Workshop Pack (each with Fix this), then the other checks.
+function renderWarns(d, w){
+  var bl = d.blockers || [], h = '';
+  if (bl.length) h += '<div class="warnbox block" id="blockBox"><b>Can\'t save the Workshop Pack yet - ' + bl.length + ' thing(s) to fix:</b>' +
+    bl.map(function(b, i){ return '<div class="brow"><span>' + esc(b.text) + '</span><button onclick="fixBlocker(' + i + ')">Fix this</button></div>'; }).join('') + '</div>';
+  if (w.length) h += '<div class="warnbox" style="max-height:74px;overflow:auto"><b>Check:</b><ul style="margin:2px 0 0 16px;padding:0">' + w.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul></div>';
+  $('warns').innerHTML = h;
+}
+// Fix this: on this window's own tabs (sheets to enter, internals to place) or another window.
+function fixBlocker(i){
+  var b = ((D && D.blockers) || [])[i]; if (!b) return;
+  var tab = function(t){ document.querySelector('#tabs button[data-t=' + t + ']').click(); };
+  var mark = function(sel, note){
+    setTimeout(function(){
+      var els = document.querySelectorAll(sel);
+      Array.prototype.forEach.call(els, function(e){ e.classList.add('hwFocus'); var off = function(){ e.classList.remove('hwFocus'); }; e.addEventListener('change', off); e.addEventListener('input', off); });
+      if (els[0]) { els[0].scrollIntoView({ block: 'center' }); if (els[0].focus) els[0].focus(); }
+      $('status').textContent = note;
+    }, 60);
+  };
+  if (b.id === 'sheets') { tab('sheets'); mark('.sheetIn[data-gid="' + b.arg + '"]', 'Enter the full sheets needed in the highlighted box.'); return; }
+  if (b.id === 'internals') { tab('products'); mark('#looseBox select', 'Put each internal in its wardrobe (or move it into one in the model).'); return; }
+  $('status').textContent = 'Opening the window to fix it...';
+  sketchup.fixBlocker(JSON.stringify({ id: b.id, arg: b.arg }));
 }
 function failed(msg){ if ($('fixBack')) $('fixBack').style.display = 'none'; $('status').innerHTML = '<span class="bad">' + esc(msg) + '</span>'; }
 function savePack(){
   var b = (D && D.blockers) || [];
   if (b.length) {
-    $('status').innerHTML = '<span class="bad">Can\'t save the Workshop Pack yet - ' + esc(b.join(' ')) + '</span>';
-    if (missingSheets().length) document.querySelector('#tabs button[data-t=sheets]').click();
+    $('status').innerHTML = '<span class="bad">Can\'t save the Workshop Pack yet - fix the ' + b.length + ' thing(s) listed at the top (Fix this on each).</span>';
+    var box = $('blockBox'); if (box) { box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash'); box.scrollIntoView({ block: 'nearest' }); }
     return;
   }
   var ms = missingSheets();

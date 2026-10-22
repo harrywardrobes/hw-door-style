@@ -17,10 +17,18 @@ module HarryWardrobes
                     "<script>\n#{File.read(File.join(DIR, 'hw.js'))}</script>"
       end
 
+      # Highlight something the next time window name opens (Workshop > Fix this): sel = CSS
+      # selectors to outline, note = what to do (a banner at the top), js = run first (e.g.
+      # switch to the right Settings section). The page finds them once it has drawn.
+      def self.focus_next(name, sel: [], note: nil, js: nil)
+        (@focus ||= {})[name.to_s] = { 'sel' => Array(sel), 'note' => note, 'js' => js }
+      end
+
       # The page's HTML with the shared look and data filled in.
       def self.html(name, data = nil)
         page = File.read(File.join(DIR, "#{name}.html"))
-        page = page.sub('<!--HW-->') { shared }
+        f = (@focus ||= {}).delete(name.to_s)
+        page = page.sub('<!--HW-->') { shared + (f ? "\n<script>var HW_FOCUS = #{JSON.generate(f)};</script>" : '') }
         # <!--VENDOR:file.js--> -> that bundled library inline (html/vendor; no CDN - the window may be offline)
         page = page.gsub(/<!--VENDOR:([\w.\-]+)-->/) { "<script>\n#{File.read(File.join(DIR, 'vendor', Regexp.last_match(1)))}\n</script>" }
         page.sub('/*DATA*/null') { JSON.generate(data) }
