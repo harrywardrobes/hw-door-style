@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.85.1 — 2026-10-22
+- Room Plan product list: the rule under each pod sits under it again (it ran through the next pod's title).
+
 ## 0.85.0 — 2026-10-22
 - Door / Vinyl order: titled with the customer - "REBECCA - WILLIAMS - DOORS"; the different-hinges key, the Hinges and Totals blocks and the Pods column are gone; Items by style runs across the page with the bullnose / cornice count; the Drilling column just says DRILLED LEFT / DRILLED RIGHT (blank when not drilled); no handle count per line and no hinge holes on the small pictures; the 22mm panels start a new page.
 - All three PDFs: footer "HW 0.85.0" with the Pod letter key centred; the account and fit week are left off the page headers (they stay on the Room Plan cover).

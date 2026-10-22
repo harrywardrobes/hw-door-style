@@ -229,7 +229,9 @@ module HarryWardrobes
             pg.text(M + 92, y, v, size: 8.5, max: W - 2 * M - 92)
             y -= ROW - 1
           end
-          pg.line(M, y - 2, W - M, y - 2)
+          # the rule just under the block (y is the next line's baseline - the rule sat on the
+          # next title before)
+          pg.line(M, y + 5, W - M, y + 5)
           doc.instance_variable_set(:@y, y - 8)
         end
       end
