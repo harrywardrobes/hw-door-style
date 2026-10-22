@@ -185,9 +185,11 @@ module HarryWardrobes
         lw = o['page_width'] - o['margin_left'] - o['margin_right']
         lh = o['page_height'] - o['margin_top'] - o['margin_bottom']
         if e['kind'] == 'divider'
-          hd = dots([lh / 5.0, 12].min)
+          text = clean(e['name'].to_s)
+          # as big as fits across the label (it ran off both edges at 12 mm)
+          hd = [[dots([lh / 5.0, 12].min), (dots(lw) / ([text.length, 1].max * 0.6)).floor].min, 20].max
           return ['^XA', '^CI28', "^PW#{dots(o['page_width'])}", "^LL#{dots(o['page_height'])}", "^LH#{dots(o['margin_left'])},#{dots(o['margin_top'])}",
-                  "^FO0,#{dots(lh / 2.0) - hd / 2}^A0N,#{hd},#{hd}^FB#{dots(lw)},1,0,C,0^FD#{clean(e['name'].to_s)}^FS", '^XZ'].join("\n")
+                  "^FO0,#{dots(lh / 2.0) - hd / 2}^A0N,#{hd},#{hd}^FB#{dots(lw)},1,0,C,0^FD#{text}^FS", '^XZ'].join("\n")
         end
         min_unit = [lw / 12.0, lh / 12.0].min
         out = ['^XA', '^CI28', "^PW#{dots(o['page_width'])}", "^LL#{dots(o['page_height'])}", "^LH#{dots(o['margin_left'])},#{dots(o['margin_top'])}"]

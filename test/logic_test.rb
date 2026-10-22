@@ -1034,6 +1034,17 @@ check 'Sheet goods: the parts needing a full sheet link to their row below (high
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'workshop.rb')).include?("next unless g['ask'] && !g['sheets'].nil? && g['sheets'].to_i.zero?")
 
 
+LBo = HarryWardrobes::DoorStyle::Labels
+lb_list = { 'groups' => [{ 'material' => 'W', 'thickness' => 18, 'grained' => false, 'strip_group' => false, 'parts' => [{ 'number' => 1, 'name' => 'SIDE', 'qty' => 1, 'instances' => [{ 'eid' => 1, 'top' => 0 }] }] }],
+            'hardware' => [{ 'number' => 9, 'name' => 'HINGE_SOFT_CLOSE_110', 'material' => 'HARDWARE', 'qty' => 4, 'length' => 35, 'instances' => [{ 'eid' => 2, 'top' => 0 }] }], 'timber' => [] }
+lb_e = (LBo.entries(lb_list, { 'layout' => [] }, {}, modes: {}, stock: 2400) rescue [$!])
+check 'Labels: the hardware labels come first, then the boards', lb_e.map { |e| e.is_a?(Hash) ? e['kind'] : e.to_s }.first == 'aggregate' && lb_e.last['kind'] == 'sheet'
+ZP = HarryWardrobes::DoorStyle::Zpl
+zd = ZP.label({ 'page_width' => 102, 'page_height' => 76, 'margin_left' => 5, 'margin_right' => 5, 'margin_top' => 5, 'margin_bottom' => 5 }, { 'kind' => 'divider', 'name' => '----  FULL SHEET  ----' }, {})
+zh = zd[/\^A0N,(\d+)/, 1].to_i
+check 'Zebra divider label: the text fits across the label (was 12 mm high and ran off both edges)', zh.positive? && zh * 0.6 * 22 <= 92 * 8
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

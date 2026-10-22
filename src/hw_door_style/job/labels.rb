@@ -252,7 +252,7 @@ module HarryWardrobes
 
       # tops: Products.list's top-level entity id -> Pod number, so each piece carries its
       # product's Pod number (blank when it isn't in one). Printed Pod number, then part number;
-      # the grouped labels come after the part labels.
+      # the grouped hardware labels come first, the grouped timber labels last.
       def self.entries(list, preset, tops = {}, modes: {}, stock: 2400, which: '', room_id: '')
         layout = Array(preset['layout'])
         out = []
@@ -278,10 +278,15 @@ module HarryWardrobes
             out << e
           end
         end
-        with_dividers(by_width(out)) + aggregates(agg.map { |p, _g, kind| [p, kind] }, tops, stock).map do |a|
+        grouped = aggregates(agg.map { |p, _g, kind| [p, kind] }, tops, stock).map do |a|
           a.merge('barcode' => barcode(room_id, "H#{a['agg_index']}"), 'number' => '', 't' => '', 'position' => 1, 'length' => '', 'width' => '', 'thickness' => '', 'material_name' => '',
                   'edges' => {}, 'edge_colors' => {}, 'custom' => layout.map { nil })
         end
+        # hardware first (grouped labels, then any one-per-piece hardware), then the boards by
+        # strip width, timber, and the grouped timber labels last
+        hw_grouped, timber_grouped = grouped.partition { |a| a['source'] != 'timber' }
+        hw_parts, rest = by_width(out).partition { |e| e['kind'] == 'hardware' }
+        hw_grouped + hw_parts + with_dividers(rest) + timber_grouped
       end
 
       # Print range: '' all, 'agg' grouped labels only, 'T3' one Pod number, [numbers] chosen parts.

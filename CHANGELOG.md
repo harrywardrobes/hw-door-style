@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.86.10 — 2026-10-22
+- Labels: the hardware labels print first (grouped hardware, then any one-per-piece hardware), then the boards by strip width with their dividers, then timber; the grouped timber labels last.
+- Zebra: the divider label ("---- 90 mm ----", "---- FULL SHEET ----") was printed 12 mm high and ran off both edges - its text now shrinks to fit across the label.
+
 ## 0.86.9 — 2026-10-22
 - Workshop > Sheet goods: the part numbers under "Needs full sheets" are links - click one to scroll to that part in the list below, outlined for a few seconds; the parts needing a full sheet are shaded in their list all the time.
 - Full sheets set to 0 for a material that has parts needing a full sheet: an amber warning (Fix this takes you to the box) - the Workshop Pack can still be saved. An empty box still has to be filled in.
