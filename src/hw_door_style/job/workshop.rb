@@ -99,7 +99,7 @@ module HarryWardrobes
         units = Runouts.units(model.entities)
         diff = Runouts.unset(model).empty? && !master ? job_differences(model, units) : []
         unless diff.empty?
-          out << { 'id' => 'jobdiff', 'fix' => true, 'text' => "#{diff.size} unit(s) aren't at the job's settings (fine if deliberate): #{diff.first(5).map { |u, d| "#{Finder.label(u)} (#{d.join('; ')})" }.join(', ')}#{diff.size > 5 ? '...' : ''}." }
+          out << { 'id' => 'jobdiff', 'fix' => true, 'text' => "#{diff.size} unit(s) aren't at the job's settings (fine if deliberate): #{diff.first(5).map { |u, d| "#{ref(u)} (#{d.join('; ')})" }.join(', ')}#{diff.size > 5 ? '...' : ''}." }
         end
         unknown = unknown_components(model)
         unless unknown.empty?
@@ -107,11 +107,11 @@ module HarryWardrobes
         end
         walls = wall_clashes(model, units)
         unless walls.empty?
-          out << { 'id' => 'walls', 'fix' => false, 'text' => "Wall set where another unit sits (a facing / scribe instead of a join): #{walls.map { |u, side, other| "#{Finder.label(u)} wall #{side} - #{Finder.label(other)} is there" }.first(6).join(', ')}#{walls.size > 6 ? '...' : ''}. Check Wall left / right on those units." }
+          out << { 'id' => 'walls', 'fix' => false, 'text' => "Wall set where another unit sits (a facing / scribe instead of a join): #{walls.map { |u, side, other| "#{ref(u)} wall #{side} - #{ref(other)} is there" }.first(6).join(', ')}#{walls.size > 6 ? '...' : ''}. Check Wall left / right on those units." }
         end
         ext = wall_no_extend(units)
         unless ext.empty?
-          out << { 'id' => 'wallextend', 'fix' => false, 'text' => "Wall set but its extend is 0 mm (floor / shelves won't reach into the scribe): #{ext.map { |u, side| "#{Finder.label(u)} wall #{side}" }.first(6).join(', ')}#{ext.size > 6 ? '...' : ''}. Check Wall left / right: extend on those units." }
+          out << { 'id' => 'wallextend', 'fix' => false, 'text' => "Wall set but its extend is 0 mm (floor / shelves won't reach into the scribe): #{ext.map { |u, side| "#{ref(u)} wall #{side}" }.first(6).join(', ')}#{ext.size > 6 ? '...' : ''}. Check Wall left / right: extend on those units." }
         end
         out
       end
@@ -259,14 +259,14 @@ module HarryWardrobes
         add.call('colours', "#{cols.sum { |c| c['count'].to_i }} part(s) have a colour the plugin doesn't know: #{cols.map { |c| c['name'] }.join(', ')}.", cols.map { |c| c['name'] }) unless cols.empty?
         none = Array(parts['untyped']).find { |u| u['name'].empty? }
         add.call('nocolour', "#{none['count']} part(s) have no colour - a job colour isn't chosen yet.", unset_colour_groups(model)) if none
-        un = unstyled_fronts(model).size
-        add.call('unstyled', "#{un} door(s) / drawer front(s) not drawn in a door style yet - they'd be missing from the order.") if un.positive?
-        st = stale_fronts(model).size
-        add.call('stale', "#{st} door(s) / drawer front(s) changed size after they were drawn.") if st.positive?
-        wh = wrong_hinges(model).size
-        add.call('hinges', "#{wh} door(s) have the wrong hinges.") if wh.positive?
-        li = Array(parts['loose_internals']).size
-        add.call('internals', "#{li} wardrobe internal(s) aren't inside a tall unit (no Pod number).") if li.positive?
+        un = unstyled_fronts(model)
+        add.call('unstyled', "#{un.size} door(s) / drawer front(s) not drawn in a door style yet - they'd be missing from the order: #{refs(un.map(&:first))}.") unless un.empty?
+        st = stale_fronts(model)
+        add.call('stale', "#{st.size} door(s) / drawer front(s) changed size after they were drawn: #{refs(st.map(&:first))}.") unless st.empty?
+        wh = wrong_hinges(model)
+        add.call('hinges', "#{wh.size} door(s) have the wrong hinges: #{refs(wh.map { |w| w[:inst] })}.") unless wh.empty?
+        li = Array(parts['loose_internals'])
+        add.call('internals', "#{li.size} wardrobe internal(s) aren't inside a tall unit (no Pod number): #{li.first(6).map { |x| "[[#{x['pid']}|#{x['name'].to_s.tr('[]|', '()/')}]]" }.join(', ')}#{li.size > 6 ? '...' : ''}.") unless li.empty?
         parts['groups'].each do |g|
           next if %w[vinyl white_back].include?(g['section'])
           name = "#{g['material']} #{PartsList.fmt(g['thickness'])} mm"
@@ -292,7 +292,66 @@ module HarryWardrobes
         end
       end
 
-      def self.blocker_texts(model, parts) = blockers(model, parts).map { |b| b['text'] }
+      # Plain text (for messages outside the Workshop): the component links as their names.
+      def self.blocker_texts(model, parts) = blockers(model, parts).map { |b| plain(b['text']) }
+
+      # --- component links in the texts ---------------------------------------------------
+      # "[[persistent id|label]]" - the Workshop shows it bold and clickable (find below).
+      REF_RE = /\[\[(\d+)\|([^\]]*)\]\]/.freeze
+
+      def self.ref(e)
+        return '?' unless e
+        label = Finder.label(e).to_s.tr('[]|', '()/')
+        e.respond_to?(:persistent_id) ? "[[#{e.persistent_id}|#{label}]]" : label
+      end
+
+      def self.refs(list, max = 6)
+        list.first(max).map { |e| ref(e) }.join(', ') + (list.size > max ? '...' : '')
+      end
+
+      def self.plain(text) = text.to_s.gsub(REF_RE) { $2 }
+
+      # Where an entity is: the instances / groups from the model down to it, or nil.
+      # Each definition is looked inside once (the first path found is used).
+      def self.path_to(model, target)
+        seen = {}
+        walk = lambda do |ents, path|
+          ents.each do |x|
+            next unless x.is_a?(Sketchup::ComponentInstance) || x.is_a?(Sketchup::Group)
+            return path + [x] if x == target
+          end
+          ents.each do |x|
+            next unless x.is_a?(Sketchup::ComponentInstance) || x.is_a?(Sketchup::Group)
+            d = x.definition
+            next if seen[d]
+            seen[d] = true
+            r = walk.call(d.entities, path + [x])
+            return r if r
+          end
+          nil
+        end
+        walk.call(model.entities, [])
+      end
+
+      # Click a component in a check: opens the groups it's in, selects it and zooms to it.
+      def self.find(model, pid)
+        e = model.find_entity_by_persistent_id(pid.to_i)
+        return false unless e&.valid?
+        path = path_to(model, e) or return false
+        begin
+          model.active_path = path.size > 1 ? path[0..-2] : nil
+        rescue ArgumentError, TypeError
+          model.active_path = nil
+        end
+        model.selection.clear
+        model.selection.add(e)
+        v = model.active_view
+        v.zoom(model.selection) rescue nil
+        v.zoom(0.6) rescue nil
+        v.invalidate
+        Sketchup.status_text = "#{Finder.label(e)} is selected."
+        true
+      end
 
       # Colour groups still on Default with no door colour to fall back on (door first).
       def self.unset_colour_groups(model)

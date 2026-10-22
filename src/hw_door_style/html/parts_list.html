@@ -77,6 +77,8 @@
     .pp:last-child { page-break-after:auto; break-after:auto; }
     .no-print { display:none; }
   }
+.warnbox b.ref { cursor:pointer; text-decoration:underline; text-decoration-style:dotted; text-underline-offset:2px; }
+.warnbox b.ref:hover { text-decoration-style:solid; color:var(--accent); }
 </style>
 <style id="pageSize"></style>
 </head>
@@ -326,11 +328,13 @@ function renderLabels(d){
   if (document.querySelector('#tabs button.on').getAttribute('data-t') === 'labels') labels();
 }
 // Top of the window: what stops the Workshop Pack (each with Fix this), then the other checks.
+// "[[pid|label]]" in a check: the component, bold - click to close and find it in the model.
+function refs(t){ return esc(t).replace(/\[\[(\d+)\|([^\]]*)\]\]/g, function(_, pid, l){ return '<b class="ref" title="Close and find it in the model" onclick="sketchup.findRef(\'' + pid + '\')">' + l + '</b>'; }); }
 function renderWarns(d, w){
   var bl = d.blockers || [], h = '';
   if (bl.length) h += '<div class="warnbox block" id="blockBox"><b>Can\'t save the Workshop Pack yet - ' + bl.length + ' thing(s) to fix:</b>' +
-    bl.map(function(b, i){ return '<div class="brow"><span>' + esc(b.text) + '</span><button onclick="fixBlocker(' + i + ')">Fix this</button></div>'; }).join('') + '</div>';
-  var adv = (d.warnings || []).map(function(x, i){ return '<div class="brow"><span>' + esc(x.text) + '</span>' + (x.fix ? '<button onclick="fixWarning(' + i + ')">Fix this</button>' : '') + '</div>'; })
+    bl.map(function(b, i){ return '<div class="brow"><span>' + refs(b.text) + '</span><button onclick="fixBlocker(' + i + ')">Fix this</button></div>'; }).join('') + '</div>';
+  var adv = (d.warnings || []).map(function(x, i){ return '<div class="brow"><span>' + refs(x.text) + '</span>' + (x.fix ? '<button onclick="fixWarning(' + i + ')">Fix this</button>' : '') + '</div>'; })
     .concat(w.map(function(t){ return '<div class="brow"><span>' + esc(t) + '</span></div>'; }));
   if (adv.length) h += '<div class="warnbox advice"><b>Check:</b>' + adv.join('') + '</div>';
   $('warns').innerHTML = h;

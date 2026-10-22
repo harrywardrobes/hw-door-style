@@ -970,6 +970,11 @@ we = WS_.wall_no_extend(we_list) rescue [$!]
 check 'Workshop warning: Wall TRUE with its extend at 0 (left only here: right extends 25, NODIV is no wall, no extend option is skipped)', we.map(&:last) == ['left'] && we.first.first.equal?(we_list[0])
 
 
+check 'Workshop checks: components linked as [[pid|label]], shown as plain names elsewhere',
+      WS_.plain('Wall set: [[123|WARDROBE (T1)]] wall left, [[9|BOOKCASE]].') == 'Wall set: WARDROBE (T1) wall left, BOOKCASE.' &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'parts_list.html')).include?('sketchup.findRef(')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

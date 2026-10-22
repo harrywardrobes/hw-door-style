@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.86.2 — 2026-10-22
+- Workshop checks: the components each check is about are named in bold (up to 6, then "..."): wall / job-setting / extend warnings, doors not styled, resized or with the wrong hinges, loose internals. Click one: the window closes, the component is selected (its group opened if it's inside one) and the view zooms to it.
+
 ## 0.86.1 — 2026-10-22
 - Workshop: a warning (amber) for any unit with Wall left / right set to TRUE but its "Wall left / right: extend" at 0 mm, naming the unit and side.
 

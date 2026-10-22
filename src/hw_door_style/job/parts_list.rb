@@ -943,6 +943,14 @@ module HarryWardrobes
           end
         end
         dlg.add_action_callback('close') { |_c| dlg.close }
+        # A component named in a check: the window closes and it's selected and zoomed to.
+        dlg.add_action_callback('findRef') do |_c, pid|
+          dlg.close
+          UI.start_timer(0.05, false) do
+            Sketchup.focus if Sketchup.respond_to?(:focus)
+            UI.messagebox("That component isn't in the model any more.") unless Workshop.find(model, pid.to_s)
+          end
+        end
         # Product list: move a part to another product / its own, renumber, label the plan.
         dlg.add_action_callback('setHost') do |_c, json|
           req = JSON.parse(json)
