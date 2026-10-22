@@ -125,7 +125,8 @@ module HarryWardrobes
 
       def self.opencutlist
         o = OpenCutList.status
-        o['installed'] ? row('ocl', 'OpenCutList', 'ok', "v#{o['version']}#{o['loaded'] ? '' : ' (not loaded)'}") : row('ocl', 'OpenCutList', 'warn', 'Not installed - the cut list needs it. Install it from the Extension Warehouse (Window > Extension Warehouse, search OpenCutList).', 'About OpenCutList')
+        OpenCutList.ensure_on_open(Sketchup.active_model)
+        o['installed'] ? row('ocl', 'OpenCutList', 'ok', "v#{o['version']}#{o['loaded'] ? '' : ' (not loaded)'} - the plugin's colours are set up in it as each job opens") : row('ocl', 'OpenCutList', 'warn', 'Not installed - the cut list needs it. Install it from the Extension Warehouse (Window > Extension Warehouse, search OpenCutList).', 'About OpenCutList')
       end
 
       def self.hubspot

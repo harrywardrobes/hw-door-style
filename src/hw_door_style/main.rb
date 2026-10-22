@@ -35,6 +35,7 @@ module HarryWardrobes
       Pencil.start_watching # keeps the pencil button in step with the open model
       Scenes.start # renamed scenes are renamed in Settings too
       Room.start # a file without a room asks for it (and where to save a new job)
+      OpenCutList.start # a job's plugin colours set up for OpenCutList as the file opens
       HubSpotRoom.start # a design visit file asks to connect to its Room once there is one
       TemplateExport.start # latest job template from the library into Welcome to SketchUp
       Updater.check_at_startup # newer version in the updates folder? offer it

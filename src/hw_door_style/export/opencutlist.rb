@@ -207,6 +207,31 @@ module HarryWardrobes
         set
       end
 
+      # When a job file is opened (or a new one started): its plugin colours are set up for
+      # OpenCutList straight away, so the Workshop is ready without changing a colour first.
+      # One transparent step, only when something was missing; never on the master library.
+      def self.ensure_on_open(model)
+        return if model.nil? || !model.valid? || (defined?(LibraryExport) && LibraryExport.master?(model))
+        missing = desired.any? { |name, want| (mat = model.materials[name]) && state(mat, want) == :missing }
+        return unless missing
+        Ops.run(model, 'OpenCutList settings for the plugin colours', transparent: true) { ensure!(model) }
+      rescue StandardError => e
+        Log.error('opencutlist on open', e)
+      end
+
+      class AppWatch < Sketchup::AppObserver
+        def expectsStartupModelNotifications; true; end
+        def onNewModel(model); UI.start_timer(2.0, false) { OpenCutList.ensure_on_open(model) }; end
+        def onOpenModel(model); UI.start_timer(2.0, false) { OpenCutList.ensure_on_open(model) }; end
+      end
+
+      def self.start
+        return if @started
+        @started = true
+        Sketchup.add_observer(AppWatch.new)
+        ensure_on_open(Sketchup.active_model)
+      end
+
       # --- checks for the Cut list section ----------------------------------------------
 
       def self.warnings(model = Sketchup.active_model)
