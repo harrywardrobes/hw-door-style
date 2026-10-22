@@ -19,8 +19,12 @@ module HarryWardrobes
       def self.key(inst)
         return nil unless inst.respond_to?(:definition)
         d = inst.definition.attribute_dictionary(DC::DICT_NAME) or return nil
+        # wardrobe internals (int drawers, shoe pull-out) keep their own depth (the runner's)
+        return nil if Products.internal?(base(inst))
         k = DC.key_in(d, KEY)
-        return k if k && d["_#{k}_access"].to_s.upcase != 'LIST'
+        # a depth with a choice list is the component's own business
+        return k if k && d["_#{k}_access"].to_s.upcase != 'LIST' && d["_#{k}_options"].to_s.delete('&').strip.empty?
+        return nil if k
         d.keys.select { |k2| k2 =~ KEY_RE }.find { |k2| d["_#{k2}_access"].to_s.upcase == 'TEXTBOX' }
       end
 

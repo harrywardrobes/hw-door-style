@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.81.1 — 2026-10-22
+- Depth: wardrobe internals (int drawers, shoe pull-out) are never given the job depth - theirs is the runner's; a depth with a choice list is left to the component.
+
 ## 0.81.0 — 2026-10-22
 - Components V39: one name for each option on every unit - Width / Height / Depth (`unit_width`, `unit_height`, `unit_depth`) and Facing width left / right - with consistent labels, and the values the plugin sets (Depth, Top door height, Worktop height, the bridge and facing-block heights) and the working values hidden from Component Options. The old names are still read on units placed from earlier versions (Replace with > Fresh copy brings a unit up to date).
 - Settings > Job: the five runout defaults are gone - every room starts at 0 and the runouts are measured in through Room settings (25 mm minimum).
