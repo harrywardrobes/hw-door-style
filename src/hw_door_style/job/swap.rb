@@ -240,10 +240,27 @@ module HarryWardrobes
         nil
       end
 
+      # A unit's box in its own axes: [left x, back y, bottom z] (library units face -Y; the
+      # back is the wall side).
+      def self.local_box(inst)
+        b = inst.definition.bounds
+        [b.min.x, b.max.y, b.min.z]
+      end
+
+      # Moves inst so its back-left-bottom corner is where old_box was - two components can
+      # have their origin in different places (drawer units had theirs at the front before V40).
+      def self.line_up(inst, old_box)
+        nb = local_box(inst)
+        v = Geom::Vector3d.new(old_box[0] - nb[0], old_box[1] - nb[1], old_box[2] - nb[2])
+        return if v.length < 0.01
+        inst.transform!(Geom::Transformation.translation(v.transform(inst.transformation)))
+      end
+
       # Inside the caller's step: the new instance in the old one's place, options and
       # plugin attributes carried, the old one gone, the job applied.
       def self.swap(model, old, defn)
         parent = old.parent.entities
+        old_box = local_box(old) # where it stood: back-left-bottom, in its own axes
         new_inst = parent.add_instance(defn, old.transformation)
         new_inst.layer = old.layer
         new_inst.name = old.name
@@ -273,6 +290,7 @@ module HarryWardrobes
         # 3. the job on it, as the + window does; then a depth that had been changed
         job = { 'runouts' => Runouts.expected(model), 'facing' => Facing.mm(model), 'ceiling' => Ceiling.mm(model), 'front' => DrawerFront.job(model) }
         notes = ComponentPicker.setup(model, new_inst, job, depth: custom_depth, redraw: !carried.empty?)
+        line_up(new_inst, old_box)
         notes << "depth #{custom_depth.round} kept" if custom_depth && Depth.has?(new_inst)
         notes.unshift("#{carried.size} option(s) carried")
         [new_inst, notes]
