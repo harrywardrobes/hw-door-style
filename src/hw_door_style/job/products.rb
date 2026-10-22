@@ -55,7 +55,7 @@ module HarryWardrobes
       end
 
       # name is the component, or the component with more after "_", " " or "(" -
-      # EXT_DRAWER, EXT_DRAWER_2, "EXT_DRAWER (Fitted)".
+      # DRAWER_FITTED, DRAWER_FITTED_2, "DRAWER_FITTED (left)".
       def self.named?(name, x) = name == x || name.start_with?("#{x}_", "#{x} ", "#{x}(")
 
       # The table row for a component name (longest matching name first), or nil.

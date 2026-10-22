@@ -252,7 +252,7 @@ Dir.mktmpdir do |root|
   check 'export: BOOKCASE_4 counts as V4', LE.scan(model, 'BOOKCASE')[:version] == 4
   check 'export: loose END_PAN in main folder found (V1)', LE.scan(model, 'END_PAN')[:current].size == 1
   check 'export: brand new component starts at V1', LE.scan(model, 'NEW_THING')[:version].zero?
-  check 'export: folder from the pod table', LE.folder_for('WALK-IN') == 'T - Tall units' && LE.folder_for('INT_DRAWER_PLUS') == 'T - Wardrobe internals' && LE.folder_for('EXT_DRAWER (Fitted)') == 'B - Base units' && LE.folder_for('BOX_SHELF') == 'W - Wall and bridge units' && LE.folder_for('FACING_BLOCK_L_HALF') == 'F - Facings' && LE.folder_for('BULLNOSE') == 'Other' && LE.folder_for('COVER_WITH_WORKTOP') == 'Other'
+  check 'export: folder from the pod table', LE.folder_for('WALK-IN') == 'T - Tall units' && LE.folder_for('INT_DRAWER_PLUS') == 'T - Wardrobe internals' && LE.folder_for('DRAWER_FITTED') == 'B - Base units' && LE.folder_for('DRAWER_UNFITTED_V3') == 'B - Base units' && LE.folder_for('BOX_SHELF') == 'W - Wall and bridge units' && LE.folder_for('FACING_BLOCK_L_HALF') == 'F - Facings' && LE.folder_for('BULLNOSE') == 'Other' && LE.folder_for('COVER_WITH_WORKTOP') == 'Other'
   Dir.mktmpdir do |loc|
     HarryWardrobes::DoorStyle::Settings.get['local_folder'] = loc
     LOC = HarryWardrobes::DoorStyle::Local
@@ -647,14 +647,14 @@ check 'versions read from file names', LC.parse('WARDROBE_V10') == ['WARDROBE', 
 check 'names made readable', LC.pretty('INT_DRAWER_PLUS') == 'Int Drawer Plus' && LC.pretty('WALK-IN') == 'Walk-In' && LC.pretty('MAIN COMPONENTS') == 'Main Components'
 check 'mixed-case names kept; Electrical Faceplates is a plain category after Main Components', LC.pretty('Double UK 3 Pin Power Socket') == 'Double UK 3 Pin Power Socket' && LC.plain?('ELECTRICAL FACEPLATES') && !LC.plain?('WARDROBES') && LC.cat_order('ELECTRICAL FACEPLATES') > LC.cat_order('F')
 lib = Dir.mktmpdir('hw_lib')
-{ 'WARDROBES' => %w[WARDROBE_V9.skp WARDROBE_V10.skp TOPBOX_V13.skp desktop.ini], 'DRAWERS' => %w[EXT_DRAWER_V8.skp], '_old' => %w[WARDROBE_V11.skp], 'SURVEY RENDERS' => %w[a.jpg] }.each do |d, fs|
+{ 'WARDROBES' => %w[WARDROBE_V9.skp WARDROBE_V10.skp TOPBOX_V13.skp desktop.ini], 'DRAWERS' => %w[DRAWER_FITTED_V8.skp], '_old' => %w[WARDROBE_V11.skp], 'SURVEY RENDERS' => %w[a.jpg] }.each do |d, fs|
   FileUtils.mkdir_p(File.join(lib, d))
   fs.each { |f| File.write(File.join(lib, d, f), f) }
 end
 File.write(File.join(lib, 'Components V28.skp'), 'master')
 File.write(File.join(lib, 'COVER_WITH_WORKTOP.skp'), 'x')
 sc = LC.scan(lib)
-check 'scan: latest version of each, _old and the master file skipped', sc.map { |e| [e['key'], e['ver']] }.sort == [['DRAWERS/EXT_DRAWER', 8], ['OTHER/COVER_WITH_WORKTOP', 0], ['WARDROBES/TOPBOX', 13], ['WARDROBES/WARDROBE', 10]]
+check 'scan: latest version of each, _old and the master file skipped', sc.map { |e| [e['key'], e['ver']] }.sort == [['DRAWERS/DRAWER_FITTED', 8], ['OTHER/COVER_WITH_WORKTOP', 0], ['WARDROBES/TOPBOX', 13], ['WARDROBES/WARDROBE', 10]]
 idx = {}
 get, gone = LC.plan(sc, idx)
 check 'plan: everything new is copied', get.size == 4 && gone.empty?
@@ -673,8 +673,8 @@ LC.forget(gone, idx)
 check 'old copy replaced by the new version', !File.exist?(old_file) && idx['WARDROBES/WARDROBE']['ver'] == 11 && !idx.key?('WARDROBES/TOPBOX')
 LC.save_index(idx)
 cs = LC.cards
-check 'cards: grouped by pod letter (T, B, then Other), colour coded', cs.map { |c| [c['key'], c['cat']] } == [['WARDROBES/WARDROBE', 'T'], ['DRAWERS/EXT_DRAWER', 'B'], ['OTHER/COVER_WITH_WORKTOP', 'OTHER']] && cs.first['colour'] == LC::COLOURS['T'] && cs.first['label'] == 'Wardrobe' && cs.first['cat_label'] == 'T - Tall units'
-check 'groups: internals under T - Wardrobe internals, box shelf W', LC.group('cat' => 'DRAWERS', 'name' => 'INT_DRAWER_PLUS') == LC::INTERNALS && LC.group('cat' => 'DRAWERS', 'name' => 'SHOE_PULL_OUT') == LC::INTERNALS && LC.group_label(LC::INTERNALS) == 'T - Wardrobe internals' && LC.group('cat' => 'SHELVING', 'name' => 'BOX_SHELF') == 'W' && LC.group('cat' => 'DRAWERS', 'name' => 'EXT_DRAWER (Fitted)') == 'B'
+check 'cards: grouped by pod letter (T, B, then Other), colour coded', cs.map { |c| [c['key'], c['cat']] } == [['WARDROBES/WARDROBE', 'T'], ['DRAWERS/DRAWER_FITTED', 'B'], ['OTHER/COVER_WITH_WORKTOP', 'OTHER']] && cs.first['colour'] == LC::COLOURS['T'] && cs.first['label'] == 'Wardrobe' && cs.first['cat_label'] == 'T - Tall units'
+check 'groups: internals under T - Wardrobe internals, box shelf W', LC.group('cat' => 'DRAWERS', 'name' => 'INT_DRAWER_PLUS') == LC::INTERNALS && LC.group('cat' => 'DRAWERS', 'name' => 'SHOE_PULL_OUT') == LC::INTERNALS && LC.group_label(LC::INTERNALS) == 'T - Wardrobe internals' && LC.group('cat' => 'SHELVING', 'name' => 'BOX_SHELF') == 'W' && LC.group('cat' => 'DRAWERS', 'name' => 'DRAWER_FITTED') == 'B'
 check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
 sh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html'))
@@ -727,7 +727,7 @@ check 'Depth option names: wardrobe c01_depth and the others a03_wall_depth', %w
 
 puts "\n== Room Plan"
 check 'reference letters: W bridge, B drawers, W box shelves, T otherwise', PR.ref_of('BRIDGE_SKELETON', pc) == 'W' && PR.ref_of('EXT_DRAWER_3', pc) == 'B' && PR.ref_of('BOX_SHELF', pc) == 'W' && PR.ref_of('WARDROBE', pc) == 'T'
-check 'shipped table: box shelf W, ext drawer B, letters T W B F, internals, skips, ceiling never exported', PR.ref_of('BOX_SHELF') == 'W' && PR.ref_of('EXT_DRAWER') == 'B' && PR.order == %w[T W B F] && PR.internal?('SHOE_PULL_OUT') && PR.internal?('INT_DRAWER_PLUS') && PR.joiner?('INT_DRAWER') && !PR.internal?('BOX_SHELF') && PR.unit?('CAB') && PR.skip?('END_PAN_HALF') && PR.skip?('CABLE_OUTLET_80') && PR.cfg['comps'].values.all? { |r| PR::ROLES.key?(r['role']) } && HarryWardrobes::DoorStyle::Settings.names('export_skip').include?('CEILING')
+check 'shipped table: box shelf W, ext drawer B, letters T W B F, internals, skips, ceiling never exported', PR.ref_of('BOX_SHELF') == 'W' && PR.ref_of('DRAWER_FITTED') == 'B' && PR.ref_of('DRAWER_UNFITTED') == 'B' && PR.type_of('DRAWER_UNFITTED') == 'Drawer unit' && PR.role('EXT_DRAWER').nil? && PR.role('DRAWER_GROUP').nil? && PR.order == %w[T W B F] && PR.internal?('SHOE_PULL_OUT') && PR.internal?('INT_DRAWER_PLUS') && PR.joiner?('INT_DRAWER') && !PR.internal?('BOX_SHELF') && PR.unit?('CAB') && PR.skip?('END_PAN_HALF') && PR.skip?('CABLE_OUTLET_80') && PR.cfg['comps'].values.all? { |r| PR::ROLES.key?(r['role']) } && HarryWardrobes::DoorStyle::Settings.names('export_skip').include?('CEILING')
 require 'hw_door_style/job/pdf'
 require 'hw_door_style/job/parts_pdf'
 require 'hw_door_style/job/room_plan'

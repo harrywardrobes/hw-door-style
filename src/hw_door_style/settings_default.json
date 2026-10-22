@@ -268,7 +268,12 @@
       "letter": "B",
       "depth": "short"
     },
-    "EXT_DRAWER": {
+    "DRAWER_FITTED": {
+      "role": "unit",
+      "product": "Drawer unit",
+      "letter": "B"
+    },
+    "DRAWER_UNFITTED": {
       "role": "unit",
       "product": "Drawer unit",
       "letter": "B"

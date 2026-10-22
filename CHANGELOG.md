@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.75.2 — 2026-10-22
+- The external drawer units are DRAWER_FITTED and DRAWER_UNFITTED (were "EXT_DRAWER (Fitted)" / "(Un-fitted)") - both B, Drawer unit, in the component table.
+
 ## 0.75.1 — 2026-10-22
 - Team settings live on the shared drive: H:\\Shared drives\\Harry Wardrobes\\8_SKETCHUP\\HW Plugin\\settings.json (General > Team settings folder), not in the component library.
 
