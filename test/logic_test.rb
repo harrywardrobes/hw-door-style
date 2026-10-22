@@ -1071,6 +1071,10 @@ check 'No stretching: sizes worked out from the stretched size are found (any qu
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export', 'library_export.rb')).include?('NoScale.fix!(model)')
 
 
+check 'Colours: a DC copy made on Layer0 takes its twin\'s tag (so it gets its colour)',
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'colours', 'colours.rb')).include?('if inst.layer == layer0 && (t = sibling_tag(inst, sib))')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

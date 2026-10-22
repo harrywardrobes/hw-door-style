@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.88.1 — 2026-10-23
+- Colours: the extra copies Dynamic Components make of a part (e.g. the knee hole's back panel pieces) are made on Layer0, so they got no colour. When colours are applied, a copy on Layer0 now takes the tag of the other copies of the same part beside it (when they all share one), then its colour - and it shows / hides with that tag in the scenes.
+
 ## 0.88.0 — 2026-10-23
 - No stretching (NoScale): library components can't be resized with the Scale tool any more - every size is a typed option. Export components: Clean model hides the scale handles and turns any size worked out from the stretched size (CURRENT("LenZ")...) into a typed one, and an export is locked while a component can still be stretched.
 - Library (Components V39): scale handles hidden on all 16 components that had them; heights typed on the wardrobes, walk-in, linen press, box ends and facing blocks (Height (mm) now shows on the facing blocks and box ends), the shoe pull-out's width and depth typed. Nothing changed size.

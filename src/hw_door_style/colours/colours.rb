@@ -179,6 +179,22 @@ module HarryWardrobes
         g.transform_values { |list| Array(list).map { |t| t.to_s.strip.upcase } }
       end
 
+      # The tag of the other copies of the same part next to it (same parent, same part name),
+      # when they all have the same one - DC makes the extra copies of a part on Layer0.
+      # cache: { [parent, part name] => layer or false }.
+      def self.sibling_tag(inst, cache = {})
+        par = inst.parent
+        return nil unless par.respond_to?(:entities)
+        name = DC.base_name(inst.definition)
+        key = [par, name]
+        unless cache.key?(key)
+          tags = par.entities.grep(Sketchup::ComponentInstance)
+                    .select { |c| c.layer != inst.model.layers[0] && DC.base_name(c.definition) == name }.map(&:layer).uniq
+          cache[key] = tags.size == 1 ? tags.first : false
+        end
+        cache[key] || nil
+      end
+
       # Tag that decides an instance's group: its own tag, or (if Untagged) the
       # tag carried by most of the faces directly inside it.
       def self.effective_tag(inst)
@@ -238,8 +254,19 @@ module HarryWardrobes
             Finder.each_instance(root || model.entities, &blk)
           end
         end
+        sib = {}
+        layer0 = model.layers[0]
         walk.call do |inst|
           next if skip?(inst)
+          # a Dynamic Component copy ("copies") is made on Layer0: it takes its tagged twin's tag
+          if inst.layer == layer0 && (t = sibling_tag(inst, sib))
+            if dry
+              gid0 = lookup[t.name.upcase]
+              counts[gid0] += 1 if gid0 && choices.key?(gid0)
+              next
+            end
+            inst.layer = t
+          end
           # Drawer box parts only ever take the Drawer Box finish, never a tag-group colour.
           gid = DrawerBox.part?(inst) ? 'drawer_box' : lookup[effective_tag(inst)]
           # 22mm panels take their own colour (never doors / drawer fronts / boxes).
