@@ -32,6 +32,8 @@ module HarryWardrobes
         rows = []
         pto = Settings.pto?(Settings.job_hinge_type(model))
         rules = Settings.job_handles(model)
+        # internal drawer fronts are in the interior colour (Colours.apply)
+        int_colour = (RoomPlan.colour_text(model, 'interior') rescue nil)
         # Handles set to N/A in the Door style window count none.
         none = { door: DoorStyleWindow.na?('main_robe_handle', model), ext_drawer: DoorStyleWindow.na?('drawer_handle', model),
                  int_drawer: DoorStyleWindow.na?('interior_handle', model) }
@@ -67,7 +69,8 @@ module HarryWardrobes
             'hinges' => hinges.size, 'tip_on' => tips,
             'handles' => none[kind] || Finder.fixed?(inst) ? 0 : Settings.handle_count(kind, w, hinges.empty? ? pto : Settings.pto?(hinges.first.get_attribute(DICT, 'type').to_s), rules: rules,
                                                 handleless: Styles.handleless?(d.get_attribute(DICT, 'requested_style') || style || 'flat')),
-            'notes' => notes.reject(&:empty?).join('; ')
+            'notes' => notes.reject(&:empty?).join('; '),
+            'colour' => kind == :int_drawer ? int_colour : nil
           }
         end
         rows.each_with_index { |r, i| r['n'] = i + 1 }

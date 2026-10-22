@@ -7,7 +7,8 @@ module HarryWardrobes
     # Colour library + painting by tag group.
     #
     # Groups (tag lists editable in Settings):
-    #   door      Door / Drawer colour            DOOR, DRAWER_FRONT
+    #   door      Door / Drawer colour            DOOR, DRAWER_FRONT (not internal drawer fronts:
+    #                                             they take the interior colour)
     #   exterior  Exterior Panel / Trim colour    FACING, END_PAN, NOSING, FILLER
     #   interior  Interior colour                 STL, SH, DIV, INT_DIV, FL, DRAWER, BACK, WALKIN, MDF
     #   worktop   Worktop colour                  WORKTOP
@@ -228,6 +229,7 @@ module HarryWardrobes
         res = resolved(model, choices, plain: plain)
         mats = res.to_h { |gid, name| [gid, gid == 'drawer_box' ? DrawerBox.material(model, name) : material(model, name)] }
         counts = Hash.new(0)
+        int_defs = internal_front_defs(model, root)
         walk = lambda do |&blk|
           if root.is_a?(Sketchup::ComponentInstance)
             blk.call(root)
@@ -242,6 +244,8 @@ module HarryWardrobes
           gid = DrawerBox.part?(inst) ? 'drawer_box' : lookup[effective_tag(inst)]
           # 22mm panels take their own colour (never doors / drawer fronts / boxes).
           gid = 'panels_22' if gid != 'door' && gid != 'drawer_box' && choices.key?('panels_22') && panel_22?(inst)
+          # internal drawer fronts (and the style parts inside them) take the interior colour
+          gid = 'interior' if gid == 'door' && (int_defs[inst.definition] || int_defs[inst.parent])
           next unless gid && choices.key?(gid)
           mat = mats[gid]
           dc = inst.attribute_dictionary('dynamic_attributes')
@@ -257,6 +261,24 @@ module HarryWardrobes
         end
         choices.each { |gid, name| model.set_attribute(DICT, "colour_#{gid}", name) } if record && !dry
         counts
+      end
+
+      # Internal drawer fronts' definitions and everything inside them: { definition => true }.
+      # root: only look inside that (a newly placed unit).
+      def self.internal_front_defs(model, root = nil)
+        out = {}
+        stack = []
+        ents = root.is_a?(Sketchup::ComponentInstance) ? [root] : (root || model.entities)
+        Finder.each_occurrence(ents) { |i, k, _| stack << i.definition if k == :int_drawer }
+        until stack.empty?
+          d = stack.pop
+          next if out[d]
+          out[d] = true
+          d.entities.each { |e| stack << e.definition if e.respond_to?(:definition) }
+        end
+        out
+      rescue StandardError
+        {}
       end
 
       # Every colour row except the drawer box set to Default (no material).

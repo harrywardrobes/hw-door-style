@@ -201,7 +201,7 @@ module HarryWardrobes
 
       # The lines of the Details column - everything the supplier asks for.
       def self.details(l, data)
-        out = ["Style: #{l['style']}. Colour: #{data['colour']}"]
+        out = ["Style: #{l['style']}. Colour: #{l['colour'] || data['colour']}"]
         out << "Component: #{l['kind']}#{l['midrail_mm'].to_i.positive? ? ' with centre rail' : ''}"
         out << "Height: #{l['height']}mm. Width: #{l['width']}mm"
         out << "Stile: #{l['stile_mm']}mm. Rail: #{l['rail_mm']}mm" if l['stile_mm'].to_i.positive?

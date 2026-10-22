@@ -1016,6 +1016,11 @@ check 'Wall "FALSE (with overhang)" is no wall, "TRUE (with overhang)" is a wall
       HarryWardrobes::DoorStyle::Swap::VALUE_ALIASES['FALSE_OH'] == 'FALSE' && WS_::WALL_TRUE.include?('TRUE_OH')
 
 
+check 'Internal drawer fronts: interior colour on the model (Colours.apply) and on the door order line',
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'colours', 'colours.rb')).include?("gid = 'interior' if gid == 'door' && (int_defs[inst.definition] || int_defs[inst.parent])") &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'pdf.rb')).include?("Colour: \#{l['colour'] || data['colour']}")
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

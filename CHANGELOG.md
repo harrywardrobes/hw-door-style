@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.86.7 — 2026-10-22
+- Internal drawer fronts take the Interior colour (not the Door / Drawer colour) - in the model and on the door order's line for them. External drawer fronts and doors are unchanged.
+
 ## 0.86.6 — 2026-10-22
 - Product list: yes / no options shown with a product when on (Settings "product_flags", shipped: Backs -> "Back Panel: Yes") - in the Workshop's Product list and the Room Plan's product list.
 - Wall left / right "FALSE (with overhang)" counts as no wall and "TRUE (with overhang)" as a wall everywhere the plugin reads walls (worktop edge profiles, Replace with, wall checks).

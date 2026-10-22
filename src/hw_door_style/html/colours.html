@@ -27,7 +27,7 @@
 </div>
 <script>
 var D = /*DATA*/null;
-var HINT = { door:'DOOR, DRAWER_FRONT', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs', worktop:'WORKTOP', panels_22:'Any 22mm panel, e.g. bookcase shelves', drawer_box:'Drawer box sides, ends and base' };
+var HINT = { door:'DOOR, DRAWER_FRONT (internal drawer fronts take the Interior colour)', exterior:'Facings, end panels, nosing, fillers', interior:'Carcass, shelves, dividers, backs, internal drawer fronts', worktop:'WORKTOP', panels_22:'Any 22mm panel, e.g. bookcase shelves', drawer_box:'Drawer box sides, ends and base' };
 // Door "Default" = no material; the others' "Default" = same as the door.
 function boxEntry(name){ for (var i=0;i<D.box.length;i++) if (D.box[i].name===name) return D.box[i]; return null; }
 function chipStyle(name, id){
