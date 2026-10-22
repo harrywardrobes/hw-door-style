@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.87.0 — 2026-10-22
+- End panels have a Vinyl option (library END_PAN / END_PAN_HALF): "TRUE (vinyl)" (default) - the panel is the standard depth + its thickness (580 + 18 = 598) and goes on the Door / Vinyl order in its own "Vinyl end panels" section, not the sheet list; "FALSE (with nosing)" - 50 mm less (548), cut from sheet like any panel.
+- Workshop: a warning (amber) for an end panel set to "FALSE (with nosing)" with no bullnose touching it, naming the panel.
+- Parts list: any unit's Vinyl option decides where its parts go (vinyl / sheets).
+
 ## 0.86.11 — 2026-10-22
 - Library: every unit sits on the floor when placed (its Z is 0, like the drawer units) - wardrobes, linen press, top box, walk-in, bookcase, box ends, end panels, facings, bullnose, cover with worktop and the wardrobe internals. Not the bridge frame, bridge skeleton or box shelf; the knee hole worktop still sits at the worktop height.
 - Add: a unit clicked onto something above the floor drops straight to the floor when it's placed.

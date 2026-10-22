@@ -151,13 +151,18 @@ module HarryWardrobes
         f = ->(v) { PartsList.fmt(v) }
         wb = parts['groups'].select { |g| g['section'] == 'white_back' }
         vin = parts['groups'].select { |g| g['section'] == 'vinyl' }
+        nosing = ->(p) { p['name'].to_s =~ PartsList::VINYL_RE }
+        vrow = ->(g, p) { [p['number'], p['name'], g['material'], "#{f.call(g['thickness'])} mm", f.call(p['length']), f.call(p['width']), p['qty']] }
         [
           { 'title' => '22mm panels (white back)', 'note' => 'vinyl-wrapped 22mm panels, white backed',
             'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
             'rows' => wb.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], f.call(p['length']), f.call(p['width']), p['qty']] } } },
           { 'title' => 'Bullnose / cornice', 'note' => 'vinyl',
             'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
-            'rows' => vin.flat_map { |g| g['parts'].map { |p| [p['number'], p['name'], g['material'], "#{f.call(g['thickness'])} mm", f.call(p['length']), f.call(p['width']), p['qty']] } } }
+            'rows' => vin.flat_map { |g| g['parts'].select(&nosing).map { |p| vrow.call(g, p) } } },
+          { 'title' => 'Vinyl end panels', 'note' => 'end panels set to Vinyl - TRUE',
+            'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
+            'rows' => vin.flat_map { |g| g['parts'].reject(&nosing).map { |p| vrow.call(g, p) } } }
         ]
       end
 

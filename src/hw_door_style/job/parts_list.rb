@@ -315,6 +315,17 @@ module HarryWardrobes
         r.empty? ? nil : r
       end
 
+      # A unit's "Vinyl" option (end panels: TRUE (vinyl) / FALSE (with nosing)) for the parts
+      # inside it: true = ordered as vinyl with the doors, false = a sheet part, nil = no option.
+      def self.vinyl_option(path)
+        path[0..-2].reverse_each do |e|
+          next unless e.respond_to?(:definition)
+          v = DC.value(e, 'vinyl')
+          return v.to_s.strip.upcase.start_with?('TRUE') unless v.nil? || v.to_s.strip.empty?
+        end
+        nil
+      end
+
       def self.section_of(names, thickness, material, role = nil)
         return PART_ROLES[role] if role && PART_ROLES[role]
         return 'vinyl' if names.any? { |n| n.to_s =~ VINYL_RE }
@@ -375,7 +386,8 @@ module HarryWardrobes
           when TYPE_SHEET_GOOD
             std = mm_list(mat.get_attribute(OCL, 'std_thicknesses', ''))
             th_std, available = std_thickness(th_mm, std)
-            section = section_of([name, defn.name], th_std, mat.name, part_role(defn))
+            vo = vinyl_option(path)
+            section = section_of([name, defn.name], th_std, mat.name, vo.nil? ? part_role(defn) : (vo ? 'vinyl' : 'sheet'))
             gid = gid_of(mat.name, th_std, section)
             g = (groups[gid] ||= { 'material' => mat.name, 'thickness' => th_std, 'std_ok' => true, 'section' => section, 'grained' => mat.get_attribute(OCL, 'grained', false) ? true : false,
                                    'sheet' => sizes_list(mat.get_attribute(OCL, 'std_sizes', '')).max_by { |a, b| a * b },

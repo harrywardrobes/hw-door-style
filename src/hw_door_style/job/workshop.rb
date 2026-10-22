@@ -117,11 +117,32 @@ module HarryWardrobes
           next unless g['ask'] && !g['sheets'].nil? && g['sheets'].to_i.zero?
           out << { 'id' => 'sheets', 'fix' => true, 'arg' => g['gid'], 'text' => "#{g['material']} #{PartsList.fmt(g['thickness'])} mm: part(s) #{Array(g['manual']).join(', ')} need a full sheet, but Full sheets is 0 - nothing would be ordered for them (fine if you have an offcut)." }
         end
+        bare = nosing_missing(model)
+        unless bare.empty?
+          out << { 'id' => 'nosing', 'fix' => false, 'text' => "End panel set to \"FALSE (with nosing)\" with no bullnose next to it: #{refs(bare)}. Put a bullnose on its front edge, or set it to Vinyl TRUE." }
+        end
         ovh = overhang_zero(units)
         unless ovh.empty?
           out << { 'id' => 'overhang', 'fix' => false, 'text' => "Wall set \"with overhang\" but its overhang is 0 mm: #{ovh.map { |u, side| "#{ref(u)} #{side}" }.first(6).join(', ')}#{ovh.size > 6 ? '...' : ''}. Enter the Overhang - left / right, or choose \"no overhang\"." }
         end
         out
+      end
+
+      # End panels set to "FALSE (with nosing)" with no bullnose touching them: [inst].
+      def self.nosing_missing(model)
+        tops = Products.candidates(model.entities).map(&:first).select { |e| e.respond_to?(:definition) }
+        panels = tops.select { |e| (v = DC.value(e, 'vinyl')) && v.to_s.strip.upcase.start_with?('FALSE') }
+        return [] if panels.empty?
+        noses = tops.select { |e| Products.base(e).start_with?('BULLNOSE') }
+        tol = 5.0 / 25.4
+        panels.reject do |p|
+          pb = p.bounds
+          noses.any? do |n|
+            nb = n.bounds
+            nb.min.x <= pb.max.x + tol && nb.max.x >= pb.min.x - tol && nb.min.y <= pb.max.y + tol && nb.max.y >= pb.min.y - tol &&
+              nb.min.z < pb.max.z - tol && nb.max.z > pb.min.z + tol
+          end
+        end
       end
 
       # Units with Wall left / right "... (with overhang)" (FALSE_OH / TRUE_OH) but its

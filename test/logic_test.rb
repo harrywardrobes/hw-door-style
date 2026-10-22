@@ -1045,6 +1045,18 @@ zh = zd[/\^A0N,(\d+)/, 1].to_i
 check 'Zebra divider label: the text fits across the label (was 12 mm high and ran off both edges)', zh.positive? && zh * 0.6 * 22 <= 92 * 8
 
 
+PLv = HarryWardrobes::DoorStyle::PartsList
+vo_u = Struct.new(:vals) { def definition = self; def attribute_dictionary(_n) = vals; def get_attribute(_d, k, x = nil) = vals.fetch(k, x) }
+check 'End panel Vinyl: TRUE puts its panel in the vinyl (door order) section, FALSE (with nosing) in the sheets; no option, as before',
+      PLv.vinyl_option([vo_u.new({ 'i05_vinyl' => 'TRUE' }), :part]) == true && PLv.vinyl_option([vo_u.new({ 'i05_vinyl' => 'FALSE' }), :part]) == false &&
+      PLv.vinyl_option([vo_u.new({ 'a01_unit_width' => '1' }), :part]).nil? &&
+      PLv.section_of(['END_PAN_PANEL'], 18, 'Graphite', 'vinyl') == 'vinyl' && PLv.section_of(['END_PAN_PANEL'], 18, 'Graphite', 'sheet') == 'sheets'
+RPv = HarryWardrobes::DoorStyle::Report
+vs = RPv.vinyl_sections({ 'groups' => [{ 'section' => 'vinyl', 'material' => 'G', 'thickness' => 18, 'parts' => [{ 'number' => 1, 'name' => 'BULLNOSE_MOULDING', 'length' => 2000, 'width' => 50, 'qty' => 2 }, { 'number' => 2, 'name' => 'END_PAN_PANEL', 'length' => 2250, 'width' => 598, 'qty' => 1 }] }] })
+check 'Door / vinyl order: vinyl end panels in their own section, not counted as bullnose',
+      vs.find { |x| x['title'] =~ /Bullnose/ }['rows'].map { |r| r[1] } == ['BULLNOSE_MOULDING'] && vs.find { |x| x['title'] =~ /end panels/ }['rows'].map { |r| r[1] } == ['END_PAN_PANEL']
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',
