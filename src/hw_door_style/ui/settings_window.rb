@@ -18,13 +18,13 @@ module HarryWardrobes
           '_ocl' => OpenCutList.status,
           '_version' => VERSION,
           '_whats_new' => whats_new,
-          '_settings_file' => Settings::USER_FILE,
           '_team_file' => Settings.team_file,
+          '_team_ok' => Settings.team_reachable?,
+          '_setup_note' => (defined?(Setup) && Setup.respond_to?(:note) ? Setup.note : nil),
           '_debug' => Log.debug?,
           '_job' => job_info(model),
           '_update' => update_info,
           '_hubspot' => { 'hint' => HubSpot.key_hint },
-          '_products' => ProductImages.with_images(HubSpotProducts.local),
           '_style_drawings' => Styles::DRAWINGS.transform_values { |d| d[:sizes] },
           '_style_sizes' => Styles::ALL_SIZES.map { |k| [k, Styles::SIZE_LABELS[k]] }
         )
@@ -91,11 +91,10 @@ module HarryWardrobes
           UI.messagebox("#{what} loaded into the Settings window.\nPress Save to keep it, or Cancel to discard.")
         end
         dlg.add_action_callback('importSettings') { |_c| show_loaded.call(Settings.import_backup, 'Backup') }
-        dlg.add_action_callback('loadTeam') { |_c| show_loaded.call(Settings.load_team, 'Team settings') }
-
-        dlg.add_action_callback('openFolder') do |_c|
-          FileUtils.mkdir_p(Settings::USER_DIR)
-          UI.openURL("file:///#{Settings::USER_DIR.tr('\\', '/')}")
+        dlg.add_action_callback('setup') do |_c|
+          next unless discard_ok.call
+          close.call
+          Setup.show(force: true) if defined?(Setup)
         end
         dlg.add_action_callback('mirrorAll') do |_c|
           begin
@@ -227,42 +226,6 @@ module HarryWardrobes
                     },
                     fail: ->(e) { dlg.execute_script("hsStageList(#{JSON.generate('error' => e.message)})") })
         end
-        dlg.add_action_callback('prodLoad') do |_c|
-          made = []
-          Steps.run(dlg, [['Checking the Supplier and Category fields', -> { made = HubSpotProducts.ensure_fields }],
-                          ['Reading products from HubSpot', -> { HubSpotProducts.refresh! }]],
-                    done: lambda { |_r|
-                      dlg.execute_script("prodList(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'made' => made)})")
-                      ProductImages.sync(dlg, HubSpotProducts.products)
-                    },
-                    fail: ->(e) { dlg.execute_script("prodList(#{JSON.generate('error' => e.message)})") })
-        end
-        dlg.add_action_callback('prodImport') { |_c| SupplierImport.show }
-        dlg.add_action_callback('prodPickImage') do |_c|
-          f = UI.openpanel('Picture of the product', nil, 'Images|*.jpg;*.jpeg;*.png;*.webp||')
-          next unless f
-          ext = File.extname(f).downcase.delete('.')
-          mime = { 'jpg' => 'jpeg', 'jpeg' => 'jpeg', 'png' => 'png', 'webp' => 'webp' }[ext] || 'jpeg'
-          prev = File.size(f) < 8_000_000 ? "data:image/#{mime};base64,#{[File.binread(f)].pack('m0')}" : ''
-          dlg.execute_script("prodImage(#{JSON.generate('path' => f, 'preview' => prev)})")
-        end
-        dlg.add_action_callback('prodSave') do |_c, json|
-          req = JSON.parse(json)
-          saved = nil
-          Steps.run(dlg, [['Saving the product to HubSpot' + (req['image'] ? ' (with its picture)' : ''), -> { saved = HubSpotProducts.save(req['form'], req['image']) }]],
-                    done: lambda { |_r|
-                      dlg.execute_script("prodSaved(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'name' => saved['name'])})")
-                      ProductImages.sync(dlg, HubSpotProducts.products)
-                    },
-                    fail: ->(e) { dlg.execute_script("prodSaved(#{JSON.generate('error' => e.message)})") }, count: false)
-        end
-        dlg.add_action_callback('prodDelete') do |_c, json|
-          ids = Array(JSON.parse(json)['ids'])
-          n = 0
-          Steps.run(dlg, [["Deleting #{ids.size} product(s) from HubSpot", -> { n = HubSpotProducts.delete(ids) }]],
-                    done: ->(_r) { dlg.execute_script("prodDeleted(#{JSON.generate('data' => ProductImages.with_images(HubSpotProducts.local), 'n' => n)})") },
-                    fail: ->(e) { dlg.execute_script("prodDeleted(#{JSON.generate('error' => e.message)})") }, count: false)
-        end
         dlg.add_action_callback('diagnostics') { |_c| dlg.execute_script("copyText(#{JSON.generate(diagnostics)})") }
 
         dlg.add_action_callback('save') do |_c, json|
@@ -276,7 +239,6 @@ module HarryWardrobes
           end
         end
         dlg.show
-        UI.start_timer(1.0, false) { ProductImages.sync(dlg, HubSpotProducts.products) if dlg.visible? }
       end
 
       # Only real settings (no "_" display keys).
@@ -328,8 +290,9 @@ module HarryWardrobes
         [
           "HW Door Style #{VERSION}",
           "SketchUp #{Sketchup.version} (#{Sketchup.platform rescue 'windows'})",
-          "Settings: #{Settings::USER_FILE} (#{File.exist?(Settings::USER_FILE) ? 'saved' : 'defaults'})",
-          "Team file: #{Settings.team_file || '-'}",
+          "Settings: #{Settings::USER_FILE} (#{File.exist?(Settings::USER_FILE) ? 'saved' : 'defaults'}); computer.json #{File.exist?(Settings::COMPUTER_FILE) ? 'saved' : 'defaults'}",
+          "Team file: #{Settings.team_file || '-'} (#{Settings.team_reachable? ? 'reachable' : 'not reachable'})",
+          "Local folder: #{defined?(Local) ? Local.root : '-'}",
           "Model: #{model.path.to_s.empty? ? '(not saved)' : model.path}",
           "Units: #{job['units']}, scribes #{job['scribes_on'] ? 'on' : 'off'}, ceiling #{job['ceiling'].to_f.round} mm, top doors #{Ceiling.top_door_mm.round} mm",
           "Hinge type: #{Settings.job_hinge_type(model)}",

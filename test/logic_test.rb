@@ -67,16 +67,17 @@ def mm(v); (v * 25.4).round(1); end
 
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
-check 'no team file yet', Settings.team_file.nil?
-check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 12, 'product_components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 12, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 13, 'product_components' => { 'X' => {} } }, Settings.defaults)['product_components'] == { 'X' => {} }
-Settings.team_file = 'G:/My Drive/team.json'
-check 'team file remembered', Settings.team_file == 'G:/My Drive/team.json'
+check 'team file sits in the library folder', Settings.team_file('library_folder' => 'G:/Lib').tr('\\', '/') == 'G:/Lib/_HW Door Style/Team settings/settings.json'
+check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 14, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} }
 Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')
-  File.write(f, '{"hw_door_style_settings":"0.12","zebra_share":"Z1","junk":1}')
+  File.write(f, '{"hw_door_style_settings":"0.12","zebra_share":"Z1","parts_sheet_waste_pct":7,"junk":1}')
   t = Settings.read_backup(f)
-  check 'team file read (known keys only)', !t.key?('junk') && t['zebra_share'] == 'Z1'
+  check 'backup read: known shared keys only (no computer keys, no junk)', !t.key?('junk') && !t.key?('zebra_share') && t['parts_sheet_waste_pct'] == 7
 end
+sd = Settings.derive(Settings.defaults)
+check 'component table derives the old name lists', sd['door_names'].include?('WST_DOOR') && sd['door_names'].include?('WST_STABLE_PANEL') && sd['fixed_panel_names'] == ['WST_STABLE_PANEL'] && sd['no_midrail_names'] == ['WST_DOOR_UPPER'] && sd['ext_drawer_names'] == ['DRW_FRONT'] && sd['int_drawer_names'] == ['INT_DRW_FRONT'] && sd['framed_drawer_units'] == ['LINEN_PRESS'] && sd['export_skip'].sort == %w[CEILING FLOOR] && sd['template_keep'].sort == %w[CEILING FLOOR] && sd['depth_short_components'].sort == %w[BRIDGE_FRAME BRIDGE_SKELETON BXEND WORKTOP] && sd['depth_by_component'] == { 'BOX_SHELF' => 225.0, 'BOOKCASE' => 475.0 }
+check 'computer keys never go in the team file / backups', (Settings::COMPUTER_KEYS & %w[pdf_printer library_folder local_folder update_folder zebra_share sumatra_path]).size == 6
 
 # --- settings
 check 'Shaker door frame 100mm', (Settings.get['door_styles'].find { |x| x['id'] == 'shaker' } || {})['door_frame_mm'] == 100
@@ -378,7 +379,7 @@ check 'no window defines its own esc()', pages.none? { |n| File.read(File.join(P
 used = Dir[File.join(PATH, '**', '*.rb')].flat_map do |f|
   File.read(f, encoding: 'UTF-8').scan(/Settings\.(?:get\[|mm\(|names\()'([a-z0-9_]+)'/).flatten
 end.uniq
-missing = used - Settings.defaults.keys
+missing = used - Settings.defaults.keys - Settings::DERIVED.keys
 check "settings keys used in code exist (#{used.size})", missing.empty? || (puts("  missing: #{missing.join(', ')}") || false)
 
 # --- top door height (0.14) ---
@@ -406,7 +407,7 @@ Settings.save(Settings.get.merge('top_door_height_mm' => 500, 'colour_library' =
 Settings.reset(keep: ['colour_library'])
 check 'reset keeps colour library when asked', Settings.get['top_door_height_mm'] == 460 && Settings.get['colour_library'] == [{ 'name' => 'Mine', 'rgb' => [1, 2, 3] }]
 Settings.reset
-check 'reset all: library back to built-in', Settings.get['colour_library'] == [] && !File.exist?(Settings::USER_FILE)
+check 'reset all: library back to built-in', Settings.get['colour_library'] == [] && Settings.get['top_door_height_mm'] == 460
 check 'display keys never saved', SettingsWindow.saveable({ 'a' => 1, '_debug' => true, '_job' => {} }) == { 'a' => 1 }
 Dir.mktmpdir do |d|
   f = File.join(d, 'CHANGELOG.md')
@@ -676,7 +677,9 @@ check 'cards: grouped by pod letter (T, B, then Other), colour coded', cs.map { 
 check 'groups: internals under T - Wardrobe internals, box shelf W', LC.group('cat' => 'DRAWERS', 'name' => 'INT_DRAWER_PLUS') == LC::INTERNALS && LC.group('cat' => 'DRAWERS', 'name' => 'SHOE_PULL_OUT') == LC::INTERNALS && LC.group_label(LC::INTERNALS) == 'T - Wardrobe internals' && LC.group('cat' => 'SHELVING', 'name' => 'BOX_SHELF') == 'W' && LC.group('cat' => 'DRAWERS', 'name' => 'EXT_DRAWER (Fitted)') == 'B'
 check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
-check 'settings page: component table', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html')).include?('pcTable') && !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html')).include?('product_types')
+sh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html'))
+check 'settings page: 7 tabs, General first, component table, no products editor', sh.scan(/<a data-s="(\w+)"/).flatten == %w[general components doors colours job workshop hubspot] && sh.include?('pcTable') && !sh.include?('prodDraw') && !sh.include?('product_types') && !sh.include?('door_names')
+check 'products and setup pages wired up', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/products.html')).include?('sketchup.prodSave') && %w[sketchup.fix sketchup.finish setChecks].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/setup.html')).include?(w) }
 check 'picker page wired up', %w[sketchup.place sketchup.ready setCards setJob].all? { |w| File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/component_picker.html')).include?(w) }
 
 puts "\n== Job template"

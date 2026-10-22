@@ -23,7 +23,7 @@ module HarryWardrobes
       colours/colours
       job/runouts job/ceiling job/facing job/pencil job/pdf job/report
       export/library_export export/opencutlist export/hubspot
-      ui/dialog core/batch core/steps core/scenes core/updater ui/colours_window ui/door_style_window ui/settings_window
+      ui/dialog core/batch core/steps core/scenes core/updater ui/colours_window ui/door_style_window ui/settings_window ui/products_window ui/setup
       export/hubspot_room export/hubspot_pictures export/hubspot_products export/supplier_import export/product_images
       core/tags core/top_of_unit job/parts_pdf job/labels job/parts_list job/workshop core/local core/library_cache ui/component_picker export/template_export job/room job/products job/depth job/plan job/room_plan job/midrail job/door_view job/worktop_view job/job_info job/zpl job/pdf_print job/survey
       dev/acceptance dev/developer ui/menus
@@ -38,6 +38,7 @@ module HarryWardrobes
       HubSpotRoom.start # a design visit file asks to connect to its Room once there is one
       TemplateExport.start # latest job template from the library into Welcome to SketchUp
       Updater.check_at_startup # newer version in the updates folder? offer it
+      Setup.start # first run on this computer: the setup checklist
       file_loaded(__FILE__)
     end
   end

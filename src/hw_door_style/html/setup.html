@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Setup</title>
+<!--HW-->
+<style>
+  html, body { height:100%; }
+  body { padding:0; display:flex; flex-direction:column; }
+  #top { padding:12px 16px 6px; }
+  #top h2 { font-size:15px; margin:0 0 2px; }
+  #top .lead { color:var(--muted); font-size:11px; }
+  #list { flex:1; overflow:auto; padding:0 16px; }
+  .chk { display:grid; grid-template-columns:22px 150px 1fr auto; gap:8px; align-items:start; padding:7px 0; border-bottom:1px solid var(--rule); }
+  .chk i { width:12px; height:12px; border-radius:50%; display:inline-block; margin-top:2px; }
+  .ok i { background:#1a7f37; } .warn i { background:#e0b84a; } .fail i { background:var(--warn); }
+  .chk b { font-size:11.5px; }
+  .chk .t { font-size:11px; color:#3b4a44; word-break:break-word; }
+  .chk .t .n { color:var(--accent); display:block; margin-top:2px; }
+  .chk button { padding:2px 9px; font-size:11px; white-space:nowrap; }
+  footer { flex:none; display:flex; align-items:center; gap:8px; padding:8px 14px; border-top:1px solid #dfe2e5; background:#fff; }
+  footer .state { flex:1; font-size:11.5px; color:var(--muted); }
+  footer button { padding:5px 14px; }
+</style></head>
+<body>
+<div id="top"><h2>Setup - HW Door Style <span id="ver"></span></h2><div class="lead" id="lead"></div></div>
+<div id="list"></div>
+<footer><div class="state" id="sum"></div><button onclick="sketchup.refresh()">Check again</button><button onclick="sketchup.later()">Later</button><button class="primary" id="fin" onclick="sketchup.finish()">Finish</button></footer>
+<script>
+var D = /*DATA*/null, NOTES = {};
+$('ver').textContent = D.version;
+$('lead').textContent = D.first ? 'A few things to get the plugin working on this computer. Green is done; a Fix button does it for you where it can.' : 'Everything the plugin needs on this computer. Green is done.';
+var EXTRA = { pdf: ['pdf_test', 'Test print'], zebra: ['zebra_test', 'Test label'] };
+function draw(){
+  $('list').innerHTML = D.checks.map(function(c){
+    var fixId = c.id, fixLabel = c.fix;
+    if (c.status === 'ok' && EXTRA[c.id]) { fixId = EXTRA[c.id][0]; fixLabel = EXTRA[c.id][1]; }
+    return '<div class="chk ' + c.status + '"><i></i><b>' + esc(c.label) + '</b><div class="t">' + esc(c.text) + (NOTES[c.id] ? '<span class="n">' + esc(NOTES[c.id]) + '</span>' : '') + '</div>' +
+      (fixLabel ? '<button onclick="fix(\'' + esc(fixId) + '\')">' + esc(fixLabel) + '</button>' : '<span></span>') + '</div>';
+  }).join('');
+  var bad = D.checks.filter(function(c){ return c.status === 'fail'; }).length, warn = D.checks.filter(function(c){ return c.status === 'warn'; }).length;
+  $('sum').textContent = bad ? bad + ' thing(s) must be fixed' + (warn ? ', ' + warn + ' to look at' : '') : (warn ? warn + ' thing(s) to look at - the rest is ready' : 'Everything is ready.');
+  $('fin').disabled = bad > 0;
+}
+function fix(id){ NOTES[id.replace(/_test$/, '')] = 'Working...'; draw(); sketchup.fix(id); }
+function note(id, msg){ NOTES[id] = msg; draw(); }
+function setChecks(c){ D.checks = c; Object.keys(NOTES).forEach(function(k){ if (NOTES[k] === 'Working...') delete NOTES[k]; }); draw(); }
+draw();
+</script>
+</body>
+</html>

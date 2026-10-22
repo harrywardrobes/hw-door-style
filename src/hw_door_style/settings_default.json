@@ -1,30 +1,4 @@
 {
-  "door_names": [
-    "WRD_DOOR",
-    "LIN_DOOR",
-    "BRGFR_DOOR",
-    "WLK_DOOR",
-    "TPBX_DOOR",
-    "TPBX_DOOR_TOP",
-    "WST_DOOR",
-    "WST_DOOR_UPPER",
-    "WST_STABLE_PANEL"
-  ],
-  "fixed_panel_names": [
-    "WST_STABLE_PANEL"
-  ],
-  "no_midrail_names": [
-    "WST_DOOR_UPPER"
-  ],
-  "framed_drawer_units": [
-    "LINEN_PRESS"
-  ],
-  "ext_drawer_names": [
-    "DRW_FRONT"
-  ],
-  "int_drawer_names": [
-    "INT_DRW_FRONT"
-  ],
   "top_door_height_mm": 460,
   "worktop_height_mm": 771,
   "export_csv": false,
@@ -236,29 +210,158 @@
     "COVING",
     "LIGHT TO BE MOVED"
   ],
-  "product_components": {
-    "WARDROBE": { "product": "Wardrobe", "role": "unit", "letter": "T" },
-    "WARDROBE_STABLE": { "product": "Stable wardrobe", "role": "unit", "letter": "T" },
-    "WALK-IN": { "product": "Walk-in", "role": "unit", "letter": "T" },
-    "LINEN_PRESS": { "product": "Linen press", "role": "unit", "letter": "T" },
-    "TOPBOX": { "product": "Top box wardrobe", "role": "unit", "letter": "T" },
-    "BOOKCASE": { "product": "Bookcase", "role": "unit", "letter": "T" },
-    "BRIDGE_SKELETON": { "product": "Bridge unit", "role": "unit", "letter": "W" },
-    "BRIDGE_FRAME": { "product": "Bridge unit", "role": "joiner", "letter": "W" },
-    "BOX_SHELF": { "product": "Box shelves", "role": "joiner", "letter": "W" },
-    "WORKTOP": { "product": "Worktop", "role": "unit", "letter": "B" },
-    "EXT_DRAWER": { "product": "Drawer unit", "role": "unit", "letter": "B" },
-    "BXEND": { "product": "Box end", "role": "joiner", "letter": "B" },
-    "CAB": { "product": "Cabinet", "role": "unit", "letter": "B" },
-    "INT_DRAWER": { "product": "Internal drawers", "role": "internal", "letter": "T" },
-    "INT_DRAWER_PLUS": { "product": "Internal drawers", "role": "internal", "letter": "T" },
-    "SHOE_PULL_OUT": { "product": "Shoe pull-out", "role": "internal", "letter": "T" },
-    "FACING_BLOCK": { "product": "Facing", "role": "unit", "letter": "F" },
-    "BULLNOSE": { "product": "Bullnose", "role": "skip", "letter": "" },
-    "END_PAN": { "product": "End panel", "role": "skip", "letter": "" },
-    "FLOOR": { "product": "Floor", "role": "skip", "letter": "" },
-    "CEILING": { "product": "Ceiling", "role": "skip", "letter": "" },
-    "CABLE_OUTLET": { "product": "Cable outlet", "role": "skip", "letter": "" }
+  "components": {
+    "WARDROBE": {
+      "role": "unit",
+      "product": "Wardrobe",
+      "letter": "T"
+    },
+    "WARDROBE_STABLE": {
+      "role": "unit",
+      "product": "Stable wardrobe",
+      "letter": "T"
+    },
+    "WALK-IN": {
+      "role": "unit",
+      "product": "Walk-in",
+      "letter": "T"
+    },
+    "LINEN_PRESS": {
+      "role": "unit",
+      "product": "Linen press",
+      "letter": "T",
+      "framed": true
+    },
+    "TOPBOX": {
+      "role": "unit",
+      "product": "Top box wardrobe",
+      "letter": "T"
+    },
+    "BOOKCASE": {
+      "role": "unit",
+      "product": "Bookcase",
+      "letter": "T",
+      "depth": 475
+    },
+    "BRIDGE_SKELETON": {
+      "role": "unit",
+      "product": "Bridge unit",
+      "letter": "W",
+      "depth": "short"
+    },
+    "BRIDGE_FRAME": {
+      "role": "joiner",
+      "product": "Bridge unit",
+      "letter": "W",
+      "depth": "short"
+    },
+    "BOX_SHELF": {
+      "role": "joiner",
+      "product": "Box shelves",
+      "letter": "W",
+      "depth": 225
+    },
+    "WORKTOP": {
+      "role": "unit",
+      "product": "Worktop",
+      "letter": "B",
+      "depth": "short"
+    },
+    "EXT_DRAWER": {
+      "role": "unit",
+      "product": "Drawer unit",
+      "letter": "B"
+    },
+    "BXEND": {
+      "role": "joiner",
+      "product": "Box end",
+      "letter": "B",
+      "depth": "short"
+    },
+    "CAB": {
+      "role": "unit",
+      "product": "Cabinet",
+      "letter": "B"
+    },
+    "INT_DRAWER": {
+      "role": "internal",
+      "product": "Internal drawers",
+      "letter": "T"
+    },
+    "INT_DRAWER_PLUS": {
+      "role": "internal",
+      "product": "Internal drawers",
+      "letter": "T"
+    },
+    "SHOE_PULL_OUT": {
+      "role": "internal",
+      "product": "Shoe pull-out",
+      "letter": "T"
+    },
+    "FACING_BLOCK": {
+      "role": "unit",
+      "product": "Facing",
+      "letter": "F"
+    },
+    "BULLNOSE": {
+      "role": "skip",
+      "product": "Bullnose",
+      "letter": ""
+    },
+    "END_PAN": {
+      "role": "skip",
+      "product": "End panel",
+      "letter": ""
+    },
+    "FLOOR": {
+      "role": "room",
+      "product": "Floor",
+      "letter": ""
+    },
+    "CEILING": {
+      "role": "room",
+      "product": "Ceiling",
+      "letter": ""
+    },
+    "CABLE_OUTLET": {
+      "role": "skip",
+      "product": "Cable outlet",
+      "letter": ""
+    },
+    "WRD_DOOR": {
+      "role": "door"
+    },
+    "LIN_DOOR": {
+      "role": "door"
+    },
+    "BRGFR_DOOR": {
+      "role": "door"
+    },
+    "WLK_DOOR": {
+      "role": "door"
+    },
+    "TPBX_DOOR": {
+      "role": "door"
+    },
+    "TPBX_DOOR_TOP": {
+      "role": "door"
+    },
+    "WST_DOOR": {
+      "role": "door"
+    },
+    "WST_DOOR_UPPER": {
+      "role": "door",
+      "no_midrail": true
+    },
+    "WST_STABLE_PANEL": {
+      "role": "fixed_panel"
+    },
+    "DRW_FRONT": {
+      "role": "ext_drawer"
+    },
+    "INT_DRW_FRONT": {
+      "role": "int_drawer"
+    }
   },
   "product_depth_keys": [
     "wall_depth",
@@ -268,27 +371,10 @@
   ],
   "depth_default_mm": 580,
   "depth_short_mm": 500,
-  "depth_short_components": [
-    "BRIDGE",
-    "WORKTOP",
-    "BXEND"
-  ],
-  "depth_by_component": {
-    "BOX_SHELF": 225,
-    "BOOKCASE": 475
-  },
   "product_front_mm": 18,
   "product_label_tag": "Pod_numbers",
   "product_label_scenes": "top|plan",
-  "export_skip": [
-    "FLOOR",
-    "CEILING"
-  ],
   "template_default": true,
-  "template_keep": [
-    "FLOOR",
-    "CEILING"
-  ],
   "runout_values_mm": [
     25,
     50,
@@ -377,7 +463,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 13,
+  "settings_version": 14,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",
@@ -434,5 +520,6 @@
     "width": 4000,
     "length": 3000,
     "ceiling": 2400
-  }
+  },
+  "setup_done": ""
 }

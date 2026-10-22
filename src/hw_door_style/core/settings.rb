@@ -4,15 +4,27 @@ require 'fileutils'
 module HarryWardrobes
   module DoorStyle
     # Where settings live:
-    #   <plugin>/settings_default.json      shipped defaults (replaced on update)
-    #   %APPDATA%/HW Door Style/settings.json  this computer's changes (kept on update)
-    #   team file (optional)                 a settings backup on Google Drive that
-    #                                        anyone can load with "Load team settings"
+    #   <plugin>/settings_default.json          shipped defaults (replaced on update)
+    #   <library>/_HW Door Style/Team settings/settings.json
+    #                                           the TEAM settings - the shared ones (doors,
+    #                                           colours, components...) - the source of truth
+    #                                           when Drive is reachable; every Save writes it
+    #   %APPDATA%/HW Door Style/settings.json   a copy of the team settings on this computer
+    #                                           (used when Drive isn't reachable)
+    #   %APPDATA%/HW Door Style/computer.json   THIS computer only (COMPUTER_KEYS: folders,
+    #                                           printers, updates) - never in the team file or
+    #                                           a backup
     module Settings
-      DEFAULT_FILE = File.join(PATH, 'settings_default.json')
-      USER_DIR     = File.join(ENV['APPDATA'] || Dir.home, 'HW Door Style')
-      USER_FILE    = File.join(USER_DIR, 'settings.json')
-      PREFS        = 'HW Door Style'.freeze # Sketchup.read_default section
+      DEFAULT_FILE  = File.join(PATH, 'settings_default.json')
+      USER_DIR      = File.join(ENV['APPDATA'] || Dir.home, 'HW Door Style')
+      USER_FILE     = File.join(USER_DIR, 'settings.json')
+      COMPUTER_FILE = File.join(USER_DIR, 'computer.json')
+      PREFS         = 'HW Door Style'.freeze # Sketchup.read_default section
+      TEAM_REL      = ['_HW Door Style', 'Team settings', 'settings.json'].freeze
+
+      # Settings that belong to one computer, not the team.
+      COMPUTER_KEYS = %w[library_folder local_folder update_folder update_check_at_start update_test_builds
+                         pdf_printer pdf_sides zebra_share sumatra_path setup_done].freeze
 
       HINGE_TYPES = {
         'soft_close_110' => 'Soft Close 110',
@@ -27,11 +39,11 @@ module HarryWardrobes
 
       # Settings files carry this; a file from an older plugin isn't converted - unknown keys
       # are dropped and the shipped defaults fill the rest.
-      SETTINGS_VERSION = 13
+      SETTINGS_VERSION = 14
 
       # Settings whose shipped value replaced a saved one: a file older than the version
       # listed drops those keys, so the new default applies (the rest of the file is kept).
-      RESHIPPED = { 12 => %w[product_ref_names export_skip], 13 => %w[product_components] }.freeze
+      RESHIPPED = { 12 => %w[product_ref_names], 13 => %w[product_components], 14 => %w[components] }.freeze
 
       def self.clean(user, d)
         ver = user['settings_version'].to_i
@@ -39,16 +51,49 @@ module HarryWardrobes
         user.select { |k, _| d.key?(k) && !drop.include?(k) }
       end
 
+      def self.read_json(file)
+        JSON.parse(File.read(file))
+      rescue StandardError => e
+        Log.info("could not read #{File.basename(file)} (#{e.message}); ignored.")
+        {}
+      end
+
+      # The team file, from the library folder on this computer (nil when no folder is set).
+      def self.team_file(computer = nil)
+        computer ||= File.exist?(COMPUTER_FILE) ? read_json(COMPUTER_FILE) : {}
+        lib = (computer['library_folder'] || defaults['library_folder']).to_s.strip
+        lib.empty? ? nil : File.join(lib.tr('\\', '/'), *TEAM_REL)
+      end
+
+      def self.team_reachable?
+        f = team_file
+        f && File.exist?(f)
+      end
+
+      # defaults + team (or the copy here) + this computer, then the derived lists.
       def self.load
         s = defaults
-        if File.exist?(USER_FILE)
-          begin
-            s.merge!(clean(JSON.parse(File.read(USER_FILE)), s))
-          rescue StandardError => e
-            Log.info("could not read settings.json (#{e.message}); using defaults.")
-          end
-        end
-        s
+        computer = File.exist?(COMPUTER_FILE) ? clean(read_json(COMPUTER_FILE), s).slice(*COMPUTER_KEYS) : {}
+        team = team_file(computer)
+        shared = if team && File.exist?(team)
+                   t = clean(read_json(team), s)
+                   cache_team(t) unless t.empty?
+                   t
+                 elsif File.exist?(USER_FILE)
+                   clean(read_json(USER_FILE), s)
+                 else
+                   {}
+                 end
+        s.merge!(shared.reject { |k, _| COMPUTER_KEYS.include?(k) })
+        s.merge!(computer)
+        derive(s)
+      end
+
+      def self.cache_team(t)
+        FileUtils.mkdir_p(USER_DIR)
+        File.write(USER_FILE, JSON.pretty_generate(t.merge('settings_version' => SETTINGS_VERSION)))
+      rescue StandardError => e
+        Log.info("could not cache the team settings (#{e.message})")
       end
 
       # Read the files again (after an update, so new defaults appear).
@@ -60,23 +105,69 @@ module HarryWardrobes
         @settings ||= load
       end
 
+      # Saves: this computer's keys here, the rest to the team file (when Drive is there)
+      # and the copy here; a dated backup in the local folder.
       def self.save(hash)
+        hash = hash.reject { |k, _| DERIVED.key?(k) }
         FileUtils.mkdir_p(USER_DIR)
-        File.write(USER_FILE, JSON.pretty_generate(hash.merge('settings_version' => SETTINGS_VERSION)))
-        @settings = load
-        Local.backup_settings(hash) if defined?(Local)
-      end
-
-      # Back to the shipped defaults. keep: setting names to carry over
-      # (e.g. ['colour_library'] keeps your own colours).
-      def self.reset(keep: [])
-        kept = keep.to_h { |k| [k, get[k]] }.reject { |_, v| v.nil? }
-        File.delete(USER_FILE) if File.exist?(USER_FILE)
-        unless kept.empty?
-          FileUtils.mkdir_p(USER_DIR)
-          File.write(USER_FILE, JSON.pretty_generate(kept.merge('settings_version' => SETTINGS_VERSION)))
+        computer = hash.slice(*COMPUTER_KEYS)
+        shared = hash.reject { |k, _| COMPUTER_KEYS.include?(k) }
+        File.write(COMPUTER_FILE, JSON.pretty_generate(computer.merge('settings_version' => SETTINGS_VERSION)))
+        File.write(USER_FILE, JSON.pretty_generate(shared.merge('settings_version' => SETTINGS_VERSION)))
+        team = team_file(computer)
+        if team
+          begin
+            FileUtils.mkdir_p(File.dirname(team))
+            File.write(team, JSON.pretty_generate(shared.merge('settings_version' => SETTINGS_VERSION)))
+          rescue StandardError => e
+            Log.info("team settings not written (#{e.message}) - kept on this computer")
+          end
         end
         @settings = load
+        Local.backup_settings(shared) if defined?(Local)
+      end
+
+      # Back to the shipped defaults (team file too). keep: setting names to carry over
+      # (e.g. ['colour_library'] keeps your own colours). This computer's keys are kept.
+      def self.reset(keep: [])
+        kept = (keep + COMPUTER_KEYS).to_h { |k| [k, get[k]] }.reject { |_, v| v.nil? }
+        save(kept)
+      end
+
+      # --- the component table -----------------------------------------------------------
+      #
+      # Settings "components": NAME -> { role, product, letter, depth, no_midrail, framed }.
+      # The old name lists are derived from it so the rest of the plugin reads them as before.
+      ROLES = {
+        'unit' => 'Unit - a product of its own', 'joiner' => 'Part of a product', 'internal' => 'Internal - inside a unit',
+        'skip' => 'Never a product', 'door' => 'Door', 'ext_drawer' => 'Drawer front', 'int_drawer' => 'Internal drawer front',
+        'fixed_panel' => 'Fixed panel (flat, no hinges)', 'room' => 'Room (floor / ceiling)'
+      }.freeze
+
+      def self.components(s = get)
+        (s['components'] || {}).to_h { |k, v| [k.to_s.upcase, v.is_a?(Hash) ? v : {}] }
+      end
+
+      def self.with_role(s, *roles)
+        components(s).select { |_n, r| roles.include?(r['role'].to_s) }.keys
+      end
+
+      DERIVED = {
+        'door_names' => ->(s) { with_role(s, 'door', 'fixed_panel') },
+        'ext_drawer_names' => ->(s) { with_role(s, 'ext_drawer') },
+        'int_drawer_names' => ->(s) { with_role(s, 'int_drawer') },
+        'fixed_panel_names' => ->(s) { with_role(s, 'fixed_panel') },
+        'no_midrail_names' => ->(s) { components(s).select { |_n, r| r['no_midrail'] }.keys },
+        'framed_drawer_units' => ->(s) { components(s).select { |_n, r| r['framed'] }.keys },
+        'export_skip' => ->(s) { with_role(s, 'room') },
+        'template_keep' => ->(s) { with_role(s, 'room') },
+        'depth_short_components' => ->(s) { components(s).select { |_n, r| r['depth'].to_s == 'short' }.keys },
+        'depth_by_component' => ->(s) { components(s).select { |_n, r| r['depth'].to_f.positive? }.to_h { |n, r| [n, r['depth'].to_f] } }
+      }.freeze
+
+      def self.derive(s)
+        DERIVED.each { |k, f| s[k] = f.call(s) }
+        s
       end
 
       # --- backup -------------------------------------------------------
@@ -84,6 +175,7 @@ module HarryWardrobes
       BACKUP_MARK = 'hw_door_style_settings'.freeze
 
       def self.export_backup(hash)
+        hash = hash.reject { |k, _| COMPUTER_KEYS.include?(k) || DERIVED.key?(k) }
         name = "HW_Door_Style_settings_#{Time.now.strftime('%Y-%m-%d')}.json"
         file = UI.savepanel('Download settings backup', (defined?(Local) && File.directory?(Local.backups) ? Local.backups : nil), name)
         return unless file
@@ -109,43 +201,9 @@ module HarryWardrobes
       def self.read_backup(file)
         raw = JSON.parse(File.read(file))
         raise 'not an HW Door Style settings backup' unless raw.is_a?(Hash) && raw.key?(BACKUP_MARK)
-        data = clean(raw, defaults)
+        data = clean(raw, defaults).reject { |k, _| COMPUTER_KEYS.include?(k) }
         raise 'no settings found in the file' if data.empty?
         data
-      end
-
-      # --- team settings file ---------------------------------------------
-      # A settings backup kept somewhere shared (e.g. Google Drive). The path is
-      # remembered per computer in SketchUp's own preferences.
-
-      def self.team_file
-        f = Sketchup.read_default(PREFS, 'team_settings_file', '').to_s
-        f.empty? ? nil : f
-      end
-
-      def self.team_file=(file)
-        Sketchup.write_default(PREFS, 'team_settings_file', file.to_s)
-      end
-
-      # Asks for the team file (starting at the last one used), remembers it and
-      # returns its settings, or nil.
-      # "Team settings" next to the updates folder (Harry Wardrobes\_HW Door Style).
-      def self.team_dir
-        d = File.join(File.dirname(get['update_folder'].to_s), 'Team settings')
-        Dir.exist?(d) ? d : nil
-      end
-
-      def self.load_team
-        last = team_file
-        dir = last ? File.dirname(last) : team_dir
-        file = UI.openpanel('Load team settings (a settings backup on Drive)', dir, 'Settings backup|*.json||')
-        return nil unless file
-        data = read_backup(file)
-        self.team_file = file
-        data
-      rescue StandardError => e
-        UI.messagebox("Team settings not loaded: #{e.message}")
-        nil
       end
 
       def self.mm(key)

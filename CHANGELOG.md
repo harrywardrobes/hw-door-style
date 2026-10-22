@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.75.0 — 2026-10-22
+- Settings reorganised into seven tabs: General (this computer: folders, printers, SumatraPDF, updates, backups, developer), Components, Doors & hardware, Colours, Job, Workshop, HubSpot. "Open settings folder", "Load team settings" and the separate "Hidden on the plan" box are gone.
+- One component table (Settings > Components) now also says which components are doors, drawer fronts, internal drawer fronts and fixed panels, which doors have no mid-rail, which units frame their drawer fronts like doors, each component's depth (standard / bridge-worktop / own mm) and the room parts (floor, ceiling) kept in the template and never exported. The old name lists are gone.
+- Team settings are the default: every Save writes the shared settings (every tab but General > This computer) to the library's _HW Door Style\Team settings\settings.json, and Settings reads them back when it opens, so every computer shares them; a copy is kept on this computer for when Drive isn't there. Folders, printers and update choices stay on each computer (computer.json) and are never in the team file or a backup.
+- Setup window: opens the first time the plugin runs on a computer (and from General > Run setup again) with a checklist - library folder, local copy, + cache, job template, updates, team settings, A4 and Zebra printers, SumatraPDF, OpenCutList, HubSpot key - each with a Fix button where the plugin can do it.
+- Hardware products moved out of Settings to Extensions > HW Door Style > HubSpot > Hardware products.
+
 ## 0.74.0 — 2026-10-22
 - Library folders follow the Pod letters: exports go to "T - Tall units", "T - Wardrobe internals", "W - Wall and bridge units", "B - Base units", "F - Facings" or "Other" by the component's row in the Product list table (Settings > Export > Sub-folders). The old guess-by-name is gone.
 - Local folder (Settings > Export): C:\Users\User\Documents\Harry Wardrobes by default, not on Drive. Every export (components, master, template) is also copied to "SketchUp Components" there - current files only, same sub-folders - and the + window falls back to it when Drive isn't reachable. "Copy the library here now" fills it the first time. Every Settings save also writes a dated backup to "Settings backups" there (last 30 kept); Download backup starts in that folder.

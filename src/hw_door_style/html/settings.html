@@ -10,7 +10,7 @@
   .main { flex:1; display:flex; min-height:0; }
 
   /* sidebar */
-  nav { width:170px; flex:none; background:#f5f6f5; border-right:1px solid #dfe2e5; padding:8px 0; overflow:auto; }
+  nav { width:160px; flex:none; background:#f5f6f5; border-right:1px solid #dfe2e5; padding:8px 0; overflow:auto; }
   nav h3 { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#8a949c; margin:10px 14px 3px; }
   nav h3:first-child { margin-top:2px; }
   nav a { display:flex; align-items:center; justify-content:space-between; padding:5px 14px; color:var(--ink); text-decoration:none; cursor:pointer; border-left:3px solid transparent; }
@@ -66,23 +66,15 @@
   table.ocl { width:100%; border-collapse:collapse; font-size:11px; }
   table.ocl th { text-align:left; color:#57606a; border-bottom:1px solid #d0d7de; padding:3px 4px; }
   table.ocl td { border-bottom:1px solid var(--rule); padding:3px 4px; }
-  .prange { margin:0 0 10px; }
-  .prange .rh { font-weight:600; font-size:12px; padding:4px 0; border-bottom:1px solid var(--rule); margin-bottom:6px; }
-  .prange .rh span { color:var(--muted); font-weight:normal; font-size:11px; margin-left:6px; }
-  .pgrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(132px, 1fr)); gap:8px; }
-  .pcard { border:1px solid var(--line); border-radius:4px; padding:5px; font-size:11px; cursor:pointer; background:#fff; }
-  .pcard:hover { border-color:var(--accent); }
-  .pcard { position:relative; }
-  .pcard.sel { outline:2px solid #b3261e; outline-offset:-1px; background:#fdf1f0; }
-  .pcard .tick { position:absolute; top:4px; left:4px; width:auto; display:none; }
-  .delmode .pcard .tick { display:block; }
-  button.danger { color:#b3261e; border-color:#e3b4b0; }
-  button.danger.sure { background:#b3261e; color:#fff; border-color:#b3261e; }
-  .pcard img, .pcard .noimg { width:100%; height:90px; object-fit:contain; background:#fafbfb; display:block; }
-  .pcard .f { font-weight:600; margin-top:4px; display:block; grid-template-columns:none; }
-  .pcard .s { color:var(--muted); }
-  .pcard .chips span { display:inline-block; background:#eef3f0; color:var(--accent); border-radius:2px; padding:0 4px; margin:2px 2px 0 0; font-size:9.5px; }
   .ok { color:#1a7f37; font-weight:600; } .no { color:var(--warn); font-weight:600; }
+  table.pc { width:100%; border-collapse:collapse; font-size:11px; }
+  table.pc th { text-align:left; color:#57606a; border-bottom:1px solid #d0d7de; padding:3px 4px; font-weight:600; }
+  table.pc td { border-bottom:1px solid var(--rule); padding:2px 3px; vertical-align:middle; }
+  table.pc input[type=text], table.pc select { padding:2px 4px; }
+  table.pc label { display:flex; gap:4px; align-items:center; white-space:nowrap; font-size:10.5px; color:var(--muted); }
+  .pcbar { display:flex; gap:8px; align-items:center; margin:4px 0 6px; }
+  .pcbar input { width:220px; }
+  .pill { display:inline-block; font-size:10px; padding:0 6px; border-radius:9px; background:#eef3f0; color:var(--accent); }
   ul.tips { margin:4px 0 0; padding-left:18px; } ul.tips li { margin:3px 0; }
   .news h4 { font-size:12px; margin:6px 0 2px; }
   .news ul { margin:0 0 4px; padding-left:18px; font-size:11.5px; }
@@ -101,44 +93,114 @@
 <body>
 <div class="main">
 <nav id="nav">
-  <h3>Doors &amp; parts</h3>
-  <a data-s="doors">Doors<i class="dot"></i></a>
-  <a data-s="hinges">Hinges &amp; handles<i class="dot"></i></a>
-  <a data-s="units">Components<i class="dot"></i></a>
-  <a data-s="colours">Colours<i class="dot"></i></a>
-  <h3>Model</h3>
-  <a data-s="tags">Tags<i class="dot"></i></a>
-  <a data-s="scribe">Scribe &amp; ceiling<i class="dot"></i></a>
-  <h3>Output</h3>
-  <a data-s="productlist">Product list<i class="dot"></i></a>
-  <a data-s="floorplan">Floor plan<i class="dot"></i></a>
-  <a data-s="labels">Labels<i class="dot"></i></a>
-  <a data-s="export">Export<i class="dot"></i></a>
-  <a data-s="cutlist">Cut list<i class="dot"></i></a>
-  <a data-s="hubspot">HubSpot<i class="dot"></i></a>
-  <a data-s="products">Products<i class="dot"></i></a>
-  <h3>Plugin</h3>
   <a data-s="general">General<i class="dot"></i></a>
+  <a data-s="components">Components<i class="dot"></i></a>
+  <a data-s="doors">Doors &amp; hardware<i class="dot"></i></a>
+  <a data-s="colours">Colours<i class="dot"></i></a>
+  <a data-s="job">Job<i class="dot"></i></a>
+  <a data-s="workshop">Workshop<i class="dot"></i></a>
+  <a data-s="hubspot">HubSpot<i class="dot"></i></a>
 </nav>
 
 <div class="content">
 
-<!-- ======================= DOORS ======================= -->
-<section id="s_doors">
-  <h2>Doors</h2>
-  <div class="lead">Which components are doors and drawer fronts, and the door styles.</div>
-  <fieldset><legend>Component names</legend>
-    <div class="f t"><span>Doors</span><textarea id="door_names"></textarea></div>
-    <div class="f t"><span>External drawer fronts</span><textarea id="ext_drawer_names"></textarea></div>
-    <div class="f t"><span>Internal drawer fronts</span><textarea id="int_drawer_names"></textarea></div>
-    <div class="f t"><span>Fixed panels</span><textarea id="fixed_panel_names"></textarea></div>
-    <div class="hint">Fixed panels (e.g. the stable wardrobe's WST_STABLE_PANEL) are also in Doors: on the door order like a door, but always flat, with no hinges or handles.</div>
-    <div class="f t"><span>No mid-rail</span><textarea id="no_midrail_names"></textarea></div>
-    <div class="hint">Doors that never get a mid-rail, however tall (e.g. WST_DOOR_UPPER, above the stable panel).</div>
-    <div class="f t"><span>Drawers framed like doors</span><textarea id="framed_drawer_units"></textarea></div>
-    <div class="hint">Units whose drawer fronts get the door frame all round (e.g. LINEN_PRESS), to match the doors above them.</div>
-    <div class="hint">Comma separated. Matches the Dynamic Component name, then the component name.</div>
+<!-- ======================= GENERAL (this computer) ======================= -->
+<section id="s_general">
+  <h2>General</h2>
+  <div class="lead" id="verLine"></div>
+  <div class="info" id="setupLine" style="display:none"></div>
+  <fieldset><legend>This computer</legend>
+    <div class="hint" style="margin-top:0;margin-bottom:6px">Everything in this box belongs to this computer only - it isn't in the team settings or a backup.</div>
+    <div class="f t"><span>Library folder (Drive)</span><input type="text" id="library_folder"></div>
+    <div class="hint" style="margin-bottom:6px">The component library on Google Drive. The team settings live in its <code>_HW Door Style\Team settings</code> folder and the updates in <code>_HW Door Style\Updates</code>.</div>
+    <div class="f t"><span>Local folder</span><input type="text" id="local_folder"></div>
+    <div class="hint" style="margin-bottom:6px">Not on Drive. <b>SketchUp Components</b> here is a copy of the library's current files (every export lands in both; the + window uses it when Drive isn't reachable). <b>Settings backups</b> here gets a dated backup on every Save (the last 30 kept).</div>
+    <div class="btnrow" style="margin-top:0"><button type="button" onclick="$('localMsg').textContent = 'Copying...'; sketchup.mirrorAll()">Copy the library here now</button><button type="button" onclick="sketchup.openLocal()">Open local folder</button><button type="button" onclick="sketchup.setup()">Run setup again</button><span id="localMsg" class="hint" style="margin:0;align-self:center"></span></div>
   </fieldset>
+  <div class="grid">
+  <fieldset><legend>Label printer (Zebra)</legend>
+    <div class="f t"><span>Shared printer</span><span style="display:flex;gap:6px;align-items:center"><select id="zebraPick" style="max-width:320px" onchange="if (this.value) $('zebra_share').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
+    <div class="f t"><span>Windows share name</span><input type="text" id="zebra_share" style="max-width:160px"></div>
+    <div class="hint">Labels print straight to the Zebra as ZPL, with no print dialog. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above.</div>
+    <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('zebra')">View queue</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
+  </fieldset>
+  <fieldset><legend>A4 printer (workshop pack)</legend>
+    <div class="f t"><span>Printer</span><span style="display:flex;gap:6px;align-items:center"><select id="pdfPick" style="max-width:320px" onchange="if (this.value) $('pdf_printer').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
+    <div class="f t"><span>Printer name</span><input type="text" id="pdf_printer" style="max-width:260px"></div>
+    <div class="f t"><span>Sides</span><select id="pdf_sides" style="max-width:260px"><option value="simplex">Single sided</option><option value="duplexlong">Double sided (long edge)</option><option value="duplexshort">Double sided (short edge)</option></select></div>
+    <div class="f t"><span>SumatraPDF path</span><input type="text" id="sumatra_path" placeholder="found automatically if installed"></div>
+    <div class="hint">The door order, parts list and Room Plan PDFs print here, with no dialog, when you send from the Workshop's HubSpot tab (labels only ever go to the Zebra). The name must match Windows exactly. Needs SumatraPDF (free, sumatrapdfreader.org) installed once.</div>
+    <div style="margin-top:6px"><button onclick="sketchup.pdfTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('pdf')">View queue</button> <span id="pdfMsg" class="hint" style="margin:0">Save the settings first if you changed the name.</span></div>
+  </fieldset>
+  </div>
+  <fieldset><legend>Updates</legend>
+    <div class="info" id="updLine" style="margin-bottom:6px"></div>
+    <div class="btnrow" style="margin-top:0">
+      <button onclick="sketchup.checkUpdate($('update_folder').value)">Check for updates</button>
+      <button onclick="sketchup.installFile()">Install from a file...</button>
+    </div>
+    <div class="f t" style="margin-top:8px"><span>Updates folder</span><input type="text" id="update_folder"></div>
+    <div class="f c"><span>Check for a new version when SketchUp starts</span><input type="checkbox" id="update_check_at_start"></div>
+    <div class="f c"><span>Also offer test builds (the Dev folder beside it)</span><input type="checkbox" id="update_test_builds"></div>
+    <div class="hint">New versions are saved to this Google Drive folder (the Dev folder beside it holds test builds). Updating installs over the old version and loads the new code straight away - no restart. New toolbar buttons or menu items appear after the next restart.</div>
+  </fieldset>
+  <fieldset><legend>Backups</legend>
+    <div class="btnrow" style="margin-top:0">
+      <button onclick="sketchup.exportSettings(JSON.stringify(collect()))" title="Save the team settings to a .json file">Download backup</button>
+      <button onclick="sketchup.importSettings()" title="Load settings from a backup .json file">Upload backup</button>
+      <button onclick="sketchup.reset()">Reset to plugin defaults...</button>
+    </div>
+    <div class="hint" id="teamLine"></div>
+    <div class="hint">The team settings (every tab but this box) are saved to Drive on every Save and read back when Settings opens, so every computer shares them. A loaded backup fills this window; nothing is kept until you press Save. Reset asks first.</div>
+  </fieldset>
+  <fieldset><legend>Developer</legend>
+    <div class="f c"><span>Developer mode: detailed Ruby Console log, and a Developer menu (tests, inspect, reload) after restarting SketchUp</span><input type="checkbox" id="_debug"></div>
+    <div class="btnrow"><button onclick="sketchup.diagnostics()">Copy diagnostics</button></div>
+    <div class="hint" id="diagMsg">Copies plugin, SketchUp and model details to the clipboard, to paste into a message when something goes wrong.</div>
+  </fieldset>
+  <fieldset><legend>What's new</legend><div class="news" id="news"></div></fieldset>
+  <div class="hint" style="margin:-4px 0 10px">The parts list and labels are adapted from <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), used under the GNU GPL v3.0 - so HW Door Style is GPL-3.0 too (LICENSE in the plugin folder).</div>
+</section>
+
+<!-- ======================= COMPONENTS ======================= -->
+<section id="s_components">
+  <h2>Components</h2>
+  <div class="lead">One row per library component: what it is, its Pod letter, its depth. Everything the plugin decides about a component starts here.</div>
+  <fieldset><legend>Component table</legend>
+    <div class="pcbar"><input type="text" id="pcQ" placeholder="Filter" oninput="pcDraw()"><select id="pcRole" onchange="pcDraw()" style="width:auto"><option value="">All kinds</option></select><span class="hint" style="margin:0;flex:1" id="pcCount"></span><button type="button" onclick="pcAdd()">Add a component</button></div>
+    <table class="pc" id="pcTable"><thead><tr><th>Component</th><th>What it is</th><th>Product name</th><th>Letter</th><th>Depth</th><th>Options</th><th></th></tr></thead><tbody></tbody></table>
+    <div class="hint">A name also covers copies (WARDROBE#2) and longer names (WARDROBE_LEFT, "EXT_DRAWER (Fitted)"); the longest match wins. A component not listed is ignored.<br>
+      <b>Unit</b>: a product of its own, numbered with its letter (Wardrobe 824 = T1). <b>Part of a product</b>: belongs to the unit it sits in, under or on (a box end under a worktop, the bridge frame on its skeleton); on its own it's a product, and the same ones next to each other make one (box shelves). <b>Internal</b>: only ever inside a unit with the same letter (int drawers in a T). <b>Never a product</b>: bullnose, end panels, cable outlets. <b>Door / Drawer front / Internal drawer front / Fixed panel</b>: the parts the Door style window redraws (a fixed panel is on the door order like a door, but flat, no hinges or handles). <b>Room</b>: floor and ceiling - kept in the job template, never exported.<br>
+      <b>Depth</b> (back wall to the back of the facing): Standard, Bridge / worktop, or the component's own mm. <b>Options</b>: a door that never gets a mid-rail; a unit whose drawer fronts get the door frame all round.</div>
+  </fieldset>
+  <div class="grid">
+  <fieldset><legend>Sizes</legend>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Depth - standard (mm)</span><input type="number" id="depth_default_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Depth - bridge / worktop (mm)</span><input type="number" id="depth_short_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm"></div>
+    <div class="f" style="grid-template-columns:150px 80px"><span>Worktop height (mm)</span><input type="number" id="worktop_height_mm"></div>
+    <div class="f t"><span>Drawer runner type</span><input type="text" id="drawer_runner_type"></div>
+    <div class="hint">Depth: new units get it from the + window, the Scribe window sets it for the job, right-click &gt; Depth changes one. Top door height: the top doors on TOPBOX and the BRIDGE_FRAME doors, so they line up along the run (applied with the ceiling height). Worktop height: the bottom of the WORKTOP board from the floor.</div>
+  </fieldset>
+  <fieldset><legend>Not furniture (left out of the Workshop)</legend>
+    <div class="f t"><span>Library folders</span><input type="text" id="ignore_component_folders"></div>
+    <div class="f t"><span>Tags</span><input type="text" id="ignore_tags"></div>
+    <div class="hint">Comma separated. Components loaded from these library folders (e.g. Electrical Faceplates), and anything on these tags (sockets, switches), are never parts or hardware.</div>
+  </fieldset>
+  </div>
+  <fieldset><legend>Export components (rocket)</legend>
+    <div class="f t"><span>Sub-folders</span><input type="text" id="export_folders"></div>
+    <div class="hint" style="margin-bottom:6px">Where each export goes in the library, by the component's Pod letter: <code>T: T - Tall units, T_INTERNALS: T - Wardrobe internals, W: ..., B: ..., F: ..., OTHER: Other</code>. Internals under T_INTERNALS; anything that isn't a product under OTHER.</div>
+    <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
+    <div class="f" style="grid-template-columns:150px 70px 70px 70px"><span>Template room (mm)</span><input type="number" id="room_w" placeholder="width"><input type="number" id="room_l" placeholder="length"><input type="number" id="room_c" placeholder="ceiling"></div>
+    <div class="hint">The job template (saved with the export, the Room rows only) has its floor and ceiling at this size - width, length, ceiling. Room setup still asks for each job's room, starting blank.</div>
+  </fieldset>
+</section>
+
+<!-- ======================= DOORS & HARDWARE ======================= -->
+<section id="s_doors">
+  <h2>Doors &amp; hardware</h2>
+  <div class="lead">Door styles, hinges and handles, and the tags put on doors and hardware. Which components are doors is in the Components table.</div>
   <fieldset><legend>Door styles</legend>
     <div class="hint" style="margin-top:0">The styles in the Door style window (your HubSpot range). A style can be chosen once the plugin can draw it and every size its drawing needs is filled in.</div>
     <table class="ocl" style="margin-top:6px"><thead><tr><th>Style</th><th style="width:70px">Handleless</th><th>Can be chosen?</th><th style="width:76px"></th></tr></thead><tbody id="styList"></tbody></table>
@@ -151,12 +213,6 @@
     <div class="f s"><span>Drawer fronts</span><select id="dds_ext_drawer"></select></div>
     <div class="f s"><span>Internal drawers</span><select id="dds_int_drawer"></select></div>
   </fieldset>
-</section>
-
-<!-- ======================= HINGES & HANDLES ======================= -->
-<section id="s_hinges">
-  <h2>Hinges &amp; handles</h2>
-  <div class="lead">Hinges drawn on doors, and the handle counts in the door summary.</div>
   <fieldset><legend>Hinges</legend>
     <div class="f s"><span>Default hinge type</span><select id="default_hinge_type"></select></div>
     <div class="hint" style="margin-bottom:6px">For new jobs. Each job's own type is set in the Door style window.</div>
@@ -170,25 +226,13 @@
     <div class="f c"><span>Count handles on internal drawer fronts</span><input type="checkbox" id="handles_on_internal_drawers"></div>
     <div class="f c"><span>Count handles on push-to-open doors</span><input type="checkbox" id="handles_on_pto_doors"></div>
   </fieldset>
-</section>
-
-<!-- ======================= COMPONENTS ======================= -->
-<section id="s_units">
-  <h2>Components</h2>
-  <div class="lead">Sizes the plugin sets on library components.</div>
-  <fieldset><legend>Top box &amp; bridge</legend>
-    <div class="f" style="grid-template-columns:150px 80px"><span>Top door height (mm)</span><input type="number" id="top_door_height_mm"></div>
-    <div class="f" style="grid-template-columns:150px 80px"><span>Depth - standard (mm)</span><input type="number" id="depth_default_mm"></div>
-    <div class="f" style="grid-template-columns:150px 80px"><span>Depth - bridge / worktop (mm)</span><input type="number" id="depth_short_mm"></div>
-    <div class="f t"><span>Bridge / worktop depth for</span><input type="text" id="depth_short_components"></div>
-    <div class="f t"><span>Own depth (component: mm)</span><input type="text" id="depth_by_component"></div>
-    <div class="hint">Depth = back wall to the back of the facing (finished depth adds the facing / door, e.g. 580 / 598). New units get it from the + window, the Scribe window sets it on every unit for the job, and right-click &gt; Depth changes any unit. Own depth: e.g. <code>BOX_SHELF: 225, BOOKCASE: 475</code>.</div>
-    <div class="f" style="grid-template-columns:150px 80px"><span>Worktop height (mm)</span><input type="number" id="worktop_height_mm"></div>
-    <div class="f t"><span>Drawer runner type</span><input type="text" id="drawer_runner_type"></div>
-    <div class="hint">Bottom of the WORKTOP board from the floor (the height of the half units). The pencil sets it on every worktop, like the top door height.</div>
-    <div class="hint">The top doors on TOPBOX and the doors on BRIDGE_FRAME, so they line up along the run.
-      BRIDGE_FRAME is built up from this door and BRIDGE_SKELETON sits under it, so the top of the bridge is at the ceiling.
-      Applied with the ceiling height (pencil window or the ceiling button) to every unit set "Up to ceiling".</div>
+  <fieldset><legend>Tags (Apply tags)</legend>
+    <div class="f t"><span>Doors</span><input type="text" id="door_tag"></div>
+    <div class="f t"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
+    <div class="f t"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
+    <div class="hint">Applied to the faces and edges inside each component.</div>
+    <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4"></textarea></div>
+    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag.</div>
   </fieldset>
 </section>
 
@@ -230,33 +274,12 @@
   </fieldset>
 </section>
 
-<!-- ======================= TAGS ======================= -->
-<section id="s_tags">
-  <h2>Tags</h2>
-  <div class="lead">Used by Extensions &gt; HW Door Style &gt; Apply tags.</div>
-  <fieldset><legend>Doors &amp; hinges</legend>
-    <div class="f t"><span>Doors</span><input type="text" id="door_tag"></div>
-    <div class="f t"><span>Drawer fronts</span><input type="text" id="drawer_tag"></div>
-    <div class="f t"><span>Hinges / TIP-ON</span><input type="text" id="hinge_tag"></div>
-    <div class="hint">Applied to the faces and edges inside each component.</div>
-  </fieldset>
-  <fieldset><legend>Hardware</legend>
-    <div class="f t"><span>Hardware tags</span><textarea id="hardware_tags" rows="4"></textarea></div>
-    <div class="hint">One line per tag, e.g. <code>shelf_brackets: SHELF_BRACKET</code>. Puts each hardware component (and its faces) on that tag.</div>
-  </fieldset>
-  <fieldset><legend>Not furniture (left out of the Workshop)</legend>
-    <div class="f t"><span>Library folders</span><input type="text" id="ignore_component_folders"></div>
-    <div class="f t"><span>Tags</span><input type="text" id="ignore_tags"></div>
-    <div class="hint">Comma separated. Components loaded from these library folders (e.g. Electrical Faceplates), and anything on these tags (sockets, switches), are never parts or hardware.</div>
-  </fieldset>
-</section>
-
-<!-- ======================= SCRIBE & CEILING ======================= -->
-<section id="s_scribe">
-  <h2>Scribe &amp; ceiling</h2>
-  <div class="lead">The pencil (runouts) and ceiling buttons.</div>
+<!-- ======================= JOB ======================= -->
+<section id="s_job">
+  <h2>Job</h2>
+  <div class="lead">Scribes and ceiling, Pod numbers, and the Installation Plan (notes, dimensions, what's hidden).</div>
   <div class="info" id="jobInfo"></div>
-  <fieldset><legend>Runouts (pencil)</legend>
+  <fieldset><legend>Scribes (pencil)</legend>
     <div class="f t"><span>Dropdown values (mm)</span><input type="text" id="runout_values_mm"></div>
     <div class="hint" style="margin-bottom:6px">0 is always included. Every component's dropdown is updated the next time the pencil is used.</div>
     <div class="row5">
@@ -272,22 +295,6 @@
     <div class="f" style="grid-template-columns:190px 80px"><span>Default bottom facing (mm)</span><input type="number" id="facing_bottom_mm"></div>
     <div class="hint">Plinth height under the units, used until a job sets its own in the pencil window. One unit can differ: right-click it > HW Door Style > Runouts / bottom facing.</div>
   </fieldset>
-  <fieldset><legend>Ceiling height</legend>
-    <div class="hint" style="margin-top:0">Set per job, in the pencil window or with the ceiling button, and applied to every unit set "Up to ceiling". Top door height is under Components.</div>
-  </fieldset>
-</section>
-
-<!-- ======================= EXPORT ======================= -->
-<!-- ======================= PRODUCT LIST ======================= -->
-<section id="s_productlist">
-  <h2>Product list</h2>
-  <div class="lead">The products in a job (Workshop &gt; Product List) - each with a Pod number used on the other tabs, the door order and the floor plan.</div>
-  <fieldset><legend>Components</legend>
-    <div class="hint" style="margin-top:0">One row per component - what it is in the Product List and which Pod letter it gets. A name also covers copies (WARDROBE#2) and longer names (WARDROBE_LEFT, "EXT_DRAWER (Fitted)"); the longest match wins. A component not listed here is ignored.</div>
-    <table id="pcTable" style="width:100%"><thead><tr><th>Component</th><th>Product name</th><th>What it is</th><th>Letter</th><th></th></tr></thead><tbody></tbody></table>
-    <div style="margin-top:6px"><button type="button" onclick="pcAdd()">Add a component</button></div>
-    <div class="hint"><b>Unit</b>: a product of its own, numbered with its letter (Wardrobe 824 = T1). <b>Part of a product</b>: belongs to the unit it sits in, under or on (a box end under a worktop, the bridge frame on its skeleton); on its own it's a product with its letter, and the same ones next to each other make one (box shelves). <b>Internal</b>: only ever part of a unit with the same letter (int drawers in a T) - one outside any gets no number until it's moved or put in one on the Product List. <b>Never a product</b>: left out (bullnose, end panels, floor, ceiling). The Product List tab can still move any single part to another product.</div>
-  </fieldset>
   <fieldset><legend>Pod numbers</legend>
     <div class="f t"><span>Depth options</span><input type="text" id="product_depth_keys"></div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Front (door / facing) mm</span><input type="number" id="product_front_mm"></div>
@@ -298,16 +305,11 @@
     <div class="f t"><span>Plan scenes</span><input type="text" id="product_label_scenes"></div>
     <div class="hint">"Show Pod numbers on the plan" puts T1 (580/598) - the number with depth / finished depth - over each product on its own tag, shown only in scenes whose name matches (e.g. <code>top|plan</code> for "S top").</div>
   </fieldset>
-</section>
-
-<section id="s_floorplan">
-  <h2>Floor plan</h2>
-  <div class="lead">The Installation Plan (Workshop &gt; Floor Plan): notes with arrows, dimensions and Pod numbers on the plan scene, saved as a PDF with the workshop pack and sent to the Room's Floor Plan.</div>
-  <fieldset><legend>Standard messages</legend>
+  <fieldset><legend>Plan notes</legend>
     <div class="f t"><span>Messages</span><textarea id="plan_messages" rows="12"></textarea></div>
     <div class="hint">One per line - offered when you right-click a part &gt; HW Door Style &gt; Plan note (there's also "Other text..."). {size} = the part's size (the narrower of its width / depth, e.g. a filler), {width}, {depth}, {height} - in mm.</div>
   </fieldset>
-  <fieldset><legend>Plan</legend>
+  <fieldset><legend>Installation plan</legend>
     <div class="f t"><span>Plan scenes</span><input type="text" id="plan_scenes"></div>
     <div class="f t"><span>Notes tag</span><input type="text" id="plan_notes_tag"></div>
     <div class="f t"><span>Dimensions tag</span><input type="text" id="plan_dims_tag"></div>
@@ -316,71 +318,15 @@
     <div class="f" style="grid-template-columns:150px 80px"><span>Note distance (mm)</span><input type="number" id="plan_note_offset_mm"></div>
     <div class="f" style="grid-template-columns:150px 80px"><span>Dimension distance (mm)</span><input type="number" id="plan_dim_offset_mm"></div>
     <div class="hint">Notes, dimensions and Pod numbers show only in scenes whose name matches (e.g. <code>top|plan</code> for "S top"). Distances: how far a note sits from its part, and the dimensions from the wall.</div>
-  </fieldset>
-  <fieldset><legend>Hidden on the plan</legend>
-    <div class="f t"><span>Tags</span><input type="text" id="plan_hidden_tags"></div>
+    <div class="f t" style="margin-top:6px"><span>Hidden on the plan</span><input type="text" id="plan_hidden_tags"></div>
     <div class="hint">Comma separated. These tags (the hardware: hinges, shelf brackets, drawer runners, cable outlets, hanging rails) are left off the plan picture - in the Floor Plan tab and the Room Plan PDF. Your scenes aren't changed.</div>
   </fieldset>
 </section>
 
-<section id="s_labels">
-  <h2>Labels</h2>
-  <div class="lead">Part labels (Workshop &gt; Check). Hardware and timber always get one grouped label per name with the total; the names below do too. Any part can be switched for a job in the Check tab.</div>
-  <fieldset><legend>Grouped labels</legend>
-    <div class="f t"><span>Names</span><textarea id="label_aggregate_names" rows="4"></textarea></div>
-    <div class="hint">Comma separated; * matches anything (HINGE* = HINGE_110, HINGE_155...).</div>
-    <div class="f t"><span>Label names</span><textarea id="label_display_names" rows="8"></textarea></div>
-    <div class="hint">One per line: <code>L_BRACKET: L Brackets</code>. Anything not listed is printed tidied up (OVAL_SH_BRACKET = Oval Sh Bracket).</div>
-  </fieldset>
-  <fieldset><legend>Zebra GK420D</legend>
-    <div class="f t"><span>Shared printer</span><span style="display:flex;gap:6px;align-items:center"><select id="zebraPick" style="max-width:320px" onchange="if (this.value) $('zebra_share').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
-    <div class="f t"><span>Windows share name</span><input type="text" id="zebra_share" style="max-width:160px"></div>
-    <div class="hint">Labels print straight to the Zebra as ZPL, with no print dialog. Share the Zebra once in Windows: Settings &gt; Printers &gt; Zebra GK420D &gt; Printer properties &gt; Sharing &gt; Share this printer, share name as above.</div>
-    <div style="margin-top:6px"><button onclick="sketchup.zebraTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('zebra')">View queue</button> <span id="zebraMsg" class="hint" style="margin:0"></span></div>
-  </fieldset>
-  <fieldset><legend>PDF printer (workshop pack)</legend>
-    <div class="f t"><span>Printer</span><span style="display:flex;gap:6px;align-items:center"><select id="pdfPick" style="max-width:320px" onchange="if (this.value) $('pdf_printer').value = this.value"><option value="">Press Find printers</option></select><button onclick="findPrinters()">Find printers</button></span></div>
-    <div class="f t"><span>Printer name</span><input type="text" id="pdf_printer" style="max-width:260px"></div>
-    <div class="f t"><span>Sides</span><select id="pdf_sides" style="max-width:260px"><option value="simplex">Single sided</option><option value="duplexlong">Double sided (long edge)</option><option value="duplexshort">Double sided (short edge)</option></select></div>
-    <div class="f t"><span>SumatraPDF path</span><input type="text" id="sumatra_path" placeholder="found automatically if installed"></div>
-    <div class="hint">The door order, parts list and Room Plan PDFs print here, with no dialog, when you send from the Workshop's HubSpot tab (labels only ever go to the Zebra). The name must match Windows exactly. Needs SumatraPDF (free, sumatrapdfreader.org) installed once.</div>
-    <div style="margin-top:6px"><button onclick="sketchup.pdfTest()">Test print</button> <button class="warnbtn" onclick="sketchup.viewQueue('pdf')">View queue</button> <span id="pdfMsg" class="hint" style="margin:0">Save the settings first if you changed the name.</span></div>
-  </fieldset>
-</section>
-
-<section id="s_export">
-  <h2>Export</h2>
-  <div class="lead">Export components (rocket) - library file only.</div>
-  <fieldset><legend>Export components</legend>
-    <div class="f t"><span>Old versions folder</span><input type="text" id="export_old_folder"></div>
-    <div class="f t"><span>Sub-folders</span><input type="text" id="export_folders"></div>
-    <div class="hint" style="margin-bottom:6px">Where each export goes, by its Pod letter from the Product list table: <code>T: T - Tall units, T_INTERNALS: T - Wardrobe internals, W: ..., B: ..., F: ..., OTHER: Other</code>. Internals go under T_INTERNALS; anything that isn't a product under OTHER.</div>
-    <div class="f t"><span>Never export</span><input type="text" id="export_skip"></div>
-    <div class="hint">Top-level components left out of the export list.</div>
-    <div class="f t"><span>Template keeps</span><input type="text" id="template_keep"></div>
-    <div class="hint">The only things kept in the job template for Welcome to SketchUp (saved with Export components), e.g. FLOOR, CEILING. Everything else is left out.</div>
-    <div class="f" style="grid-template-columns:150px 70px 70px 70px"><span>Template room (mm)</span><input type="number" id="room_w" placeholder="width"><input type="number" id="room_l" placeholder="length"><input type="number" id="room_c" placeholder="ceiling"></div>
-    <div class="hint">The template's floor and ceiling are saved at this size (width, length, ceiling). Room setup still asks for each job's room, starting blank.</div>
-  </fieldset>
-  <fieldset><legend>Local folder (works offline)</legend>
-    <div class="f t"><span>Folder on this computer</span><input type="text" id="local_folder"></div>
-    <div class="hint" style="margin-bottom:6px">Not on Google Drive. Every export also lands in <b>SketchUp Components</b> here (the current file of each component, the master and the templates, in the same sub-folders - no _old), and the + window uses it when Drive isn't reachable. <b>Settings backups</b> here gets a dated backup every time you press Save (the last 30 kept).</div>
-    <div><button type="button" onclick="$('localMsg').textContent = 'Copying...'; sketchup.mirrorAll()">Copy the library here now</button> <button type="button" onclick="sketchup.openLocal()">Open folder</button> <span id="localMsg" class="hint" style="margin:0"></span></div>
-  </fieldset>
-  <fieldset><legend>Door order and parts list</legend>
-    <div class="f c"><span>Also save CSV files (the PDF is always saved)</span><input type="checkbox" id="export_csv"></div>
-    <div class="hint">Off: Export door order and the Workshop window save PDFs only (and send only the PDFs to HubSpot).</div>
-  </fieldset>
-  <fieldset><legend>Add component (+)</legend>
-    <div class="f t"><span>Library folder</span><input type="text" id="library_folder"></div>
-    <div class="hint">The library on Google Drive (T - Tall units, W - ..., Electrical Faceplates...). The latest version of each component is copied to this computer (AppData\HW Door Style\library) and kept up to date when the + window opens, so it opens straight away and works offline.</div>
-  </fieldset>
-</section>
-
-<!-- ======================= CUT LIST ======================= -->
-<section id="s_cutlist">
-  <h2>Cut list</h2>
-  <div class="lead">OpenCutList settings for this model's materials and doors.</div>
+<!-- ======================= WORKSHOP ======================= -->
+<section id="s_workshop">
+  <h2>Workshop</h2>
+  <div class="lead">Boards and the cut list, part labels, and the door order / parts list files.</div>
   <fieldset><legend>OpenCutList</legend>
     <div id="oclStatus"></div>
     <div id="oclWarn"></div>
@@ -416,53 +362,22 @@
     <div class="f t"><span>Tag</span><input type="text" id="ocl_bought_in_tag"></div>
     <div class="hint">In OpenCutList's cut list, filter out this tag to leave doors and drawer fronts off the cutting diagrams. The Door order (summary) stays the HPP list.</div>
   </fieldset>
-</section>
-
-<!-- ======================= PRODUCTS ======================= -->
-<section id="s_products" data-nodirty>
-  <h2>Products</h2>
-  <div class="lead">Handles and other hardware, kept in HubSpot's Products. Saving a product here saves it straight to HubSpot (not with the Save button below).</div>
-  <div class="btnrow" style="margin-top:0"><button onclick="prodLoad()">Read from HubSpot</button><button onclick="prodEdit(null)">New product</button><button onclick="sketchup.prodImport()">Import from supplier...</button><button id="prodSelBtn" onclick="prodSelMode()">Select to delete</button><span class="hint" id="prodAt" style="align-self:center;margin:0"></span></div>
-  <div id="prodForm" style="display:none">
-    <fieldset><legend id="prodTitle">New product</legend>
-      <div style="display:grid;grid-template-columns:1fr 130px;gap:12px">
-        <div>
-          <div class="f t"><span>Name</span><input type="text" id="pf_name" placeholder="Range - Finish - Size, e.g. Venice Handle - Aged Brass - 128mm"></div>
-          <div class="f t"><span>SKU</span><input type="text" id="pf_hs_sku"></div>
-          <div class="f t"><span>Supplier</span><select id="pf_supplier"></select></div>
-          <div class="f t"><span>Product type</span><select id="pf_hs_product_type"></select></div>
-          <div class="f t"><span>Price (you charge, &pound;)</span><input type="number" step="0.01" id="pf_price"></div>
-          <div class="f t"><span>Cost (you pay, &pound;)</span><input type="number" step="0.01" id="pf_hs_cost_of_goods_sold"></div>
-          <div class="f t"><span>Supplier link</span><input type="text" id="pf_hs_url" placeholder="https://..."></div>
-        </div>
-        <div style="text-align:center">
-          <div id="pf_img" style="width:130px;height:130px;border:1px solid var(--line);border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:11px;background:#fafbfb;overflow:hidden">No picture</div>
-          <button onclick="sketchup.prodPickImage()" style="margin-top:6px">Choose picture...</button>
-        </div>
-      </div>
-      <div style="margin-top:8px;font-size:11.5px;font-weight:600">Category <span class="hint" style="font-weight:normal">- where it can be chosen (e.g. Robe handle and Drawer handle)</span></div>
-      <div id="pf_cats" style="display:flex;flex-wrap:wrap;gap:3px 16px;margin-top:3px"></div>
-      <div class="btnrow"><button class="danger" id="prodDelOne" onclick="prodDelOne()">Delete</button><button onclick="prodCancel()">Cancel</button><button class="primary" onclick="prodSave()">Save to HubSpot</button><span class="hint" id="prodMsg" style="align-self:center;margin:0"></span></div>
-    </fieldset>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;margin:8px 0 4px">
-    <input type="text" id="prodQ" placeholder="Filter by range, finish, size, SKU or supplier" oninput="prodDraw()" style="width:300px">
-    <select id="prodCat" onchange="prodDraw()" style="width:auto"><option value="">All categories</option></select>
-  </div>
-  <div id="prodDelBar" style="display:none;gap:8px;align-items:center;margin:4px 0 6px;font-size:11.5px">
-    <span id="prodDelN">Click products to pick them.</span>
-    <button onclick="prodSelShown(true)">Pick all shown</button><button onclick="prodSelShown(false)">Clear</button>
-    <button class="danger" id="prodDelMany" onclick="prodDelMany()" disabled>Delete</button>
-    <button onclick="prodSelMode()">Done</button>
-  </div>
-  <div id="prodList"></div>
-  <div class="hint">New supplier names: add them to the product Supplier field in HubSpot, then Read from HubSpot.</div>
+  <fieldset><legend>Grouped labels</legend>
+    <div class="f t"><span>Names</span><textarea id="label_aggregate_names" rows="4"></textarea></div>
+    <div class="hint">Comma separated; * matches anything (HINGE* = HINGE_110, HINGE_155...).</div>
+    <div class="f t"><span>Label names</span><textarea id="label_display_names" rows="8"></textarea></div>
+    <div class="hint">One per line: <code>L_BRACKET: L Brackets</code>. Anything not listed is printed tidied up (OVAL_SH_BRACKET = Oval Sh Bracket).</div>
+  </fieldset>
+  <fieldset><legend>Door order and parts list</legend>
+    <div class="f c"><span>Also save CSV files (the PDF is always saved)</span><input type="checkbox" id="export_csv"></div>
+    <div class="hint">Off: Export door order and the Workshop window save PDFs only (and send only the PDFs to HubSpot).</div>
+  </fieldset>
 </section>
 
 <!-- ======================= HUBSPOT ======================= -->
 <section id="s_hubspot">
   <h2>HubSpot</h2>
-  <div class="lead">One SketchUp file = one HubSpot Room (Extensions > HW Door Style > HubSpot).</div>
+  <div class="lead">One SketchUp file = one HubSpot Room. The hardware catalogue is under Extensions &gt; HW Door Style &gt; HubSpot &gt; Hardware products.</div>
   <fieldset><legend>Connection</legend>
     <div class="f t"><span>Private app key</span><input type="password" id="hsKey" autocomplete="off" placeholder=""></div>
     <div class="hint" id="hsKeyHint"></div>
@@ -505,51 +420,8 @@
   </fieldset>
 </section>
 
-<!-- ======================= GENERAL ======================= -->
-<section id="s_general">
-  <h2>General</h2>
-  <div class="lead" id="verLine"></div>
-  <div class="hint" style="margin:-4px 0 10px">The parts list and labels are adapted from <b>OpenCutList</b> by L'Air du Bois (github.com/lairdubois/lairdubois-opencutlist-sketchup-extension), used under the GNU GPL v3.0 - so HW Door Style is GPL-3.0 too (LICENSE in the plugin folder).</div>
-  <fieldset><legend>What's new</legend><div class="news" id="news"></div></fieldset>
-  <fieldset><legend>Updates</legend>
-    <div class="info" id="updLine" style="margin-bottom:6px"></div>
-    <div class="btnrow" style="margin-top:0">
-      <button onclick="sketchup.checkUpdate($('update_folder').value)">Check for updates</button>
-      <button onclick="sketchup.installFile()">Install from a file...</button>
-    </div>
-    <div class="f t" style="margin-top:8px"><span>Updates folder</span><input type="text" id="update_folder"></div>
-    <div class="f c"><span>Check for a new version when SketchUp starts</span><input type="checkbox" id="update_check_at_start"></div>
-    <div class="f c"><span>Also offer test builds (the Dev folder beside it)</span><input type="checkbox" id="update_test_builds"></div>
-    <div class="hint">New versions are saved to this Google Drive folder. Updating installs over the old version and loads the new code straight away - no uninstall or restart. New toolbar buttons or menu items appear after the next restart.</div>
-  </fieldset>
-  <fieldset><legend>Settings file</legend>
-    <div class="path" id="setPath"></div>
-    <div class="hint">Your changes are kept here, outside the plugin, so updates don't remove them.</div>
-    <div class="btnrow"><button onclick="sketchup.openFolder()">Open settings folder</button></div>
-  </fieldset>
-  <fieldset><legend>Backups &amp; team settings</legend>
-    <div class="btnrow">
-      <button onclick="sketchup.exportSettings(JSON.stringify(collect()))" title="Save these settings to a .json file">Download backup</button>
-      <button onclick="sketchup.importSettings()" title="Load settings from a backup .json file">Upload backup</button>
-      <button onclick="sketchup.loadTeam()" title="Load the shared team settings (a backup kept on Google Drive)">Load team settings</button>
-    </div>
-    <div class="hint" id="teamLine"></div>
-    <div class="hint">A loaded backup fills this window; nothing is kept until you press Save. To share settings with the team, Download backup to Google Drive.</div>
-  </fieldset>
-  <fieldset><legend>Reset</legend>
-    <div class="btnrow"><button onclick="sketchup.reset()">Reset to plugin defaults...</button></div>
-    <div class="hint">Asks first, and asks whether your own colour library should be reset too.</div>
-  </fieldset>
-  <fieldset><legend>Developer</legend>
-    <div class="f c"><span>Developer mode: detailed Ruby Console log, and a Developer menu (tests, inspect, reload) after restarting SketchUp</span><input type="checkbox" id="_debug"></div>
-    <div class="btnrow"><button onclick="sketchup.diagnostics()">Copy diagnostics</button></div>
-    <div class="hint" id="diagMsg">Copies plugin, SketchUp and model details to the clipboard, to paste into a message when something goes wrong.</div>
-  </fieldset>
-</section>
-
 </div>
 </div>
-
 <footer>
   <div class="state" id="state">No changes</div>
   <button onclick="cancelClicked()">Cancel</button>
@@ -558,7 +430,7 @@
 
 <script>
 var S = /*DATA*/null;
-var LISTS = ['label_aggregate_names','door_names','fixed_panel_names','no_midrail_names','framed_drawer_units','ext_drawer_names','int_drawer_names','drawer_box_parts','export_skip','template_keep','depth_short_components'];
+var LISTS = ['label_aggregate_names','drawer_box_parts'];
 var LOWER_LISTS = ['survey_questions', 'product_depth_keys'];
 var NUMS = ['hinge_end_inset_mm','handle_double_min_width_mm','panel_22_mm','top_door_height_mm','worktop_height_mm','facing_bottom_mm','parts_sheet_waste_pct','strip_length_mm','product_front_mm','depth_default_mm','depth_short_mm','plan_note_offset_mm','plan_dim_offset_mm'];
 var BOOLS = ['handles_on_internal_drawers','handles_on_pto_doors','box_thickness_follows_finish','export_csv'];
@@ -569,23 +441,35 @@ var DEFAULT_ROWS = S._colour_rows || [];   // [[id, label, [names]], ...]
 var dirty = false;
 
 function split(v){ return v.split(',').map(function(x){return x.trim().toUpperCase();}).filter(Boolean); }
-// ---- Product list: one row per component ----
+// ---- the component table (Settings "components") ----
 var PC = [];
-var PC_ROLES = [['unit', 'Unit - a product of its own'], ['joiner', 'Part of a product'], ['internal', 'Internal - inside a unit'], ['skip', 'Never a product']];
+var PC_ROLES = [['unit', 'Unit - a product of its own'], ['joiner', 'Part of a product'], ['internal', 'Internal - inside a unit'], ['skip', 'Never a product'],
+                ['door', 'Door'], ['ext_drawer', 'Drawer front'], ['int_drawer', 'Internal drawer front'], ['fixed_panel', 'Fixed panel (flat)'], ['room', 'Room (floor / ceiling)']];
+var PC_POD = ['unit', 'joiner', 'internal'];
 function pcLetters(){ return $('product_ref_names').value.split(',').map(function(x){ var i = x.indexOf(':'); return (i < 1 ? x : x.slice(0, i)).trim().toUpperCase(); }).filter(Boolean); }
+function pcRoleLabel(r){ var x = PC_ROLES.filter(function(p){ return p[0] === r; })[0]; return x ? x[1] : r; }
 function pcDraw(){
-  var L = pcLetters();
-  var tb = $('pcTable').querySelector('tbody');
-  tb.innerHTML = PC.map(function(r, i){
-    var lets = L.indexOf(r.letter) < 0 && r.letter ? L.concat([r.letter]) : L;
-    return '<tr><td><input type="text" value="' + esc(r.name) + '" style="width:150px;text-transform:uppercase" oninput="PC[' + i + '].name=this.value"></td>' +
-      '<td><input type="text" value="' + esc(r.product) + '" style="width:150px" oninput="PC[' + i + '].product=this.value"></td>' +
-      '<td><select onchange="PC[' + i + '].role=this.value; pcDraw()">' + PC_ROLES.map(function(x){ return '<option value="' + x[0] + '"' + (r.role === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></td>' +
-      '<td>' + (r.role === 'skip' ? '<span class="hint" style="margin:0">-</span>' : '<select onchange="PC[' + i + '].letter=this.value">' + lets.map(function(l){ return '<option value="' + esc(l) + '"' + (r.letter === l ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join('') + '</select>') + '</td>' +
+  var L = pcLetters(), q = $('pcQ').value.trim().toUpperCase(), only = $('pcRole').value;
+  var cur = $('pcRole').value;
+  $('pcRole').innerHTML = '<option value="">All kinds</option>' + PC_ROLES.map(function(p){ return '<option value="' + p[0] + '"' + (p[0] === cur ? ' selected' : '') + '>' + esc(p[1]) + '</option>'; }).join('');
+  var rows = PC.map(function(r, i){ return [r, i]; }).filter(function(x){ var r = x[0]; return (!q || (r.name + ' ' + (r.product || '')).toUpperCase().indexOf(q) >= 0) && (!only || r.role === only); });
+  $('pcCount').textContent = rows.length === PC.length ? PC.length + ' components' : rows.length + ' of ' + PC.length;
+  $('pcTable').querySelector('tbody').innerHTML = rows.map(function(x){
+    var r = x[0], i = x[1], pod = PC_POD.indexOf(r.role) >= 0, lets = L.indexOf(r.letter) < 0 && r.letter ? L.concat([r.letter]) : L;
+    var depth = r.depth === 'short' ? 'short' : (+r.depth > 0 ? 'own' : '');
+    var opt = r.role === 'door' ? '<label><input type="checkbox"' + (r.no_midrail ? ' checked' : '') + ' onchange="PC[' + i + '].no_midrail=this.checked"> No mid-rail</label>' :
+              r.role === 'unit' ? '<label><input type="checkbox"' + (r.framed ? ' checked' : '') + ' onchange="PC[' + i + '].framed=this.checked"> Drawer fronts framed like doors</label>' : '';
+    return '<tr><td><input type="text" value="' + esc(r.name) + '" style="width:140px;text-transform:uppercase" oninput="PC[' + i + '].name=this.value"></td>' +
+      '<td><select onchange="PC[' + i + '].role=this.value; pcDraw()">' + PC_ROLES.map(function(p){ return '<option value="' + p[0] + '"' + (r.role === p[0] ? ' selected' : '') + '>' + esc(p[1]) + '</option>'; }).join('') + '</select></td>' +
+      '<td>' + (pod ? '<input type="text" value="' + esc(r.product || '') + '" style="width:120px" oninput="PC[' + i + '].product=this.value">' : '') + '</td>' +
+      '<td>' + (pod ? '<select style="width:50px" onchange="PC[' + i + '].letter=this.value">' + lets.map(function(l){ return '<option value="' + esc(l) + '"' + (r.letter === l ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join('') + '</select>' : '') + '</td>' +
+      '<td>' + (pod ? '<span style="display:flex;gap:3px"><select style="width:auto" onchange="PC[' + i + '].depth = this.value === \'own\' ? (+PC[' + i + '].depth > 0 ? PC[' + i + '].depth : 500) : this.value; pcDraw()"><option value=""' + (depth === '' ? ' selected' : '') + '>Standard</option><option value="short"' + (depth === 'short' ? ' selected' : '') + '>Bridge / worktop</option><option value="own"' + (depth === 'own' ? ' selected' : '') + '>Own</option></select>' +
+        (depth === 'own' ? '<input type="number" value="' + esc(String(r.depth)) + '" style="width:58px" oninput="PC[' + i + '].depth=parseFloat(this.value)||0">' : '') + '</span>' : '') + '</td>' +
+      '<td>' + opt + '</td>' +
       '<td><a href="#" title="Remove" onclick="PC.splice(' + i + ', 1); pcDraw(); markDirty(); return false">&times;</a></td></tr>';
   }).join('');
 }
-function pcAdd(){ PC.push({ name: '', product: '', role: 'unit', letter: pcLetters()[0] || 'T' }); pcDraw(); markDirty(); var ins = $('pcTable').querySelectorAll('tbody input'); if (ins.length) ins[ins.length - 2].focus(); }
+function pcAdd(){ $('pcQ').value = ''; $('pcRole').value = ''; PC.push({ name: '', product: '', role: 'unit', letter: pcLetters()[0] || 'T', depth: '' }); pcDraw(); markDirty(); var ins = $('pcTable').querySelectorAll('tbody input[type=text]'); if (ins.length) ins[ins.length - (PC[PC.length - 1].role === 'unit' ? 2 : 1)].focus(); }
 
 function opts(sel, list, cur){ sel.innerHTML = list.map(function(o){ var v = o[0], l = o[1]; return '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(l) + '</option>'; }).join(''); }
 
@@ -610,9 +494,7 @@ function load(s){
   $('product_ref_names').value = Object.keys(prn).map(function(k){ return k + ': ' + prn[k]; }).join(', ');
   var xf = s.export_folders || {};
   $('export_folders').value = Object.keys(xf).map(function(k){ return k + ': ' + xf[k]; }).join(', ');
-  var dbc = s.depth_by_component || {};
-  $('depth_by_component').value = Object.keys(dbc).map(function(k){ return k + ': ' + dbc[k]; }).join(', ');
-  PC = Object.keys(s.product_components || {}).map(function(k){ var r = s.product_components[k] || {}; return { name: k, product: r.product || '', role: r.role || 'unit', letter: r.letter || '' }; });
+  PC = Object.keys(s.components || {}).map(function(k){ var r = s.components[k] || {}; return { name: k, role: r.role || 'unit', product: r.product || '', letter: r.letter || '', depth: r.depth || '', no_midrail: !!r.no_midrail, framed: !!r.framed }; });
   pcDraw();
   var cg = s.colour_groups || {};
   GROUPS.forEach(function(g){ $('cg_'+g).value = (cg[g]||[]).join(', '); });
@@ -646,7 +528,6 @@ function load(s){
   Array.prototype.forEach.call($('strip1000').querySelectorAll('input'), function(c){ c.onchange = markDirty; });
   PICS = JSON.parse(JSON.stringify(s.hubspot_pictures || [])); picsDraw();
   DRAW = S._style_drawings || {}; SIZES = S._style_sizes || [];
-  PROD = S._products || PROD; prodDraw();
   STY = JSON.parse(JSON.stringify(s.door_styles || [])); STY_SEL = Math.min(STY_SEL, Math.max(STY.length - 1, 0));
   DDS = s.default_door_styles || {}; ['door', 'ext_drawer', 'int_drawer'].forEach(function(k){ $('dds_' + k).value = ''; });
   styDraw();
@@ -685,10 +566,15 @@ function collect(){
   $('product_ref_names').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim(); if (k && v) o.product_ref_names[k] = v; });
   o.export_folders = {};
   $('export_folders').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = x.slice(i + 1).trim(); if (k && v) o.export_folders[k] = v; });
-  o.depth_by_component = {};
-  $('depth_by_component').value.split(',').forEach(function(x){ var i = x.indexOf(':'); if (i < 1) return; var k = x.slice(0, i).trim().toUpperCase(), v = parseFloat(x.slice(i + 1)); if (k && v > 0) o.depth_by_component[k] = v; });
-  o.product_components = {};
-  PC.forEach(function(r){ var k = String(r.name || '').trim().toUpperCase(); if (!k) return; o.product_components[k] = { product: String(r.product || '').trim(), role: r.role || 'unit', letter: r.role === 'skip' ? '' : String(r.letter || '').trim().toUpperCase() }; });
+  o.components = {};
+  PC.forEach(function(r){
+    var k = String(r.name || '').trim().toUpperCase(); if (!k) return;
+    var pod = PC_POD.indexOf(r.role) >= 0, row = { role: r.role || 'unit' };
+    if (pod) { row.product = String(r.product || '').trim(); row.letter = String(r.letter || '').trim().toUpperCase(); if (r.depth === 'short') row.depth = 'short'; else if (+r.depth > 0) row.depth = +r.depth; }
+    if (r.role === 'door' && r.no_midrail) row.no_midrail = true;
+    if (r.role === 'unit' && r.framed) row.framed = true;
+    o.components[k] = row;
+  });
   o.hardware_tags = {};
   $('hardware_tags').value.split('\n').forEach(function(line){
     var i = line.indexOf(':'); if (i < 1) return;
@@ -744,28 +630,30 @@ function problems(){
     if (+st.recess_mm >= 18) out.push(['doors', 'styList', st.name + ': recess must be less than 18 mm']);
   });
   if (STY.filter(function(x){ return x.name.trim() === ''; }).length) out.push(['doors', 'styList', 'Every style needs a name']);
-  need('doors', 'door_names', split($('door_names').value).length > 0, 'Enter at least one door name');
+  need('components', 'pcTable', PC.some(function(r){ return r.role === 'door' && r.name.trim(); }), 'The table needs at least one Door');
+  var dup = {}; PC.forEach(function(r){ var k = r.name.trim().toUpperCase(); if (k) dup[k] = (dup[k] || 0) + 1; });
+  need('components', 'pcTable', !Object.keys(dup).some(function(k){ return dup[k] > 1; }), 'A component is listed twice: ' + Object.keys(dup).filter(function(k){ return dup[k] > 1; }).join(', '));
   var r = parseRules($('hinge_rules').value);
   var asc = r.rules.every(function(x, i){ return i === 0 || x[0] > r.rules[i - 1][0]; });
-  need('hinges', 'hinge_rules', !r.bad && r.rules.length > 0 && asc && r.rules.every(function(x){ return x[0] > 0 && x[1] >= 1 && x[1] <= 10; }),
+  need('doors', 'hinge_rules', !r.bad && r.rules.length > 0 && asc && r.rules.every(function(x){ return x[0] > 0 && x[1] >= 1 && x[1] <= 10; }),
        'Hinges per door: height:count pairs, heights going up, 1-10 hinges');
-  need('hinges', 'hinge_end_inset_mm', num('hinge_end_inset_mm') >= 0, 'Inset can\'t be negative');
-  need('hinges', 'handle_double_min_width_mm', num('handle_double_min_width_mm') > 0, 'Enter a width');
-  need('units', 'worktop_height_mm', num('worktop_height_mm') >= 100 && num('worktop_height_mm') <= 2000, 'Worktop height must be 100-2000 mm');
-  need('units', 'top_door_height_mm', num('top_door_height_mm') >= 100 && num('top_door_height_mm') <= 1500, 'Top door height must be 100-1500 mm');
+  need('doors', 'hinge_end_inset_mm', num('hinge_end_inset_mm') >= 0, 'Inset can\'t be negative');
+  need('doors', 'handle_double_min_width_mm', num('handle_double_min_width_mm') > 0, 'Enter a width');
+  need('components', 'worktop_height_mm', num('worktop_height_mm') >= 100 && num('worktop_height_mm') <= 2000, 'Worktop height must be 100-2000 mm');
+  need('components', 'top_door_height_mm', num('top_door_height_mm') >= 100 && num('top_door_height_mm') <= 1500, 'Top door height must be 100-1500 mm');
   need('colours', 'panel_22_mm', num('panel_22_mm') > 0, 'Enter the panel thickness');
-  need('scribe', 'facing_bottom_mm', num('facing_bottom_mm') >= 0 && num('facing_bottom_mm') <= 300, 'Bottom facing must be 0-300 mm');
+  need('job', 'facing_bottom_mm', num('facing_bottom_mm') >= 0 && num('facing_bottom_mm') <= 300, 'Bottom facing must be 0-300 mm');
   var vals = $('runout_values_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; });
-  need('scribe', 'runout_values_mm', vals.length > 0, 'Enter at least one runout value');
+  need('job', 'runout_values_mm', vals.length > 0, 'Enter at least one runout value');
   SIDES.forEach(function(k){
     var v = num('rd_' + k);
-    need('scribe', 'rd_' + k, v === 0 || vals.indexOf(v) >= 0, k.charAt(0).toUpperCase() + k.slice(1) + ' default must be 0 or one of the dropdown values');
+    need('job', 'rd_' + k, v === 0 || vals.indexOf(v) >= 0, k.charAt(0).toUpperCase() + k.slice(1) + ' default must be 0 or one of the dropdown values');
   });
   var sizes = $('ocl_sheet_sizes').value.split(/[,\n]/).map(function(x){ return x.replace(/\s|mm/gi, '').toLowerCase(); }).filter(Boolean);
-  need('cutlist', 'ocl_sheet_sizes', sizes.length > 0 && sizes.every(function(x){ return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(x); }), 'Stock sizes: length x width, e.g. 2800x2070');
+  need('workshop', 'ocl_sheet_sizes', sizes.length > 0 && sizes.every(function(x){ return /^\d+(\.\d+)?x\d+(\.\d+)?$/.test(x); }), 'Stock sizes: length x width, e.g. 2800x2070');
   need('hubspot', 'hubspot_picture_size', /^\d{3,5}x\d{3,5}$/.test($('hubspot_picture_size').value.replace(/\s/g, '').toLowerCase()), 'Picture size: width x height in pixels, e.g. 1920x1080');
-  need('cutlist', 'ocl_thicknesses_mm', $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).length > 0, 'Enter at least one board thickness');
-  need('export', 'export_old_folder', /^[^\\/:*?"<>|]+$/.test($('export_old_folder').value.trim() || '_old'), 'Folder name can\'t contain \\ / : * ? " < > |');
+  need('workshop', 'ocl_thicknesses_mm', $('ocl_thicknesses_mm').value.split(',').map(parseFloat).filter(function(x){ return x > 0; }).length > 0, 'Enter at least one board thickness');
+  need('components', 'export_old_folder', /^[^\\/:*?"<>|]+$/.test($('export_old_folder').value.trim() || '_old'), 'Folder name can\'t contain \\ / : * ? " < > |');
   return out;
 }
 
@@ -854,9 +742,9 @@ function renderInfo(){
   $('news').innerHTML = (S._whats_new || []).map(function(e){
     return '<h4>' + esc(e.title) + '</h4><ul>' + e.items.map(function(i){ return '<li>' + esc(i) + '</li>'; }).join('') + '</ul>';
   }).join('') || '<div class="hint">No notes.</div>';
-  $('setPath').textContent = S._settings_file || '';
   updInfo(S._update || {});
-  $('teamLine').textContent = S._team_file ? 'Team file: ' + S._team_file : 'No team file chosen yet.';
+  $('teamLine').textContent = S._team_file ? (S._team_ok ? 'Team settings: ' + S._team_file : 'Team settings file not reachable (' + S._team_file + ') - using the copy on this computer.') : 'No library folder set - team settings off.';
+  if (S._setup_note) { $('setupLine').style.display = ''; $('setupLine').textContent = S._setup_note; }
 }
 
 // ---------- updates ----------
@@ -909,116 +797,6 @@ function reqDraw(){
     };
   });
 }
-// ---------- products (saved straight to HubSpot) ----------
-var PROD = { products: [], options: {} }, PEDIT = null, PIMG = null, PDEL = null, PSEL = {}, PSHOWN = [];
-function prodOpts(k){ return (PROD.options && PROD.options[k]) || []; }
-function prodLabel(k, v){ var o = prodOpts(k).filter(function(x){ return x[1] === v; })[0]; return o ? o[0] : (v || ''); }
-// "Venice Handle - Aged Brass - 128mm" -> range "Venice Handle", rest "Aged Brass - 128mm".
-function prodParts(name){ var p = String(name || '').split(' - '); return [p[0], p.slice(1).join(' - ')]; }
-function prodDraw(){
-  $('prodAt').textContent = PROD.at ? PROD.products.length + ' product(s), read ' + PROD.at : 'Not read from HubSpot yet - press Read from HubSpot.';
-  var cs = prodOpts('categories'), cur = $('prodCat').value;
-  $('prodCat').innerHTML = '<option value="">All categories</option>' + cs.map(function(c){ return '<option value="' + esc(c[1]) + '"' + (c[1] === cur ? ' selected' : '') + '>' + esc(c[0]) + '</option>'; }).join('');
-  var q = $('prodQ').value.trim().toLowerCase();
-  var list = PROD.products.map(function(p, i){ return [p, i]; }).filter(function(x){
-    var p = x[0];
-    if (cur && (p.product_category || '').split(';').indexOf(cur) < 0) return false;
-    return !q || [p.name, p.hs_sku, prodLabel('suppliers', p.supplier)].join(' ').toLowerCase().indexOf(q) >= 0;
-  });
-  PSHOWN = list.map(function(x){ return x[0].id; });
-  var order = [], by = {};
-  list.forEach(function(x){ var r = prodParts(x[0].name)[0]; if (!by[r]) { by[r] = []; order.push(r); } by[r].push(x); });
-  order.sort(function(a, b){ return a.localeCompare(b); });
-  $('prodList').innerHTML = order.length ? order.map(function(r){
-    return '<div class="prange"><div class="rh">' + esc(r) + '<span>' + by[r].length + '</span></div><div class="pgrid">' + by[r].map(function(x){
-      var p = x[0], img = (PROD.images || {})[p.id] || '', rest = prodParts(p.name)[1];
-      var cats = (p.product_category || '').split(';').filter(Boolean).map(function(c){ return '<span>' + esc(prodLabel('categories', c)) + '</span>'; }).join('');
-      return '<div class="pcard' + (PDEL && PSEL[p.id] ? ' sel' : '') + '" onclick="prodClick(' + x[1] + ')" title="' + (PDEL ? 'Pick ' : 'Edit ') + esc(p.name) + '"><input type="checkbox" class="tick"' + (PSEL[p.id] ? ' checked' : '') + ' tabindex="-1">' + (img ? '<img loading="lazy" src="' + esc(img) + '">' : '<div class="noimg"></div>') +
-        '<div class="f">' + esc(rest || p.name) + '</div><div class="s">' + [esc(p.hs_sku || ''), p.supplier ? esc(prodLabel('suppliers', p.supplier)) : ''].filter(Boolean).join(' - ') + '</div><div class="chips">' + cats + '</div></div>';
-    }).join('') + '</div></div>';
-  }).join('') : '<div class="hint">' + (PROD.products.length ? 'Nothing matches.' : 'No products yet - New product, or Import from supplier.') + '</div>';
-}
-// Delete: from the edit form (one), or Select to delete (several). Both ask twice.
-function prodClick(i){
-  if (!PDEL) return prodEdit(i);
-  var id = PROD.products[i].id; PSEL[id] = !PSEL[id]; prodDraw(); prodDelCount();
-}
-function prodSelMode(){
-  PDEL = !PDEL; PSEL = {}; prodCancel();
-  $('prodList').classList.toggle('delmode', !!PDEL);
-  $('prodDelBar').style.display = PDEL ? 'flex' : 'none';
-  $('prodSelBtn').disabled = !!PDEL; prodDraw(); prodDelCount();
-}
-function prodSelShown(v){ PSEL = {}; if (v) PSHOWN.forEach(function(id){ PSEL[id] = true; }); prodDraw(); prodDelCount(); }
-function prodPicked(){ return Object.keys(PSEL).filter(function(k){ return PSEL[k]; }); }
-function prodDelCount(){
-  var n = prodPicked().length, b = $('prodDelMany');
-  b.classList.remove('sure'); b.disabled = !n; b.textContent = n ? 'Delete ' + n : 'Delete';
-  $('prodDelN').textContent = n ? n + ' picked.' : 'Click products to pick them.';
-}
-function prodSure(b, label){
-  if (b.classList.contains('sure')) return true;
-  b.classList.add('sure'); b.textContent = label;
-  setTimeout(function(){ if (b.classList.contains('sure')) { b.classList.remove('sure'); if (b.id === 'prodDelMany') prodDelCount(); else b.textContent = 'Delete'; } }, 4000);
-  return false;
-}
-function prodDelOne(){
-  if (!PEDIT || !PEDIT.id) return;
-  if (!prodSure($('prodDelOne'), 'Click again to delete')) return;
-  $('prodMsg').textContent = 'Deleting...';
-  sketchup.prodDelete(JSON.stringify({ ids: [PEDIT.id] }));
-}
-function prodDelMany(){
-  var ids = prodPicked(); if (!ids.length) return;
-  if (!prodSure($('prodDelMany'), 'Click again to delete ' + ids.length + ' from HubSpot')) return;
-  $('prodDelN').textContent = 'Deleting...';
-  sketchup.prodDelete(JSON.stringify({ ids: ids }));
-}
-function prodDeleted(r){
-  if (r.error) { var m = '<span class="no">' + esc(r.error) + '</span>'; if (PDEL) $('prodDelN').innerHTML = m; else $('prodMsg').innerHTML = m; return; }
-  PROD = r.data; PSEL = {}; if (!PDEL) prodCancel(); prodDraw(); if (PDEL) prodDelCount();
-  $('prodAt').textContent += ' Deleted ' + r.n + ' (restorable from HubSpot\'s recycle bin for 90 days).';
-}
-// A product picture saved on this computer (they are never loaded from the internet here).
-function imageReady(id, url){ PROD.images = PROD.images || {}; PROD.images[id] = url; if (PEDIT && PEDIT.id === id) $('pf_img').innerHTML = '<img src="' + esc(url) + '" style="max-width:100%;max-height:100%">'; clearTimeout(window._imgT); window._imgT = setTimeout(prodDraw, 300); }
-function prodLoad(){ $('prodAt').textContent = ''; sketchup.prodLoad(); }
-function prodList(r){
-  if (r.error) { $('prodAt').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
-  PROD = r.data; prodDraw();
-  if (r.made && r.made.length) $('prodAt').textContent += ' Made in HubSpot: ' + r.made.join(', ') + '.';
-}
-function prodEdit(i){
-  if (!prodOpts('suppliers').length) { $('prodAt').innerHTML = '<span class="no">Press Read from HubSpot first.</span>'; return; }
-  var p = i == null ? { product_category: '' } : PROD.products[i]; PEDIT = p; PIMG = null;
-  $('prodForm').style.display = '';
-  $('prodTitle').textContent = i == null ? 'New product' : 'Edit ' + p.name;
-  $('prodDelOne').style.display = p.id ? '' : 'none'; $('prodDelOne').classList.remove('sure'); $('prodDelOne').textContent = 'Delete';
-  ['name', 'hs_sku', 'price', 'hs_cost_of_goods_sold', 'hs_url'].forEach(function(k){ $('pf_' + k).value = p[k] || ''; });
-  $('pf_supplier').innerHTML = '<option value="">--</option>' + prodOpts('suppliers').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === p.supplier ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');
-  $('pf_hs_product_type').innerHTML = '<option value="">--</option>' + prodOpts('types').map(function(o){ return '<option value="' + esc(o[1]) + '"' + (o[1] === (p.hs_product_type || (i == null ? 'inventory' : '')) ? ' selected' : '') + '>' + esc(o[0]) + '</option>'; }).join('');
-  var on = (p.product_category || '').split(';');
-  $('pf_cats').innerHTML = prodOpts('categories').map(function(o){ return '<label style="display:flex;gap:4px;align-items:center;font-size:11.5px"><input type="checkbox" style="width:auto" value="' + esc(o[1]) + '"' + (on.indexOf(o[1]) >= 0 ? ' checked' : '') + '> ' + esc(o[0]) + '</label>'; }).join('');
-  var img = (PROD.images || {})[p.id] || '';
-  $('pf_img').innerHTML = img ? '<img src="' + esc(img) + '" style="max-width:100%;max-height:100%">' : (p.hs_images ? 'Picture not on this computer yet' : 'No picture');
-  $('prodMsg').textContent = '';
-  $('pf_name').focus();
-}
-function prodCancel(){ $('prodForm').style.display = 'none'; PEDIT = null; PIMG = null; }
-function prodImage(r){ if (!r) return; PIMG = r.path; $('pf_img').innerHTML = '<img src="' + r.preview + '" style="max-width:100%;max-height:100%">'; }
-function prodSave(){
-  var f = { id: PEDIT && PEDIT.id || '' };
-  ['name', 'hs_sku', 'price', 'hs_cost_of_goods_sold', 'hs_url', 'supplier', 'hs_product_type'].forEach(function(k){ f[k] = $('pf_' + k).value.trim(); });
-  f.product_category = Array.prototype.filter.call($('pf_cats').querySelectorAll('input'), function(c){ return c.checked; }).map(function(c){ return c.value; });
-  var miss = [];
-  if (!f.name) miss.push('name'); if (!f.hs_sku) miss.push('SKU'); if (!f.supplier) miss.push('supplier'); if (!f.product_category.length) miss.push('a category');
-  if (miss.length) { $('prodMsg').innerHTML = '<span class="no">Fill in ' + esc(miss.join(', ')) + '.</span>'; return; }
-  sketchup.prodSave(JSON.stringify({ form: f, image: PIMG }));
-}
-function prodSaved(r){
-  if (r.error) { $('prodMsg').innerHTML = '<span class="no">' + esc(r.error) + '</span>'; return; }
-  PROD = r.data; prodDraw(); prodCancel(); $('prodAt').textContent += ' Saved ' + r.name + ' to HubSpot.';
-}
-
 // ---------- door styles ----------
 var STY = [], STY_SEL = 0;
 var DRAW = {}, SIZES = [];
@@ -1145,8 +923,8 @@ function changed(e){ if (e.target && e.target.id !== 'oclOverwrite' && e.target.
 document.querySelector('.content').addEventListener('input', changed);
 document.querySelector('.content').addEventListener('change', changed);
 setState();
-var last = 'doors'; try { last = localStorage.getItem('hw_settings_section') || 'doors'; } catch(e) {}
-show(document.getElementById('s_' + last) ? last : 'doors');
+var last = 'general'; try { last = localStorage.getItem('hw_settings_section') || 'general'; } catch(e) {}
+show(document.getElementById('s_' + last) ? last : 'general');
 </script>
 </body>
 </html>

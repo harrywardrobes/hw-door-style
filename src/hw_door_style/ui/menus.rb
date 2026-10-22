@@ -67,6 +67,7 @@ module HarryWardrobes
                               'hubspot') { HubSpotRoom.show_send }
         hs.add_item(c[:hubspot])
         hs.add_item('Pictures to HubSpot...') { HubSpotPictures.show }
+        hs.add_item('Hardware products...') { ProductsWindow.show }
         hs.add_item('Open Room in HubSpot') { HubSpotRoom.open_in_hubspot('listings') }
         hs.add_item('Open Project in HubSpot') { HubSpotRoom.open_in_hubspot('projects') }
 

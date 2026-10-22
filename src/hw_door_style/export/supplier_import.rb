@@ -442,7 +442,7 @@ module HarryWardrobes
           Steps.run(dlg, steps,
                     done: lambda { |_r|
                       dlg.execute_script("added(#{JSON.generate('n' => done.size, 'items' => items)})")
-                      Dialog['settings']&.execute_script("prodList(#{JSON.generate('data' => HubSpotProducts.local)})") rescue nil
+                      Dialog['products']&.execute_script("prodList(#{JSON.generate('data' => HubSpotProducts.local)})") rescue nil
                     },
                     fail: ->(e) { dlg.execute_script("added(#{JSON.generate('n' => done.size, 'items' => items, 'error' => e.message)})") })
         end

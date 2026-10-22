@@ -6,7 +6,7 @@ module HarryWardrobes
     # units, box shelf sections...), each with a Pod number - T1, T2... - that the Workshop
     # tabs and the floor plan refer to.
     #
-    #   Settings "product_components" says what each component is: a unit (a product of its
+    #   Settings "components" says what each component is: a unit (a product of its
     #   own), a joiner (part of the product it sits in / under / on - a box end under a
     #   worktop, the bridge frame on its skeleton; the same joiners next to each other with
     #   no product to join make one section), an internal (only ever inside a unit of its
@@ -30,7 +30,8 @@ module HarryWardrobes
       ROLES = { 'unit' => 'A product of its own', 'joiner' => 'Part of the product it sits in, under or on',
                 'internal' => 'Always inside a unit of its letter', 'skip' => 'Never a product' }.freeze
 
-      # Settings "product_components": NAME -> { product, role, letter }, one row per component.
+      # Settings "components" (the component table): NAME -> { role, product, letter... }.
+      # The Product List only cares about these roles (doors, drawer fronts... are ignored):
       #   unit      a product of its own, numbered with its letter (T1, W1...)
       #   joiner    belongs to the product it sits in / under / on; alone it's a product of its
       #             own (its letter); the same joiners next to each other make one section
@@ -39,10 +40,12 @@ module HarryWardrobes
       # A component not in the table is ignored by the Product List.
       def self.cfg
         s = Settings.get
-        rows = (s['product_components'] || {}).to_h do |k, v|
-          v = v.is_a?(Hash) ? v : {}
-          [k.to_s.upcase, { 'product' => v['product'].to_s, 'role' => ROLES.key?(v['role'].to_s) ? v['role'].to_s : 'unit', 'letter' => v['letter'].to_s.strip.upcase }]
-        end
+        rows = Settings.components(s).filter_map do |k, v|
+          role = v['role'].to_s
+          role = 'skip' if role == 'room'
+          next unless ROLES.key?(role)
+          [k, { 'product' => v['product'].to_s, 'role' => role, 'letter' => v['letter'].to_s.strip.upcase }]
+        end.to_h
         { 'comps' => rows, 'keys' => rows.keys.sort_by { |x| -x.size } }
       end
 
