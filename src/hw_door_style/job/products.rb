@@ -50,7 +50,7 @@ module HarryWardrobes
       end
 
       def self.base(e)
-        n = e.respond_to?(:definition) ? e.definition.name : e.name.to_s
+        n = e.respond_to?(:definition) ? DC.base_name(e.definition) : e.name.to_s
         n.sub(/#\d+\z/, '').strip.upcase
       end
 

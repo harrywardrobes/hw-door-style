@@ -18,7 +18,7 @@ module HarryWardrobes
       end
 
       def self.names_for(inst)
-        base = inst.definition.name.sub(/#\d+\z/, '').strip.upcase
+        base = DC.base_name(inst.definition).upcase
         [dc_name(inst), base].reject(&:empty?).uniq
       end
 
@@ -86,7 +86,7 @@ module HarryWardrobes
         8.times do
           d = e.parent
           break unless d.is_a?(Sketchup::ComponentDefinition)
-          base = d.name.sub(/#\d+\z/, '').strip.upcase
+          base = DC.base_name(d).upcase
           return true if names.any? { |n| base == n || base.start_with?("#{n}_") }
           e = d.instances.first or break
         end

@@ -9,7 +9,7 @@ module HarryWardrobes
     # hinges, shelf_brackets, drawer_rails ...).
     module Tagger
       def self.base_name(defn)
-        defn.name.sub(/#\d+\z/, '').strip.upcase
+        DC.base_name(defn).upcase
       end
 
       # Tag for a hardware definition (by its name or DC _name), or nil.

@@ -91,6 +91,16 @@ module HarryWardrobes
         out
       end
 
+      # SketchUp names a copy of "CABLE_OUTLET_80" "CABLE_OUTLET_#2" (it drops trailing
+      # digits): the copy is named "<part>#n" instead, so it reads as the same part.
+      def self.name_copy(model, copy, original)
+        base = DC.base_name(original)
+        return if DC.base_name(copy) == base
+        n = 1
+        n += 1 while model.definitions["#{base}##{n}"]
+        copy.name = "#{base}##{n}"
+      end
+
       def self.hide_rule?(inst)
         [inst.get_attribute(DICT_NAME, '_hidden_formula'), inst.definition.get_attribute(DICT_NAME, '_hidden_formula'),
          inst.definition.get_attribute(DICT_NAME, '_inst__hidden_formula')].any? { |f| !f.to_s.strip.empty? }
@@ -119,6 +129,7 @@ module HarryWardrobes
                   e.definition = map[cd]
                 else
                   e.make_unique
+                  name_copy(model, e.definition, cd)
                   map[cd] = e.definition
                   copies += 1
                 end

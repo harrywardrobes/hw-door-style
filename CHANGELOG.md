@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.86.5 — 2026-10-22
+- The worktop is now WORKTOP_KNEE_HOLE (component table row renamed, same settings: Worktop, B, short depth; settings_version 22). Library: battens follow the worktop (wall to wall under it, 44 x 21, one at the back wall, one behind the knee-hole filler at the front, whatever the depth), the filler follows the width and depth, and new options "Overhang - left / right (mm, no wall only)" (0 by default) widen the worktop board only, on a side with no wall.
+- Part names: SketchUp names a copy of a part ending in digits without them ("CABLE_OUTLET_#2", "DRW_RUNNER_#3"), so the plugin didn't know them as cable outlets / runners. The plugin now reads the part's real name from the component (DC.base_name) everywhere it goes by name, and copies made per component are named "<part>#n".
+
 ## 0.86.4 — 2026-10-22
 - No nested part is shared between two library components any more (Unshare): a part used in two components could be changed by the other one (the stable wardrobe's top shelf hid itself because of the wardrobe's; the worktop's battens because of the unfitted drawer's). Only plain hardware with no rules stays shared (hinges, drawer boxes). Export components: Clean model gives every component its own copies, and an export is locked while any part is still shared.
 - The stable wardrobe's own top-shelf rule is gone again (it has its own shelf now).

@@ -42,7 +42,7 @@ module HarryWardrobes
       end
 
       def self.base(e)
-        e.respond_to?(:definition) ? e.definition.name.sub(/#\d+\z/, '').strip : e.name.to_s
+        e.respond_to?(:definition) ? DC.base_name(e.definition) : e.name.to_s
       end
 
       # The floor and ceiling parts (top level, by component or instance name).

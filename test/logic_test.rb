@@ -68,7 +68,7 @@ def mm(v); (v * 25.4).round(1); end
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
 check 'team file is settings.json in the team folder (shared drive)', Settings.team_file('team_folder' => 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin').tr('\\', '/') == 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin/settings.json' && Settings.defaults['team_folder'].start_with?('H:/Shared drives/Harry Wardrobes/8_SKETCHUP')
-check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 20, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} } && !Settings.clean({ 'settings_version' => 19, 'components' => { 'X' => {} } }, Settings.defaults).key?('components')
+check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 22, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} } && !Settings.clean({ 'settings_version' => 21, 'components' => { 'X' => {} } }, Settings.defaults).key?('components')
 Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')
   File.write(f, '{"hw_door_style_settings":"0.12","zebra_share":"Z1","parts_sheet_waste_pct":7,"junk":1}')
@@ -76,7 +76,7 @@ Dir.mktmpdir do |d|
   check 'backup read: known shared keys only (no computer keys, no junk)', !t.key?('junk') && !t.key?('zebra_share') && t['parts_sheet_waste_pct'] == 7
 end
 sd = Settings.derive(Settings.defaults)
-check 'component table derives the old name lists', sd['door_names'].include?('WST_DOOR') && sd['door_names'].include?('WST_STABLE_PANEL') && sd['fixed_panel_names'] == ['WST_STABLE_PANEL'] && sd['no_midrail_names'] == ['WST_DOOR_UPPER'] && sd['ext_drawer_names'] == ['DRW_FRONT'] && sd['int_drawer_names'] == ['INT_DRW_FRONT'] && sd['framed_drawer_units'] == ['LINEN_PRESS'] && sd['export_skip'].sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL] && sd['template_keep'].sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL] && sd['depth_short_components'].sort == %w[BRIDGE_FRAME BRIDGE_SKELETON BXEND DRAWER_FITTED WORKTOP] && sd['depth_by_component'] == { 'BOX_SHELF' => 225.0, 'BOOKCASE' => 475.0, 'DRAWER_UNFITTED' => 460.0, 'COVER_WITH_WORKTOP' => 256.0 }
+check 'component table derives the old name lists', sd['door_names'].include?('WST_DOOR') && sd['door_names'].include?('WST_STABLE_PANEL') && sd['fixed_panel_names'] == ['WST_STABLE_PANEL'] && sd['no_midrail_names'] == ['WST_DOOR_UPPER'] && sd['ext_drawer_names'] == ['DRW_FRONT'] && sd['int_drawer_names'] == ['INT_DRW_FRONT'] && sd['framed_drawer_units'] == ['LINEN_PRESS'] && sd['export_skip'].sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL] && sd['template_keep'].sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL] && sd['depth_short_components'].sort == %w[BRIDGE_FRAME BRIDGE_SKELETON BXEND DRAWER_FITTED WORKTOP_KNEE_HOLE] && sd['depth_by_component'] == { 'BOX_SHELF' => 225.0, 'BOOKCASE' => 475.0, 'DRAWER_UNFITTED' => 460.0, 'COVER_WITH_WORKTOP' => 256.0 }
 check 'computer keys never go in the team file / backups', (Settings::COMPUTER_KEYS & %w[pdf_printer library_folder local_folder update_folder zebra_share sumatra_path]).size == 6
 
 # --- settings
@@ -685,7 +685,7 @@ LC.save_index(idx)
 cs = LC.cards
 check 'cards: grouped by pod letter (T, B, then Other), colour coded', cs.map { |c| [c['key'], c['cat']] } == [['WARDROBES/WARDROBE', 'T'], ['DRAWERS/DRAWER_FITTED', 'B'], ['OTHER/COVER_WITH_WORKTOP', 'OTHER']] && cs.first['colour'] == LC::COLOURS['T'] && cs.first['label'] == 'Wardrobe' && cs.first['cat_label'] == 'T - Tall units'
 check 'groups: internals under T - Wardrobe internals, box shelf W', LC.group('cat' => 'DRAWERS', 'name' => 'INT_DRAWER_PLUS') == LC::INTERNALS && LC.group('cat' => 'DRAWERS', 'name' => 'SHOE_PULL_OUT') == LC::INTERNALS && LC.group_label(LC::INTERNALS) == 'T - Wardrobe internals' && LC.group('cat' => 'SHELVING', 'name' => 'BOX_SHELF') == 'W' && LC.group('cat' => 'DRAWERS', 'name' => 'DRAWER_FITTED') == 'B'
-check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
+check 'groups: bridge W, worktop B, facings F, bullnose Other, faceplates their own', LC.group('cat' => 'BRIDGE', 'name' => 'BRIDGE_FRAME') == 'W' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'WORKTOP_KNEE_HOLE') == 'B' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'FACING_BLOCK_L') == 'F' && LC.group('cat' => 'MAIN COMPONENTS', 'name' => 'BULLNOSE') == 'OTHER' && LC.group('cat' => 'ELECTRICAL FACEPLATES', 'name' => 'Phone socket') == 'ELECTRICAL FACEPLATES'
 check 'scan of a missing folder raises (window then uses the copy)', (begin; LC.scan(File.join(lib, 'nope')); false; rescue SystemCallError; true; end)
 sh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/settings.html'))
 check 'settings page: 7 tabs, General first, component table, no products editor', sh.scan(/<a data-s="(\w+)"/).flatten == %w[general components doors colours job workshop hubspot] && sh.include?('pcTable') && !sh.include?('prodDraw') && !sh.include?('product_types') && !sh.include?('door_names')
@@ -993,9 +993,16 @@ check 'Unshare: only plain hardware stays shared (no rules in it or below, same 
       US.plain_hardware?(u_hinge) && !US.plain_hardware?(u_outlet) && !US.plain_hardware?(u_shelf) && !US.plain_hardware?(u_box) &&
       US.own_rules?(u_shelf) && !US.own_rules?(UDef.new('X', { '_inst__x_formula' => '0' }, [], []))
 pl_src = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'parts_list.rb'))
-check 'Parts list: a part\'s own copy ("SHELF#2") is listed with the part (same name, size) - not by definition', pl_src.include?("pid = [name, l_mm, w_mm, th_mm, flipped].join('|')") && pl_src.include?("defn.name.sub(/#\\d+\\z/, '')")
+check 'Parts list: a part\'s own copy ("SHELF#2") is listed with the part (same name, size) - not by definition', pl_src.include?("pid = [name, l_mm, w_mm, th_mm, flipped].join('|')") && pl_src.include?("name = DC.base_name(defn)")
 le_src = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export', 'library_export.rb'))
 check 'Library export: Clean model makes the copies; export locked while a part is shared', le_src.include?('Unshare.fix!(model)') && le_src.include?('shared.empty?')
+
+
+DCb = HarryWardrobes::DoorStyle::DC
+ubn = Struct.new(:name, :dn) { def get_attribute(_d, _k, _x = nil) = dn }
+check 'Part names without the copy number - SketchUp\'s "CABLE_OUTLET_#2" (trailing digits dropped) reads as CABLE_OUTLET_80 from its DC name',
+      DCb.base_name(ubn.new('CABLE_OUTLET_#2', 'CABLE_OUTLET_80')) == 'CABLE_OUTLET_80' && DCb.base_name(ubn.new('SHELF_MID#3', 'SHELF_MID')) == 'SHELF_MID' &&
+      DCb.base_name(ubn.new('DOOR#10', 'Something else')) == 'DOOR' && DCb.base_name(ubn.new('WARDROBE', nil)) == 'WARDROBE'
 
 
 # --- background steps (network / Drive off SketchUp's thread) -------------------------

@@ -262,7 +262,7 @@
       "letter": "W",
       "depth": 225
     },
-    "WORKTOP": {
+    "WORKTOP_KNEE_HOLE": {
       "role": "unit",
       "product": "Worktop",
       "letter": "B",
@@ -483,7 +483,7 @@
   "hubspot_picture_mode": "replace",
   "hubspot_files_folder": "/crm-properties-file-values",
   "hubspot_required": {},
-  "settings_version": 21,
+  "settings_version": 22,
   "product_ref_names": {
     "T": "Tall units",
     "W": "Wall / bridge units",

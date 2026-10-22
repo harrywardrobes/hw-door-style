@@ -31,7 +31,7 @@ module HarryWardrobes
       def self.keep?(e)
         return false unless e.is_a?(Sketchup::ComponentInstance) || e.is_a?(Sketchup::Group)
         names = [e.name.to_s.strip.upcase]
-        names << e.definition.name.sub(/#\d+\z/, '').strip.upcase if e.respond_to?(:definition)
+        names << DC.base_name(e.definition).upcase if e.respond_to?(:definition)
         (names & keep_names).any?
       end
 

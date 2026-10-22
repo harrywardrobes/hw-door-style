@@ -170,7 +170,7 @@ module HarryWardrobes
         end
       end
 
-      def self.base(inst) = inst.definition.name.sub(/#\d+\z/, '').strip.upcase
+      def self.base(inst) = DC.base_name(inst.definition).upcase
 
       # Can this be replaced: a top-level library unit (in the library index by name).
       def self.swappable?(inst)

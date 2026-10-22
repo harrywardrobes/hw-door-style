@@ -16,6 +16,17 @@ module HarryWardrobes
         v.is_a?(Length) || v.is_a?(Integer) ? v.to_f : v
       end
 
+      # A definition's part name without the copy number: "SHELF_MID#2" -> "SHELF_MID".
+      # SketchUp drops trailing digits when it names a copy ("CABLE_OUTLET_80" ->
+      # "CABLE_OUTLET_#2"); the Dynamic Component keeps the real name in _name, so that's used.
+      def self.base_name(defn)
+        n = defn.name.to_s
+        return n.strip unless n =~ /#\d+\z/
+        b = n.sub(/#\d+\z/, '').strip
+        dn = (defn.respond_to?(:get_attribute) ? defn.get_attribute(DICT_NAME, '_name') : nil).to_s.strip
+        dn.length > b.length && dn.upcase.start_with?(b.upcase) ? dn : b
+      end
+
       def self.dict(obj)
         obj.attribute_dictionary(DICT_NAME)
       end

@@ -40,7 +40,7 @@ module HarryWardrobes
         v.nil? || v.to_s.strip.empty? ? nil : (v.to_f * Ceiling.mm_per(inst, k)).round
       end
 
-      def self.base(inst) = inst.definition.name.sub(/#\d+\z/, '').strip.upcase
+      def self.base(inst) = DC.base_name(inst.definition).upcase
 
       def self.short?(inst)
         Settings.names('depth_short_components').any? { |n| base(inst).start_with?(n) }

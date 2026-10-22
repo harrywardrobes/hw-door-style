@@ -366,7 +366,7 @@ module HarryWardrobes
           l_mm, w_mm, th_mm = size.map { |v| r1(v) }
           flipped = opts['flipped_detection'] && !defn.get_attribute(OCL, 'symmetrical', false) && flipped?(t.xaxis, t.yaxis, t.zaxis)
           # a part's own copy in another component ("SHELF#2") is the same part
-          name = defn.name.sub(/#\d+\z/, '')
+          name = DC.base_name(defn)
           if opts['dynamic_attributes_name'] && (dn = inst.get_attribute('dynamic_attributes', 'name'))
             name = dn.to_s
           end
@@ -399,7 +399,7 @@ module HarryWardrobes
             p['instances'] << instance_info(path)
           when TYPE_HARDWARE
             hg = (hardware[mat.name] ||= {})
-            h = (hg[pid] ||= { 'name' => name, 'material' => mat.name, 'drawer_box' => drawer_box?(defn.name) || drawer_box?(name) || runner?(defn.name), 'length' => l_mm, 'width' => w_mm, 'thickness' => th_mm, 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
+            h = (hg[pid] ||= { 'name' => name, 'material' => mat.name, 'drawer_box' => drawer_box?(name) || runner?(name), 'length' => l_mm, 'width' => w_mm, 'thickness' => th_mm, 'raw' => size.map(&:to_f), 'qty' => 0, 'flipped' => flipped,
                                'edge_pattern' => '', 'edge_count' => 0, 'tags' => tags_of(defn), 'instances' => [] })
             h['qty'] += 1
             h['instances'] << instance_info(path)
