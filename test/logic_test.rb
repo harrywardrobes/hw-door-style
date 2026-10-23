@@ -1112,6 +1112,9 @@ check 'Workshop window laid out as the PDFs: door order lines with the PDF\'s De
       pl_w.include?("mm strips <span>") && pl_w.include?('Cover / Specification') && pl_w.include?('function notPdf') && pl_w.include?('Not on the PDF:') && pl_w.include?('On the PDF only:')
 
 
+check 'Drawer boxes: a unit with boxes is never also listed as a pull-out (compared by component, not the Pod label)', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'parts_list.rb')).include?("boxed_units = list.map { |r| r['component'] }")
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

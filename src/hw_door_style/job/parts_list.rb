@@ -829,7 +829,7 @@ module HarryWardrobes
         @pullout = Hash.new(0)
         walk.call(model.entities, [], nil)
         list = rows.values
-        boxed_units = list.map { |r| r['parent'] }
+        boxed_units = list.map { |r| r['component'] }
         units = {}
         model.definitions.each { |d| d.instances.each { |i| units[i.entityID] = i } } unless @pullout.empty?
         @pullout.each_key do |(uid, _grp)|

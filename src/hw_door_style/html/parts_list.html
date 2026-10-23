@@ -91,8 +91,8 @@
   .prod .inc { color:var(--muted); font-size:11px; margin-top:2px; }
   .spec { display:grid; grid-template-columns:150px 1fr; font-size:11.5px; max-width:640px; }
   .spec > div { padding:3px 0; border-bottom:1px solid var(--rule, #e4e7ea); } .spec .k { font-weight:700; } .spec .gap { border:0; height:6px; }
-  .foot2 { display:flex; justify-content:space-between; align-items:flex-end; border-top:1.5px solid #333; margin-top:14px; padding-top:6px; }
-  .foot2 .rm { font-size:18px; font-weight:700; } .foot2 .nm { font-size:13px; font-weight:700; }
+  .foot2 { border-top:1.5px solid #333; margin-top:14px; padding-top:6px; }
+  .foot2 .rm { font-size:20px; font-weight:700; } .foot2 .nm { font-size:14px; font-weight:700; }
   .wt { display:grid; grid-template-columns:160px 1fr; gap:10px; border-bottom:1px solid var(--line); padding:8px 0; font-size:11.5px; }
   .wt .kv { display:flex; gap:6px; } .wt .kv b { min-width:92px; }
   .planfoot { display:flex; gap:8px; border-top:1px solid var(--line); padding-top:6px; margin-top:8px; }
@@ -278,8 +278,10 @@ function renderDoorOrder(d){
 }
 // ---------- Parts list (as the PDF) ----------
 function partRows(g, parts){
-  var cols = '<tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th style="width:14px"></th><th>L1</th><th>L2</th><th>W1</th><th>W2</th></tr>';
-  return '<table>' + cols + parts.map(function(p){
+  // the PDF's columns, the same widths in every table
+  var cols = '<colgroup><col style="width:44px"><col><col style="width:70px"><col style="width:70px"><col style="width:44px"><col style="width:18px"><col style="width:62px"><col style="width:62px"><col style="width:62px"><col style="width:62px"></colgroup>' +
+    '<tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th></th><th>L1</th><th>L2</th><th>W1</th><th>W2</th></tr>';
+  return '<table style="table-layout:fixed">' + cols + parts.map(function(p){
     return '<tr id="' + rowId(g, p.number) + '"' + (g.ask && g.manual.indexOf(p.number) >= 0 ? ' class="fullrow" title="Needs a full sheet"' : '') + '><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n">' + p.qty + '</td><td></td>' +
       ['ymin', 'ymax', 'xmin', 'xmax'].map(function(k){ return '<td class="edge">' + esc(edgeShort(p.edges[k])) + '</td>'; }).join('') + '</tr>';
   }).join('') + '</table>';
@@ -310,7 +312,7 @@ function renderPartsList(d){
         h += '<div class="hint">' + g.sheets + ' full sheet(s) entered, but every part fits a strip.</div>';
       }
     } else {
-      h += '<div class="sect">' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts' + grained + ', ' + sheetBox(g) + ' sheet(s)' + (g.sheet ? ' ' + f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '') + '</span></div>' + partRows(g, parts);
+      h += '<div class="sect">' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts' + grained + ', ' + sheetBox(g) + ' sheet(s)</span></div>' + partRows(g, parts);
     }
   });
   var tb = d.timber_lines || [];

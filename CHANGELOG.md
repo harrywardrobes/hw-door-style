@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.89.2 — 2026-10-23
+- Fix: a drawer unit with boxes was also listed as a pull-out with no box (since 0.89.0's Pod-number parents).
+- Workshop > Parts list: every table has the PDF's column widths; the sheet count line matches the PDF; the Room Plan cover's room and name stacked as on the PDF.
+
 ## 0.89.1 — 2026-10-23
 - Fix: the Workshop didn't open in 0.89.0 ("undefined local variable or method `tops'") - the Pod numbers weren't passed on to the drawer boxes.
 
