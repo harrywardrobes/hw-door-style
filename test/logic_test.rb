@@ -68,7 +68,7 @@ def mm(v); (v * 25.4).round(1); end
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
 check 'team file is settings.json in the team folder (shared drive)', Settings.team_file('team_folder' => 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin').tr('\\', '/') == 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin/settings.json' && Settings.defaults['team_folder'].start_with?('H:/Shared drives/Harry Wardrobes/8_SKETCHUP')
-check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 22, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} } && !Settings.clean({ 'settings_version' => 21, 'components' => { 'X' => {} } }, Settings.defaults).key?('components')
+check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 23, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} } && !Settings.clean({ 'settings_version' => 22, 'components' => { 'X' => {} } }, Settings.defaults).key?('components')
 Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')
   File.write(f, '{"hw_door_style_settings":"0.12","zebra_share":"Z1","parts_sheet_waste_pct":7,"junk":1}')
@@ -76,7 +76,7 @@ Dir.mktmpdir do |d|
   check 'backup read: known shared keys only (no computer keys, no junk)', !t.key?('junk') && !t.key?('zebra_share') && t['parts_sheet_waste_pct'] == 7
 end
 sd = Settings.derive(Settings.defaults)
-check 'component table derives the old name lists', sd['door_names'].include?('WST_DOOR') && sd['door_names'].include?('WST_STABLE_PANEL') && sd['fixed_panel_names'] == ['WST_STABLE_PANEL'] && sd['no_midrail_names'] == ['WST_DOOR_UPPER'] && sd['ext_drawer_names'] == ['DRW_FRONT'] && sd['int_drawer_names'] == ['INT_DRW_FRONT'] && sd['framed_drawer_units'] == ['LINEN_PRESS'] && sd['export_skip'].sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL] && sd['template_keep'].sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL] && sd['depth_short_components'].sort == %w[BRIDGE_FRAME BRIDGE_SKELETON BXEND DRAWER_FITTED WORKTOP_KNEE_HOLE] && sd['depth_by_component'] == { 'BOX_SHELF' => 225.0, 'BOOKCASE' => 475.0, 'DRAWER_UNFITTED' => 460.0, 'COVER_WITH_WORKTOP' => 256.0 }
+check 'component table derives the old name lists', sd['door_names'].include?('WST_DOOR') && sd['door_names'].include?('WST_STABLE_PANEL') && sd['fixed_panel_names'] == ['WST_STABLE_PANEL'] && sd['no_midrail_names'] == ['WST_DOOR_UPPER'] && sd['ext_drawer_names'] == ['DRW_FRONT'] && sd['int_drawer_names'] == ['INT_DRW_FRONT'] && sd['framed_drawer_units'] == ['LINEN_PRESS'] && sd['export_skip'].sort == %w[BACK_WALL CEILING FLOOR FRONT_WALL LEFT_WALL RIGHT_WALL] && sd['template_keep'].sort == %w[BACK_WALL CEILING FLOOR FRONT_WALL LEFT_WALL RIGHT_WALL] && sd['depth_short_components'].sort == %w[BRIDGE_FRAME BRIDGE_SKELETON BXEND DRAWER_FITTED WORKTOP_KNEE_HOLE] && sd['depth_by_component'] == { 'BOX_SHELF' => 225.0, 'BOOKCASE' => 475.0, 'DRAWER_UNFITTED' => 460.0, 'COVER_WITH_WORKTOP' => 256.0 }
 check 'computer keys never go in the team file / backups', (Settings::COMPUTER_KEYS & %w[pdf_printer library_folder local_folder update_folder zebra_share sumatra_path]).size == 6
 
 # --- settings
@@ -512,10 +512,19 @@ check 'HubSpot: labels sent as option values (Needs Ordering -> pending, Yes -> 
 R = HubSpotRoom
 check 'room part of a Room name', R.room_part("Kenny Hasprey - Connah's Quay - Master Bedroom") == 'Master Bedroom' && R.room_part('Front Room') == 'Front Room'
 check 'survey file name like the existing ones', R.file_name('Rebecca Williams - Rossett - Felix', 'Rebecca Williams') == 'SURVEY - felix - rebecca williams.skp'
+check 'file name from the typed room: SURVEY / DESIGN VISIT - <room> - <full name>',
+      R.job_file_name("Grace's  Room ", 'Charlotte Reid') == "SURVEY - grace's room - charlotte reid.skp" &&
+      R.job_file_name('Master Bedroom', 'Charlotte Reid', design_visit: true) == 'DESIGN VISIT - master bedroom - charlotte reid.skp' &&
+      R.job_file_name('loft/eaves', 'Jo Bloggs') == 'SURVEY - loft_eaves - jo bloggs.skp' && R.design_file_name('Jo Bloggs') == 'DESIGN VISIT - jo bloggs.skp'
+check 'new customer folder: LAST, First Names - City - (id)',
+      R.folder_name('first_name' => 'charlotte ann', 'last_name' => 'Reid', 'city' => 'Chester', 'contact_id' => '870739371231') == 'REID, Charlotte Ann - Chester - (870739371231)' &&
+      R.folder_name('first_name' => 'Jo', 'last_name' => 'Bloggs', 'city' => '', 'contact_id' => '1') == 'BLOGGS, Jo - (1)'
 Dir.mktmpdir do |root|
   %w[WILLIAMS\ Rebecca\ (Rossett\ -\ 830735284436) WOOD\ Lindsey\ (507750999271) OTHER\ (1830735284436)].each { |n| Dir.mkdir(File.join(root, n.delete('\\'))) }
   check 'customer folder: (Town - id)', File.basename(R.customer_folder('830735284436', root).to_s) == 'WILLIAMS Rebecca (Rossett - 830735284436)'
   check 'customer folder: (id)', File.basename(R.customer_folder('507750999271', root).to_s) == 'WOOD Lindsey (507750999271)'
+  Dir.mkdir(File.join(root, 'REID, Charlotte - Chester - (870739371231)'))
+  check 'customer folder: new format found by id', File.basename(R.customer_folder('870739371231', root).to_s) == 'REID, Charlotte - Chester - (870739371231)'
   check 'customer folder: no partial id match', R.customer_folder('35284436', root).nil? && R.customer_folder('', root).nil?
 end
 opts = [['Alby Blue', 'alby_blue'], ['Ingigo Blue', 'indigo_blue_x'], ['Dark / Onyx Grey', 'dark_onyx_grey'], ['Frost White', 'frost_white']]
@@ -709,20 +718,27 @@ File.write(File.join(TX.user_dir, 'Harry Wardrobes Template V2.skp'), 'old')
 File.write(File.join(TX.user_dir, 'My own template.skp'), 'mine')
 TX.install_local(File.join(td, 'Harry Wardrobes Template V10.skp'))
 check 'Welcome copy replaced by the new version, own templates untouched', TX.versions(TX.user_dir).map(&:first) == [10] && File.exist?(File.join(TX.user_dir, 'My own template.skp'))
-check 'template keeps the room parts (floor, ceiling, walls) by default', HarryWardrobes::DoorStyle::Settings.names('template_keep').sort == %w[BACK_WALL CEILING FLOOR LEFT_WALL RIGHT_WALL]
+check 'template keeps the room parts (floor, ceiling, walls) by default', HarryWardrobes::DoorStyle::Settings.names('template_keep').sort == %w[BACK_WALL CEILING FLOOR FRONT_WALL LEFT_WALL RIGHT_WALL]
 
 puts "\n== Room"
 require 'hw_door_style/job/room'
+require 'hw_door_style/job/job_info'
 RM = HarryWardrobes::DoorStyle::Room
 check 'file / folder names made safe', RM.safe('Liam Tunney: Chester/1.skp') == 'Liam Tunney Chester1' && RM.safe(' Smith ') == 'Smith'
 cf = Dir.mktmpdir('hw_cust')
 FileUtils.mkdir_p(File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)'))
 pick = { 'contact_id' => '830735284436', 'first_name' => 'Rebecca', 'last_name' => 'Williams' }
 check 'template room defaults 4000 x 3000, ceiling 2400 (Settings room_default_mm)', RM.default_mm == { 'width' => 4000.0, 'length' => 3000.0, 'ceiling' => 2400.0 }
-check 'customer folder found by contact ID, else named SURNAME First (id)', RM.folder_for(pick, cf) == { 'folder' => File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)'), 'name' => 'WILLIAMS Rebecca (Rossett - 830735284436)', 'exists' => true } &&
-  RM.folder_for({ 'contact_id' => '1', 'first_name' => 'John', 'last_name' => 'Smith' }, cf) == { 'folder' => File.join(cf, 'SMITH John (1)'), 'name' => 'SMITH John (1)', 'exists' => false }
+check 'customer folder found by contact ID, else named LAST, First - City - (id)', RM.folder_for(pick, cf)['folder'] == File.join(cf, 'WILLIAMS Rebecca (Rossett - 830735284436)') && RM.folder_for(pick, cf)['exists'] &&
+  RM.folder_for({ 'contact_id' => '1', 'first_name' => 'John', 'last_name' => 'Smith', 'city' => 'Mold', 'customer' => 'John Smith' }, cf) == { 'folder' => File.join(cf, 'SMITH, John - Mold - (1)'), 'name' => 'SMITH, John - Mold - (1)', 'exists' => false, 'customer' => 'John Smith' }
+check 'a customer folder is never the customers folder', RM.customer_folder?('H:/x/1_CUSTOMERS/GAUTIER Harry (Chester - 845418657009)') && RM.customer_folder?('REID, Charlotte - Chester - (870739371231)') && !RM.customer_folder?('H:/x/1_CUSTOMERS')
+check 'room name kept capitalised when typed in small letters', RM.room_label("grace's room") == "Grace's Room" && RM.room_label('Master bedroom') == 'Master bedroom' && RM.room_label("o'brien den") == "O'Brien Den"
+check 'customer full name from a folder', RM.customer_from_folder('H:/c/REID, Charlotte Ann - Chester - (870739371231)') == 'Charlotte Ann Reid' && RM.customer_from_folder('WILLIAMS Rebecca (Rossett - 830735284436)') == 'Rebecca Williams'
+check 'front wall is a room part (front_wall / Front Wall)', RM::WALLS[:front].match?('front_wall') && RM::WALLS[:front].match?('Front Wall') && RM::FRONT_WALL == 'front_wall'
+check 'room views: a third in, facing the back (view 1) and the front (view 2)', RM::VIEWS.map { |v| [v[:page], v[:plane], v[:look]] } == [['view 1', 'Section 1', 1], ['view 2', 'Section 2', -1]]
 rh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/room.html'))
-check 'room window: HubSpot customer search, room pick, folder (manual link), file name', %w[width length ceiling sketchup.search sketchup.project sketchup.pickFolder sketchup.apply sketchup.browse sketchup.never sketchup.openExisting select\ folder\ manually].all? { |w| rh.include?(w.tr('\\', '')) }
+check 'room window: Projects search, room pick, folder (manual link), room name, file name preview', %w[width length ceiling sketchup.search sketchup.project sketchup.pickFolder sketchup.apply sketchup.browse sketchup.never sketchup.openExisting select\ folder\ manually >Projects< id="room" id="preview" master\ bedroom].all? { |w| rh.include?(w.tr('\\', '')) } && !rh.include?('id="file"')
+check 'room window: the error shows above the buttons (outside the scrolling part)', rh.index('<div id="err"></div>') > rh.index('</fieldset>') && rh.index('<div id="err"></div>') < rh.index('<div class="foot">')
 check 'scribe window sends the room size with the ceiling', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.room_width')
 
 puts "\n== Product list"
@@ -817,8 +833,10 @@ check 'label name: SURNAME INITIALS (single, double-barrelled, hyphenated, lower
       JI.customer_label('Jane Ann', 'Smith') == 'SMITH JA' && JI.customer_label('', 'Madonna') == 'MADONNA' && JI.customer_label('Andrew', 'Lloyd Webber') == 'LLOYD WEBBER A' &&
       JI.customer_label('mary-jane', 'smith-jones') == 'SMITH-JONES MJ' && JI.customer_label('john', 'o\'neill') == "O'NEILL J"
 check 'customer folder -> first / surname', JI.split_name('WILLIAMS Rebecca (Rossett - 830735284436)') == %w[Rebecca Williams] && JI.split_name('Jane Smith') == %w[Jane Smith] &&
-      JI.split_name('SMITH-JONES Mary Ann (123)') == ['Mary Ann', 'Smith-Jones'] && JI.split_name('SMITH') == ['', 'Smith']
-check 'room from the file name', JI.room_from_file('SURVEY - master bedroom - williams rebecca') == 'Master Bedroom' && JI.room_from_file('Bedroom 2') == 'Bedroom 2'
+      JI.split_name('SMITH-JONES Mary Ann (123)') == ['Mary Ann', 'Smith-Jones'] && JI.split_name('SMITH') == ['', 'Smith'] &&
+      JI.split_name('REID, Charlotte - Chester - (870739371231)') == %w[Charlotte Reid] && JI.split_name('SMITH-JONES, Mary Ann - (1)') == ['Mary Ann', 'Smith-Jones']
+check 'room from the file name', JI.room_from_file('SURVEY - master bedroom - williams rebecca') == 'Master Bedroom' && JI.room_from_file('Bedroom 2') == 'Bedroom 2' &&
+      JI.room_from_file("DESIGN VISIT - grace's room - charlotte reid") == "Grace's Room"
 check 'made-up Room ID {SUR}{YYMMDD}{NN}', JI.new_room_id('Williams', nil, Time.new(2026, 10, 20)) == 'WIL26102001' && JI.new_room_id("O'Neill", nil, Time.new(2026, 1, 2)) == 'ONE26010201' && JI.new_room_id('Ng', nil, Time.new(2026, 1, 2)) == 'NGX26010201'
 
 b = LB.timber_bins([1850, 1850, 2400, 2400, 2400, 2400, 500, 500], 2400)

@@ -15,7 +15,11 @@ input:focus { outline:none; border-color:var(--accent); }
 .unit { position:relative; }
 .unit input { padding-right:30px; }
 .unit span { position:absolute; right:7px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:11px; }
-#err { display:none; margin:0 0 10px; padding:7px 10px; border-radius:4px; background:#fbefe8; border:1px solid #efcdb9; color:#7a3412; }
+#err { display:none; margin:0 14px 8px; padding:7px 10px; border-radius:4px; background:#fbefe8; border:1px solid #efcdb9; color:#7a3412; }
+#cust { margin-top:5px; display:none; }
+#cust b { display:block; font-size:13px; }
+#preview { font-size:11.5px; word-break:break-all; padding:5px 7px; border:1px dashed var(--line); border-radius:3px; background:#f7f8f7; color:var(--ink); }
+#preview.empty { color:var(--muted); font-style:italic; }
 .foot { border-top:1px solid var(--line); padding:9px 14px; display:flex; gap:6px; align-items:center; }
 .foot a { font-size:11px; color:var(--muted); cursor:pointer; text-decoration:underline; }
 svg { display:block; margin:6px auto 0; }
@@ -29,18 +33,20 @@ svg { display:block; margin:6px auto 0; }
 <div id="main">
   <h1>Room setup</h1>
   <div class="sub" id="sub"></div>
-  <div id="err"></div>
 
   <fieldset id="saveBox">
     <legend>Save the job</legend>
-    <div class="row"><label>Customer</label><div>
+    <div class="row" style="align-items:start"><label style="margin-top:5px">Projects</label><div>
       <div style="display:flex;gap:6px"><input type="text" id="q" placeholder="Search HubSpot: customer or project" autocomplete="off"><button onclick="search()">Search</button></div>
       <div class="list" id="projects"></div>
+      <div id="cust"><b id="custName"></b><span class="hint" id="custAddr" style="margin:0"></span></div>
       <div class="hint" id="custHint" style="margin:3px 0 0"></div>
     </div></div>
-    <div class="row" id="roomRow" style="display:none"><label>Room</label><div><div class="list" id="rooms"></div></div></div>
-    <div class="row"><label>Folder</label><div><span class="path" id="folder">pick the customer above</span><div class="hint" style="margin:3px 0 0"><a id="pickFolder" onclick="sketchup.pickFolder()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">select folder manually</a> <span id="jobs" class="path"></span> <a onclick="sketchup.browse()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">customers folder...</a></div></div></div>
-    <div class="row"><label>File name</label><div class="unit"><input type="text" id="file" autocomplete="off"><span>.skp</span></div></div>
+    <div class="row" id="roomRow" style="display:none"><label>HubSpot room</label><div><div class="list" id="rooms"></div></div></div>
+    <div class="row"><label>Folder</label><div><span class="path" id="folder">pick the project above</span><div class="hint" style="margin:3px 0 0"><a id="pickFolder" onclick="sketchup.pickFolder()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">select folder manually</a> <span id="jobs" class="path"></span> <a id="browse" onclick="sketchup.browse()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">customers folder...</a></div></div></div>
+    <div class="row"><label>Room name</label><div><input type="text" id="room" autocomplete="off" placeholder="e.g. grace's room / master bedroom / dressing room"></div></div>
+    <div class="row" style="margin-top:2px"><span></span><div class="hint" style="margin:0">e.g. 'grace's room', 'master bedroom', 'dressing room'</div></div>
+    <div class="row" style="align-items:start"><label style="margin-top:5px">File name</label><div><div id="preview" class="empty">pick the project and type the room name</div></div></div>
   </fieldset>
   <fieldset>
     <legend>Room size</legend>
@@ -59,6 +65,7 @@ svg { display:block; margin:6px auto 0; }
   </fieldset>
   <div class="hint" id="partsHint"></div>
 </div>
+<div id="err"></div>
 <div class="foot">
   <a onclick="sketchup.never()" title="This file won't ask again (the Scribe / runout window can still set the room)">Don't ask for this file</a>
   <span style="flex:1"></span>
@@ -68,10 +75,29 @@ svg { display:block; margin:6px auto 0; }
 <script>
 var D = /*DATA*/null;
 var P = null, PICK = null, FOLDER = null;
-function setJobs(o){ D.jobs = o.jobs; $('jobs').textContent = D.jobs ? '(' + D.jobs + ')' : '(customers folder not chosen yet - e.g. 1_CUSTOMERS)'; }
-function problem(t){ var e = $('err'); e.textContent = t; e.style.display = 'block'; }
+function setJobs(o){
+  D.jobs = o.jobs;
+  $('jobs').textContent = D.jobs ? '(in ' + D.jobs + ')' : '(customers folder not chosen yet - e.g. 1_CUSTOMERS)';
+  $('browse').style.display = D.jobs_fixed ? 'none' : '';
+}
+// shown just above the buttons, so it's seen wherever the window is scrolled to
+function problem(t, field){ ready(); var e = $('err'); e.textContent = t; e.style.display = 'block'; if (field) { $(field).scrollIntoView({ block: 'center' }); $(field).focus(); } }
+function clearProblem(){ $('err').style.display = 'none'; }
+// the file name: "SURVEY - <room> - <customer>" (DESIGN VISIT for a design visit), room and name in small letters
+function fileName(){
+  var room = $('room').value.trim().replace(/\s+/g, ' ').toLowerCase();
+  var cust = (PICK ? PICK.customer : (FOLDER ? FOLDER.customer : '')) || '';
+  if (!room || !FOLDER) return '';
+  var parts = [PICK && PICK.design_visit ? 'DESIGN VISIT' : 'SURVEY', room, cust.trim().replace(/\s+/g, ' ').toLowerCase()].filter(function(x){ return x; });
+  return parts.join(' - ').replace(/[<>:"\/\\|?*\x00-\x1F]/g, '_').trim() + '.skp';
+}
+function preview(){
+  var f = fileName(), el = $('preview');
+  el.className = f ? '' : 'empty';
+  el.textContent = f || (!FOLDER ? 'pick the project and type the room name' : 'type the room name');
+}
 function list(id, html){ var el = $(id); el.innerHTML = html; el.style.display = html ? 'block' : 'none'; }
-function search(){ $('err').style.display = 'none'; list('projects', '<div class="msg">Searching...</div>'); sketchup.search($('q').value); }
+function search(){ clearProblem(); list('projects', '<div class="msg">Searching...</div>'); sketchup.search($('q').value); }
 function projects(r){
   if (r.error) return list('projects', '<div class="msg">' + esc(r.error) + '</div>');
   if (!r.projects.length) return list('projects', '<div class="msg">No projects found - try the surname, or select the folder manually.</div>');
@@ -79,7 +105,8 @@ function projects(r){
   Array.prototype.forEach.call($('projects').querySelectorAll('div[data-id]'), function(el){
     el.onclick = function(){
       Array.prototype.forEach.call($('projects').querySelectorAll('div'), function(x){ x.classList.remove('on'); });
-      el.classList.add('on'); PICK = null; list('rooms', '<div class="msg">Reading the rooms and customer...</div>'); $('roomRow').style.display = '';
+      el.classList.add('on'); PICK = null; FOLDER = null; $('cust').style.display = 'none'; preview();
+      list('rooms', '<div class="msg">Reading the rooms and customer...</div>'); $('roomRow').style.display = '';
       sketchup.project(el.getAttribute('data-id'));
     };
   });
@@ -88,7 +115,10 @@ function projects(r){
 function rooms(r){
   if (r.error) return list('rooms', '<div class="msg">' + esc(r.error) + '</div>');
   P = r;
-  $('custHint').textContent = r.customer ? r.customer + (r.address ? ' - ' + r.address : '') : 'No contact linked to this project in HubSpot.';
+  $('custName').textContent = r.customer || 'No contact linked to this project in HubSpot';
+  $('custAddr').textContent = r.address || '';
+  $('cust').style.display = 'block';
+  $('custHint').textContent = '';
   if (r.found) setFolder(r.found);
   var h = r.rooms.map(function(x, i){ return '<div data-i="' + i + '">' + esc(x.name) + '</div>'; }).join('');
   h += '<div data-i="dv"><b>Design Visit</b> <span class="hint" style="margin:0">no Room yet - linked to the customer only</span></div>';
@@ -99,9 +129,11 @@ function rooms(r){
       el.classList.add('on');
       var i = el.getAttribute('data-i'), room = i === 'dv' ? null : P.rooms[+i];
       PICK = { design_visit: !room, room_id: room ? room.id : null, room_name: room ? room.name : null, project_id: P.project_id, contact_id: P.contact_id,
-               customer: P.customer, first_name: P.first_name, last_name: P.last_name, address: P.address };
-      $('file').value = room ? room.file.replace(/\.skp$/i, '') : P.design_file.replace(/\.skp$/i, '');
-      $('file').dataset.touched = '';
+               customer: P.customer, first_name: P.first_name, last_name: P.last_name, address: P.address, city: P.city };
+      // the HubSpot room's name to start with ("... - Master Bedroom" -> "master bedroom"), unless one was typed
+      if (!$('room').dataset.typed) $('room').value = room ? room.name.split(' - ').pop().trim().toLowerCase() : '';
+      preview();
+      if (!room || !$('room').value) $('room').focus();
     };
   });
   if (r.rooms.length === 1) $('rooms').querySelector('div[data-i="0"]').click();
@@ -109,22 +141,28 @@ function rooms(r){
 function setFolder(f){
   FOLDER = f;
   $('folder').innerHTML = esc(f.name) + (f.exists ? '' : ' <span style="color:var(--warn)">(new folder - will be made)</span>');
+  preview();
 }
 function go(){
-  var o = { width: $('width').value, length: $('length').value, ceiling: $('ceiling').value, file: $('file').value, folder: FOLDER ? FOLDER.folder : '', pick: PICK };
+  var o = { width: $('width').value, length: $('length').value, ceiling: $('ceiling').value, room: $('room').value, folder: FOLDER ? FOLDER.folder : '', pick: PICK };
+  clearProblem();
   if (!D.saved) {
-    if (!D.jobs) return problem('Choose the customers folder first (customers folder... link).');
-    if (!FOLDER) { $('q').focus(); return problem('Pick the customer from HubSpot, or select the folder manually.'); }
-    if (!o.file.trim()) { $('file').focus(); return problem('Enter the file name.'); }
+    if (!D.jobs) return problem('Choose the customers folder first (customers folder... link).', 'q');
+    if (!FOLDER) return problem('Pick the project from HubSpot (and its room), or select the folder manually.', 'q');
+    if (!o.room.trim()) return problem('Type the room name - e.g. grace\'s room, master bedroom, dressing room.', 'room');
   }
-  if ((D.has_floor || D.has_ceiling) && !(parseFloat(o.width) > 0 && parseFloat(o.length) > 0)) { $('width').focus(); return problem('Enter the room width and length.'); }
-  if (!(parseFloat(o.ceiling) > 0)) { $('ceiling').focus(); return problem('Enter the ceiling height.'); }
+  if ((D.has_floor || D.has_ceiling) && !(parseFloat(o.width) > 0 && parseFloat(o.length) > 0)) return problem('Enter the room width and length.', parseFloat(o.width) > 0 ? 'length' : 'width');
+  if (!(parseFloat(o.ceiling) > 0)) return problem('Enter the ceiling height.', 'ceiling');
+  $('go').disabled = true; $('go').textContent = 'Setting up...';
   sketchup.apply(JSON.stringify(o));
 }
+function ready(){ $('go').disabled = false; $('go').textContent = 'Set up room'; }
 function exists(r){
+  ready();
   var e = $('err'); e.style.display = 'block';
-  e.innerHTML = esc(r.name) + ' is already in ' + esc(r.folder) + '. <a style="cursor:pointer;text-decoration:underline" onclick="sketchup.openExisting(' + JSON.stringify(r.path).replace(/"/g, '&quot;') + ')">Open it instead</a>, or change the file name.';
+  e.innerHTML = esc(r.name) + ' is already in ' + esc(r.folder) + '. <a style="cursor:pointer;text-decoration:underline" onclick="sketchup.openExisting(' + JSON.stringify(r.path).replace(/"/g, '&quot;') + ')">Open it instead</a>, or change the room name.';
 }
+$('room').addEventListener('input', function(){ $('room').dataset.typed = $('room').value ? '1' : ''; preview(); });
 $('sub').textContent = D.saved ? D.file + '.skp - set the room size.' : 'New job - the customer, where to save it, and the room size.';
 $('saveBox').style.display = D.saved ? 'none' : '';
 ['width', 'length', 'ceiling'].forEach(function(k){ if (D[k]) $(k).value = Math.round(D[k]); });

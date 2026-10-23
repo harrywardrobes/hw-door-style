@@ -86,12 +86,22 @@ module HarryWardrobes
         s.empty? ? 'room' : s
       end
 
-      def self.file_name(room_name, customer)
-        Report.safe_name("SURVEY - #{room_part(room_name).downcase} - #{customer.to_s.downcase}") + '.skp'
+      # "SURVEY - grace's room - charlotte reid.skp" / "DESIGN VISIT - master bedroom - charlotte reid.skp"
+      # (room and customer in small letters).
+      def self.job_file_name(room, customer, design_visit: false)
+        parts = [design_visit ? 'DESIGN VISIT' : 'SURVEY', room.to_s.strip.gsub(/\s+/, ' ').downcase, customer.to_s.strip.gsub(/\s+/, ' ').downcase]
+        Report.safe_name(parts.reject(&:empty?).join(' - ')) + '.skp'
       end
 
-      def self.design_file_name(customer)
-        Report.safe_name("DESIGN VISIT - #{customer.to_s.downcase}") + '.skp'
+      # A HubSpot Room's file: its name's room part ("Kenny Hasprey - Connah's Quay - Master Bedroom").
+      def self.file_name(room_name, customer) = job_file_name(room_part(room_name), customer)
+
+      def self.design_file_name(customer, room = nil) = job_file_name(room, customer, design_visit: true)
+
+      # A new customer folder: "REID, Charlotte - Chester - (870739371231)" (no town: "REID, Charlotte - (870739371231)").
+      def self.folder_name(l)
+        head = [l['last_name'].to_s.strip.upcase, first_names(l)].reject(&:empty?).join(', ')
+        [head, l['city'].to_s.strip.gsub(/\s+/, ' '), "(#{l['contact_id']})"].reject(&:empty?).join(' - ')
       end
 
       # The customer's folder: "WILLIAMS Rebecca (Rossett - 830735284436)" or "... (830735284436)".
@@ -493,7 +503,7 @@ module HarryWardrobes
         end
         design = design_file_name(customer)
         { 'project_id' => pid, 'rooms' => rooms.sort_by { |r| r['name'] }, 'contact_id' => contact_id, 'customer' => customer,
-          'first_name' => c['firstname'].to_s.strip, 'last_name' => c['lastname'].to_s.strip,
+          'first_name' => c['firstname'].to_s.strip, 'last_name' => c['lastname'].to_s.strip, 'city' => c['city'].to_s.strip,
           'address' => [c['address'], c['city'], c['zip']].compact.map { |x| x.gsub(/[\s,]*\n\s*/, ', ').strip }.reject(&:empty?).join(', '),
           'folder' => folder, 'folder_name' => folder && File.basename(folder), 'design_file' => design }
       end
@@ -507,10 +517,12 @@ module HarryWardrobes
 
       # "WILLIAMS Rebecca" (last name in capitals, first names capitalised).
       def self.customer_tag(l)
-        first = l['first_name'].to_s.strip
-        last = l['last_name'].to_s.strip
-        first = first.split(/(\s+|-)/).map { |w| w =~ /\A[\s-]+\z/ ? w : w[0].to_s.upcase + w[1..].to_s.downcase }.join
-        [last.upcase, first].reject(&:empty?).join(' ')
+        [l['last_name'].to_s.strip.upcase, first_names(l)].reject(&:empty?).join(' ')
+      end
+
+      # "mary-jane" -> "Mary-Jane"
+      def self.first_names(l)
+        l['first_name'].to_s.strip.split(/(\s+|-)/).map { |w| w =~ /\A[\s-]+\z/ ? w : w[0].to_s.upcase + w[1..].to_s.downcase }.join
       end
 
       def self.create_file(pick)

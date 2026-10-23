@@ -68,8 +68,13 @@ module HarryWardrobes
 
       # "WILLIAMS Rebecca (Rossett - 830735284436)" -> ["Rebecca", "Williams"];
       # "Jane Smith" -> ["Jane", "Smith"]; "SMITH-JONES Mary Ann" -> ["Mary Ann", "Smith-Jones"].
+      # "REID, Charlotte - Chester - (870739371231)" -> ["Charlotte", "Reid"].
       def self.split_name(s)
-        words = s.to_s.sub(/\(.*\)\s*\z/, '').strip.split(/\s+/)
+        head = s.to_s.sub(/\(.*\)\s*\z/, '').strip
+        if (m = head.split(/\s+-\s+|\s+-\z/).first.to_s.match(/\A([^,]+),\s*(.+)\z/))
+          return [m[2].strip, title(m[1].strip)]
+        end
+        words = head.split(/\s+/)
         return ['', ''] if words.empty?
         caps = words.take_while { |w| w =~ /[A-Z]/ && w == w.upcase && w =~ /\A[A-Z'\-]+\z/ }
         if !caps.empty? && caps.size < words.size
@@ -81,7 +86,8 @@ module HarryWardrobes
         end
       end
 
-      def self.title(w) = w.to_s.downcase.gsub(/(\A|[\s\-'])([a-z])/) { "#{Regexp.last_match(1)}#{Regexp.last_match(2).upcase}" }
+      # "o'brien" -> "O'Brien", "grace's room" -> "Grace's Room"
+      def self.title(w) = w.to_s.downcase.gsub(/(\A|[\s\-]|'(?=[a-z]{2}))([a-z])/) { "#{Regexp.last_match(1)}#{Regexp.last_match(2).upcase}" }
 
       # "SURVEY - master bedroom - williams rebecca" -> "Master Bedroom"; else the file name.
       def self.room_from_file(base)

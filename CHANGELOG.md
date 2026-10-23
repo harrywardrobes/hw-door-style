@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.90.0 — 2026-10-23
+- Room setup window: "Customer" is now "Projects"; once a project is picked the customer's name (and address) shows under it.
+- The customers folder is always 1_CUSTOMERS on the shared drive (a folder chosen earlier is only used on a computer without it, and a customer's own folder can't be chosen as it). The customer's folder is found there by the HubSpot contact ID; a new one is named "REID, Charlotte - Chester - (870739371231)".
+- Room setup asks for the room name (e.g. grace's room / master bedroom / dressing room) instead of the file name; the file name is shown as a preview: "SURVEY - <room> - <full name>.skp", or "DESIGN VISIT - <room> - <full name>.skp" for a design visit. The room name is kept for the labels and PDFs.
+- A problem with Set up room shows just above the buttons, so it's seen wherever the window is scrolled to (and the field to fix is scrolled to).
+- Room setup adds a front wall (like the back wall) and keeps two cut views to the room: "view 1" (section "Section 1") a third of the way in looking at the back wall, "view 2" (section "Section 2") a third in from the back looking at the front wall. The "room" scene has the ceiling tag off and is fitted to the room; it's shown when Room setup is done.
+
 ## 0.89.3 — 2026-10-23
 - Room setup: the walls are drawn again as true boxes every time the room is sized - straight, level and square, whatever geometry the wall had. The template's back wall was drawn on a slope (one end 41 mm lower over 17 m), and stretching it to the room kept the slope, so new rooms had a sloping back wall.
 - Room setup always saves the file (a new job where it was chosen, an existing one where it is).
