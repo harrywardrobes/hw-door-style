@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.88.3 — 2026-10-23
+- Workshop > Door / Vinyl tab: vinyl end panels have their own "Vinyl end panels" table (as on the order PDF) - they were listed under "Bullnose / cornice".
+
 ## 0.88.2 — 2026-10-23
 - Tags: external drawer fronts go on DRAWER_FRONT (they were on DOOR, so hiding the doors hid them too); the stable panel goes on its own tag, STABLE_PANEL (Settings > Tags > Fixed panels) - its geometry too. Doors stay on DOOR with their hinges. Both tags take the door colour.
 
