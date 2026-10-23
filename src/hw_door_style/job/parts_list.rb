@@ -346,7 +346,8 @@ module HarryWardrobes
         Settings.names('drawer_box_parts').include?(name.to_s.sub(/#\d+\z/, '').strip.upcase)
       end
 
-      def self.generate(model = Sketchup.active_model)
+      # tops: Products.list's top-level entity id -> Pod number (the drawer boxes' parents).
+      def self.generate(model = Sketchup.active_model, tops: nil)
         # a plugin colour that OpenCutList doesn't know yet is set up on the spot (never a
         # question) - the master library too, so its Workshop checks read the same as a job's
         set = OpenCutList.ensure!(model)
@@ -535,8 +536,10 @@ module HarryWardrobes
         v.positive? ? v : 2800.0
       end
 
+      # 18 mm sheet goods go into cut and edged strips - not the vinyl / white-back panels or
+      # worktops, which are ordered finished (on the Door / Vinyl order).
       def self.strip_group?(g)
-        (g['thickness'] - STRIP_THICKNESS).abs < 0.5
+        (g['thickness'] - STRIP_THICKNESS).abs < 0.5 && (g['section'].nil? || g['section'] == 'sheets')
       end
 
       # [strips, manual parts]: strips [{ width, length, count, numbers, pieces }].
@@ -664,15 +667,24 @@ module HarryWardrobes
       # -> "Shelf pegs"): one line per name, with the part numbers and components it covers.
       # Items that share a name but not a length (the hanging rails) get the length in the
       # name - "Hanging rail 775" - so they stay apart.
+      # Hardware cut to length (Settings "hardware_by_length", name patterns: HANGING_RAIL*): every
+      # length is its own line and label. Anything else is one line per name, whatever its size.
+      def self.by_length?(name)
+        Settings.names('hardware_by_length').any? { |pat| Labels.glob?(name, pat) }
+      end
+
       def self.hardware_lines(hardware)
         by = Hash.new { |h, k| h[k] = [] }
         hardware.each { |h| by[Labels.display_name(h['name'], 'hardware')] << h }
         by.flat_map do |name, list|
-          lengths = list.map { |h| h['length'].to_f.round }.uniq
-          list.group_by { |h| lengths.size > 1 ? h['length'].to_f.round : nil }.map do |len, part|
+          split = list.any? { |h| by_length?(h['name']) }
+          list.group_by { |h| split ? h['length'].to_f.round : nil }.map do |len, part|
+            # several sizes on one line: said on the line ("combined: 88 mm x1, 143 mm x1")
+            sizes = part.group_by { |h| h['length'].to_f.round }.map { |l, hs| [l, hs.sum { |h| h['qty'].to_i }] }.sort
             { 'name' => len ? "#{name} #{len}" : name, 'qty' => part.sum { |h| h['qty'].to_i },
               'numbers' => part.map { |h| h['number'] }.uniq.sort, 'parts' => part.map { |h| h['name'] }.uniq,
-              'material' => part.first['material'], 'drawer_box' => part.all? { |h| h['drawer_box'] } }
+              'material' => part.first['material'], 'drawer_box' => part.all? { |h| h['drawer_box'] },
+              'note' => sizes.size > 1 ? "combined: #{sizes.map { |l, q| "#{fmt(l)} mm x#{q}" }.join(', ')}" : '' }
           end
         end.sort_by { |r| r['name'].downcase }
       end
@@ -703,6 +715,7 @@ module HarryWardrobes
             add_strings(p)
             p['edges'].each do |side, em|
               next unless em
+              next if %w[vinyl white_back].include?(g['section']) # wrapped panels: no edging
               run = side.start_with?('y') ? p['length'] : p['width']
               e = edging[[em, g['thickness']]]
               e['metres'] += run * p['qty'] / 1000.0
@@ -743,7 +756,7 @@ module HarryWardrobes
           'job' => File.basename(model.path.to_s, '.skp'), 'date' => Time.now.strftime('%d/%m/%Y %H:%M'), 'version' => VERSION,
           'head' => (RoomPlan.head(model, nil) rescue {}),
           'groups' => sheet_groups, 'edging' => edge_list, 'hardware' => hw, 'hardware_lines' => hardware_lines(hw.reject { |h| h['drawer_box'] }),
-          'timber' => timber, 'timber_lines' => timber_lines(timber), 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model),
+          'timber' => timber, 'timber_lines' => timber_lines(timber), 'handles' => handles(model), 'drawer_boxes' => drawer_boxes(model, tops),
           'skipped' => skipped, 'untyped' => (@untyped || {}).map { |n, c| { 'name' => n, 'count' => c } }.sort_by { |u| u['name'] }, 'nocolour' => (@nocolour || {}).map { |n, c| c > 1 ? "#{n} x#{c}" : n }.sort, 'waste_pct' => waste_pct, 'scribes_on' => Pencil.on?(model) || Runouts.units(model.entities).empty?,
           'filename' => File.basename(model.path.to_s), 'model_name' => model.name.to_s, 'page_name' => model.pages.selected_page&.name.to_s,
           'labels' => Labels.options(model), 'cutlist_options' => opts
@@ -771,11 +784,18 @@ module HarryWardrobes
         v.nil? || v.to_s.strip.empty? ? nil : v.to_f * 25.4
       end
 
-      def self.drawer_boxes(model)
+      # tops: Products.list's top-level entity id -> Pod number, so each row says "B2 Drawer unit"
+      # (its component name is kept as 'component').
+      def self.drawer_boxes(model, tops = nil)
         rows = {}
+        parent_of = lambda do |unit|
+          base = DC.base_name(unit.definition)
+          t = tops && tops[unit.entityID]
+          t ? "#{t} #{Products.type_of(base) || base}" : base
+        end
         add = lambda do |unit, mat, width, height, runner|
           key = [unit.definition.name, mat, width, height, runner]
-          r = (rows[key] ||= { 'parent' => unit.definition.name, 'material' => mat, 'width' => width, 'height' => height,
+          r = (rows[key] ||= { 'parent' => parent_of.call(unit), 'component' => unit.definition.name, 'pod' => (tops && tops[unit.entityID]).to_s, 'material' => mat, 'width' => width, 'height' => height,
                                'runner_mm' => runner, 'runner' => runner_label(runner), 'qty' => 0,
                                'warn' => height && height < BOX_MIN_MM ? "Box height under #{BOX_MIN_MM} mm" : nil })
           r['qty'] += 1
@@ -818,7 +838,7 @@ module HarryWardrobes
           runner = unit_mm(u, 'blum_runner_length')&.round
           width = (unit_mm(u, 'width') || unit_mm(u, 'cab_width'))&.round
           key = [u.definition.name, '(pull-out)', width, nil, runner]
-          r = (rows[key] ||= { 'parent' => u.definition.name, 'material' => '(pull-out, no box)', 'width' => width, 'height' => nil,
+          r = (rows[key] ||= { 'parent' => parent_of.call(u), 'component' => u.definition.name, 'pod' => (tops && tops[u.entityID]).to_s, 'material' => '(pull-out, no box)', 'width' => width, 'height' => nil,
                                'runner_mm' => runner, 'runner' => runner_label(runner), 'qty' => 0, 'warn' => nil })
           r['qty'] += 1
         end
@@ -918,11 +938,21 @@ module HarryWardrobes
           data['timber_stock'] = Labels.stock_mm(model)
         end
         build = lambda do
-          data = generate(model)
+          prods, tops_map = Products.list(model)
+          data = generate(model, tops: tops_map)
           data['door'] = Report.payload(model)
           data['export_csv'] = Report.csv?
-          prods, tops_map = Products.list(model)
           data['products'] = prods
+          data['room_plan'] = RoomPlan.window_data(model, data, prods, tops_map)
+          # the Door / Vinyl order's other sections, as the PDF prints them
+          data['door']['vinyl'] = Report.vinyl_sections(data)
+          data['door']['worktops'] = (WorktopView.worktops(model, data, tops_map) rescue [])
+          data['door']['elevations'] = begin
+            walls = DoorView.walls(model)
+            walls.map { |w| DoorView.title(w, walls.size > 1) }
+          rescue StandardError
+            []
+          end
           data['loose_internals'] = Products.loose_internals
           data['product_key'] = Products.key(prods.map { |p| p['ref'] })
           data['job_info'] = JobInfo.get(model)

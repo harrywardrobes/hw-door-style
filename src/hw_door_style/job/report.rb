@@ -243,7 +243,7 @@ module HarryWardrobes
           x['unit'] = x['t'].empty? ? x['unit'] : x['t']
         end
         hinge_key = mark_hinges(r, Settings::HINGE_TYPES[Settings.job_hinge_type(model)])
-        {
+        out = {
           'job' => File.basename(model.path.to_s, '.skp'),
           'head' => (RoomPlan.head(model, nil) rescue {}),
           'hinge_type' => Settings::HINGE_TYPES[Settings.job_hinge_type(model)],
@@ -257,6 +257,15 @@ module HarryWardrobes
           'key' => (Products.key_text(r.map { |x| x['t'].to_s[/\A[A-Z]+/] }.compact) rescue ''),
           'runouts' => { 'on' => Pencil.on?(model), 'changed' => Runouts.report(model) }
         }
+        # the order as the PDF prints it (title, header line, each line's Details and Drilling),
+        # so the Workshop shows the same words
+        out['title'] = Pdf.doors_title(out['head'])
+        out['head_line'] = Pdf.head_line(out['head'])
+        out['lines'].each do |l|
+          l['details'] = Pdf.details(l, out)
+          l['drilling'] = l['hinges'].to_i.positive? ? (l['hand'] == 'RH' ? 'DRILLED RIGHT' : 'DRILLED LEFT') : ''
+        end
+        out
       end
 
       def self.show

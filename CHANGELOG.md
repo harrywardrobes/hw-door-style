@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.89.0 — 2026-10-23
+- Workshop window laid out as the PDFs (the PDFs are the reference): one tab per PDF - Room Plan (cover / specification and the product list as the PDF prints them), Installation plan, Door / Vinyl order (the order lines with the PDF's own Details and Drilling, items by style, 22mm / bullnose / vinyl end panel tables, the worktop order with its edge drawings) and Parts list (boards by strip width with the strip and full-sheet sub-sections, Timber / MDF, Hardware, Handles, Drawer boxes). Whatever is on a PDF only (door elevations, renders) or in the window only (edging total, every front with its Pod number, the Includes controls) is said so in the window.
+- Room Plan PDF: the cover ends with the room name and the customer's full name; the last page is titled INSTALLATION PLAN with "ROOM - Full Name" under it.
+- Parts list PDF: a gap between Qty and the edge columns.
+- Hardware cut to length (Settings > Labels > Cut to length, HANGING_RAIL*) is the only hardware split by length on the parts list and the labels; anything else is one line / label per name, which says when it combines sizes ("combined: 88 mm x1, 143 mm x1"). Drawer boxes: one grouped label per unit (Pod number), as the Drawer boxes table.
+- Drawer boxes: the parent is the Pod number and product ("B2 Drawer unit"), not the component's copy name.
+- Vinyl end panels / 22mm panels: no strips, no full-sheet count asked (Save Workshop Pack no longer stops for them), no edging counted.
+
 ## 0.88.5 — 2026-10-23
 - Colours: a part that has lost its tag (on Layer0, e.g. a library wardrobe's INT_DIV) takes the tag the same part has everywhere else in the model, when that's always the same, then its colour.
 

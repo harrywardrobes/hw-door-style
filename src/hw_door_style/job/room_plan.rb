@@ -172,29 +172,42 @@ module HarryWardrobes
         name == Colours::DEFAULT ? '-' : name
       end
 
+      # The cover's rows: [[label, value], ...] (nil = a gap). The Workshop shows the same.
+      def self.spec_rows(model, hd, doors)
+        rows = [['Customer', hd['customer']], ['Room', hd['room']], ['Drawing / Account', "#{hd['drawing']}   #{hd['account']}"], ['Fit week', hd['fit_week']], nil]
+        Colours::GROUPS.each { |id, label| rows << [label, colour_text(model, id)] }
+        rows << ['Door style', door_style_text(model, doors)]
+        rows << ['Hinges', Settings::HINGE_TYPES[Settings.job_hinge_type(model)]]
+        hl = PartsList.handles(model)
+        ['Robe handle', 'Drawer handle', 'Interior handle'].each do |kind|
+          h = hl.find { |x| x['kind'] == kind }
+          rows << [kind, h ? h['name'] : 'n/a']
+        end
+        rows.map { |r| r && [r[0], r[1].to_s.empty? ? '-' : r[1].to_s] }
+      end
+
+      # "Rebecca Williams" - the customer's full name as written.
+      def self.full_name(hd)
+        [hd['first'], hd['last']].map { |n| n.to_s.strip }.reject(&:empty?).join(' ')
+      end
+
       def self.spec_page(doc, model, hd, rows, doors, parts)
         doc.section('Cover / Specification')
         pg = doc.page
         y = doc.y
-        kv = lambda do |k, v|
-          pg.text(M, y, k, font: 'F2', size: 9)
-          pg.text(M + 150, y, v.to_s.empty? ? '-' : v.to_s, size: 9, max: W - 2 * M - 150)
+        spec_rows(model, hd, doors).each do |r|
+          next y -= 8 unless r
+          pg.text(M, y, r[0], font: 'F2', size: 9)
+          pg.text(M + 150, y, r[1], size: 9, max: W - 2 * M - 150)
           pg.line(M, y - 4, W - M, y - 4)
           y -= ROW + 2
         end
-        kv.call('Customer', hd['customer'])
-        kv.call('Room', hd['room'])
-        kv.call('Drawing / Account', "#{hd['drawing']}   #{hd['account']}")
-        kv.call('Fit week', hd['fit_week'])
-        y -= 8
-        Colours::GROUPS.each { |id, label| kv.call(label, colour_text(model, id)) }
-        kv.call('Door style', door_style_text(model, doors))
-        kv.call('Hinges', Settings::HINGE_TYPES[Settings.job_hinge_type(model)])
-        hl = PartsList.handles(model)
-        ['Robe handle', 'Drawer handle', 'Interior handle'].each do |kind|
-          h = hl.find { |x| x['kind'] == kind }
-          kv.call(kind, h ? h['name'] : 'n/a')
-        end
+        # at the foot of the cover: the room and the customer's full name, large
+        room = hd['room'].to_s.strip.upcase
+        name = full_name(hd)
+        pg.line(M, M + 64, W - M, M + 64, 0.2, 1)
+        pg.text(M, M + 44, room.empty? ? '-' : room, font: 'F2', size: 20, max: W - 2 * M)
+        pg.text(M, M + 26, name.empty? ? hd['customer'].to_s : name, font: 'F2', size: 14, max: W - 2 * M)
         doc.instance_variable_set(:@y, y)
       end
 
@@ -211,18 +224,25 @@ module HarryWardrobes
       end
 
       # One block per pod: "T1  1000 Wardrobe (580 deep / 598 overall)" in bold, then Doors
-      # and Interior on their own lines.
+      # and Interior on their own lines. The blocks: [{ 't', 'title', 'lines' => [[k, v]] }].
+      def self.product_blocks(rows, info)
+        rows.sort_by { |r| [LOOSE_FIRST.index(r['ref']) || 9, r['num']] }.map do |r|
+          i = info[r['t']]
+          { 't' => r['t'], 'pid' => r['pid'], 'title' => describe(r),
+            'lines' => ([['Doors', door_text(i['doors'])], ['Interior', interior_text(i)]] + Array(r['flags'])).reject { |_k, v| v.to_s.empty? } }
+        end
+      end
+
       def self.product_page(doc, rows, info)
         doc.section('Product List')
-        list = rows.sort_by { |r| [LOOSE_FIRST.index(r['ref']) || 9, r['num']] }
-        list.each do |r|
-          i = info[r['t']]
-          lines = ([['Doors', door_text(i['doors'])], ['Interior', interior_text(i)]] + Array(r['flags'])).reject { |_k, v| v.to_s.empty? }
+        product_blocks(rows, info).each do |b|
+          r = b
+          lines = b['lines']
           doc.need(ROW * (lines.size + 2))
           pg = doc.page
           y = doc.y
           pg.text(M, y, r['t'], font: 'F2', size: 11)
-          pg.text(M + 40, y, describe(r), font: 'F2', size: 10)
+          pg.text(M + 40, y, r['title'], font: 'F2', size: 10)
           y -= ROW + 1
           lines.each do |k, v|
             pg.text(M + 40, y, "#{k}:", font: 'F2', size: 8.5)
@@ -246,8 +266,8 @@ module HarryWardrobes
         doc.pages << pg
         sizes[doc.pages.size - 1] = [LW, LH]
         top = LH - M - 6
-        title = [hd['room'].to_s.strip.upcase, hd['customer'].to_s.strip].reject(&:empty?).join(' - ')
-        pg.text(M, top, title.empty? ? 'INSTALLATION PLAN' : title, font: 'F2', size: 16, max: LW - 2 * M - 150)
+        pg.text(M, top, 'INSTALLATION PLAN', font: 'F2', size: 16, max: LW - 2 * M - 150)
+        pg.text(M, top - 15, plan_subtitle(hd), font: 'F2', size: 11, max: LW - 2 * M - 150)
         right = [['Drawing', hd['drawing']]]
         right.each_slice(3).with_index do |col, ci|
           x = LW - M - 135 + ci * 135
@@ -271,11 +291,7 @@ module HarryWardrobes
         else
           pg.text(M, top - 60, 'No plan scene in this model - add a scene named "top" or "plan" to show the installation plan here.', font: 'F2', size: 10)
         end
-        c = Ceiling.mm(model)
-        fa = Plan.top_fascia(model)
-        items = [['Main ceiling', c.positive? ? "#{c.round} mm" : '-'], ['Top fascia', fa ? "#{fa} mm" : '-'], ['Cornice', @cornice]]
-        v = Pencil.on?(model) ? Runouts.job_values(model) : nil
-        Runouts::SIDES.each { |sd, _k, l| items << ["#{l.sub(/\ARunout - /, '').sub(' (mm)', '').capitalize} runout", v ? "#{v[sd].round} mm" : 'OFF'] }
+        items = plan_items(model, @cornice)
         pg.line(M, foot - 6, LW - M, foot - 6, 0.2, 1)
         cw = (LW - 2 * M) / items.size.to_f
         items.each_with_index do |(k, val), i|
@@ -283,6 +299,35 @@ module HarryWardrobes
           pg.text(x, foot - 20, k, font: 'F2', size: 8.5, max: cw - 6)
           pg.text(x, foot - 36, val.to_s.empty? ? '-' : val.to_s, font: 'F2', size: 13, max: cw - 6)
         end
+      end
+
+      # "BEATRICE - Rebecca Williams" under the installation plan's title.
+      def self.plan_subtitle(hd)
+        [hd['room'].to_s.strip.upcase, full_name(hd).then { |n| n.empty? ? hd['customer'].to_s.strip : n }].reject(&:empty?).join(' - ')
+      end
+
+      # Along the foot of the installation plan: [[label, value], ...].
+      def self.plan_items(model, cornice = nil)
+        c = Ceiling.mm(model)
+        fa = Plan.top_fascia(model)
+        items = [['Main ceiling', c.positive? ? "#{c.round} mm" : '-'], ['Top fascia', fa ? "#{fa} mm" : '-'], ['Cornice', cornice.to_s.empty? ? '-' : cornice]]
+        v = Pencil.on?(model) ? Runouts.job_values(model) : nil
+        Runouts::SIDES.each { |sd, _k, l| items << ["#{l.sub(/\ARunout - /, '').sub(' (mm)', '').capitalize} runout", v ? "#{v[sd].round} mm" : 'OFF'] }
+        items
+      end
+
+      # What the Workshop's Room Plan tab shows: the cover's rows, the product blocks and the
+      # installation plan's title and foot - the PDF's own words (fit week not fetched here).
+      def self.window_data(model, parts, rows, tops)
+        doors = Report.rows(model)
+        hd = head(model, nil)
+        { 'spec' => spec_rows(model, hd, doors), 'products' => product_blocks(rows, by_ref(parts, doors, tops)),
+          'room' => hd['room'].to_s.strip.upcase, 'full_name' => full_name(hd).then { |n| n.empty? ? hd['customer'].to_s : n },
+          'plan_title' => 'INSTALLATION PLAN', 'plan_subtitle' => plan_subtitle(hd), 'plan_items' => plan_items(model, cornice(parts)),
+          'head' => hd }
+      rescue StandardError => e
+        Log.error('room plan window data', e)
+        {}
       end
 
       # The job's renders (the "Renders" scenes in Settings > HubSpot > Pictures), two to a page.

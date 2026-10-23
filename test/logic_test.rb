@@ -732,7 +732,7 @@ pcc = { 'WARDROBE' => %w[Wardrobe unit T], 'INT_DRAWER' => ['Internal drawers', 
 pc = { 'comps' => pcc, 'keys' => pcc.keys.sort_by { |x| -x.size } }
 check 'product types: exact, longer names, longest match wins', PR.type_of('WARDROBE', pc) == 'Wardrobe' && PR.type_of('WARDROBE_LEFT', pc) == 'Wardrobe' && PR.type_of('INT_DRAWER_PLUS', pc) == 'Internal drawers+' && PR.type_of('FLOOR', pc).nil? && PR.type_of('BULLNOSE', pc).nil?
 check 'roles: unit, joiner / internal, skipped', PR.unit?('WARDROBE', pc) && PR.joiner?('INT_DRAWER_PLUS', pc) && PR.internal?('INT_DRAWER_PLUS', pc) && PR.joiner?('BOX_SHELF', pc) && !PR.internal?('BOX_SHELF', pc) && !PR.joiner?('WARDROBE', pc) && PR.skip?('FACING_BLOCK_L_HALF', pc) && PR.skip?('BULLNOSE', pc) && !PR.skip?('WARDROBE', pc) && PR.role('NOT_LISTED', pc).nil?
-check 'Workshop has the Product List first', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html'), encoding: 'UTF-8') =~ /data-t="products" class="on">Product List/
+check 'Workshop: one tab per PDF - Room Plan first, then Installation plan, Door / Vinyl order, Parts list', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html'), encoding: 'UTF-8') =~ /data-t="products" class="on"[^>]*>Room Plan.*data-t="plan"[^>]*>Installation plan.*data-t="door"[^>]*>Door \/ Vinyl order.*data-t="sheets"[^>]*>Parts list/m
 
 puts "\n== Depth"
 require 'hw_door_style/job/depth'
@@ -1029,8 +1029,8 @@ check 'Workshop warning: Wall "with overhang" with its overhang at 0 (left on th
 
 
 pl_h = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'parts_list.html'))
-check 'Sheet goods: the parts needing a full sheet link to their row below (highlighted); 0 full sheets is a warning, not a blocker',
-      pl_h.include?('onclick="goPart(') && pl_h.include?('tr.fullrow') && pl_h.include?("return g.ask && g.sheets == null;") &&
+check 'Parts list tab: the full-sheet parts are listed in their own section (highlighted); 0 full sheets is a warning, not a blocker',
+      pl_h.include?('<div class="sub2">Full sheet <span>') && pl_h.include?('tr.fullrow') && pl_h.include?("return g.ask && g.sheets == null && [") &&
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'workshop.rb')).include?("next unless g['ask'] && !g['sheets'].nil? && g['sheets'].to_i.zero?")
 
 
@@ -1087,6 +1087,29 @@ check 'Drawer units\' end panels (EXT_DRW_END_PAN, any copy) go on the vinyl ord
 vs2 = RPv.vinyl_sections({ 'groups' => [{ 'section' => 'vinyl', 'material' => 'G', 'thickness' => 18, 'parts' => [{ 'number' => 2, 'name' => 'EXT_DRW_END_PAN', 'length' => 796, 'width' => 503, 'height' => 796, 'across' => 503, 'qty' => 2 }, { 'number' => 3, 'name' => 'END_PAN_PANEL', 'length' => 2340, 'width' => 623, 'qty' => 1 }] }] })
 ve = vs2.find { |x| x['title'] =~ /end panels/ }
 check 'Vinyl end panels: Height x Width as they stand in the model', ve['cols'].map(&:first).include?('Height') && ve['rows'].first[4] == '796' && ve['rows'].last[4] == '2340'
+
+
+# --- workshop outputs the same: PDFs are the reference --------------------------------
+hw_lines = PLv.hardware_lines([{ 'name' => 'CABLE_OUTLET_80', 'number' => 61, 'qty' => 1, 'length' => 88.0, 'material' => 'HARDWARE', 'drawer_box' => false },
+                               { 'name' => 'CABLE_OUTLET_80', 'number' => 89, 'qty' => 1, 'length' => 142.6, 'material' => 'HARDWARE', 'drawer_box' => false },
+                               { 'name' => 'HANGING_RAIL_TOP', 'number' => 64, 'qty' => 1, 'length' => 939.0, 'material' => 'HARDWARE', 'drawer_box' => false },
+                               { 'name' => 'HANGING_RAIL_TOP', 'number' => 66, 'qty' => 1, 'length' => 401.0, 'material' => 'HARDWARE', 'drawer_box' => false }])
+check 'Hardware lines: only cut-to-length hardware (Settings hardware_by_length: HANGING_RAIL*) splits by length; a combined line says which sizes',
+      hw_lines.map { |l| l['name'] }.sort == ['Cable outlets 80mm', 'Hanging rail 401', 'Hanging rail 939'] &&
+      hw_lines.find { |l| l['name'] == 'Cable outlets 80mm' }.then { |l| l['qty'] == 2 && l['note'] == 'combined: 88 mm x1, 143 mm x1' } &&
+      hw_lines.find { |l| l['name'] == 'Hanging rail 401' }['note'] == ''
+RPw = HarryWardrobes::DoorStyle::RoomPlan
+rp_hd = { 'customer' => 'WILLIAMS, Rebecca', 'first' => 'Rebecca', 'last' => 'Williams', 'room' => 'beatrice', 'drawing' => 'X1' }
+check 'Room Plan: the installation plan is titled INSTALLATION PLAN with "BEATRICE - Rebecca Williams" under it; the cover ends with the room and the full name',
+      RPw.full_name(rp_hd) == 'Rebecca Williams' && RPw.plan_subtitle(rp_hd) == 'BEATRICE - Rebecca Williams' &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'room_plan.rb')).include?("pg.text(M, top, 'INSTALLATION PLAN'") &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'room_plan.rb')).include?("pg.text(M, M + 44, room.empty? ? '-' : room, font: 'F2', size: 20")
+check 'Parts list PDF: a gap column between Qty and L1', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'parts_pdf.rb')).include?("['Qty', 30, :right], ['', 14, :left],")
+check 'Vinyl / white-back panels: no strips, no sheet count asked (ordered finished)', !PLv.strip_group?({ 'thickness' => 18.0, 'section' => 'vinyl' }) && PLv.strip_group?({ 'thickness' => 18.0, 'section' => 'sheets' })
+pl_w = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html', 'parts_list.html'))
+check 'Workshop window laid out as the PDFs: door order lines with the PDF\'s Details / Drilling, worktop order, vinyl sections; parts list by strip width; cover + product blocks; what is PDF-only or window-only is said',
+      pl_w.include?('function renderDoorOrder') && pl_w.include?("l.details || []") && pl_w.include?('Worktop order') && pl_w.include?('function renderPartsList') &&
+      pl_w.include?("mm strips <span>") && pl_w.include?('Cover / Specification') && pl_w.include?('function notPdf') && pl_w.include?('Not on the PDF:') && pl_w.include?('On the PDF only:')
 
 
 # --- background steps (network / Drive off SketchUp's thread) -------------------------

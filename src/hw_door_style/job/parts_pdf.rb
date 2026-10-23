@@ -95,9 +95,10 @@ module HarryWardrobes
           doc.page.text(M, doc.y, 'Scribes are OFF (every runout 0) - panel sizes may be wrong.', font: 'F2', size: 9)
           doc.instance_variable_set(:@y, doc.y - ROW - 4)
         end
-        part_cols = [['#', 26, :left], ['Name', nil, :left], ['Length', 48, :right], ['Width', 48, :right], ['Qty', 30, :right],
+        # a blank column after Qty keeps the edges clear of the quantities
+        part_cols = [['#', 26, :left], ['Name', nil, :left], ['Length', 48, :right], ['Width', 48, :right], ['Qty', 30, :right], ['', 14, :left],
                      ['L1', 40, :left], ['L2', 40, :left], ['W1', 40, :left], ['W2', 40, :left]]
-        row = ->(p) { [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], *%w[ymin ymax xmin xmax].map { |k| edge(p['edges'][k]) }] }
+        row = ->(p) { [p['number'], p['name'], f(p['length']), f(p['width']), p['qty'], '', *%w[ymin ymax xmin xmax].map { |k| edge(p['edges'][k]) }] }
 
         boards = d['groups'].reject { |g| %w[vinyl white_back worktops].include?(g['section']) }
         boards.each do |g|
@@ -131,7 +132,7 @@ module HarryWardrobes
         unless hws.empty?
           doc.heading('Hardware', 'counted from the model')
           doc.table([['#', 60, :left], ['Name', nil, :left], ['Qty', 40, :right]],
-                    hws.map { |h| [h['numbers'].join(', '), h['name'], h['qty']] })
+                    hws.map { |h| [h['numbers'].join(', '), h['note'].to_s.empty? ? h['name'] : "#{h['name']}  (#{h['note']})", h['qty']] })
         end
         hl = Array(d['handles'])
         doc.heading('Handles', hl.empty? ? 'none on this job (n/a)' : 'from the Door style window')

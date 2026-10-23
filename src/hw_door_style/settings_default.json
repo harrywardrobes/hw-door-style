@@ -497,6 +497,9 @@
     "B": "Base units",
     "F": "Facings"
   },
+  "hardware_by_length": [
+    "HANGING_RAIL*"
+  ],
   "label_aggregate_names": [
     "L_BRACKET",
     "HINGE*",

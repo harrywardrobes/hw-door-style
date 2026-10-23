@@ -215,15 +215,22 @@ module HarryWardrobes
       # Pod numbers it belongs to, and the running index n (barcode HW-{room}-H{n}).
       def self.aggregates(parts, tops, stock)
         by = {}
-        # hardware that shares a label name but not a length (hanging rails) is kept apart by length
-        names = parts.group_by { |p, kind| [display_name(p['name'], kind), kind] }
-        split = names.select { |(_n, kind), list| kind == 'hardware' && list.map { |p, _k| p['length'].to_f.round }.uniq.size > 1 }.keys.map(&:first)
+        # the parts list's rule: hardware cut to length (hanging rails) is kept apart by length;
+        # anything else is one label per name, and the label says when it combines sizes
         parts.each do |p, kind|
           key = display_name(p['name'], kind)
-          key = "#{key} #{p['length'].to_f.round}" if kind == 'hardware' && split.include?(key)
-          a = (by[key] ||= { 'kind' => 'aggregate', 'source' => kind, 'name' => key, 'count' => 0, 'ts' => [], 'lengths' => [], 'parts' => [], 'eids' => [] })
+          key = "#{key} #{p['length'].to_f.round}" if kind == 'hardware' && PartsList.by_length?(p['name'])
+          # drawer boxes: one label per unit (Pod number), as the Drawer boxes table - a unit with
+          # boxes of two widths gets one per width
+          if kind == 'hardware' && p['drawer_box'] && PartsList.drawer_box?(p['name'])
+            pod = Array(p['instances']).map { |i| tops[i['top']].to_s }.reject(&:empty?).uniq.sort_by { |t| t_key(t) }.join(', ')
+            key = "#{key}#{pod.empty? ? '' : " #{pod}"}"
+            (@box_widths ||= Hash.new { |h, k| h[k] = [] })[key] << p['width'].to_f.round
+          end
+          a = (by[key] ||= { 'kind' => 'aggregate', 'source' => kind, 'name' => key, 'count' => 0, 'ts' => [], 'lengths' => [], 'sizes' => Hash.new(0), 'parts' => [], 'eids' => [] })
           a['count'] += p['qty'].to_i
           a['parts'] << p['name']
+          a['sizes'][p['length'].to_f.round] += p['qty'].to_i if kind == 'hardware'
           Array(p['instances']).each do |i|
             a['eids'] << i['eid'] if i['eid']
             t = tops[i['top']].to_s
@@ -231,6 +238,7 @@ module HarryWardrobes
             a['lengths'] << p['length'].to_f if kind == 'timber'
           end
         end
+        @box_widths = nil
         list = by.values.sort_by { |a| [a['source'] == 'timber' ? 1 : 0, a['name'].downcase] }
         list.each_with_index do |a, i|
           a['agg_index'] = i + 1
@@ -245,6 +253,8 @@ module HarryWardrobes
             a['note'] = "#{b['stock']} x #{stock}  (cuts: #{b['cuts']})"
           else
             a.delete('lengths')
+            sizes = a.delete('sizes')
+            a['note'] = "combined: #{sizes.sort.map { |l, q| "#{l} mm x#{q}" }.join(', ')}" if sizes.size > 1
           end
         end
         list

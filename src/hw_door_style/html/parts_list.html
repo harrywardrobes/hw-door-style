@@ -71,6 +71,32 @@
   .sec td { background:#f7f8f8; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--muted); }
   .stage { border:1px solid var(--line); border-radius:4px; padding:8px 10px; margin:10px 0; font-size:11.5px; }
   .credit { font-size:10.5px; color:var(--muted); margin-top:6px; }
+  /* laid out as the PDF pages: a title block, section headings, the PDF's own tables */
+  .pdfhead { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-bottom:1.5px solid #333; padding:2px 0 6px; margin:0 0 10px; }
+  .pdfhead h2 { margin:0; font-size:17px; }
+  .pdfhead .sub { font-size:11.5px; color:#333; margin-top:2px; }
+  .pdfhead .right { font-size:11px; text-align:right; white-space:nowrap; }
+  .pdfhead .right b { display:inline-block; min-width:60px; text-align:left; }
+  .sect { font-size:12.5px; font-weight:700; margin:14px 0 4px; display:flex; gap:10px; align-items:baseline; }
+  .sect span { color:var(--muted); font-weight:normal; font-size:11px; }
+  .sub2 { font-size:11.5px; font-weight:700; margin:8px 0 2px; display:flex; gap:10px; align-items:baseline; }
+  .sub2 span { color:var(--muted); font-weight:normal; font-size:11px; }
+  .items { font-size:11.5px; margin:0 0 8px; } .items b.lab { font-size:10px; letter-spacing:.04em; margin-right:8px; } .items span { margin-right:14px; }
+  td.det { white-space:pre-line; font-size:11px; line-height:1.35; }
+  td.drill { font-weight:700; white-space:nowrap; }
+  .notpdf { background:#f3f4f6; border:1px dashed #b9c0c7; color:#4a5560; padding:5px 10px; border-radius:4px; font-size:11px; margin:8px 0; }
+  .notpdf b { color:#333; }
+  .prod { border-bottom:1px solid var(--line); padding:5px 0 6px; display:grid; grid-template-columns:34px 1fr; gap:2px 8px; font-size:11.5px; }
+  .prod .t { font-weight:700; font-size:12.5px; grid-row:span 9; } .prod .ttl { font-weight:700; font-size:12px; } .prod .kv { display:flex; gap:6px; } .prod .kv b { min-width:60px; }
+  .prod .inc { color:var(--muted); font-size:11px; margin-top:2px; }
+  .spec { display:grid; grid-template-columns:150px 1fr; font-size:11.5px; max-width:640px; }
+  .spec > div { padding:3px 0; border-bottom:1px solid var(--rule, #e4e7ea); } .spec .k { font-weight:700; } .spec .gap { border:0; height:6px; }
+  .foot2 { display:flex; justify-content:space-between; align-items:flex-end; border-top:1.5px solid #333; margin-top:14px; padding-top:6px; }
+  .foot2 .rm { font-size:18px; font-weight:700; } .foot2 .nm { font-size:13px; font-weight:700; }
+  .wt { display:grid; grid-template-columns:160px 1fr; gap:10px; border-bottom:1px solid var(--line); padding:8px 0; font-size:11.5px; }
+  .wt .kv { display:flex; gap:6px; } .wt .kv b { min-width:92px; }
+  .planfoot { display:flex; gap:8px; border-top:1px solid var(--line); padding-top:6px; margin-top:8px; }
+  .planfoot div { flex:1; } .planfoot small { font-size:10.5px; font-weight:700; display:block; } .planfoot b { font-size:14px; }
   #printArea { display:none; }
   @media print {
     body > *:not(#printArea) { display:none !important; }
@@ -88,13 +114,10 @@
 <body>
 <div id="warns"></div>
 <div class="tabs" id="tabs">
-  <button data-t="products" class="on">Product List</button>
-  <button data-t="plan">Floor Plan</button>
-  <button data-t="door">Doors / Vinyl</button>
-  <button data-t="worktops">Worktops</button>
-  <button data-t="sheets">Sheet goods</button>
-  <button data-t="boxes">Drawer Boxes</button>
-  <button data-t="hardware">Hardware</button>
+  <button data-t="products" class="on" title="The Room Plan PDF: cover / specification and the product list">Room Plan</button>
+  <button data-t="plan" title="The Room Plan PDF's last page: the installation plan">Installation plan</button>
+  <button data-t="door" title="The Door / Vinyl order PDF">Door / Vinyl order</button>
+  <button data-t="sheets" title="The Parts list PDF">Parts list</button>
   <button data-t="survey">Survey</button>
   <button data-t="labels">Check</button>
   <button data-t="hubspot" class="muted" title="Save the Workshop Pack on the Check tab first">HubSpot</button>
@@ -102,10 +125,7 @@
 <div class="pane on" id="p_products"></div>
 <div class="pane" id="p_plan"><div class="hint">Open this tab to make the plan picture.</div></div>
 <div class="pane" id="p_door"></div>
-<div class="pane" id="p_worktops"></div>
 <div class="pane" id="p_sheets"></div>
-<div class="pane" id="p_boxes"></div>
-<div class="pane" id="p_hardware"></div>
 <div class="pane" id="p_survey"><div class="hint">Reading the survey from HubSpot...</div></div>
 <div class="pane" id="p_labels">
   <div class="lbar">
@@ -178,64 +198,144 @@ function render(d){
     if (g.section === 'vinyl' || g.section === 'white_back') return; // ordered with the doors - no sheet count
     if (!g.std_ok) w.push(g.material + ': some parts are ' + f(g.thickness) + ' mm, which isn\'t one of its standard thicknesses.');
   });
+  (d.drawer_boxes || []).forEach(function(x){ if (x.warn) w.push(x.parent + ': drawer box ' + x.height + ' mm high - under 100 mm (Parts list tab).'); });
   renderWarns(d, w);
   renderProducts(d);
-  // door order (the door summary)
-  var dd = d.door, t = dd.totals;
-  var card = function(title, pairs){ return '<div class="card"><h4>' + esc(title) + '</h4>' + pairs.map(function(p){ return '<div><span>' + esc(p[0]) + '</span><b>' + esc(p[1]) + '</b></div>'; }).join('') + '</div>'; };
-  var dh = '<div class="cards">' + card('Items by style', Object.keys(t.by_style).map(function(k){ return [k, t.by_style[k]]; })) +
-    card('Hinges (' + dd.hinge_type + ')', Object.keys(t.hinges).map(function(k){ return [k, t.hinges[k]]; })) +
-    card('Totals', [['Items', t.items], ['TIP-ON', t.tip_on], ['Handles / knobs', t.handles]]) + '</div>';
-  var cols = [['n', '#'], ['unit', 'Product'], ['item', 'Item'], ['kind', 'Kind'], ['hand', 'Hand'], ['width', 'W', 1], ['height', 'H', 1], ['style', 'Style'], ['midrail', 'Mid-rail'], ['hinge_type', 'Hinge type'], ['hinges', 'Hinges', 1], ['tip_on', 'TIP-ON', 1], ['handles', 'Handles', 1], ['notes', 'Notes']];
-  dh += dd.rows.length ? '<table><tr>' + cols.map(function(c){ return '<th' + (c[2] ? ' class="n"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr>' +
-    dd.rows.map(function(r){ return '<tr title="' + esc(r.unit_path || '') + '">' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; if (c[0] === 'hinge_type' && r.hinge_mark) return '<td><b style="background:' + grey(r.hinge_shade) + ';padding:1px 5px">' + r.hinge_mark + ' ' + esc(v) + '</b></td>'; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
-  if ((dd.hinge_key || []).length) dh = dh.replace('<table>', '<div style="margin:0 0 6px;font-size:12px"><b>Different hinges (shaded):</b> ' + dd.hinge_key.map(function(k){ return '<span style="background:' + grey(k[2]) + ';padding:2px 6px;margin-left:6px;font-weight:600">' + k[0] + ' ' + esc(k[1]) + '</span>'; }).join('') + '</div><table>');
-  if (dd.last_export) dh += '<div class="hint">Last Door / Vinyl order saved: v' + dd.last_export + '.</div>';
-  var wb = d.groups.filter(function(g){ return g.section === 'white_back'; });
-  wb.forEach(function(g){
-    dh += '<div class="grp" style="margin-top:10px"><h3>22mm (White Back) <span>' + esc(g.material) + ' - ' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;, ordered with the doors</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
-      g.parts.map(function(p){ return '<tr id="' + rowId(g, p.number) + '"' + (g.ask && g.manual.indexOf(p.number) >= 0 ? ' class="fullrow" title="Needs a full sheet"' : '') + '><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n"><b>' + p.qty + '</b></td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
+  renderDoorOrder(d);
+  renderPartsList(d);
+  if (PLAN && PLAN !== 'loading') planData(PLAN);
+  renderLabels(d);
+}
+// The PDF pages' header: title, section, and customer / room / drawing on the right.
+function pdfHead(title, section, hd, right){
+  hd = hd || {};
+  var r = right || [['Customer', hd.customer], ['Room', hd.room], ['Drawing', hd.drawing]];
+  return '<div class="pdfhead"><div><h2>' + esc(title) + '</h2><div class="sub"><b>' + esc(section) + '</b></div></div><div class="right">' +
+    r.map(function(x){ return '<div><b>' + esc(x[0]) + ':</b> ' + esc(x[1] || '-') + '</div>'; }).join('') + '</div></div>';
+}
+// Something the PDF has that the window can't show (or the other way round) is said, never hidden.
+function notPdf(text){ return '<div class="notpdf">' + text + '</div>'; }
+// "EDGE 0.8mm ABS" -> "0.8 ABS", as the parts list PDF prints an edge.
+function edgeShort(name){ var n = String(name || '').trim(); if (!n) return ''; var m = n.match(/(\d+(?:[.,]\d+)?)\s*mm\s*([A-Za-z]+)/); return m ? m[1].replace(',', '.') + ' ' + m[2].toUpperCase() : n.replace(/^EDGE\s*/i, ''); }
+// ---------- Door / Vinyl order (as the PDF) ----------
+function thumbSvg(l){
+  var w = +l.width, h = +l.height; if (!(w > 0 && h > 0)) return '';
+  var bw = 34, bh = 44, s = Math.min(bw / w, bh / h), rw = w * s, rh = h * s, x = (bw - rw) / 2, y = (bh - rh) / 2;
+  var st = (+l.stile_mm || 0) * s, ra = (+l.rail_mm || 0) * s, out = '<svg width="' + bw + '" height="' + bh + '" style="display:block"><rect x="' + x + '" y="' + y + '" width="' + rw + '" height="' + rh + '" fill="none" stroke="#000" stroke-width=".7"/>';
+  if (st > 0 && rw > 2 * st + 2 && rh > 2 * ra + 2) out += '<rect x="' + (x + st) + '" y="' + (y + ra) + '" width="' + (rw - 2 * st) + '" height="' + (rh - 2 * ra) + '" fill="none" stroke="#555" stroke-width=".4"/>';
+  if (+l.midrail_mm > 0) { var mz = y + rh - l.midrail_mm * s, mw = (+l.midrail_w || 0) * s / 2; if (mw > 0) out += '<rect x="' + (x + st) + '" y="' + (mz - mw) + '" width="' + (rw - 2 * st) + '" height="' + (2 * mw) + '" fill="#bbb"/>'; }
+  return out + '</svg>';
+}
+function worktopSvg(wt){
+  var l = +wt.length, dd = +wt.depth; if (!(l > 0 && dd > 0)) return '';
+  var bw = 150, bh = 70, s = Math.min((bw - 50) / l, (bh - 28) / dd), rw = l * s, rh = dd * s, x = 8, y = 8, e = wt.edges || {};
+  var line = function(x1, y1, x2, y2, on){ return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#000" stroke-width="' + (on ? 2.2 : .6) + '"' + (on ? '' : ' stroke-dasharray="3,2"') + '/>'; };
+  return '<svg width="' + bw + '" height="' + bh + '" style="display:block">' + line(x, y + rh, x + rw, y + rh, e.front) + line(x, y, x + rw, y, e.back) + line(x, y, x, y + rh, e.left) + line(x + rw, y, x + rw, y + rh, e.right) +
+    '<text x="' + (x + rw / 2) + '" y="' + (y + rh / 2 + 3) + '" font-size="7" text-anchor="middle" fill="#555">FRONT</text>' +
+    '<text x="' + (x + rw / 2) + '" y="' + (y + rh + 12) + '" font-size="9" font-weight="700" text-anchor="middle">' + f(l) + '</text>' +
+    '<text x="' + (x + rw + 6) + '" y="' + (y + rh / 2 + 3) + '" font-size="9" font-weight="700">' + f(dd) + '</text></svg>';
+}
+function renderDoorOrder(d){
+  var dd = d.door, t = dd.totals, hd = dd.head || {};
+  var h = '<div class="pdfhead"><div><h2>' + esc(dd.title || 'DOOR / VINYL ORDER') + '</h2><div class="sub">' + esc(dd.head_line || '') + '</div>' +
+    '<div class="sub">Colour: ' + esc(dd.colour) + ' &nbsp;|&nbsp; Hinges: ' + esc(dd.hinge_type) + ' &nbsp;|&nbsp; Heights are the door height; hole positions are hinge centres</div></div>' +
+    '<div class="right"><b>Version</b> ' + (dd.last_export ? 'last saved v' + dd.last_export : 'not saved yet') + '</div></div>';
+  // items by style, across (and the bullnose / cornice count), as the PDF's title block
+  var items = Object.keys(t.by_style).map(function(k){ return [k, t.by_style[k]]; });
+  var bull = 0; (dd.vinyl || []).forEach(function(sec){ if (/bullnose/i.test(sec.title)) sec.rows.forEach(function(r){ bull += +r[r.length - 1] || 0; }); });
+  if (bull > 0) items.push(['Bullnose / cornice', bull]);
+  if (items.length) h += '<div class="items"><b class="lab">ITEMS BY STYLE</b>' + items.map(function(i){ return '<span>' + esc(i[0]) + ': <b>' + i[1] + '</b></span>'; }).join('') + '</div>';
+  var lines = dd.lines || [];
+  h += lines.length ? '<table><tr><th>Type</th><th>Size</th><th></th><th>Details</th><th>Drilling</th></tr>' + lines.map(function(l){
+      return '<tr title="' + esc('Pods: ' + (l.pods || []).join(', ')) + '"><td><b>' + l.qty + ' x ' + esc(l.kind) + '</b></td><td style="white-space:nowrap">' + esc(l.height + ' x ' + l.width + 'mm') + '</td><td>' + thumbSvg(l) + '</td><td class="det">' + esc((l.details || []).join('\n')) + '</td><td class="drill">' + esc(l.drilling || '') + '</td></tr>';
+    }).join('') + '</table>' : '<div class="hint">No doors or drawer fronts found.</div>';
+  // the other sections, exactly as the PDF prints them (22mm panels, bullnose / cornice, vinyl end panels)
+  (dd.vinyl || []).forEach(function(sec){
+    if (!sec.rows.length) return;
+    h += '<div class="sect">' + esc(sec.title) + ' <span>' + esc(sec.note) + '</span></div><table><tr>' + sec.cols.map(function(c){ return '<th' + (c[2] === 'right' ? ' class="n"' : '') + '>' + esc(c[0]) + '</th>'; }).join('') + '</tr>' +
+      sec.rows.map(function(r){ return '<tr>' + r.map(function(v, i){ return '<td' + (sec.cols[i][2] === 'right' ? ' class="n"' : '') + '>' + esc(v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>';
   });
-  var vin = d.groups.filter(function(g){ return g.section === 'vinyl'; });
-  // as on the Door / Vinyl order: bullnose / cornice, then the vinyl end panels (Vinyl TRUE)
-  var nosing = function(p){ return /BULLNOSE|CORNICE/i.test(p.name); };
-  [['Bullnose / cornice', 'ordered with the doors', nosing, false], ['Vinyl end panels', 'end panels (Vinyl - TRUE) and the drawer units\' end panels, ordered with the doors - height x width as they stand', function(p){ return !nosing(p); }, true]].forEach(function(sec){
-    var rows = '';
-    vin.forEach(function(g){ g.parts.filter(sec[2]).forEach(function(p){ var a = sec[3] && p.height != null ? p.height : p.length, b = sec[3] && p.across != null ? p.across : p.width; rows += '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td>' + esc(g.material) + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + f(a) + '</td><td class="n">' + f(b) + '</td><td class="n"><b>' + p.qty + '</b></td></tr>'; }); });
-    if (rows) dh += '<div class="grp" style="margin-top:10px"><h3>' + sec[0] + ' <span>' + sec[1] + '</span></h3><table><tr><th>#</th><th>Name</th><th>Colour</th><th class="n">Thickness</th><th class="n">' + (sec[3] ? 'Height' : 'Length') + '</th><th class="n">Width</th><th class="n">Qty</th></tr>' + rows + '</table></div>';
+  var el = dd.elevations || [];
+  h += notPdf('<b>On the PDF only:</b> ' + (el.length ? el.length + ' door elevation page(s) - ' + esc(el.join(', ')) + ' - drawn to scale with the sizes' : 'door elevations (none in this model - no doors)') + '.');
+  // worktop order
+  var wts = dd.worktops || [];
+  h += '<div class="sect">Worktop order <span>' + wts.length + ' worktop(s). Solid line = profiled edge, dashed = against a wall / not profiled. Sizes in mm.</span></div>';
+  if (wts.length) {
+    var ed2 = function(e, on){ return ['front', 'back', 'left', 'right'].filter(function(k){ return !!e[k] === on; }).join(', ') || 'none'; };
+    h += wts.map(function(wt, i){
+      return '<div class="wt"><div>' + worktopSvg(wt) + '</div><div><div class="ttl" style="font-weight:700;font-size:12px;margin-bottom:3px">' + (i + 1) + '. ' + esc((wt.pod ? wt.pod + ' - ' : '') + wt.name) + '</div>' +
+        '<div class="kv"><b>Size:</b><span>' + esc(wt.length + ' x ' + wt.depth + ' x ' + wt.thickness + 'mm (length x depth x thickness)') + '</span></div>' +
+        '<div class="kv"><b>Colour:</b><span>' + esc(wt.material) + '</span></div><div class="kv"><b>Profiled edges:</b><span>' + esc(ed2(wt.edges || {}, true)) + '</span></div>' +
+        '<div class="kv"><b>Plain edges:</b><span>' + esc(ed2(wt.edges || {}, false)) + '</span></div><div class="kv"><b>Qty:</b><span>1</span></div></div></div>';
+    }).join('');
+  } else h += '<div class="hint">No worktops (22 / 25 mm) in this model.</div>';
+  // what the window has beyond the PDF: every front with its Pod number
+  var cols = [['n', '#'], ['unit', 'Pod'], ['item', 'Item'], ['kind', 'Kind'], ['hand', 'Hand'], ['width', 'W', 1], ['height', 'H', 1], ['style', 'Style'], ['midrail', 'Mid-rail'], ['hinge_type', 'Hinge type'], ['hinges', 'Hinges', 1], ['tip_on', 'TIP-ON', 1], ['handles', 'Handles', 1], ['notes', 'Notes']];
+  h += '<details style="margin-top:12px"><summary style="cursor:pointer;font-size:11.5px"><b>Every front with its Pod number</b> <span class="hint" style="margin:0">(not on the PDF - the order lists identical fronts on one line; hover a line above for its Pods)</span></summary>' +
+    (dd.rows.length ? '<table style="margin-top:6px"><tr>' + cols.map(function(c){ return '<th' + (c[2] ? ' class="n"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr>' +
+    dd.rows.map(function(r){ return '<tr title="' + esc(r.unit_path || '') + '">' + cols.map(function(c){ var v = r[c[0]]; if (c[2] && v === 0 && c[0] !== 'width' && c[0] !== 'height') v = ''; return '<td' + (c[2] ? ' class="n"' : '') + '>' + esc(v == null ? '' : v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table>' : '') + '</details>';
+  $('p_door').innerHTML = h;
+}
+// ---------- Parts list (as the PDF) ----------
+function partRows(g, parts){
+  var cols = '<tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th style="width:14px"></th><th>L1</th><th>L2</th><th>W1</th><th>W2</th></tr>';
+  return '<table>' + cols + parts.map(function(p){
+    return '<tr id="' + rowId(g, p.number) + '"' + (g.ask && g.manual.indexOf(p.number) >= 0 ? ' class="fullrow" title="Needs a full sheet"' : '') + '><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n">' + p.qty + '</td><td></td>' +
+      ['ymin', 'ymax', 'xmin', 'xmax'].map(function(k){ return '<td class="edge">' + esc(edgeShort(p.edges[k])) + '</td>'; }).join('') + '</tr>';
+  }).join('') + '</table>';
+}
+function sheetBox(g){
+  return '<input type="number" min="0" step="1" class="sheetIn" data-gid="' + esc(g.gid) + '" value="' + (g.sheets == null ? '' : g.sheets) + '" placeholder="' + (g.ask ? 'enter' : '') + '" title="' + (g.estimate != null && g.ask ? 'Estimate from area: ' + g.estimate : 'Full sheets - change it and it is kept with the file') + '" style="width:52px;text-align:right;font:inherit;font-size:11px;padding:1px 4px' + (g.ask && g.sheets == null ? ';border-color:#c0392b;background:#fdf1f0' : '') + '">' + (g.entered ? ' <span class="hint" style="margin:0" title="Entered by you">&#9998;</span>' : '');
+}
+function renderPartsList(d){
+  var hd = d.head || {};
+  var h = pdfHead('Harry Wardrobes - Parts list', 'Doors and drawer fronts are on the door order', hd);
+  if (!d.scribes_on) h += '<div class="warnbox">Scribes are OFF (every runout 0) - panel sizes may be wrong.</div>';
+  var boards = d.groups.filter(function(g){ return ['vinyl', 'white_back', 'worktops'].indexOf(g.section) < 0; });
+  if (!boards.length) h += '<div class="hint">No sheet goods found.</div>';
+  boards.forEach(function(g){
+    var parts = g.parts, grained = g.grained ? ', grained' : '';
+    if (g.strip_group) {
+      var byW = {}, widths = [], full = [];
+      parts.forEach(function(p){ if (p.strip_width == null) { full.push(p); return; } if (!byW[p.strip_width]) { byW[p.strip_width] = []; widths.push(p.strip_width); } byW[p.strip_width].push(p); });
+      widths.sort(function(a, b){ return a - b; });
+      h += '<div class="sect">' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts' + grained + ', cut and edged strips ' + g.strips.reduce(function(a, st){ return a + st.count; }, 0) + ' in all</span></div>';
+      widths.forEach(function(wd){
+        var st = g.strips.filter(function(x){ return x.width === wd; })[0] || {};
+        h += '<div class="sub2">' + wd + ' mm strips <span>' + (st.count || 0) + ' x ' + f(st.length || 0) + ' mm - ' + byW[wd].reduce(function(a, p){ return a + p.qty; }, 0) + ' pieces, packed end to end</span></div>' + partRows(g, byW[wd]);
+      });
+      if (full.length) {
+        h += '<div class="sub2">Full sheet <span>' + full.reduce(function(a, p){ return a + p.qty; }, 0) + ' pieces wider than the widest strip - ' + sheetBox(g) + ' sheet(s)' + (g.sheet ? ' ' + f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '') + (g.ask && g.sheets == null ? ' <span class="bad">enter the full sheets needed</span>' : '') + '</span></div>' + partRows(g, full);
+      } else if (g.sheets) {
+        h += '<div class="hint">' + g.sheets + ' full sheet(s) entered, but every part fits a strip.</div>';
+      }
+    } else {
+      h += '<div class="sect">' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts' + grained + ', ' + sheetBox(g) + ' sheet(s)' + (g.sheet ? ' ' + f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '') + '</span></div>' + partRows(g, parts);
+    }
   });
-  $('p_door').innerHTML = dh;
-  // sheet goods and worktops (same layout, each its own groups)
-  var sheetGroups = d.groups.filter(function(g){ return !g.section || g.section === 'sheets'; });
-  var wtGroups = d.groups.filter(function(g){ return g.section === 'worktops'; });
-  $('p_sheets').innerHTML = sheetGroups.length ? boards(sheetGroups, true) : '<div class="hint">No sheet goods found.</div>';
-  $('p_worktops').innerHTML = wtGroups.length ? boards(wtGroups, false) : '<div class="hint">No worktops (22 / 25 mm) found.</div>';
-  // edging: at the bottom of Sheet goods
-  if (d.edging.length) $('p_sheets').innerHTML += '<div class="grp"><h3>Edging <span>total length of the edges that carry an edge material, from each part\'s length / width - add your own allowance for trimming</span></h3><table><tr><th>Edge</th><th class="n">Board thickness</th><th class="n">Edges</th><th class="n">Metres</th></tr>' +
-    d.edging.map(function(e){ return '<tr><td>' + esc(e.material) + '</td><td class="n">' + f(e.height) + ' mm</td><td class="n">' + e.parts + '</td><td class="n"><b>' + e.metres.toFixed(1) + '</b></td></tr>'; }).join('') + '</table></div>';
+  var tb = d.timber_lines || [];
+  if (tb.length) h += '<div class="sect">Timber / MDF <span>ordered as lengths (cut lengths from the model)</span></div><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Section</th><th class="n">Length</th><th class="n">Qty</th></tr>' +
+    tb.map(function(x){ return '<tr><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + esc(x.section) + '</td><td class="n">' + f(x.length) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table>';
+  var hwl = d.hardware_lines || [];
+  if (hwl.length) h += '<div class="sect">Hardware <span>counted from the model</span></div><table><tr><th>#</th><th>Name</th><th class="n">Qty</th></tr>' +
+    hwl.map(function(x){ return '<tr title="' + esc(x.parts.join(', ')) + '"><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + (x.note ? ' <span class="hint" style="margin:0">(' + esc(x.note) + ')</span>' : '') + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table>';
+  var hl = d.handles || [];
+  h += '<div class="sect">Handles <span>' + (hl.length ? 'from the Door style window' : 'none on this job (n/a)') + '</span></div>';
+  if (hl.length) h += '<table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' + hl.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table>';
+  var dbx = d.drawer_boxes || [];
+  if (dbx.length) h += '<div class="sect">Drawer boxes <span>internal cabinet width; runners in pairs, one pair per box</span></div><table><tr><th>#</th><th>Parent</th><th>Material</th><th class="n">Int. cab width</th><th class="n">Height</th><th>Runners</th><th class="n">Qty</th></tr>' +
+    dbx.map(function(x){ return '<tr' + (x.warn ? ' class="warnrow"' : '') + ' title="' + esc(x.component || '') + '"><td class="num">' + esc(x.number) + '</td><td>' + esc(x.parent) + '</td><td>' + esc(x.material) + '</td><td class="n">' + (x.width ? x.width + ' mm' : '-') + '</td><td class="n">' + (x.height ? (x.warn ? '<span class="bad" title="' + esc(x.warn) + '">&#9888; ' + x.height + ' mm (!)</span>' : x.height + ' mm') : '-') + '</td><td>' + esc(x.runner) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table>';
+  // beyond the PDF: the edging total
+  if (d.edging.length) h += notPdf('<b>Not on the PDF:</b> edging - the total length of the edges that carry an edge material, from each part\'s length / width (add your own allowance for trimming).') +
+    '<table><tr><th>Edge</th><th class="n">Board thickness</th><th class="n">Edges</th><th class="n">Metres</th></tr>' + d.edging.map(function(e){ return '<tr><td>' + esc(e.material) + '</td><td class="n">' + f(e.height) + ' mm</td><td class="n">' + e.parts + '</td><td class="n"><b>' + e.metres.toFixed(1) + '</b></td></tr>'; }).join('') + '</table>';
+  var other = d.groups.filter(function(g){ return ['vinyl', 'white_back', 'worktops'].indexOf(g.section) >= 0; });
+  if (other.length) h += notPdf('<b>Not on this PDF (on the Door / Vinyl order):</b> ' + esc(other.map(function(g){ return g.material + ' ' + f(g.thickness) + ' mm ' + ({ vinyl: 'vinyl', white_back: '22mm white back', worktops: 'worktops' })[g.section] + ' - ' + g.count + ' part(s)'; }).join('; ')) + '.');
+  $('p_sheets').innerHTML = h;
   Array.prototype.forEach.call(document.querySelectorAll('.sheetIn'), function(i){
     i.onchange = function(){ var m = {}; m[i.getAttribute('data-gid')] = i.value; sketchup.setSheets(JSON.stringify(m)); }; // only the one you changed is kept as entered
   });
-  var boxes = d.hardware.filter(function(x){ return x.drawer_box; }), hws = d.hardware.filter(function(x){ return !x.drawer_box; });
-  var dbx = d.drawer_boxes || [];
-  $('p_boxes').innerHTML = dbx.length ? '<table><tr><th>#</th><th>Parent</th><th>Material</th><th class="n">Internal cabinet width</th><th class="n">Height</th><th>Runners</th><th class="n">Qty</th></tr>' +
-    dbx.map(function(x){ return '<tr' + (x.warn ? ' class="warnrow"' : '') + '><td class="num">' + esc(x.number) + '</td><td>' + esc(x.parent) + '</td><td>' + esc(x.material) + '</td><td class="n">' + (x.width ? x.width + ' mm' : '-') + '</td><td class="n">' + (x.height ? (x.warn ? '<span class="bad" title="' + esc(x.warn) + '">&#9888; ' + x.height + ' mm</span>' : x.height + ' mm') : '-') + '</td><td>' + esc(x.runner) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') +
-    '<tr><td></td><td><b>Total</b></td><td></td><td></td><td></td><td></td><td class="n"><b>' + dbx.reduce(function(a, x){ return a + x.qty; }, 0) + '</b></td></tr></table>' +
-    '<div class="hint">One pair of runners per box. Internal cabinet width = box width + the box clearance each side.</div>' : '<div class="hint">No drawer boxes found.</div>';
-  dbx.forEach(function(x){ if (x.warn) w.push(x.parent + ': drawer box ' + x.height + ' mm high - under 100 mm (Drawer Boxes tab).'); });
-  renderWarns(d, w);
-  var hwl = d.hardware_lines || [];
-  var hw = hwl.length ? '<div class="grp"><h3>From the model <span>one line per item (names from Settings &gt; Labels &gt; Label names)</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Qty</th></tr>' +
-    hwl.map(function(x){ return '<tr title="' + esc(x.parts.join(', ')) + '"><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
-  var tb = d.timber_lines || [];
-  hw += tb.length ? '<div class="grp"><h3>Timber / MDF <span>ordered as lengths; one grouped label per material (stock length in the Check tab)</span></h3><table><tr><th>#</th><th>Name</th><th>Material</th><th class="n">Section</th><th class="n">Length</th><th class="n">Qty</th></tr>' +
-    tb.map(function(x){ return '<tr><td class="num">' + esc(x.numbers.join(', ')) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.material) + '</td><td class="n">' + esc(x.section) + '</td><td class="n">' + f(x.length) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
-  hw += d.handles.length ? '<div class="grp"><h3>Handles <span>from the Door style window</span></h3><table><tr><th>Kind</th><th>Handle</th><th>SKU</th><th>Supplier</th><th class="n">Qty</th></tr>' +
-    d.handles.map(function(x){ return '<tr><td>' + esc(x.kind) + '</td><td>' + esc(x.name) + '</td><td>' + esc(x.sku) + '</td><td>' + esc(x.supplier) + '</td><td class="n"><b>' + x.qty + '</b></td></tr>'; }).join('') + '</table></div>' : '';
-  $('p_hardware').innerHTML = hw || '<div class="hint">No hardware found.</div>';
-  renderLabels(d);
 }
-// A part's row in its group's table (the "Needs full sheets" links go to it).
+// A part's row in its group's table.
 function rowId(g, n){ return 'pr_' + String(g.gid).replace(/[^A-Za-z0-9]/g, '_') + '_' + String(n).replace(/[^A-Za-z0-9]/g, '_'); }
 function goPart(id){
   var r = $(id); if (!r) return;
@@ -244,39 +344,32 @@ function goPart(id){
   r.classList.add('hwFocus');
   setTimeout(function(){ r.classList.remove('hwFocus'); }, 4500);
 }
-// Boards table (+ strips + parts per group) for a list of groups.
-function boards(groups, sheetGoods){
-  var h = '<div class="grp">' + (sheetGoods ? '<h3>Boards <span>18mm goes into cut and edged strips (next width up); full sheets only for what doesn\'t fit. Other thicknesses: part area + ' + f(D.waste_pct) + '% waste. Change any count - it\'s kept with the file.</span></h3>' : '<h3>Worktops <span>22 / 25 mm worktops - ordered on their own, not in the MFC sheet count. Change any count - it\'s kept with the file.</span></h3>') + '<table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Parts</th><th>Strips</th><th>Needs full sheets</th><th class="n">Sheet</th><th class="n">Full sheets</th></tr>' +
-    groups.map(function(g){
-      var need = g.ask ? '<span class="' + (g.sheets == null || g.sheets === 0 ? 'bad' : '') + '">' + g.manual.map(function(n){ return '<a href="#" class="plink" title="Show this part in the list below" onclick="goPart(\'' + rowId(g, n) + '\');return false">' + esc(n) + '</a>'; }).join(', ') + '</span>' : (g.strip_group ? '<span style="color:var(--muted)">none</span>' : '<span style="color:var(--muted)">' + g.area_m2.toFixed(2) + ' m&sup2;</span>');
-      var box = '<input type="number" min="0" step="1" class="sheetIn" data-gid="' + esc(g.gid) + '" value="' + (g.sheets == null ? '' : g.sheets) + '" placeholder="' + (g.ask ? 'enter' : '') + '" title="' + (g.estimate != null && g.ask ? 'Estimate from area: ' + g.estimate : '') + '" style="width:60px;text-align:right' + (g.ask && g.sheets == null ? ';border-color:#c0392b;background:#fdf1f0' : '') + '">' + (g.entered ? ' <span class="hint" style="margin:0" title="Entered by you">&#9998;</span>' : '');
-      return '<tr><td>' + esc(g.material) + (g.grained ? ' <span style="color:var(--muted)">(grained)</span>' : '') + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + g.count + '</td><td>' + (g.strips.length ? g.strips.map(function(st){ return st.count + ' x ' + st.width; }).join(', ') : '-') + '</td><td>' + need + '</td><td class="n">' + (g.sheet ? f(g.sheet[0]) + ' x ' + f(g.sheet[1]) : '-') + '</td><td class="n">' + box + '</td></tr>';
-    }).join('') + '</table></div>';
-  var strips = [];
-  groups.forEach(function(g){ g.strips.forEach(function(st){ strips.push([g, st]); }); });
-  if (strips.length) h += '<div class="grp"><h3>Cut and edged strips <span>each part uses the next width up, packed end to end along the strip</span></h3><table><tr><th>Material</th><th class="n">Thickness</th><th class="n">Strip</th><th>Parts</th><th class="n">Pieces</th><th class="n">Strips</th></tr>' +
-    strips.map(function(x){ return '<tr><td>' + esc(x[0].material) + '</td><td class="n">' + f(x[0].thickness) + ' mm</td><td class="n">' + x[1].width + ' x ' + f(x[1].length) + '</td><td>' + esc(x[1].numbers.join(', ')) + '</td><td class="n">' + x[1].pieces + '</td><td class="n"><b>' + x[1].count + '</b></td></tr>'; }).join('') + '</table></div>';
-  groups.forEach(function(g){
-    h += '<div class="grp"><h3>' + esc(g.material) + ' - ' + f(g.thickness) + ' mm <span>' + g.count + ' parts, ' + g.area_m2.toFixed(2) + ' m&sup2;</span></h3><table><tr><th>#</th><th>Name</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th><th>Edge L1</th><th>Edge L2</th><th>Edge W1</th><th>Edge W2</th></tr>' +
-      g.parts.map(function(p){ return '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n">' + p.qty + '</td><td>' + edgeCell(p.edges.ymin, p.edge_colors.ymin) + '</td><td>' + edgeCell(p.edges.ymax, p.edge_colors.ymax) + '</td><td>' + edgeCell(p.edges.xmin, p.edge_colors.xmin) + '</td><td>' + edgeCell(p.edges.xmax, p.edge_colors.xmax) + '</td></tr>'; }).join('') + '</table></div>';
-  });
-  return h;
-}
-// ---------- Product List ----------
+// ---------- Room Plan (as the PDF: cover / specification, then the product list) ----------
 function renderProducts(d){
-  var P = d.products || [];
+  var P = d.products || [], rp = d.room_plan || {}, hd = rp.head || d.head || {};
   var opts = function(cur, self, here){ return '<option value=""' + (cur === '' ? ' selected' : '') + '>Automatic' + (cur === '' ? ' (' + esc(here) + ')' : '') + '</option><option value="own"' + (cur === 'own' ? ' selected' : '') + '>Its own product</option>' +
     P.filter(function(p){ return p.pid !== self; }).map(function(p){ return '<option value="' + esc(p.pid) + '"' + (cur === p.pid ? ' selected' : '') + '>Part of ' + esc(p.t) + ' - ' + esc(p.name) + '</option>'; }).join(''); };
-  var h = '<div class="lbar" style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><span class="hint" style="margin:0;flex:1">' + P.length + ' products. Pod numbers are kept on each product; new ones get the next number. Bullnose and end panels aren\'t products (Settings &gt; Product list).</span>' +
-    '<button id="renumBtn" onclick="renumber(this)">Renumber left to right</button></div>';
-  h += P.length ? '<table><tr><th>Pod</th><th>Product</th><th>Component</th><th class="n">W x D x H (mm)</th><th class="n">Depth / finished</th><th>Includes</th></tr>' + P.map(function(p){
-    var inc = p.members.map(function(m){
-      return '<div style="display:flex;gap:6px;align-items:center;margin:1px 0"><span style="flex:1">' + esc(m.name) + ' <span style="color:var(--muted)">' + m.size.join(' x ') + '</span></span><select style="font-size:11px" onchange="setHost(\'' + esc(m.pid) + '\', this.value)">' + opts(m.auto ? '' : p.pid, m.pid, p.t) + '</select></div>';
+  var h = pdfHead('Harry Wardrobes - Room Plan', 'Cover / Specification', hd);
+  h += '<div class="spec">' + (rp.spec || []).map(function(r){ return r ? '<div class="k">' + esc(r[0]) + '</div><div>' + esc(r[1]) + '</div>' : '<div class="gap"></div><div class="gap"></div>'; }).join('') + '</div>';
+  h += '<div class="foot2"><div class="rm">' + esc(rp.room || '-') + '</div><div class="nm">' + esc(rp.full_name || hd.customer || '') + '</div></div>';
+  var byPid = {}; P.forEach(function(p){ byPid[p.pid] = p; });
+  h += '<div class="sect" style="margin-top:18px">Product List <span>' + P.length + ' products - Pod numbers are kept on each product; new ones get the next number</span><span style="flex:1"></span><button id="renumBtn" onclick="renumber(this)" style="font-size:11px">Renumber left to right</button></div>';
+  if ((rp.products || []).length) {
+    h += rp.products.map(function(b){
+      var p = byPid[b.pid] || {};
+      var inc = (p.members || []).map(function(m){
+        return '<div style="display:flex;gap:6px;align-items:center;margin:1px 0"><span style="flex:1">' + esc(m.name) + ' <span style="color:var(--muted)">' + m.size.join(' x ') + '</span></span><select style="font-size:11px" onchange="setHost(\'' + esc(m.pid) + '\', this.value)">' + opts(m.auto ? '' : p.pid, m.pid, p.t) + '</select></div>';
+      }).join('');
+      return '<div class="prod"><div class="t"><a href="#" onclick="sketchup.selectProduct(\'' + esc(b.pid) + '\');return false" title="Select it in the model" style="color:inherit;text-decoration:none">' + esc(b.t) + '</a></div><div class="ttl">' + esc(b.title) + ' <span class="hint" style="margin:0;font-weight:normal">' + esc(p.component || '') + (p.size ? ' - ' + p.size.join(' x ') + ' mm' : '') + '</span></div>' +
+        b.lines.map(function(l){ return '<div class="kv"><b>' + esc(l[0]) + ':</b><span>' + esc(l[1]) + '</span></div>'; }).join('') +
+        (inc ? '<div class="inc">Includes (not on the PDF - change one to split it off or move it):' + inc + '</div>' : '') + '</div>';
     }).join('');
-    return '<tr><td><b><a href="#" onclick="sketchup.selectProduct(\'' + esc(p.pid) + '\');return false" title="Select it in the model">' + esc(p.t) + '</a></b></td><td>' + esc(p.name) + (p.flags || []).map(function(f){ return '<div style="font-size:11px">' + esc(f[0]) + ': <b>' + esc(f[1]) + '</b></div>'; }).join('') + '</td><td style="color:var(--muted)">' + esc(p.component) + '</td><td class="n">' + p.size.join(' x ') + '</td><td class="n">' + (p.depth ? '<b>' + p.depth + (p.finished ? ' / ' + p.finished : '') + '</b>' : '-') + '</td><td>' + (inc || '<span style="color:var(--muted)">-</span>') + '</td></tr>';
-  }).join('') + '</table>' + looseInternals(d, P) + '<div class="hint">Includes: parts that belong to the product (internal drawers in a wardrobe, a box end under a worktop, box shelves next to each other...). Change one to split it off as its own product or move it to another.</div>' : '<div class="hint">No products found - check the names in Settings &gt; Product list.</div>';
+  } else h += '<div class="hint">No products found - check the names in Settings &gt; Product list.</div>';
+  h += looseInternals(d, P);
   var K = d.product_key || [];
-  if (K.length) h = '<div class="hint" style="margin:0 0 6px"><b>Key:</b> ' + K.map(function(k){ return '<b>' + esc(k[0]) + '</b> ' + esc(k[1]); }).join(' &middot; ') + '</div>' + h;
+  if (K.length) h += '<div class="hint" style="margin:6px 0"><b>Key:</b> ' + K.map(function(k){ return '<b>' + esc(k[0]) + '</b> ' + esc(k[1]); }).join(' &middot; ') + '</div>';
+  var el = (d.door && d.door.elevations) || [];
+  h += notPdf('<b>On the PDF only:</b> ' + (el.length ? el.length + ' door elevation page(s) (' + esc(el.join(', ')) + '), ' : '') + 'the render pages (the Renders scenes) and the installation plan (its own tab here).');
   $('p_products').innerHTML = h;
 }
 // Wardrobe internals that aren't inside any tall unit: no Pod number until they are (or are put in one here).
@@ -312,7 +405,9 @@ var PLAN = null;
 function planOpen(){ if (PLAN === null) { PLAN = 'loading'; $('p_plan').innerHTML = '<div class="hint">Making the plan picture...</div>'; sketchup.planLoad(); } }
 function planData(p){
   PLAN = p;
-  var h = '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
+  var rp = (D && D.room_plan) || {};
+  var h = '<div class="pdfhead"><div><h2>' + esc(rp.plan_title || 'INSTALLATION PLAN') + '</h2><div class="sub"><b>' + esc(rp.plan_subtitle || '') + '</b></div></div><div class="right"><div><b>Drawing:</b> ' + esc((rp.head || {}).drawing || '-') + '</div></div></div>';
+  h += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
     '<span class="hint" style="margin:0;flex:1">' + (p.scene ? 'Plan scene: <b>' + esc(p.scene) + '</b>' : '<span class="bad">No plan scene - add a scene named e.g. "S top"</span>') +
     (p.ceiling ? ' &middot; CEILING ' + p.ceiling + 'mm' : '') + (p.fascia ? ' &middot; TOP FASCIA ' + p.fascia + 'mm' : '') + (p.last ? ' &middot; last saved v' + p.last : '') + '</span>' +
     '<button onclick="planBusy(\'planRotate\')" title="Turns the plan a quarter turn (kept with the file - the Room Plan PDF follows it)">Rotate 90&deg;</button><button onclick="planBusy(\'planLoad\')" title="Makes the plan picture again from the model as it is now - after you move a unit or add a note (Pod numbers and dimensions are redone if anything changed)">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
@@ -323,6 +418,7 @@ function planData(p){
     '<div class="hint" style="margin:0 0 6px">Add one: right-click a part in SketchUp &gt; HW Door Style &gt; Plan note. Edit or delete them here.</div>' +
     (p.notes.length ? p.notes.map(function(n){ return '<div style="display:flex;gap:4px;margin-bottom:4px"><input type="text" value="' + esc(n.text) + '" data-note="' + n.id + '" style="flex:1;font:inherit;font-size:11.5px;padding:3px 5px;border:1px solid var(--line);border-radius:3px" onchange="planEdit(' + n.id + ', this.value)"><button title="Delete" onclick="planEdit(' + n.id + ', \'\')">&times;</button></div>'; }).join('') : '<div class="hint">None yet.</div>') +
     '<div class="hint" style="margin-top:8px">Standard messages (Settings &gt; Floor plan): ' + p.messages.map(esc).join(' &middot; ') + '</div></div></div>';
+  if ((rp.plan_items || []).length) h += '<div class="planfoot">' + rp.plan_items.map(function(it){ return '<div><small>' + esc(it[0]) + '</small><b>' + esc(it[1]) + '</b></div>'; }).join('') + '</div>';
   $('p_plan').innerHTML = h;
 }
 function planBusy(fn){ $('status').textContent = ''; sketchup[fn](); }
@@ -524,7 +620,7 @@ function stageCheck(){
   var m = stageMissing(), el = $('stageMsg'); if (!el) return;
   el.innerHTML = !$('moveStage').checked ? '' : (m.length ? '<span class="bad">Needs: ' + esc(m.join(', ')) + '</span>' : 'Ready to move.');
 }
-function missingSheets(){ return (D ? D.groups : []).filter(function(g){ return g.ask && g.sheets == null; }); }
+function missingSheets(){ return (D ? D.groups : []).filter(function(g){ return g.ask && g.sheets == null && ['vinyl', 'white_back', 'worktops'].indexOf(g.section) < 0; }); }
 function sendRoom(){
   if (!PACK) { packStale(); return; }
   if (DO.hubspot && (!HS || HS === 'loading' || HS.error || !HS.linked)) { $('status').textContent = 'The HubSpot Room isn\'t ready - check the HubSpot tab.'; return; }
@@ -575,7 +671,11 @@ function labelEntries(r){
   ENTRIES = r.entries || [];
   var o = D.labels.presets[$('lPreset').value];
   $('lInfo').textContent = (r.errors ? r.errors + ' formula error(s), shown in red' : '');
-  $('lCount').textContent = '(' + ENTRIES.length + ', ' + f(o.page_width) + ' x ' + f(o.page_height) + ' mm)';
+  // what the labels cover: every part on the parts list PDF plus the pieces ordered finished
+  var kinds = { sheet: 0, aggregate: 0, divider: 0, hardware: 0, timber: 0 };
+  ENTRIES.forEach(function(e){ kinds[e.kind] = (kinds[e.kind] || 0) + 1; });
+  var fin = (D.groups || []).filter(function(g){ return ['vinyl', 'white_back', 'worktops'].indexOf(g.section) >= 0; }).reduce(function(a, g){ return a + g.count; }, 0);
+  $('lCount').textContent = '(' + ENTRIES.length + ': ' + kinds.sheet + ' part + ' + kinds.aggregate + ' grouped + ' + kinds.divider + ' divider, ' + f(o.page_width) + ' x ' + f(o.page_height) + ' mm' + (fin ? '; also labels for ' + fin + ' worktop / vinyl / 22mm piece(s) that are on the Door / Vinyl order, not the parts list' : '') + ')';
   var w = Math.max(160, $('lPages').clientWidth - 16), h = w * o.page_height / o.page_width;
   $('lPages').innerHTML = ENTRIES.slice(0, 300).map(function(e, i){ return '<div class="lpage" data-l="' + i + '">' + pageSvg(o, [e], true, w + 'px', h + 'px') + '</div>'; }).join('') +
     (ENTRIES.length > 300 ? '<div class="hint">... and ' + (ENTRIES.length - 300) + ' more (all are printed).</div>' : '');
