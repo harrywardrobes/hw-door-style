@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.88.4 — 2026-10-23
+- The drawer units' end panels (EXT_DRW_END_PAN) are vinyl: on the Door / Vinyl order's "Vinyl end panels", off the sheet list (Settings "vinyl_part_names").
+- Vinyl end panels are listed Height x Width as they stand in the model (the side running up is the height), in the Workshop and on the order.
+
 ## 0.88.3 — 2026-10-23
 - Workshop > Door / Vinyl tab: vinyl end panels have their own "Vinyl end panels" table (as on the order PDF) - they were listed under "Bullnose / cornice".
 

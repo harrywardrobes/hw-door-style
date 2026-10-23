@@ -1083,6 +1083,12 @@ check 'Tags: doors DOOR, external and internal drawer fronts DRAWER_FRONT (not D
       HarryWardrobes::DoorStyle::Colours.group_tags['door'].include?('STABLE_PANEL') && HarryWardrobes::DoorStyle::Colours.group_tags['door'].include?('DRAWER_FRONT')
 
 
+check 'Drawer units\' end panels (EXT_DRW_END_PAN, any copy) go on the vinyl order', PLv.section_of(['EXT_DRW_END_PAN#3'], 18, 'Mussel') == 'vinyl' && PLv.section_of(['EXT_DRW_SIDE'], 18, 'Mussel') == 'sheets'
+vs2 = RPv.vinyl_sections({ 'groups' => [{ 'section' => 'vinyl', 'material' => 'G', 'thickness' => 18, 'parts' => [{ 'number' => 2, 'name' => 'EXT_DRW_END_PAN', 'length' => 796, 'width' => 503, 'height' => 796, 'across' => 503, 'qty' => 2 }, { 'number' => 3, 'name' => 'END_PAN_PANEL', 'length' => 2340, 'width' => 623, 'qty' => 1 }] }] })
+ve = vs2.find { |x| x['title'] =~ /end panels/ }
+check 'Vinyl end panels: Height x Width as they stand in the model', ve['cols'].map(&:first).include?('Height') && ve['rows'].first[4] == '796' && ve['rows'].last[4] == '2340'
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

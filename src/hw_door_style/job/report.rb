@@ -160,9 +160,9 @@ module HarryWardrobes
           { 'title' => 'Bullnose / cornice', 'note' => 'vinyl',
             'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
             'rows' => vin.flat_map { |g| g['parts'].select(&nosing).map { |p| vrow.call(g, p) } } },
-          { 'title' => 'Vinyl end panels', 'note' => 'end panels set to Vinyl - TRUE',
-            'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Thickness', 60, :right], ['Length', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
-            'rows' => vin.flat_map { |g| g['parts'].reject(&nosing).map { |p| vrow.call(g, p) } } }
+          { 'title' => 'Vinyl end panels', 'note' => 'end panels (Vinyl - TRUE) and the drawer units\' end panels - height x width as they stand',
+            'cols' => [['#', 26, :left], ['Name', nil, :left], ['Colour', 110, :left], ['Thickness', 60, :right], ['Height', 50, :right], ['Width', 50, :right], ['Qty', 30, :right]],
+            'rows' => vin.flat_map { |g| g['parts'].reject(&nosing).map { |p| [p['number'], p['name'], g['material'], "#{f.call(g['thickness'])} mm", f.call(p['height'] || p['length']), f.call(p['across'] || p['width']), p['qty']] } } }
         ]
       end
 

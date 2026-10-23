@@ -398,6 +398,9 @@
   "depth_default_mm": 580,
   "depth_short_mm": 500,
   "product_front_mm": 18,
+  "vinyl_part_names": [
+    "EXT_DRW_END_PAN"
+  ],
   "product_flags": {
     "backs": "Back Panel"
   },

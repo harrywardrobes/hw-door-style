@@ -199,10 +199,10 @@ function render(d){
   var vin = d.groups.filter(function(g){ return g.section === 'vinyl'; });
   // as on the Door / Vinyl order: bullnose / cornice, then the vinyl end panels (Vinyl TRUE)
   var nosing = function(p){ return /BULLNOSE|CORNICE/i.test(p.name); };
-  [['Bullnose / cornice', 'ordered with the doors', nosing], ['Vinyl end panels', 'end panels set to Vinyl - TRUE, ordered with the doors', function(p){ return !nosing(p); }]].forEach(function(sec){
+  [['Bullnose / cornice', 'ordered with the doors', nosing, false], ['Vinyl end panels', 'end panels (Vinyl - TRUE) and the drawer units\' end panels, ordered with the doors - height x width as they stand', function(p){ return !nosing(p); }, true]].forEach(function(sec){
     var rows = '';
-    vin.forEach(function(g){ g.parts.filter(sec[2]).forEach(function(p){ rows += '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td>' + esc(g.material) + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + f(p.length) + '</td><td class="n">' + f(p.width) + '</td><td class="n"><b>' + p.qty + '</b></td></tr>'; }); });
-    if (rows) dh += '<div class="grp" style="margin-top:10px"><h3>' + sec[0] + ' <span>' + sec[1] + '</span></h3><table><tr><th>#</th><th>Name</th><th>Colour</th><th class="n">Thickness</th><th class="n">Length</th><th class="n">Width</th><th class="n">Qty</th></tr>' + rows + '</table></div>';
+    vin.forEach(function(g){ g.parts.filter(sec[2]).forEach(function(p){ var a = sec[3] && p.height != null ? p.height : p.length, b = sec[3] && p.across != null ? p.across : p.width; rows += '<tr><td class="num">' + esc(p.number) + '</td><td>' + esc(p.name) + '</td><td>' + esc(g.material) + '</td><td class="n">' + f(g.thickness) + ' mm</td><td class="n">' + f(a) + '</td><td class="n">' + f(b) + '</td><td class="n"><b>' + p.qty + '</b></td></tr>'; }); });
+    if (rows) dh += '<div class="grp" style="margin-top:10px"><h3>' + sec[0] + ' <span>' + sec[1] + '</span></h3><table><tr><th>#</th><th>Name</th><th>Colour</th><th class="n">Thickness</th><th class="n">' + (sec[3] ? 'Height' : 'Length') + '</th><th class="n">Width</th><th class="n">Qty</th></tr>' + rows + '</table></div>';
   });
   $('p_door').innerHTML = dh;
   // sheet goods and worktops (same layout, each its own groups)

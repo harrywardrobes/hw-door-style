@@ -27,6 +27,9 @@ module HarryWardrobes
         dn.length > b.length && dn.upcase.start_with?(b.upcase) ? dn : b
       end
 
+      # The same for a plain name: "EXT_DRW_END_PAN#3" -> "EXT_DRW_END_PAN" (upcased).
+      def self.base_name_s(name) = name.to_s.sub(/#\d+\z/, '').strip.upcase
+
       def self.dict(obj)
         obj.attribute_dictionary(DICT_NAME)
       end

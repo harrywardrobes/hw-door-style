@@ -329,6 +329,9 @@ module HarryWardrobes
       def self.section_of(names, thickness, material, role = nil)
         return PART_ROLES[role] if role && PART_ROLES[role]
         return 'vinyl' if names.any? { |n| n.to_s =~ VINYL_RE }
+        # parts always ordered as vinyl (Settings "vinyl_part_names": the drawer units' end panels)
+        vin = Settings.names('vinyl_part_names')
+        return 'vinyl' if names.any? { |n| vin.include?(DC.base_name_s(n)) }
         return 'worktops' if names.any? { |n| n.to_s =~ WORKTOP_RE } && [22, 25].include?(thickness.to_f.round) && material.to_s !~ /\AMDF\z/i
         # 22mm panels are white-backed vinyl, ordered with the doors.
         return 'white_back' if thickness.to_f.round == 22 && material.to_s !~ /\AMDF\z/i
@@ -406,6 +409,14 @@ module HarryWardrobes
                                       'edges' => edges.transform_values { |m| m&.name }, 'edge_colors' => edges.transform_values { |m| m && color_hex(m.color) },
                                       'edge_pattern' => %w[ymax xmax ymin xmin].map { |k| edges[k] ? 1 : 0 }.join, 'edge_count' => edges.values.compact.size,
                                       'tags' => tags_of(defn), 'instances' => [] }
+              # as it stands in the model: height = the side that runs up, width = the other (vinyl
+              # panels are ordered height x width, like doors); nil when it lies flat
+              up = axes[0, 2].map { |a| v = a.transform(t); v.length.zero? ? 0 : v.z.abs / v.length }
+              if up[0] >= 0.7 && up[0] >= up[1]
+                p['height'], p['across'] = l_mm, w_mm
+              elsif up[1] >= 0.7
+                p['height'], p['across'] = w_mm, l_mm
+              end
             end
             p['qty'] += 1
             p['instances'] << instance_info(path)
