@@ -198,6 +198,28 @@ module HarryWardrobes
         cache[key] || nil
       end
 
+      # The tag the same part (by name) has everywhere else in the model, when that's always the
+      # same one - a part that lost its tag (INT_DIV on Layer0 in a library copy) gets it back.
+      def self.named_tag(model, inst, cache = {})
+        map = (cache[:named] ||= begin
+          h = Hash.new { |hh, k| hh[k] = [] }
+          seen = {}
+          stack = [model.entities]
+          until stack.empty?
+            ents = stack.pop
+            ents.grep(Sketchup::ComponentInstance).each do |c|
+              h[DC.base_name(c.definition)] << c.layer unless c.layer == model.layers[0]
+              next if seen[c.definition]
+              seen[c.definition] = true
+              stack << c.definition.entities
+            end
+          end
+          h.transform_values(&:uniq)
+        end)
+        tags = map[DC.base_name(inst.definition)]
+        tags && tags.size == 1 ? tags.first : nil
+      end
+
       # Tag that decides an instance's group: its own tag, or (if Untagged) the
       # tag carried by most of the faces directly inside it.
       def self.effective_tag(inst)
@@ -262,7 +284,8 @@ module HarryWardrobes
         walk.call do |inst|
           next if skip?(inst)
           # a Dynamic Component copy ("copies") is made on Layer0: it takes its tagged twin's tag
-          if inst.layer == layer0 && (t = sibling_tag(inst, sib))
+          if inst.layer == layer0 && (inst.definition.entities.grep(Sketchup::Face).all? { |f| f.layer == layer0 }) &&
+             (t = sibling_tag(inst, sib) || named_tag(model, inst, sib))
             if dry
               gid0 = lookup[t.name.upcase]
               counts[gid0] += 1 if gid0 && choices.key?(gid0)

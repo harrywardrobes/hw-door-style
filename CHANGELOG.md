@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.88.5 — 2026-10-23
+- Colours: a part that has lost its tag (on Layer0, e.g. a library wardrobe's INT_DIV) takes the tag the same part has everywhere else in the model, when that's always the same, then its colour.
+
 ## 0.88.4 — 2026-10-23
 - The drawer units' end panels (EXT_DRW_END_PAN) are vinyl: on the Door / Vinyl order's "Vinyl end panels", off the sheet list (Settings "vinyl_part_names").
 - Vinyl end panels are listed Height x Width as they stand in the model (the side running up is the height), in the Workshop and on the order.

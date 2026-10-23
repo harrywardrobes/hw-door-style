@@ -1072,7 +1072,7 @@ check 'No stretching: sizes worked out from the stretched size are found (any qu
 
 
 check 'Colours: a DC copy made on Layer0 takes its twin\'s tag (so it gets its colour)',
-      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'colours', 'colours.rb')).include?('if inst.layer == layer0 && (t = sibling_tag(inst, sib))')
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'colours', 'colours.rb')).include?('(t = sibling_tag(inst, sib) || named_tag(model, inst, sib))')
 
 
 require 'hw_door_style/doors/tagger' unless defined?(HarryWardrobes::DoorStyle::Tagger)
