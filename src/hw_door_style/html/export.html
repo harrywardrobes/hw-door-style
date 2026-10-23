@@ -25,6 +25,18 @@
   .st.changed, .st.new, .st.not { background:#fff1d6; color:#7a4d00; }
   .st.unchanged { background:#eceef0; color:#57606a; }
   tr.off td { opacity:.55; }
+  button.st { border:0; cursor:pointer; font:inherit; font-size:10.5px; }
+  button.st:hover { filter:brightness(.95); }
+  tr.chg td { background:#fbfaf6; border-bottom:1px solid #e6e1d3; padding:6px 10px 8px 34px; opacity:1 !important; }
+  .chg .lead { color:#57606a; font-size:11px; margin-bottom:5px; }
+  .chg .part { font:600 11px Consolas, "Courier New", monospace; margin:6px 0 2px; color:#1f2328; }
+  .chg table.d { width:auto; border-collapse:collapse; margin-left:10px; }
+  .chg table.d td { border:0; background:none; padding:1px 8px 1px 0; vertical-align:top; font:11px Consolas, "Courier New", monospace; }
+  .chg table.d td.k { color:#57606a; white-space:nowrap; }
+  .chg .was { color:#a33; word-break:break-all; }
+  .chg .now { color:#2c6b47; word-break:break-all; }
+  .chg .none { color:#8b949e; font-style:italic; }
+  .chg .addrm { font:11px Consolas, "Courier New", monospace; margin:2px 0; }
   .bar { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #d0d7de; padding:8px 14px; display:flex; gap:6px; align-items:center; }
   .bar label { font-size:11.5px; display:flex; gap:5px; align-items:center; }
   #prog { display:none; position:fixed; inset:0; background:rgba(255,255,255,.92); align-items:center; justify-content:center; flex-direction:column; gap:10px; }
@@ -70,7 +82,7 @@
 
 <script>
 var D = /*DATA*/null;
-var picked = {}, folder = {}, tplPicked = null;
+var picked = {}, folder = {}, tplPicked = null, open = {};
 function load(d){
   D = d;
   $('sub').textContent = 'From ' + d.master + '  ->  ' + d.root;
@@ -106,13 +118,32 @@ function load(d){
       '<td><input type="checkbox" '+(picked[r.name]?'checked':'')+' onchange="pick(\''+esc(r.name)+'\', this.checked)"></td>' +
       '<td class="name">'+esc(r.name)+'</td>' +
       '<td><select onchange="folder[\''+esc(r.name)+'\']=this.value; refreshNew()">'+opts+'</select></td>' +
-      '<td><span class="st '+cls+'">'+esc(r.status)+'</span></td>' +
+      '<td>'+(r.status === 'changed' ? '<button class="st changed" title="What changed since its last export" onclick="toggle(\''+esc(r.name)+'\')">changed '+(open[r.name] ? '&#9652;' : '&#9662;')+'</button>' : '<span class="st '+cls+'">'+esc(r.status)+'</span>')+'</td>' +
       '<td class="cur">'+(r.current.length ? r.current.map(esc).join('<br>') : '-')+'</td>' +
       '<td class="new" id="new_'+esc(r.name)+'"></td></tr>';
+    if (r.status === 'changed' && open[r.name]) h += '<tr class="chg"><td colspan="6">' + changes(r) + '</td></tr>';
   });
   $('rows').innerHTML = h;
   refreshNew();
 }
+// what changed since the last export: parts added / removed, then each part's values, was -> now
+function shown(v){ return v === undefined || v === null ? '<span class="none">(not set)</span>' : (v === '' ? '<span class="none">(blank)</span>' : esc(v)); }
+function changes(r){
+  var c = r.changes;
+  var lead = 'Compared with what went into ' + esc(r.current[0] || 'its file') + (r.exported ? ' (exported ' + esc(r.exported) + ')' : '') + ', both cleaned as for export (Default colours, drawers shut, runouts 0).';
+  if (!c) return '<div class="lead">' + lead + '</div><div class="none">No record of the component at its last export (exported before what changed was recorded, in 0.91.0), so what changed can\'t be listed. It will be from its next export on.</div>';
+  var h = '<div class="lead">' + lead + '</div>';
+  if (!c.added.length && !c.removed.length && !c.parts.length) h += '<div class="none">Nothing in its parts, positions, options or materials differs - only something the snapshot doesn\'t list (e.g. a face moved inside a part with the same faces, edges, area and box).</div>';
+  c.added.forEach(function(p){ h += '<div class="addrm"><span class="now">+ added</span> ' + esc(p) + '</div>'; });
+  c.removed.forEach(function(p){ h += '<div class="addrm"><span class="was">- removed</span> ' + esc(p) + '</div>'; });
+  c.parts.forEach(function(p){
+    h += '<div class="part">' + esc(p.part) + '</div><table class="d">';
+    p.changes.forEach(function(x){ h += '<tr><td class="k">' + esc(x[0]) + '</td><td class="was">' + shown(x[1]) + '</td><td>&rarr;</td><td class="now">' + shown(x[2]) + '</td></tr>'; });
+    h += '</table>';
+  });
+  return h;
+}
+function toggle(n){ open[n] = !open[n]; load(D); }
 function refreshNew(){ D.rows.forEach(function(r){ var c = $('new_'+r.name); if (c) c.textContent = folder[r.name] + ' / ' + r.file; }); }
 function pick(n, on){ picked[n] = on; $('tr_'+n).className = on ? '' : 'off'; }
 function setAll(on){ D.rows.forEach(function(r){ picked[r.name] = on; }); load(D); }

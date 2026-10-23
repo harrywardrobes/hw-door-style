@@ -173,42 +173,62 @@ module HarryWardrobes
       # shut, runouts 0 (done in a step that is undone again). So the job settings used in the
       # master - scribes on, colours tried out, a drawer left open - don't mark every component
       # "changed"; only a real edit to a component does.
-      def self.clean_fingerprint(model, inst)
-        fp = nil
+      def self.clean_fingerprint(model, inst) = clean_state(model, inst).first
+
+      # [fingerprint, snapshot] as it goes into its file; the snapshot (ExportChanges) only
+      # when want.call(fingerprint) says so.
+      def self.clean_state(model, inst, want = nil)
+        fp = snap = nil
         Ops.throwaway(model, 'Check component') do
           Colours.apply(model, Colours.all_default, root: inst, record: false, plain: true)
           inst.material = nil
           Drawers.close(inst.definition.entities)
           DC.redraw(inst) if Runouts.set(inst, Runouts::ZERO)
           fp = fingerprint(inst)
+          snap = ExportChanges.snapshot(inst) if want&.call(fp)
         end
-        fp
+        [fp, snap]
       rescue StandardError => e
         Log.error('component fingerprint', e)
-        fingerprint(inst)
+        [fingerprint(inst), nil]
       end
 
       # Rows for the window.
       def self.rows(model)
         m = meta(model)
         fl = folders(model)
-        components(model).map do |name, inst|
+        keep = {}
+        out = components(model).map do |name, inst|
           s = scan(model, name)
           rec = m[name] || {}
           folder = folder_for(name)
           v = s[:version] + 1
+          old = rec['fingerprint'] && ExportChanges.stored(model, name)
+          # the snapshot is worked out when there's something to compare it with, or to keep
+          want = ->(fp) { rec['fingerprint'] && (fp != rec['fingerprint'] ? !old.nil? : old.nil?) }
+          now_fp, snap = rec['fingerprint'] ? clean_state(model, inst, want) : [nil, nil]
           status = if rec['fingerprint'].nil? then s[:current].empty? ? 'new' : 'not exported yet'
-                   elsif rec['fingerprint'] == clean_fingerprint(model, inst) then 'unchanged'
+                   elsif rec['fingerprint'] == now_fp then 'unchanged'
                    # recorded before 0.87.1 (as the master was, not as the file): same rule as then
                    elsif rec['fp'].nil? && rec['fingerprint'] == fingerprint(inst) then 'unchanged'
                    else 'changed'
                    end
-          {
+          # unchanged since its export: what it is now is what went into the file
+          keep[name] = snap if status == 'unchanged' && old.nil? && snap
+          row = {
             'name' => name, 'id' => inst.entityID, 'folder' => folder, 'status' => status,
             'current' => s[:current].map { |p| p.sub(root(model) + File::SEPARATOR, '').tr('\\', '/') },
-            'version' => v, 'file' => "#{name}_V#{v}.skp"
+            'version' => v, 'file' => "#{name}_V#{v}.skp", 'exported' => rec['exported']
           }
+          if status == 'changed'
+            row['changes'] = old && snap ? ExportChanges.diff(old, snap) : nil
+          end
+          row
         end
+        unless keep.empty?
+          Ops.run(model, 'Record component snapshots', transparent: true) { keep.each { |n, sn| ExportChanges.store(model, n, sn) } }
+        end
+        out
       end
 
       # --- cleaning -------------------------------------------------------
@@ -314,6 +334,7 @@ module HarryWardrobes
         v = s[:version] + 1
         path = File.join(dir, "#{row['name']}_V#{v}.skp")
         before = nil
+        snap = nil
 
         Ops.throwaway(model, "Export #{row['name']}") do
           Colours.apply(model, Colours.all_default, root: inst, record: false, plain: true)
@@ -323,6 +344,7 @@ module HarryWardrobes
           DC.redraw(inst) if Runouts.set(inst, Runouts::ZERO)
           # Carry the instance's Dynamic Component values ("as drawn") into the file.
           before = fingerprint(inst) # what goes into the file (see clean_fingerprint)
+          snap = ExportChanges.snapshot(inst) # and the detail, for "what changed" next time
           if (dc = inst.attribute_dictionary('dynamic_attributes'))
             dc.each_pair { |k, val| inst.definition.set_attribute('dynamic_attributes', k, val) }
           end
@@ -337,7 +359,10 @@ module HarryWardrobes
         m = meta(model)
         m[row['name']] = { 'folder' => row['folder'], 'version' => v, 'file' => path,
                            'fingerprint' => before, 'fp' => 2, 'exported' => Time.now.strftime('%d/%m/%Y %H:%M') }
-        Ops.run(model, 'Record component export', transparent: true) { save_meta(model, m) }
+        Ops.run(model, 'Record component export', transparent: true) do
+          save_meta(model, m)
+          ExportChanges.store(model, row['name'], snap) if snap
+        end
         { name: row['name'], file: path.sub(root(model) + File::SEPARATOR, ''), moved: moved.map { |p| File.basename(p) } }
       end
 

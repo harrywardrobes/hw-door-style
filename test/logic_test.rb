@@ -484,6 +484,21 @@ fb = FDcInst.new({ 'facing_btm' => 79 / 25.4 }, {})
 check 'facing set keeps number (unprefixed key)', Facing.set(fb, 90) && fb.attrs['facing_btm'].is_a?(Float) && Facing.of(fb) == 90.0
 check 'no facing option: untouched', !Facing.set(FDcInst.new({ 'a01_frame_width' => 1.0 }, {}), 90)
 
+require 'hw_door_style/export/export_changes'
+XC = HarryWardrobes::DoorStyle::ExportChanges
+xo = { 'WRD|material' => '', 'WRD|_lenz_formula' => '=2300', 'WRD > SHELF|position' => '(0, 0, 300) mm', 'WRD > SHELF|tag' => 'SH',
+       'WRD > SHELF (2)|position' => '(0, 0, 600) mm', 'WRD > SHELF (2) > PIN|position' => '(1, 1, 1) mm', 'WRD > RAIL|tag' => 'hanging_rail' }
+xn = { 'WRD|material' => '', 'WRD|_lenz_formula' => '=2400', 'WRD|_backs_label' => 'BACKS', 'WRD > SHELF|position' => '(0, 0, 320) mm', 'WRD > SHELF|tag' => 'SH',
+       'WRD > RAIL|tag' => 'hanging_rail', 'WRD > DIV|position' => '(5, 0, 0) mm', 'WRD > DIV > PIN|position' => '(0, 0, 0) mm' }
+xd = XC.diff(xo, xn)
+check 'export changes: parts added / removed once (not their insides), values was -> now per part, unchanged left out',
+      xd['added'] == ['WRD > DIV'] && xd['removed'] == ['WRD > SHELF (2)'] &&
+      xd['parts'] == [{ 'part' => 'WRD', 'changes' => [['_backs_label', nil, 'BACKS'], ['_lenz_formula', '=2300', '=2400']] }, { 'part' => 'WRD > SHELF', 'changes' => [['position', '(0, 0, 300) mm', '(0, 0, 320) mm']] }] &&
+      XC.empty?(XC.diff(xo, xo)) && XC.unpack(XC.pack(xn)) == xn && XC.unpack('junk').nil?
+eh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/export.html'))
+check 'export window: a changed component opens a list of what changed; snapshots kept at export and when found unchanged',
+      eh.include?('onclick="toggle(') && eh.include?('function changes(r)') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?('ExportChanges.store(model, row[\'name\'], snap)') &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'main.rb')).include?('export/export_changes export/library_export')
 check 'export skips _HW Door Style', '_HW Door Style' =~ LibraryExport::SKIP_DIRS && 'WARDROBES' !~ LibraryExport::SKIP_DIRS
 
 # --- HubSpot (0.21) ---

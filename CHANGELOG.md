@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.91.0 — 2026-10-23
+- Export components: a "changed" component opens a list of what changed since its last export - parts added or removed, and for each part what differs, was -> now: options and formulas (Dynamic Component values), position, rotation / scale, tag, material, hidden, which component (definition) it uses, geometry (faces, edges, area, box) and face materials / tags. Both sides are compared cleaned as for export.
+- Each export now records that detail in the library file. A component exported before this gets it the first time the window finds it unchanged; one already changed shows its changes from its next export on (the window says so).
+
 ## 0.90.1 — 2026-10-23
 - Room setup on a file that's already saved but not linked to HubSpot (an older job) shows Projects again, as "Link to HubSpot": pick the project and room to link it and give it its room name - the file keeps its name and folder. Before, a saved file only got the room size, so it could never be linked from here.
 
