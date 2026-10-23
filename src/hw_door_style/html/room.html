@@ -43,10 +43,10 @@ svg { display:block; margin:6px auto 0; }
       <div class="hint" id="custHint" style="margin:3px 0 0"></div>
     </div></div>
     <div class="row" id="roomRow" style="display:none"><label>HubSpot room</label><div><div class="list" id="rooms"></div></div></div>
-    <div class="row"><label>Folder</label><div><span class="path" id="folder">pick the project above</span><div class="hint" style="margin:3px 0 0"><a id="pickFolder" onclick="sketchup.pickFolder()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">select folder manually</a> <span id="jobs" class="path"></span> <a id="browse" onclick="sketchup.browse()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">customers folder...</a></div></div></div>
+    <div class="row newOnly"><label>Folder</label><div><span class="path" id="folder">pick the project above</span><div class="hint" style="margin:3px 0 0"><a id="pickFolder" onclick="sketchup.pickFolder()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">select folder manually</a> <span id="jobs" class="path"></span> <a id="browse" onclick="sketchup.browse()" style="cursor:pointer;text-decoration:underline;color:var(--muted)">customers folder...</a></div></div></div>
     <div class="row"><label>Room name</label><div><input type="text" id="room" autocomplete="off" placeholder="e.g. grace's room / master bedroom / dressing room"></div></div>
     <div class="row" style="margin-top:2px"><span></span><div class="hint" style="margin:0">e.g. 'grace's room', 'master bedroom', 'dressing room'</div></div>
-    <div class="row" style="align-items:start"><label style="margin-top:5px">File name</label><div><div id="preview" class="empty">pick the project and type the room name</div></div></div>
+    <div class="row newOnly" style="align-items:start"><label style="margin-top:5px">File name</label><div><div id="preview" class="empty">pick the project and type the room name</div></div></div>
   </fieldset>
   <fieldset>
     <legend>Room size</legend>
@@ -163,8 +163,17 @@ function exists(r){
   e.innerHTML = esc(r.name) + ' is already in ' + esc(r.folder) + '. <a style="cursor:pointer;text-decoration:underline" onclick="sketchup.openExisting(' + JSON.stringify(r.path).replace(/"/g, '&quot;') + ')">Open it instead</a>, or change the room name.';
 }
 $('room').addEventListener('input', function(){ $('room').dataset.typed = $('room').value ? '1' : ''; preview(); });
-$('sub').textContent = D.saved ? D.file + '.skp - set the room size.' : 'New job - the customer, where to save it, and the room size.';
-$('saveBox').style.display = D.saved ? 'none' : '';
+// a saved file not linked to HubSpot yet: pick its project here (optional) - it stays where it is, as it's named
+var LINK_ONLY = D.saved && !D.linked;
+$('sub').textContent = !D.saved ? 'New job - the customer, where to save it, and the room size.'
+  : LINK_ONLY ? D.file + '.skp isn\'t linked to a HubSpot project - pick it to link it (the file keeps its name and folder), then set the room size.'
+  : D.file + '.skp - set the room size.';
+$('saveBox').style.display = D.saved && !LINK_ONLY ? 'none' : '';
+if (LINK_ONLY) {
+  document.querySelector('#saveBox legend').textContent = 'Link to HubSpot';
+  Array.prototype.forEach.call(document.querySelectorAll('.newOnly'), function(el){ el.style.display = 'none'; });
+  if (D.room_name) { $('room').value = D.room_name; $('room').dataset.typed = '1'; }
+}
 ['width', 'length', 'ceiling'].forEach(function(k){ if (D[k]) $(k).value = Math.round(D[k]); });
 var missing = [];
 if (!D.has_floor) missing.push('floor'); if (!D.has_ceiling) missing.push('ceiling');
@@ -174,7 +183,7 @@ $('q').addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.stopP
 document.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target !== $('q')) go(); });
 setJobs(D);
 if (!D.saved && !D.hubspot) { $('custHint').textContent = 'No HubSpot key (Settings > HubSpot) - select the folder manually.'; }
-else if (!D.saved) search();
-(D.saved ? $('width') : $('q')).focus();
+else if (!D.saved || LINK_ONLY) search();
+(D.saved && !LINK_ONLY ? $('width') : $('q')).focus();
 </script>
 </body></html>

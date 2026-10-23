@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.90.1 — 2026-10-23
+- Room setup on a file that's already saved but not linked to HubSpot (an older job) shows Projects again, as "Link to HubSpot": pick the project and room to link it and give it its room name - the file keeps its name and folder. Before, a saved file only got the room size, so it could never be linked from here.
+
 ## 0.90.0 — 2026-10-23
 - Room setup window: "Customer" is now "Projects"; once a project is picked the customer's name (and address) shows under it.
 - The customers folder is always 1_CUSTOMERS on the shared drive (a folder chosen earlier is only used on a computer without it, and a customer's own folder can't be chosen as it). The customer's folder is found there by the HubSpot contact ID; a new one is named "REID, Charlotte - Chester - (870739371231)".

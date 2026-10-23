@@ -738,6 +738,7 @@ check 'front wall is a room part (front_wall / Front Wall)', RM::WALLS[:front].m
 check 'room views: a third in, facing the back (view 1) and the front (view 2)', RM::VIEWS.map { |v| [v[:page], v[:plane], v[:look]] } == [['view 1', 'Section 1', 1], ['view 2', 'Section 2', -1]]
 rh = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/room.html'))
 check 'room window: Projects search, room pick, folder (manual link), room name, file name preview', %w[width length ceiling sketchup.search sketchup.project sketchup.pickFolder sketchup.apply sketchup.browse sketchup.never sketchup.openExisting select\ folder\ manually >Projects< id="room" id="preview" master\ bedroom].all? { |w| rh.include?(w.tr('\\', '')) } && !rh.include?('id="file"')
+check 'room window: a saved file not linked to HubSpot still shows Projects to link it (keeps its name and folder)', rh.include?('LINK_ONLY = D.saved && !D.linked') && rh.include?("'Link to HubSpot'") && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/room.rb')).include?("'linked' => HubSpotRoom.customer_link(model)")
 check 'room window: the error shows above the buttons (outside the scrolling part)', rh.index('<div id="err"></div>') > rh.index('</fieldset>') && rh.index('<div id="err"></div>') < rh.index('<div class="foot">')
 check 'scribe window sends the room size with the ceiling', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/scribe.html')).include?('o.room_width')
 

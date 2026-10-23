@@ -367,6 +367,7 @@ module HarryWardrobes
         r = get(model) || {}
         { 'saved' => !model.path.to_s.empty?, 'file' => File.basename(model.path.to_s, '.skp'),
           'jobs' => jf, 'jobs_fixed' => customers_dir? ? true : false, 'hubspot' => HubSpot.key?,
+          'linked' => HubSpotRoom.customer_link(model) ? true : false, 'room_name' => model.get_attribute(DICT, 'room_name').to_s,
           'width' => r['width'], 'length' => r['length'], 'ceiling' => r['ceiling'] || (Ceiling.mm(model).positive? ? Ceiling.mm(model) : nil),
           'has_floor' => !p[:floor].nil?, 'has_ceiling' => !p[:ceiling].nil? }
       end
