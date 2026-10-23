@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.94.0 — 2026-10-23
+- Installation plan as an architectural plan, from SketchUp's own Top view (Parallel Projection) and Hidden Line style, whatever the plan scene's camera: looked at through a horizontal section ("HW plan cut", 100 mm under the ceiling - Settings "plan_cut_mm" to change), so walls and full-height units show cut and filled, everything lower in outline; no shadows.
+- Dimensions all the way round the room, outside the walls: on every wall a chain from corner to corner through each product against it (its width along that wall - a knee-hole by its opening - and the gaps between), then the wall's full length.
+- Pod numbers as black discs with the number in white (UNFITTED under it for an unfitted unit), on the PDF and in the Workshop window.
+- The plan picture shows the dimensions even when the plan scene hides the "dimensions / labels" tag folder.
+
 ## 0.93.0 — 2026-10-23
 - Installation plan: each product is dimensioned along the wall it stands against (the way its back faces) - back, front, left or right wall, outside the room - instead of always across the back. A unit on a side wall (e.g. an unfitted chest) now shows its width against that wall, not its depth. A knee-hole worktop shows the opening's width.
 - Installation plan: Pod numbers are smaller, bold text over the picture (on a white patch), with "UNFITTED" over the number of any unfitted unit. In SketchUp's plan scene they're drawn smaller in Arial Black.

@@ -494,6 +494,11 @@ xd = XC.diff(xo, xn)
 check 'cable outlets: fixed size and round - Clean model fixes them, export blocked until then', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'core/no_scale.rb')).include?('FIXED = /\\ACABLE_OUTLET/i') &&
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?('NoScale.fix_outlets!(model)') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?("outlets.empty? }")
 PL_SRC = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/plan.rb'))
+require 'hw_door_style/job/plan'
+PLN = HarryWardrobes::DoorStyle::Plan
+ch = PLN.chain(3930 / 25.4, [[598, 975], [966, 1686]].map { |a| a.map { |v| v / 25.4 } }).map { |v| (v * 25.4).round }
+check 'installation plan: dimensions round the room - a chain from corner to corner through each product on the wall (points closer than 10 mm merged), then the whole wall',
+      ch == [0, 598, 966, 1686, 3930] && PLN.chain(100, []).size == 2 && PL_SRC.include?('t + gap * 2.2') && PL_SRC.include?("CUT_NAME = 'HW plan cut'")
 check 'installation plan: each product dimensioned along the wall it stands against (its back), a knee-hole by its opening; Pod numbers bold text over the picture, UNFITTED over an unfitted unit; hidden tags off in the plan scenes',
       PL_SRC.include?('def self.wall_of(host)') && PL_SRC.include?("DC.value(host, 'a01_unit_width')") && PL_SRC.include?('def self.overlay(pg, labels') &&
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/room_plan.rb')).include?('Plan.overlay(pg, Plan.labels') &&

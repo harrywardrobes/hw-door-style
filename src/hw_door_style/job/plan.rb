@@ -162,9 +162,21 @@ module HarryWardrobes
         end
       end
 
-      # The room (floor) across the front and down the left, and each product along the wall
-      # it stands against, outside the room: its width against that wall (a knee-hole worktop:
-      # the opening).
+      # The points along a wall (length len, inches) for a chain of dimensions from corner to
+      # corner: both corners and the ends of every product against it, merged when closer
+      # than merge. Spans are [from, to] from the wall's start.
+      def self.chain(len, spans, merge = 10 / 25.4)
+        pts = ([0.0, len.to_f] + spans.flatten.map { |v| v.to_f.clamp(0.0, len.to_f) }).sort
+        out = pts.each_with_object([]) { |v, o| o << v if o.empty? || v - o.last >= merge }
+        out[-1] = len.to_f if (len.to_f - out[-1]).abs < merge
+        out
+      end
+
+      # Dimensions all the way round the room, outside the walls, as on an architectural
+      # plan: on each wall a chain from corner to corner through every product against it
+      # (its width along that wall - a knee-hole worktop by its opening - and the gaps between),
+      # then the wall's full length further out. A file with no floor gets each product's
+      # width along its wall. Also the plan cut (plan_cut).
       def self.dimension(model)
         tag = dims_tag(model)
         gap = (s['plan_dim_offset_mm'] || 250).to_f / 25.4
@@ -173,21 +185,18 @@ module HarryWardrobes
           old = model.entities.grep(Sketchup::Dimension).select { |d| d.get_attribute(DICT, DIM) }
           model.entities.erase_entities(old) unless old.empty?
           add = lambda do |a, b, off|
-            d = model.entities.add_dimension_linear(a, b, off)
+            d = model.entities.add_dimension_linear(Geom::Point3d.new(*a), Geom::Point3d.new(*b), off)
             d.layer = tag
             d.set_attribute(DICT, DIM, true)
             made += 1
           end
           floor = Room.parts(model)[:floor]
           fb = floor&.bounds
-          if floor
-            add.call(Geom::Point3d.new(fb.min.x, fb.min.y, 0), Geom::Point3d.new(fb.max.x, fb.min.y, 0), [0, -gap * 3, 0])
-            add.call(Geom::Point3d.new(fb.min.x, fb.min.y, 0), Geom::Point3d.new(fb.min.x, fb.max.y, 0), [-gap * 3, 0, 0])
-          end
           rows, = Products.list(model)
-          # over everything in the model (walls included, whatever they are) so the top view always shows them
-          top = model.bounds.max.z + 100 / 25.4
+          # just under the plan cut: over everything the plan shows (walls included), not cut away
+          top = (fb ? fb.min.z : 0) + (cut_height_mm(model) - 10) / 25.4
           by_pid = Products.candidates(model.entities).to_h { |e, _| [e.persistent_id.to_s, e] }
+          runs = Hash.new { |h, k| h[k] = [] }
           rows.each do |r|
             h = by_pid[r['pid']] or next
             bb = Geom::BoundingBox.new
@@ -196,15 +205,61 @@ module HarryWardrobes
             wall = wall_of(h) or next
             from, to = span(h, bb, wall)
             next if (to - from) < 1 / 25.4
-            a, b, off = wall_dim(wall, from, to, fb, bb, [top, bb.max.z + 100 / 25.4].max, gap)
-            add.call(Geom::Point3d.new(*a), Geom::Point3d.new(*b), off)
+            if fb
+              runs[wall] << [from, to]
+            else
+              a, b, off = wall_dim(wall, from, to, nil, bb, top, gap)
+              add.call(a, b, off)
+            end
           end
+          if fb
+            t = Room.wall_mm / 25.4
+            %i[back front left right].each do |wall|
+              along_x = %i[back front].include?(wall)
+              o = along_x ? fb.min.x : fb.min.y
+              len = along_x ? fb.width : fb.height
+              pts = chain(len, runs[wall].map { |a, b| [a - o, b - o] })
+              if pts.size > 2
+                pts.each_cons(2) do |a, b|
+                  pa, pb, off = wall_dim(wall, o + a, o + b, fb, nil, top, t + gap)
+                  add.call(pa, pb, off)
+                end
+              end
+              pa, pb, off = wall_dim(wall, o, o + len, fb, nil, top, t + gap * 2.2)
+              add.call(pa, pb, off)
+            end
+          end
+          plan_cut(model, fb)
           # the plan scenes leave off what Settings > Floor plan hides (cable outlets, hinges...)
           hidden_tags(model).each { |l| model.pages.each { |pg| pg.set_visibility(l, false) if pg.name =~ scene_re } }
           plan_only(model, tag)
         end
         made
       end
+
+      # The plan's horizontal section ("HW plan cut"), just under the ceiling: the plan
+      # picture is looked at through it, so walls and full-height units show cut (filled) as on
+      # an architectural plan and everything lower is seen from above. Settings "plan_cut_mm"
+      # sets its height above the floor (blank = 100 mm under the ceiling).
+      CUT_NAME = 'HW plan cut'.freeze
+
+      def self.cut_height_mm(model)
+        v = s['plan_cut_mm'].to_f
+        return v if v.positive?
+        c = Ceiling.mm(model)
+        c.positive? ? c - 100 : 2300
+      end
+
+      def self.plan_cut(model, fb)
+        z = (fb ? fb.min.z : 0) + cut_height_mm(model) / 25.4
+        sp = cut_plane(model) || model.entities.add_section_plane([0, 0, z], [0, 0, -1])
+        sp.set_plane([0, 0, -1, z])
+        sp.name = CUT_NAME
+        sp.layer = dims_tag(model) # shown (and cutting) only with the plan's dimensions
+        sp
+      end
+
+      def self.cut_plane(model) = model.entities.grep(Sketchup::SectionPlane).find { |x| x.name == CUT_NAME }
 
       # --- picture + PDF --------------------------------------------------------------------
 
@@ -240,11 +295,18 @@ module HarryWardrobes
         opts = model.options['PageOptions']
         trans = opts['ShowTransition']
         ro = model.rendering_options
-        keep = %w[BackgroundColor DrawGround DrawHorizon DrawSky HideConstructionGeometry].to_h { |k| [k, (ro[k] rescue nil)] }
+        keep = %w[BackgroundColor DrawGround DrawHorizon DrawSky HideConstructionGeometry DisplaySectionCuts DisplaySectionPlanes SectionCutFilled
+                  SectionDefaultFillColor SectionDefaultCutColor SectionCutWidth RenderMode Texture].to_h { |k| [k, (ro[k] rescue nil)] }
+        si = model.shadow_info
+        shadows = si['DisplayShadows']
         begin
           opts['ShowTransition'] = false
+          was_cut = model.entities.active_section_plane
           model.pages.selected_page = pg
           [notes_tag(model), dims_tag(model)].each { |l| l.visible = true }
+          # and their tag folder (a plan scene may hide "dimensions / labels")
+          folders = [notes_tag(model), dims_tag(model)].filter_map { |l| l.respond_to?(:folder) ? l.folder : nil }.uniq.reject(&:visible?)
+          folders.each { |f| f.visible = true }
           # the Pod numbers go on as bold text over the picture (labels below), not drawn in it
           Products.label_tag(model).visible = false
           hidden = hidden_tags(model).select(&:visible?)
@@ -253,18 +315,31 @@ module HarryWardrobes
           ro['BackgroundColor'] = Sketchup::Color.new(255, 255, 255)
           %w[DrawGround DrawHorizon DrawSky].each { |k| ro[k] = false unless ro[k].nil? }
           ro['HideConstructionGeometry'] = true # no guide lines on the plan
-          # always in the middle: the scene's view direction, turned by the job's rotation, then
-          # zoomed to what's on show with a margin
-          v = view.camera
-          up = v.up
+          # outlined, as an architectural plan: SketchUp's Hidden Line face style, no shadows
+          ro['RenderMode'] = 1
+          ro['Texture'] = false
+          si['DisplayShadows'] = false
+          # looked at through the plan cut: walls and tall units cut and filled
+          if (cut = cut_plane(model))
+            model.entities.active_section_plane = cut
+            ro['DisplaySectionCuts'] = true
+            ro['DisplaySectionPlanes'] = false
+            ro['SectionCutFilled'] = true
+            ro['SectionDefaultFillColor'] = Sketchup::Color.new(150, 150, 150)
+            ro['SectionDefaultCutColor'] = Sketchup::Color.new(0, 0, 0)
+            ro['SectionCutWidth'] = 2
+          end
+          # SketchUp's Top view in Parallel Projection (whatever the scene's camera is), back wall
+          # at the top, turned by the job's rotation, then zoomed to what's on show with a margin
+          c0 = model.bounds.center
+          up = Y_AXIS
           r = rotation(model)
-          up = Geom::Transformation.rotation(v.target, v.direction, -r.degrees) * up if r.positive?
-          cam2 = Sketchup::Camera.new(v.eye, v.target, up, v.perspective?, v.fov)
-          cam2.height = v.height unless v.perspective?
+          up = Geom::Transformation.rotation(ORIGIN, Z_AXIS, r.degrees) * up if r.positive?
+          cam2 = Sketchup::Camera.new(Geom::Point3d.new(c0.x, c0.y, model.bounds.max.z + 1000), Geom::Point3d.new(c0.x, c0.y, model.bounds.min.z), up, false)
           view.camera = cam2
           # fit to what's on show - not guide lines (endless) or anything hidden
           shown = model.entities.select do |e|
-            e.is_a?(Sketchup::Drawingelement) && !e.is_a?(Sketchup::ConstructionLine) && !e.is_a?(Sketchup::ConstructionPoint) &&
+            e.is_a?(Sketchup::Drawingelement) && !e.is_a?(Sketchup::ConstructionLine) && !e.is_a?(Sketchup::ConstructionPoint) && !e.is_a?(Sketchup::SectionPlane) &&
               e.visible? && e.layer.visible? && !(e.respond_to?(:definition) && e.definition.name =~ /\Aceiling\z/i)
           end
           shown.empty? ? view.zoom_extents : view.zoom(shown)
@@ -274,8 +349,11 @@ module HarryWardrobes
           view.write_image(filename: path, width: width, height: h, antialias: true, compression: 0.9) or raise "Couldn't make the plan picture"
         ensure
           keep.each { |k, val| (ro[k] = val) unless val.nil? }
+          si['DisplayShadows'] = shadows unless shadows.nil?
+          Array(folders).each { |f| f.visible = false if f.valid? }
           Array(hidden).each { |l| l.visible = true if l.valid? }
           model.pages.selected_page = was_page if was_page
+          model.entities.active_section_plane = was_cut if was_page.nil? || !was_page.use_section_planes?
           view.camera = cam
           opts['ShowTransition'] = trans
           [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| plan_only(model, l) }
@@ -297,26 +375,36 @@ module HarryWardrobes
       # The Pod numbers from the last picture.
       def self.labels = Array(@labels)
 
-      # The Pod numbers in bold over the plan picture drawn at x, y (bottom-left), w x h points:
-      # "B4" (with "UNFITTED" over it, smaller, for an unfitted unit) on a white patch.
-      NUM_PT = 10
-      PRE_PT = 6.5
+      # The Pod numbers over the plan picture drawn at x, y (bottom-left), w x h points, as on
+      # an architectural plan: a black disc with the number in white bold, "UNFITTED" in small
+      # bold under it for an unfitted unit.
+      NUM_PT = 7.5
+      PRE_PT = 5.5
+      K = 0.5523 # circle from four curves
+
+      def self.disc(pg, cx, cy, r)
+        c = r * K
+        pg.ops << format('0 g %.2f %.2f m %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c f',
+                         cx + r, cy, cx + r, cy + c, cx + c, cy + r, cx, cy + r, cx - c, cy + r, cx - r, cy + c, cx - r, cy,
+                         cx - r, cy - c, cx - c, cy - r, cx, cy - r, cx + c, cy - r, cx + r, cy - c, cx + r, cy)
+      end
+
+      def self.badge_r(t) = [Pdf.width(t, 'F2', NUM_PT) / 2 + 3, 7.5].max
 
       def self.overlay(pg, labels, x, y, w, h)
         labels.each do |l|
           cx = x + l['fx'].to_f * w
           cy = y + (1 - l['fy'].to_f) * h
           next if cx < x || cx > x + w || cy < y || cy > y + h
-          lines = [[l['pre'].to_s, PRE_PT], [l['t'].to_s, NUM_PT]].reject { |t, _| t.empty? }
-          tall = lines.sum { |_t, sz| sz * 0.8 } + (lines.size - 1) * 1.5
-          wide = lines.map { |t, sz| Pdf.width(t, 'F2', sz) }.max
-          pg.rect_fill(cx - wide / 2 - 2, cy - tall / 2 - 2, wide + 4, tall + 4, 1.0)
-          top = cy + tall / 2
-          lines.each do |t, sz|
-            top -= sz * 0.8
-            pg.text(cx - Pdf.width(t, 'F2', sz) / 2, top, t, font: 'F2', size: sz)
-            top -= 1.5
-          end
+          t = Pdf.clean(l['t'].to_s)
+          r = badge_r(t)
+          disc(pg, cx, cy, r)
+          pg.ops << format('1 g BT /F2 %.1f Tf %.2f %.2f Td (%s) Tj ET 0 g', NUM_PT, cx - Pdf.width(t, 'F2', NUM_PT) / 2, cy - NUM_PT * 0.35, Pdf.esc(t))
+          pre = l['pre'].to_s
+          next if pre.empty?
+          pw = Pdf.width(pre, 'F2', PRE_PT)
+          pg.rect_fill(cx - pw / 2 - 1.5, cy - r - PRE_PT - 2.5, pw + 3, PRE_PT + 2, 1.0)
+          pg.text(cx - pw / 2, cy - r - PRE_PT - 1, pre, font: 'F2', size: PRE_PT)
         end
       end
 
