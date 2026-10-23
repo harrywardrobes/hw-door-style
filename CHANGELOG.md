@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.89.1 — 2026-10-23
+- Fix: the Workshop didn't open in 0.89.0 ("undefined local variable or method `tops'") - the Pod numbers weren't passed on to the drawer boxes.
+
 ## 0.89.0 — 2026-10-23
 - Workshop window laid out as the PDFs (the PDFs are the reference): one tab per PDF - Room Plan (cover / specification and the product list as the PDF prints them), Installation plan, Door / Vinyl order (the order lines with the PDF's own Details and Drilling, items by style, 22mm / bullnose / vinyl end panel tables, the worktop order with its edge drawings) and Parts list (boards by strip width with the strip and full-sheet sub-sections, Timber / MDF, Hardware, Handles, Drawer boxes). Whatever is on a PDF only (door elevations, renders) or in the window only (edging total, every front with its Pod number, the Includes controls) is said so in the window.
 - Room Plan PDF: the cover ends with the room name and the customer's full name; the last page is titled INSTALLATION PLAN with "ROOM - Full Name" under it.

@@ -447,7 +447,7 @@ module HarryWardrobes
             @nocolour[name] += 1 if type == TYPE_UNKNOWN && mat.nil?
           end
         end
-        finish(model, groups, hardware, skipped, opts)
+        finish(model, groups, hardware, skipped, opts, tops: tops)
       end
 
       # Lengths as SketchUp shows them in this model (what OpenCutList prints, e.g. "1200 mm").
@@ -699,7 +699,7 @@ module HarryWardrobes
 
       # OpenCutList phase 2: groups by material type > name > thickness; parts sorted by the
       # part order strategy and numbered A, B ... (again from A in each group, as set in OpenCutList).
-      def self.finish(model, groups, hardware, skipped, opts = CUTLIST_DEFAULTS)
+      def self.finish(model, groups, hardware, skipped, opts = CUTLIST_DEFAULTS, tops: nil)
         load_entered(model)
         strategy = opts['part_order_strategy']
         edging = Hash.new { |h, k| h[k] = { 'material' => k[0], 'height' => k[1], 'metres' => 0.0, 'parts' => 0 } }
