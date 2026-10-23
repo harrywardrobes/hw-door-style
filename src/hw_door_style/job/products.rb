@@ -295,25 +295,20 @@ module HarryWardrobes
 
       def self.label_tag(model) = Tags.get(model, 'product_label_tag')
 
-      LABEL_MM = 100 # height of the Pod number lettering on the plan (SketchUp's plan scene)
-      LABEL_FONT = 'Arial Black'.freeze
       UNFITTED = /UNFITTED/i.freeze
 
       # "UNFITTED" over the Pod number of an unfitted unit (DRAWER_UNFITTED...).
       def self.label_pre(host) = DC.base_name(host.definition) =~ UNFITTED ? 'UNFITTED' : ''
 
-      # The Pod number ("T1") in bold flat lettering over the middle of each product, on its
-      # own tag, shown only in the plan scenes (Settings "product_label_scenes"). It reads
-      # upright in the plan picture whichever way the plan is turned. Replaces the last ones.
-      # (Screen text can't be bold, so the lettering is drawn.)
+      # The Pod number ("T1", "UNFITTED\nB4") as SketchUp screen text over the middle of each
+      # product (no leader), on the Pod_numbers tag, shown only in the plan scenes (Settings
+      # "product_label_scenes"). Screen text is always solid and the same size whatever the
+      # zoom, so it reads the same in the plan picture. Replaces the last ones.
       def self.label(model, rows = nil)
         rows ||= list(model).first
         tag = label_tag(model)
         pattern = Regexp.new(Settings.get['product_label_scenes'].to_s.strip.then { |s| s.empty? ? 'top|plan' : s }, Regexp::IGNORECASE)
         by_pid = candidates(model.entities).to_h { |e, _| [e.persistent_id.to_s, e] }
-        turn = defined?(Plan) ? Plan.rotation(model) : 0
-        ink = model.materials['HW plan ink'] || model.materials.add('HW plan ink')
-        ink.color = Sketchup::Color.new(0, 0, 0)
         n = 0
         Ops.run(model, 'Pod numbers on the plan') do
           old = model.entities.select { |e| (e.is_a?(Sketchup::Text) || e.is_a?(Sketchup::Group)) && e.get_attribute(DICT, 'product_label') }
@@ -323,19 +318,14 @@ module HarryWardrobes
             bb = Geom::BoundingBox.new
             bb.add(h.bounds)
             r['members'].each { |m| (e = by_pid[m['pid']]) && bb.add(e.bounds) }
-            g = model.entities.add_group
             pre = label_pre(h)
-            g.entities.add_3d_text([pre, r['t'].to_s].reject(&:empty?).join("\n"), TextAlignCenter, LABEL_FONT, true, false, LABEL_MM / 25.4, 0.0, 0.0, true, 0.0)
-            tb = g.bounds
-            # centred on the product, just above it, turned to read upright in the plan picture
-            t = Geom::Transformation.translation(Geom::Point3d.new(bb.center.x, bb.center.y, bb.max.z + 1) - tb.center)
-            t = Geom::Transformation.rotation(Geom::Point3d.new(bb.center.x, bb.center.y, 0), Z_AXIS, turn.degrees) * t if turn.positive?
-            g.transform!(t)
-            g.material = ink
-            g.layer = tag
-            g.name = r['t'].to_s
-            g.set_attribute(DICT, 'product_label', r['t'])
-            g.set_attribute(DICT, 'product_label_pre', pre) unless pre.empty?
+            txt = [pre, r['t'].to_s].reject(&:empty?).join("\n")
+            t = model.entities.add_text(txt, Geom::Point3d.new(bb.center.x, bb.center.y, bb.max.z))
+            t.leader_type = 0 if t.respond_to?(:leader_type=) # no leader line
+            t.display_leader = false if t.respond_to?(:display_leader=)
+            t.layer = tag
+            t.set_attribute(DICT, 'product_label', r['t'])
+            t.set_attribute(DICT, 'product_label_pre', pre) unless pre.empty?
             n += 1
           end
           # Hidden everywhere except the plan scenes.

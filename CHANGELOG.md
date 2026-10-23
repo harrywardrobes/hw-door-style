@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.95.0 — 2026-10-23
+- Installation plan picture is a plain SketchUp screenshot again: SketchUp's Top view in Parallel Projection, the "HW plan" style (hidden line, black edges, white paper, no shadows - made in the file if missing, yours to edit after), the plan scene's own tags. No section cut, nothing drawn over the picture.
+- Pod numbers are SketchUp screen text (Text tool, no leader) over each product on the Pod_numbers tag - solid, the same size at any zoom, "UNFITTED" over an unfitted unit. A saved "Plan label tag" of T_numbers is dropped so every computer uses Pod_numbers.
+- The plan scenes are set as the picture: hidden tags off, notes / dimensions / Pod numbers on.
+
 ## 0.94.0 — 2026-10-23
 - Installation plan as an architectural plan, from SketchUp's own Top view (Parallel Projection) and Hidden Line style, whatever the plan scene's camera: looked at through a horizontal section ("HW plan cut", 100 mm under the ceiling - Settings "plan_cut_mm" to change), so walls and full-height units show cut and filled, everything lower in outline; no shadows.
 - Dimensions all the way round the room, outside the walls: on every wall a chain from corner to corner through each product against it (its width along that wall - a knee-hole by its opening - and the gaps between), then the wall's full length.

@@ -176,7 +176,7 @@ module HarryWardrobes
       # plan: on each wall a chain from corner to corner through every product against it
       # (its width along that wall - a knee-hole worktop by its opening - and the gaps between),
       # then the wall's full length further out. A file with no floor gets each product's
-      # width along its wall. Also the plan cut (plan_cut).
+      # width along its wall.
       def self.dimension(model)
         tag = dims_tag(model)
         gap = (s['plan_dim_offset_mm'] || 250).to_f / 25.4
@@ -193,8 +193,8 @@ module HarryWardrobes
           floor = Room.parts(model)[:floor]
           fb = floor&.bounds
           rows, = Products.list(model)
-          # just under the plan cut: over everything the plan shows (walls included), not cut away
-          top = (fb ? fb.min.z : 0) + (cut_height_mm(model) - 10) / 25.4
+          # over everything in the model (walls included, whatever they are) so the top view always shows them
+          top = model.bounds.max.z + 100 / 25.4
           by_pid = Products.candidates(model.entities).to_h { |e, _| [e.persistent_id.to_s, e] }
           runs = Hash.new { |h, k| h[k] = [] }
           rows.each do |r|
@@ -229,37 +229,20 @@ module HarryWardrobes
               add.call(pa, pb, off)
             end
           end
-          plan_cut(model, fb)
-          # the plan scenes leave off what Settings > Floor plan hides (cable outlets, hinges...)
-          hidden_tags(model).each { |l| model.pages.each { |pg| pg.set_visibility(l, false) if pg.name =~ scene_re } }
+          # the plan scenes show as the picture: Settings > Floor plan's hidden tags off (cable
+          # outlets, hinges, rails...), the notes / dimensions / Pod numbers and their folder on
+          model.pages.each do |pg|
+            next unless pg.name =~ scene_re
+            hidden_tags(model).each { |l| pg.set_visibility(l, false) }
+            [notes_tag(model), dims_tag(model), Products.label_tag(model)].each do |l|
+              pg.set_visibility(l, true)
+              pg.set_visibility(l.folder, true) if l.respond_to?(:folder) && l.folder && pg.respond_to?(:set_visibility)
+            end
+          end
           plan_only(model, tag)
         end
         made
       end
-
-      # The plan's horizontal section ("HW plan cut"), just under the ceiling: the plan
-      # picture is looked at through it, so walls and full-height units show cut (filled) as on
-      # an architectural plan and everything lower is seen from above. Settings "plan_cut_mm"
-      # sets its height above the floor (blank = 100 mm under the ceiling).
-      CUT_NAME = 'HW plan cut'.freeze
-
-      def self.cut_height_mm(model)
-        v = s['plan_cut_mm'].to_f
-        return v if v.positive?
-        c = Ceiling.mm(model)
-        c.positive? ? c - 100 : 2300
-      end
-
-      def self.plan_cut(model, fb)
-        z = (fb ? fb.min.z : 0) + cut_height_mm(model) / 25.4
-        sp = cut_plane(model) || model.entities.add_section_plane([0, 0, z], [0, 0, -1])
-        sp.set_plane([0, 0, -1, z])
-        sp.name = CUT_NAME
-        sp.layer = dims_tag(model) # shown (and cutting) only with the plan's dimensions
-        sp
-      end
-
-      def self.cut_plane(model) = model.entities.grep(Sketchup::SectionPlane).find { |x| x.name == CUT_NAME }
 
       # --- picture + PDF --------------------------------------------------------------------
 
@@ -285,6 +268,55 @@ module HarryWardrobes
         true
       end
 
+      STYLE_NAME = 'HW plan'.freeze
+
+      # The plan's style: "HW plan" in the file, made when missing (a copy of the current style
+      # with SketchUp's Hidden Line faces, plain black edges - no profiles, extensions or
+      # endpoints - white background, no sky / ground / horizon, no shadows). Yours to edit
+      # in the Styles tray once it's there; the plugin never changes it again.
+      def self.style(model)
+        st = model.styles[STYLE_NAME]
+        return st if st
+        styles = model.styles
+        was = styles.selected_style
+        ro = model.rendering_options
+        keep = ro.keys.to_h { |k| [k, ro[k]] }
+        si = model.shadow_info
+        shadows = si['DisplayShadows']
+        copy = was.duplicate
+        copy.name = STYLE_NAME
+        copy.description = 'Harry Wardrobes installation plan: hidden line, black edges, white paper, no shadows.'
+        styles.selected_style = copy
+        ro['RenderMode'] = 1 # Hidden Line
+        ro['Texture'] = false
+        ro['EdgeDisplayMode'] = 1
+        ro['DrawProfilesOnly'] = false
+        ro['DrawSilhouettes'] = false
+        ro['LineExtension'] = 0
+        ro['DrawLineEnds'] = false
+        ro['DrawDepthQue'] = false
+        ro['JitterEdges'] = false
+        ro['EdgeColorMode'] = 0
+        ro['ForegroundColor'] = Sketchup::Color.new(0, 0, 0)
+        ro['BackgroundColor'] = Sketchup::Color.new(255, 255, 255)
+        %w[DrawGround DrawHorizon DrawSky].each { |k| ro[k] = false unless ro[k].nil? }
+        ro['DisplaySectionPlanes'] = false
+        ro['HideConstructionGeometry'] = true
+        si['DisplayShadows'] = false
+        styles.update_selected_style
+        copy
+      ensure
+        if was
+          styles.selected_style = was
+          keep.each { |k, v| (ro[k] = v) unless v.nil? } if keep
+          si['DisplayShadows'] = shadows unless shadows.nil?
+        end
+      end
+
+      # The plan scene as a JPEG: SketchUp's Top view in Parallel Projection, the "HW plan"
+      # style, shadows off, the scene's own tags (plus the plan's notes / dimensions / Pod
+      # numbers, less Settings > Floor plan's hidden tags), zoomed to what's on show and
+      # turned by the job's rotation. The scene / camera / style showing now is put back.
       def self.picture(model, path, width = 2400)
         pg = plan_page(model) or raise "No plan scene - add a scene whose name has \"#{s['plan_scenes'].to_s.empty? ? 'top or plan' : s['plan_scenes']}\" (e.g. S top)."
         view = model.active_view
@@ -294,49 +326,27 @@ module HarryWardrobes
         cam.height = c.height unless c.perspective?
         opts = model.options['PageOptions']
         trans = opts['ShowTransition']
-        ro = model.rendering_options
-        keep = %w[BackgroundColor DrawGround DrawHorizon DrawSky HideConstructionGeometry DisplaySectionCuts DisplaySectionPlanes SectionCutFilled
-                  SectionDefaultFillColor SectionDefaultCutColor SectionCutWidth RenderMode Texture].to_h { |k| [k, (ro[k] rescue nil)] }
+        was_style = model.styles.selected_style
         si = model.shadow_info
         shadows = si['DisplayShadows']
+        folders = []
         begin
           opts['ShowTransition'] = false
-          was_cut = model.entities.active_section_plane
           model.pages.selected_page = pg
-          [notes_tag(model), dims_tag(model)].each { |l| l.visible = true }
+          model.styles.selected_style = style(model)
+          si['DisplayShadows'] = false
+          [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| l.visible = true }
           # and their tag folder (a plan scene may hide "dimensions / labels")
-          folders = [notes_tag(model), dims_tag(model)].filter_map { |l| l.respond_to?(:folder) ? l.folder : nil }.uniq.reject(&:visible?)
+          folders = [notes_tag(model), dims_tag(model), Products.label_tag(model)].filter_map { |l| l.respond_to?(:folder) ? l.folder : nil }.uniq.reject(&:visible?)
           folders.each { |f| f.visible = true }
-          # the Pod numbers go on as bold text over the picture (labels below), not drawn in it
-          Products.label_tag(model).visible = false
           hidden = hidden_tags(model).select(&:visible?)
           hidden.each { |l| l.visible = false }
-          # white paper: no sky, ground or horizon
-          ro['BackgroundColor'] = Sketchup::Color.new(255, 255, 255)
-          %w[DrawGround DrawHorizon DrawSky].each { |k| ro[k] = false unless ro[k].nil? }
-          ro['HideConstructionGeometry'] = true # no guide lines on the plan
-          # outlined, as an architectural plan: SketchUp's Hidden Line face style, no shadows
-          ro['RenderMode'] = 1
-          ro['Texture'] = false
-          si['DisplayShadows'] = false
-          # looked at through the plan cut: walls and tall units cut and filled
-          if (cut = cut_plane(model))
-            model.entities.active_section_plane = cut
-            ro['DisplaySectionCuts'] = true
-            ro['DisplaySectionPlanes'] = false
-            ro['SectionCutFilled'] = true
-            ro['SectionDefaultFillColor'] = Sketchup::Color.new(150, 150, 150)
-            ro['SectionDefaultCutColor'] = Sketchup::Color.new(0, 0, 0)
-            ro['SectionCutWidth'] = 2
-          end
-          # SketchUp's Top view in Parallel Projection (whatever the scene's camera is), back wall
-          # at the top, turned by the job's rotation, then zoomed to what's on show with a margin
+          # SketchUp's Top view, Parallel Projection: back wall at the top, turned by the job's rotation
           c0 = model.bounds.center
           up = Y_AXIS
           r = rotation(model)
           up = Geom::Transformation.rotation(ORIGIN, Z_AXIS, r.degrees) * up if r.positive?
-          cam2 = Sketchup::Camera.new(Geom::Point3d.new(c0.x, c0.y, model.bounds.max.z + 1000), Geom::Point3d.new(c0.x, c0.y, model.bounds.min.z), up, false)
-          view.camera = cam2
+          view.camera = Sketchup::Camera.new(Geom::Point3d.new(c0.x, c0.y, model.bounds.max.z + 1000), Geom::Point3d.new(c0.x, c0.y, model.bounds.min.z), up, false)
           # fit to what's on show - not guide lines (endless) or anything hidden
           shown = model.entities.select do |e|
             e.is_a?(Sketchup::Drawingelement) && !e.is_a?(Sketchup::ConstructionLine) && !e.is_a?(Sketchup::ConstructionPoint) && !e.is_a?(Sketchup::SectionPlane) &&
@@ -344,68 +354,19 @@ module HarryWardrobes
           end
           shown.empty? ? view.zoom_extents : view.zoom(shown)
           view.zoom(0.92)
-          @labels = picture_labels(model, view)
           h = (width * view.vpheight / view.vpwidth.to_f).round
           view.write_image(filename: path, width: width, height: h, antialias: true, compression: 0.9) or raise "Couldn't make the plan picture"
         ensure
-          keep.each { |k, val| (ro[k] = val) unless val.nil? }
-          si['DisplayShadows'] = shadows unless shadows.nil?
-          Array(folders).each { |f| f.visible = false if f.valid? }
           Array(hidden).each { |l| l.visible = true if l.valid? }
+          folders.each { |f| f.visible = false if f.valid? }
+          model.styles.selected_style = was_style if was_style
+          si['DisplayShadows'] = shadows unless shadows.nil?
           model.pages.selected_page = was_page if was_page
-          model.entities.active_section_plane = was_cut if was_page.nil? || !was_page.use_section_planes?
           view.camera = cam
           opts['ShowTransition'] = trans
           [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| plan_only(model, l) }
         end
         path
-      end
-
-      # Where each Pod number goes on the picture: [{ 't' => 'B4', 'pre' => 'UNFITTED', 'fx', 'fy' }]
-      # (fractions of the picture across / down).
-      def self.picture_labels(model, view)
-        model.entities.grep(Sketchup::Group).filter_map do |g|
-          t = g.get_attribute(DICT, 'product_label') or next
-          pt = view.screen_coords(g.bounds.center)
-          { 't' => t.to_s, 'pre' => g.get_attribute(DICT, 'product_label_pre').to_s,
-            'fx' => (pt.x / view.vpwidth.to_f).round(4), 'fy' => (pt.y / view.vpheight.to_f).round(4) }
-        end
-      end
-
-      # The Pod numbers from the last picture.
-      def self.labels = Array(@labels)
-
-      # The Pod numbers over the plan picture drawn at x, y (bottom-left), w x h points, as on
-      # an architectural plan: a black disc with the number in white bold, "UNFITTED" in small
-      # bold under it for an unfitted unit.
-      NUM_PT = 7.5
-      PRE_PT = 5.5
-      K = 0.5523 # circle from four curves
-
-      def self.disc(pg, cx, cy, r)
-        c = r * K
-        pg.ops << format('0 g %.2f %.2f m %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c %.2f %.2f %.2f %.2f %.2f %.2f c f',
-                         cx + r, cy, cx + r, cy + c, cx + c, cy + r, cx, cy + r, cx - c, cy + r, cx - r, cy + c, cx - r, cy,
-                         cx - r, cy - c, cx - c, cy - r, cx, cy - r, cx + c, cy - r, cx + r, cy - c, cx + r, cy)
-      end
-
-      def self.badge_r(t) = [Pdf.width(t, 'F2', NUM_PT) / 2 + 3, 7.5].max
-
-      def self.overlay(pg, labels, x, y, w, h)
-        labels.each do |l|
-          cx = x + l['fx'].to_f * w
-          cy = y + (1 - l['fy'].to_f) * h
-          next if cx < x || cx > x + w || cy < y || cy > y + h
-          t = Pdf.clean(l['t'].to_s)
-          r = badge_r(t)
-          disc(pg, cx, cy, r)
-          pg.ops << format('1 g BT /F2 %.1f Tf %.2f %.2f Td (%s) Tj ET 0 g', NUM_PT, cx - Pdf.width(t, 'F2', NUM_PT) / 2, cy - NUM_PT * 0.35, Pdf.esc(t))
-          pre = l['pre'].to_s
-          next if pre.empty?
-          pw = Pdf.width(pre, 'F2', PRE_PT)
-          pg.rect_fill(cx - pw / 2 - 1.5, cy - r - PRE_PT - 2.5, pw + 3, PRE_PT + 2, 1.0)
-          pg.text(cx - pw / 2, cy - r - PRE_PT - 1, pre, font: 'F2', size: PRE_PT)
-        end
       end
 
       # Tags left off the plan picture (Settings > Floor plan: hardware - hinges, rails...).
@@ -455,7 +416,6 @@ module HarryWardrobes
         iw = im['w'] * scale
         ih = im['h'] * scale
         pg.image('Im1', m + (box_w - iw) / 2, m + (box_h - ih) / 2, iw, ih)
-        overlay(pg, labels, m + (box_w - iw) / 2, m + (box_h - ih) / 2, iw, ih)
         path = File.join(dir, "INSTALLATION_PLAN_v#{v}_#{Report.safe_name(base)}.pdf")
         File.binwrite(path, Pdf.document([pg.to_s], images: { 'Im1' => im }))
         File.delete(jpg) rescue nil
@@ -474,7 +434,6 @@ module HarryWardrobes
           jpg = File.join(Dir.tmpdir, "hw_plan_view_#{Process.pid}.jpg")
           picture(model, jpg, 1400)
           out['img'] = "data:image/jpeg;base64,#{[File.binread(jpg)].pack('m0')}"
-          out['labels'] = labels
           File.delete(jpg) rescue nil
         end
         out

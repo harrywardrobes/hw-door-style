@@ -68,7 +68,7 @@ def mm(v); (v * 25.4).round(1); end
 # --- settings location (0.12) ---
 check 'settings in AppData', Settings::USER_FILE.start_with?(ENV['APPDATA']) && Settings::USER_FILE.end_with?('HW Door Style/settings.json')
 check 'team file is settings.json in the team folder (shared drive)', Settings.team_file('team_folder' => 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin').tr('\\', '/') == 'H:/Shared drives/HW/8_SKETCHUP/HW Plugin/settings.json' && Settings.defaults['team_folder'].start_with?('H:/Shared drives/Harry Wardrobes/8_SKETCHUP')
-check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 23, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} } && !Settings.clean({ 'settings_version' => 22, 'components' => { 'X' => {} } }, Settings.defaults).key?('components')
+check 'reshipped settings replace a saved copy from an older file, others kept', Settings.clean({ 'settings_version' => 13, 'components' => { 'X' => {} }, 'parts_sheet_waste_pct' => 9 }, Settings.defaults) == { 'settings_version' => 13, 'parts_sheet_waste_pct' => 9 } && Settings.clean({ 'settings_version' => 24, 'components' => { 'X' => {} } }, Settings.defaults)['components'] == { 'X' => {} } && !Settings.clean({ 'settings_version' => 22, 'components' => { 'X' => {} } }, Settings.defaults).key?('components')
 Dir.mktmpdir do |d|
   f = File.join(d, 'team.json')
   File.write(f, '{"hw_door_style_settings":"0.12","zebra_share":"Z1","parts_sheet_waste_pct":7,"junk":1}')
@@ -498,12 +498,16 @@ require 'hw_door_style/job/plan'
 PLN = HarryWardrobes::DoorStyle::Plan
 ch = PLN.chain(3930 / 25.4, [[598, 975], [966, 1686]].map { |a| a.map { |v| v / 25.4 } }).map { |v| (v * 25.4).round }
 check 'installation plan: dimensions round the room - a chain from corner to corner through each product on the wall (points closer than 10 mm merged), then the whole wall',
-      ch == [0, 598, 966, 1686, 3930] && PLN.chain(100, []).size == 2 && PL_SRC.include?('t + gap * 2.2') && PL_SRC.include?("CUT_NAME = 'HW plan cut'")
-check 'installation plan: each product dimensioned along the wall it stands against (its back), a knee-hole by its opening; Pod numbers bold text over the picture, UNFITTED over an unfitted unit; hidden tags off in the plan scenes',
-      PL_SRC.include?('def self.wall_of(host)') && PL_SRC.include?("DC.value(host, 'a01_unit_width')") && PL_SRC.include?('def self.overlay(pg, labels') &&
-      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/room_plan.rb')).include?('Plan.overlay(pg, Plan.labels') &&
-      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/products.rb')).include?("'UNFITTED'") && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')).include?('class="podlbl"') &&
-      PL_SRC.include?('pg.set_visibility(l, false) if pg.name =~ scene_re')
+      ch == [0, 598, 966, 1686, 3930] && PLN.chain(100, []).size == 2 && PL_SRC.include?('t + gap * 2.2')
+check 'installation plan picture: SketchUp Top view in parallel projection, the "HW plan" style (made if missing: hidden line, no shadows), no section cut, nothing overlaid on the picture',
+      PL_SRC.include?("STYLE_NAME = 'HW plan'") && PL_SRC.include?("ro['RenderMode'] = 1") && PL_SRC.include?("si['DisplayShadows'] = false") &&
+      PL_SRC.include?('Sketchup::Camera.new(Geom::Point3d.new(c0.x, c0.y, model.bounds.max.z + 1000)') && !PL_SRC.include?('plan cut') && !PL_SRC.include?('overlay') &&
+      !File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/room_plan.rb')).include?('Plan.overlay')
+check 'Pod numbers: SketchUp screen text on the Pod_numbers tag (UNFITTED over an unfitted unit); a saved T_numbers tag setting is dropped',
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/products.rb')).include?('model.entities.add_text(txt') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/products.rb')).include?("'UNFITTED'") &&
+      HarryWardrobes::DoorStyle::Settings.defaults['product_label_tag'] == 'Pod_numbers' && HarryWardrobes::DoorStyle::Settings::RESHIPPED[24] == %w[product_label_tag]
+check 'installation plan: each product dimensioned along the wall it stands against (its back), a knee-hole by its opening; hidden tags off in the plan scenes',
+      PL_SRC.include?('def self.wall_of(host)') && PL_SRC.include?("DC.value(host, 'a01_unit_width')") && PL_SRC.include?('hidden_tags(model).each { |l| pg.set_visibility(l, false) }')
 check 'export changes: parts added / removed once (not their insides), values was -> now per part, unchanged left out',
       xd['added'] == ['WRD > DIV'] && xd['removed'] == ['WRD > SHELF (2)'] &&
       xd['parts'] == [{ 'part' => 'WRD', 'changes' => [['_backs_label', nil, 'BACKS'], ['_lenz_formula', '=2300', '=2400']] }, { 'part' => 'WRD > SHELF', 'changes' => [['position', '(0, 0, 300) mm', '(0, 0, 320) mm']] }] &&
