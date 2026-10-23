@@ -491,6 +491,8 @@ xo = { 'WRD|material' => '', 'WRD|_lenz_formula' => '=2300', 'WRD > SHELF|positi
 xn = { 'WRD|material' => '', 'WRD|_lenz_formula' => '=2400', 'WRD|_backs_label' => 'BACKS', 'WRD > SHELF|position' => '(0, 0, 320) mm', 'WRD > SHELF|tag' => 'SH',
        'WRD > RAIL|tag' => 'hanging_rail', 'WRD > DIV|position' => '(5, 0, 0) mm', 'WRD > DIV > PIN|position' => '(0, 0, 0) mm' }
 xd = XC.diff(xo, xn)
+check 'cable outlets: fixed size and round - Clean model fixes them, export blocked until then', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'core/no_scale.rb')).include?('FIXED = /\\ACABLE_OUTLET/i') &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?('NoScale.fix_outlets!(model)') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?("outlets.empty? }")
 check 'export changes: parts added / removed once (not their insides), values was -> now per part, unchanged left out',
       xd['added'] == ['WRD > DIV'] && xd['removed'] == ['WRD > SHELF (2)'] &&
       xd['parts'] == [{ 'part' => 'WRD', 'changes' => [['_backs_label', nil, 'BACKS'], ['_lenz_formula', '=2300', '=2400']] }, { 'part' => 'WRD > SHELF', 'changes' => [['position', '(0, 0, 300) mm', '(0, 0, 320) mm']] }] &&

@@ -49,6 +49,75 @@ module HarryWardrobes
         end
       end
 
+      # --- fixed-size parts (cable outlets) ---------------------------------------------
+      #
+      # A cable outlet is a bought-in 80 mm grommet: always its own size (the definition's
+      # 88 x 88 x 20 mm rim), round, whatever the unit around it does. Every one placed in a
+      # component has no scaling (only its position and turn) and Dynamic Component sizes
+      # fixed to the definition's (_lenx/_leny/_lenz formulas), so a unit redrawing or
+      # being stretched can't change it.
+      FIXED = /\ACABLE_OUTLET/i.freeze
+
+      def self.fixed?(defn) = DC.base_name(defn) =~ FIXED ? true : false
+
+      def self.size_cm(defn)
+        b = defn.bounds
+        [b.width, b.height, b.depth].map { |v| (v * 2.54).round(2) }
+      end
+
+      def self.cm_s(v) = (v % 1).zero? ? v.to_i.to_s : v.to_s
+
+      # Is a placed outlet scaled (stretched or squashed)?
+      def self.scaled?(inst)
+        t = inst.transformation
+        [X_AXIS, Y_AXIS, Z_AXIS].any? { |a| ((t * a).length.to_f - 1.0).abs > 1e-4 }
+      end
+
+      def self.fixed_formulas?(inst)
+        want = size_cm(inst.definition)
+        %w[lenx leny lenz].each_with_index.all? do |k, i|
+          f = inst.get_attribute(DICT_NAME, "_#{k}_formula").to_s.strip
+          f.match?(/\A-?[\d.]+\z/) && (f.to_f - want[i]).abs < 0.01
+        end
+      end
+
+      # [[placed outlet, parent definition name, ['stretched', 'size not fixed']]] under the library components.
+      def self.outlet_issues(model)
+        Unshare.nested(Unshare.tops(model)).filter_map do |e|
+          next unless fixed?(e.definition)
+          why = []
+          why << 'stretched' if scaled?(e)
+          why << 'size not fixed' unless fixed_formulas?(e)
+          next if why.empty?
+          [e, e.parent.respond_to?(:name) ? e.parent.name : '', why]
+        end
+      end
+
+      # Inside the caller's step: each outlet back to its own size (scaling taken out, its
+      # position and turn kept) with the size fixed by formula; the components holding them
+      # redrawn. Returns the number fixed.
+      def self.fix_outlets!(model)
+        list = outlet_issues(model)
+        return 0 if list.empty?
+        list.each do |e, _p, _w|
+          t = e.transformation
+          e.transformation = Geom::Transformation.axes(t.origin, t.xaxis.normalize, t.yaxis.normalize, t.zaxis.normalize)
+          size_cm(e.definition).zip(%w[lenx leny lenz]).each do |cm, k|
+            e.set_attribute(DICT_NAME, "_#{k}_formula", cm_s(cm))
+            e.set_attribute(DICT_NAME, k, (cm / 2.54).to_s)
+          end
+        end
+        parents = list.map { |e, _p, _w| e.parent }.uniq
+        model.entities.grep(Sketchup::ComponentInstance).each do |i|
+          next unless Unshare.tops(model).include?(i.definition)
+          inside = Unshare.nested([i.definition]).map(&:parent).uniq
+          next unless (inside & parents).any? || parents.include?(i.definition)
+          Drawers.close(i.definition.entities)
+          DC.redraw(i)
+        end
+        list.size
+      end
+
       # Inside the caller's step. Returns the names fixed.
       def self.fix!(model)
         fixed = []

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.92.0 — 2026-10-23
+- Cable outlets are a fixed size and round in every component: each one placed in a component has no scaling (only its position and turn) and its size fixed by formula to the outlet's own 88 x 88 x 20 mm, so a unit redrawing or being stretched can't change it. The worktop knee-hole's outlets had been stretched (86 x 91 mm).
+- Export components: Clean model puts any stretched or unfixed cable outlet back to its size, and an export isn't allowed until it's done (listed with the component it's in).
+
 ## 0.91.0 — 2026-10-23
 - Export components: a "changed" component opens a list of what changed since its last export - parts added or removed, and for each part what differs, was -> now: options and formulas (Dynamic Component values), position, rotation / scale, tag, material, hidden, which component (definition) it uses, geometry (faces, edges, area, box) and face materials / tags. Both sides are compared cleaned as for export.
 - Each export now records that detail in the library file. A component exported before this gets it the first time the window finds it unchanged; one already changed shows its changes from its next export on (the window says so).
