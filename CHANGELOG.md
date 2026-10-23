@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.89.3 — 2026-10-23
+- Room setup: the walls are drawn again as true boxes every time the room is sized - straight, level and square, whatever geometry the wall had. The template's back wall was drawn on a slope (one end 41 mm lower over 17 m), and stretching it to the room kept the slope, so new rooms had a sloping back wall.
+- Room setup always saves the file (a new job where it was chosen, an existing one where it is).
+
 ## 0.89.2 — 2026-10-23
 - Fix: a drawer unit with boxes was also listed as a pull-out with no box (since 0.89.0's Pod-number parents).
 - Workshop > Parts list: every table has the PDF's column widths; the sheet count line matches the PDF; the Room Plan cover's room and name stacked as on the PDF.

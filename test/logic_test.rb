@@ -1115,6 +1115,12 @@ check 'Workshop window laid out as the PDFs: door order lines with the PDF\'s De
 check 'Drawer boxes: a unit with boxes is never also listed as a pull-out (compared by component, not the Pod label)', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'parts_list.rb')).include?("boxed_units = list.map { |r| r['component'] }")
 
 
+rm_src = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job', 'room.rb'))
+check 'Room setup: the walls are drawn again as true boxes (straight and level whatever the template\'s wall was), and the file is always saved',
+      rm_src.include?('solid(p[:back],') && rm_src.include?('d.entities.clear!') && rm_src.include?('inst.transformation = Geom::Transformation.translation([x, y, z])') &&
+      rm_src.include?('path ||= model.path.to_s') && rm_src.include?('ok = model.save(path)')
+
+
 # --- background steps (network / Drive off SketchUp's thread) -------------------------
 st_out = `ruby #{File.join(__dir__, 'steps_test.rb')} 2>&1`
 check 'Steps: a :bg step runs off the main thread, its after / the next step back on it, an error reaches fail, no timer left running',

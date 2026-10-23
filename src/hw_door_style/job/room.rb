@@ -118,16 +118,49 @@ module HarryWardrobes
 
       # The walls round the floor (fb: its bounds): back behind it (across the corners, so the
       # room is closed in plan), left and right the floor's length, all from the floor's
-      # underside to the ceiling.
+      # underside to the ceiling. Each wall is drawn again as a true box (solid), so it is
+      # straight and level whatever its geometry was (a template wall drawn on a slope was
+      # stretched with its slope).
       def self.walls(p, fb, ceiling_mm)
         return unless fb
         t = wall_mm / 25.4
         z0 = fb.min.z
         top = ceiling_mm ? fb.max.z + ceiling_mm.to_f / 25.4 : nil
         h = ->(inst) { top ? top - z0 : inst.bounds.depth }
-        box(p[:back], fb.width + 2 * t, t, h.call(p[:back]), fb.min.x - t, fb.max.y, z0) if p[:back]
-        box(p[:left], t, fb.height, h.call(p[:left]), fb.min.x - t, fb.min.y, z0) if p[:left]
-        box(p[:right], t, fb.height, h.call(p[:right]), fb.max.x, fb.min.y, z0) if p[:right]
+        solid(p[:back], fb.width + 2 * t, t, h.call(p[:back]), fb.min.x - t, fb.max.y, z0) if p[:back]
+        solid(p[:left], t, fb.height, h.call(p[:left]), fb.min.x - t, fb.min.y, z0) if p[:left]
+        solid(p[:right], t, fb.height, h.call(p[:right]), fb.max.x, fb.min.y, z0) if p[:right]
+      end
+
+      # A wall as a plain box w x l x h (inches) with its corner at x, y, z: its own definition
+      # (made unique if shared) holding just the box, placed with no rotation or scaling. The
+      # faces keep the wall's material and tag.
+      def self.solid(inst, w, l, h, x, y, z)
+        return box(inst, w, l, h, x, y, z) unless inst.is_a?(Sketchup::ComponentInstance)
+        inst.make_unique if inst.definition.instances.size > 1
+        d = inst.definition
+        face0 = d.entities.grep(Sketchup::Face).first
+        mat = face0&.material
+        tag = face0&.layer
+        d.entities.clear!
+        f = d.entities.add_face([0, 0, 0], [w, 0, 0], [w, l, 0], [0, l, 0])
+        f.reverse! if f.normal.z.positive?
+        f.pushpull(-h) # up from z = 0
+        d.entities.grep(Sketchup::Face).each { |fc| fc.material = mat; fc.layer = tag if tag }
+        d.entities.grep(Sketchup::Edge).each { |e| e.layer = tag if tag }
+        inst.transformation = Geom::Transformation.translation([x, y, z])
+        inst
+      end
+
+      # Is a wall a true box, level and square (8 corners on its bounding box)?
+      def self.straight?(inst)
+        d = inst.definition
+        b = d.bounds
+        pts = d.entities.grep(Sketchup::Edge).flat_map { |e| e.vertices.map(&:position) }.uniq { |pt| pt.to_a.map { |v| v.round(3) } }
+        corners = [b.min.x, b.max.x].product([b.min.y, b.max.y], [b.min.z, b.max.z])
+        t = inst.transformation
+        pts.size == 8 && pts.all? { |pt| corners.any? { |c| (pt.x - c[0]).abs < 0.01 && (pt.y - c[1]).abs < 0.01 && (pt.z - c[2]).abs < 0.01 } } &&
+          t.xaxis.parallel?(X_AXIS) && t.yaxis.parallel?(Y_AXIS) && t.zaxis.parallel?(Z_AXIS)
       end
 
       # A room part (floor, ceiling, a wall): never a product, a part or an export.
@@ -258,13 +291,13 @@ module HarryWardrobes
             model.set_attribute(DICT, 'room_name', pick['design_visit'] ? 'Design visit' : JobInfo.room_from_link(pick['room_name']))
           end
         end
-        if path
-          ok = model.save(path)
-          return "SketchUp couldn't save #{path}." unless ok
-        end
+        # always saved: a new job where it was chosen, an existing one where it is
+        path ||= model.path.to_s
+        ok = model.save(path)
+        return "SketchUp couldn't save #{path}." unless ok
         HubSpotRoom.refresh_info(model) if pick && !pick['design_visit']
         Pencil.invalidate(model) if defined?(Pencil)
-        Sketchup.status_text = "Room #{w.round} x #{l.round} mm, ceiling #{c.round} mm#{path ? " - saved as #{path}" : ''}."
+        Sketchup.status_text = "Room #{w.round} x #{l.round} mm, ceiling #{c.round} mm - saved as #{path}."
         nil
       rescue StandardError => e
         Log.error('room setup', e)
