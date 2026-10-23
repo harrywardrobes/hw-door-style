@@ -116,6 +116,55 @@ module HarryWardrobes
 
       # --- dimensions --------------------------------------------------------------------
 
+      # Which wall a product stands against: the way its back faces (a unit's green axis
+      # points at the wall behind it) - :back, :front, :left, :right, or nil when it's turned
+      # at an angle.
+      WALL_DIRS = { back: [0, 1], front: [0, -1], left: [-1, 0], right: [1, 0] }.freeze
+
+      def self.wall_of(host)
+        y = host.transformation.yaxis
+        v = Geom::Vector3d.new(y.x, y.y, 0)
+        return nil if v.length < 0.5
+        v.normalize!
+        WALL_DIRS.find { |_k, (x, yy)| v.x * x + v.y * yy > 0.9 }&.first
+      end
+
+      def self.knee_hole?(host) = DC.base_name(host.definition) =~ /KNEE_HOLE/i ? true : false
+
+      # The product's run along its wall [from, to] (inches, on the wall's axis): its whole
+      # extent - for a knee-hole worktop, the opening (its width from its origin along the unit).
+      def self.span(host, bb, wall)
+        along_x = %i[back front].include?(wall)
+        if knee_hole?(host) && (w = DC.value(host, 'a01_unit_width').to_f).positive?
+          o = host.transformation.origin
+          e = o.offset(host.transformation.xaxis, w)
+          return along_x ? [o.x, e.x].minmax : [o.y, e.y].minmax
+        end
+        along_x ? [bb.min.x, bb.max.x] : [bb.min.y, bb.max.y]
+      end
+
+      # [a, b, offset] for a dimension of [from, to] along a wall, on the wall's line (the
+      # floor's edge, else the product's back) and out past it.
+      def self.wall_dim(wall, from, to, fb, bb, z, gap)
+        case wall
+        when :back
+          y = fb ? fb.max.y : bb.max.y
+          [[from, y, z], [to, y, z], [0, gap, 0]]
+        when :front
+          y = fb ? fb.min.y : bb.min.y
+          [[from, y, z], [to, y, z], [0, -gap, 0]]
+        when :left
+          x = fb ? fb.min.x : bb.min.x
+          [[x, from, z], [x, to, z], [-gap, 0, 0]]
+        when :right
+          x = fb ? fb.max.x : bb.max.x
+          [[x, from, z], [x, to, z], [gap, 0, 0]]
+        end
+      end
+
+      # The room (floor) across the front and down the left, and each product along the wall
+      # it stands against, outside the room: its width against that wall (a knee-hole worktop:
+      # the opening).
       def self.dimension(model)
         tag = dims_tag(model)
         gap = (s['plan_dim_offset_mm'] || 250).to_f / 25.4
@@ -130,22 +179,28 @@ module HarryWardrobes
             made += 1
           end
           floor = Room.parts(model)[:floor]
+          fb = floor&.bounds
           if floor
-            fb = floor.bounds
             add.call(Geom::Point3d.new(fb.min.x, fb.min.y, 0), Geom::Point3d.new(fb.max.x, fb.min.y, 0), [0, -gap * 3, 0])
             add.call(Geom::Point3d.new(fb.min.x, fb.min.y, 0), Geom::Point3d.new(fb.min.x, fb.max.y, 0), [-gap * 3, 0, 0])
           end
           rows, = Products.list(model)
+          # over everything in the model (walls included, whatever they are) so the top view always shows them
+          top = model.bounds.max.z + 100 / 25.4
           by_pid = Products.candidates(model.entities).to_h { |e, _| [e.persistent_id.to_s, e] }
           rows.each do |r|
             h = by_pid[r['pid']] or next
             bb = Geom::BoundingBox.new
             bb.add(h.bounds)
             r['members'].each { |m| (e = by_pid[m['pid']]) && bb.add(e.bounds) }
-            z = bb.max.z
-            # along the back wall, outside the room
-            add.call(Geom::Point3d.new(bb.min.x, bb.max.y, z), Geom::Point3d.new(bb.max.x, bb.max.y, z), [0, gap, 0])
+            wall = wall_of(h) or next
+            from, to = span(h, bb, wall)
+            next if (to - from) < 1 / 25.4
+            a, b, off = wall_dim(wall, from, to, fb, bb, [top, bb.max.z + 100 / 25.4].max, gap)
+            add.call(Geom::Point3d.new(*a), Geom::Point3d.new(*b), off)
           end
+          # the plan scenes leave off what Settings > Floor plan hides (cable outlets, hinges...)
+          hidden_tags(model).each { |l| model.pages.each { |pg| pg.set_visibility(l, false) if pg.name =~ scene_re } }
           plan_only(model, tag)
         end
         made
@@ -189,7 +244,9 @@ module HarryWardrobes
         begin
           opts['ShowTransition'] = false
           model.pages.selected_page = pg
-          [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| l.visible = true }
+          [notes_tag(model), dims_tag(model)].each { |l| l.visible = true }
+          # the Pod numbers go on as bold text over the picture (labels below), not drawn in it
+          Products.label_tag(model).visible = false
           hidden = hidden_tags(model).select(&:visible?)
           hidden.each { |l| l.visible = false }
           # white paper: no sky, ground or horizon
@@ -212,6 +269,7 @@ module HarryWardrobes
           end
           shown.empty? ? view.zoom_extents : view.zoom(shown)
           view.zoom(0.92)
+          @labels = picture_labels(model, view)
           h = (width * view.vpheight / view.vpwidth.to_f).round
           view.write_image(filename: path, width: width, height: h, antialias: true, compression: 0.9) or raise "Couldn't make the plan picture"
         ensure
@@ -223,6 +281,43 @@ module HarryWardrobes
           [notes_tag(model), dims_tag(model), Products.label_tag(model)].each { |l| plan_only(model, l) }
         end
         path
+      end
+
+      # Where each Pod number goes on the picture: [{ 't' => 'B4', 'pre' => 'UNFITTED', 'fx', 'fy' }]
+      # (fractions of the picture across / down).
+      def self.picture_labels(model, view)
+        model.entities.grep(Sketchup::Group).filter_map do |g|
+          t = g.get_attribute(DICT, 'product_label') or next
+          pt = view.screen_coords(g.bounds.center)
+          { 't' => t.to_s, 'pre' => g.get_attribute(DICT, 'product_label_pre').to_s,
+            'fx' => (pt.x / view.vpwidth.to_f).round(4), 'fy' => (pt.y / view.vpheight.to_f).round(4) }
+        end
+      end
+
+      # The Pod numbers from the last picture.
+      def self.labels = Array(@labels)
+
+      # The Pod numbers in bold over the plan picture drawn at x, y (bottom-left), w x h points:
+      # "B4" (with "UNFITTED" over it, smaller, for an unfitted unit) on a white patch.
+      NUM_PT = 10
+      PRE_PT = 6.5
+
+      def self.overlay(pg, labels, x, y, w, h)
+        labels.each do |l|
+          cx = x + l['fx'].to_f * w
+          cy = y + (1 - l['fy'].to_f) * h
+          next if cx < x || cx > x + w || cy < y || cy > y + h
+          lines = [[l['pre'].to_s, PRE_PT], [l['t'].to_s, NUM_PT]].reject { |t, _| t.empty? }
+          tall = lines.sum { |_t, sz| sz * 0.8 } + (lines.size - 1) * 1.5
+          wide = lines.map { |t, sz| Pdf.width(t, 'F2', sz) }.max
+          pg.rect_fill(cx - wide / 2 - 2, cy - tall / 2 - 2, wide + 4, tall + 4, 1.0)
+          top = cy + tall / 2
+          lines.each do |t, sz|
+            top -= sz * 0.8
+            pg.text(cx - Pdf.width(t, 'F2', sz) / 2, top, t, font: 'F2', size: sz)
+            top -= 1.5
+          end
+        end
       end
 
       # Tags left off the plan picture (Settings > Floor plan: hardware - hinges, rails...).
@@ -272,6 +367,7 @@ module HarryWardrobes
         iw = im['w'] * scale
         ih = im['h'] * scale
         pg.image('Im1', m + (box_w - iw) / 2, m + (box_h - ih) / 2, iw, ih)
+        overlay(pg, labels, m + (box_w - iw) / 2, m + (box_h - ih) / 2, iw, ih)
         path = File.join(dir, "INSTALLATION_PLAN_v#{v}_#{Report.safe_name(base)}.pdf")
         File.binwrite(path, Pdf.document([pg.to_s], images: { 'Im1' => im }))
         File.delete(jpg) rescue nil
@@ -290,6 +386,7 @@ module HarryWardrobes
           jpg = File.join(Dir.tmpdir, "hw_plan_view_#{Process.pid}.jpg")
           picture(model, jpg, 1400)
           out['img'] = "data:image/jpeg;base64,#{[File.binread(jpg)].pack('m0')}"
+          out['labels'] = labels
           File.delete(jpg) rescue nil
         end
         out

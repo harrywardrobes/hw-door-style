@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.93.0 — 2026-10-23
+- Installation plan: each product is dimensioned along the wall it stands against (the way its back faces) - back, front, left or right wall, outside the room - instead of always across the back. A unit on a side wall (e.g. an unfitted chest) now shows its width against that wall, not its depth. A knee-hole worktop shows the opening's width.
+- Installation plan: Pod numbers are smaller, bold text over the picture (on a white patch), with "UNFITTED" over the number of any unfitted unit. In SketchUp's plan scene they're drawn smaller in Arial Black.
+- The plan scenes leave off what Settings > Floor plan hides (cable outlets, hinges, rails...), as the picture already did.
+
 ## 0.92.0 — 2026-10-23
 - Cable outlets are a fixed size and round in every component: each one placed in a component has no scaling (only its position and turn) and its size fixed by formula to the outlet's own 88 x 88 x 20 mm, so a unit redrawing or being stretched can't change it. The worktop knee-hole's outlets had been stretched (86 x 91 mm).
 - Export components: Clean model puts any stretched or unfixed cable outlet back to its size, and an export isn't allowed until it's done (listed with the component it's in).

@@ -95,6 +95,8 @@
   .foot2 .rm { font-size:20px; font-weight:700; } .foot2 .nm { font-size:14px; font-weight:700; }
   .wt { display:grid; grid-template-columns:160px 1fr; gap:10px; border-bottom:1px solid var(--line); padding:8px 0; font-size:11.5px; }
   .wt .kv { display:flex; gap:6px; } .wt .kv b { min-width:92px; }
+  .podlbl { position:absolute; transform:translate(-50%,-50%); background:#fff; padding:0 3px; font:700 13px/1.05 Arial, sans-serif; color:#000; text-align:center; pointer-events:none; }
+  .podlbl small { display:block; font-size:8.5px; }
   .planfoot { display:flex; gap:8px; border-top:1px solid var(--line); padding-top:6px; margin-top:8px; }
   .planfoot div { flex:1; } .planfoot small { font-size:10.5px; font-weight:700; display:block; } .planfoot b { font-size:14px; }
   #printArea { display:none; }
@@ -415,7 +417,7 @@ function planData(p){
     '<button onclick="planBusy(\'planRotate\')" title="Turns the plan a quarter turn (kept with the file - the Room Plan PDF follows it)">Rotate 90&deg;</button><button onclick="planBusy(\'planLoad\')" title="Makes the plan picture again from the model as it is now - after you move a unit or add a note (Pod numbers and dimensions are redone if anything changed)">Update picture</button><button class="primary" onclick="sketchup.planPdf()">Save room plan (PDF)</button></div>';
   if (p.error) h += '<div class="warnbox">' + esc(p.error) + '</div>';
   h += '<div style="display:flex;gap:12px;align-items:flex-start">';
-  h += '<div style="flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;background:#fff;text-align:center">' + (p.img ? '<img src="' + p.img + '" style="max-width:100%;max-height:560px">' : '<div class="hint" style="padding:30px">No picture yet.</div>') + '</div>';
+  h += '<div style="flex:1;min-width:0;border:1px solid var(--line);border-radius:4px;background:#fff;text-align:center">' + (p.img ? '<div style="position:relative;display:inline-block;max-width:100%"><img src="' + p.img + '" style="display:block;max-width:100%;max-height:560px">' + (p.labels || []).map(function(l){ return '<div class="podlbl" style="left:' + (l.fx * 100) + '%;top:' + (l.fy * 100) + '%">' + (l.pre ? '<small>' + esc(l.pre) + '</small>' : '') + esc(l.t) + '</div>'; }).join('') + '</div>' : '<div class="hint" style="padding:30px">No picture yet.</div>') + '</div>';
   h += '<div style="width:300px;flex:none"><h3 style="margin:0 0 4px;font-size:12px">Notes on the plan (' + p.notes.length + ')</h3>' +
     '<div class="hint" style="margin:0 0 6px">Add one: right-click a part in SketchUp &gt; HW Door Style &gt; Plan note. Edit or delete them here.</div>' +
     (p.notes.length ? p.notes.map(function(n){ return '<div style="display:flex;gap:4px;margin-bottom:4px"><input type="text" value="' + esc(n.text) + '" data-note="' + n.id + '" style="flex:1;font:inherit;font-size:11.5px;padding:3px 5px;border:1px solid var(--line);border-radius:3px" onchange="planEdit(' + n.id + ', this.value)"><button title="Delete" onclick="planEdit(' + n.id + ', \'\')">&times;</button></div>'; }).join('') : '<div class="hint">None yet.</div>') +

@@ -295,7 +295,12 @@ module HarryWardrobes
 
       def self.label_tag(model) = Tags.get(model, 'product_label_tag')
 
-      LABEL_MM = 140 # height of the Pod number lettering on the plan
+      LABEL_MM = 100 # height of the Pod number lettering on the plan (SketchUp's plan scene)
+      LABEL_FONT = 'Arial Black'.freeze
+      UNFITTED = /UNFITTED/i.freeze
+
+      # "UNFITTED" over the Pod number of an unfitted unit (DRAWER_UNFITTED...).
+      def self.label_pre(host) = DC.base_name(host.definition) =~ UNFITTED ? 'UNFITTED' : ''
 
       # The Pod number ("T1") in bold flat lettering over the middle of each product, on its
       # own tag, shown only in the plan scenes (Settings "product_label_scenes"). It reads
@@ -319,7 +324,8 @@ module HarryWardrobes
             bb.add(h.bounds)
             r['members'].each { |m| (e = by_pid[m['pid']]) && bb.add(e.bounds) }
             g = model.entities.add_group
-            g.entities.add_3d_text(r['t'].to_s, TextAlignCenter, 'Arial', true, false, LABEL_MM / 25.4, 0.0, 0.0, true, 0.0)
+            pre = label_pre(h)
+            g.entities.add_3d_text([pre, r['t'].to_s].reject(&:empty?).join("\n"), TextAlignCenter, LABEL_FONT, true, false, LABEL_MM / 25.4, 0.0, 0.0, true, 0.0)
             tb = g.bounds
             # centred on the product, just above it, turned to read upright in the plan picture
             t = Geom::Transformation.translation(Geom::Point3d.new(bb.center.x, bb.center.y, bb.max.z + 1) - tb.center)
@@ -329,6 +335,7 @@ module HarryWardrobes
             g.layer = tag
             g.name = r['t'].to_s
             g.set_attribute(DICT, 'product_label', r['t'])
+            g.set_attribute(DICT, 'product_label_pre', pre) unless pre.empty?
             n += 1
           end
           # Hidden everywhere except the plan scenes.

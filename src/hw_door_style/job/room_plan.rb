@@ -288,6 +288,7 @@ module HarryWardrobes
           box_h = top - 40 - foot
           s = [box_w / im['w'], box_h / im['h']].min
           pg.image('Im1', M + (box_w - im['w'] * s) / 2, foot + (box_h - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
+          Plan.overlay(pg, Plan.labels, M + (box_w - im['w'] * s) / 2, foot + (box_h - im['h'] * s) / 2, im['w'] * s, im['h'] * s)
         else
           pg.text(M, top - 60, 'No plan scene in this model - add a scene named "top" or "plan" to show the installation plan here.', font: 'F2', size: 10)
         end

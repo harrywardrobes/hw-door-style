@@ -493,6 +493,12 @@ xn = { 'WRD|material' => '', 'WRD|_lenz_formula' => '=2400', 'WRD|_backs_label' 
 xd = XC.diff(xo, xn)
 check 'cable outlets: fixed size and round - Clean model fixes them, export blocked until then', File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'core/no_scale.rb')).include?('FIXED = /\\ACABLE_OUTLET/i') &&
       File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?('NoScale.fix_outlets!(model)') && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'export/library_export.rb')).include?("outlets.empty? }")
+PL_SRC = File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/plan.rb'))
+check 'installation plan: each product dimensioned along the wall it stands against (its back), a knee-hole by its opening; Pod numbers bold text over the picture, UNFITTED over an unfitted unit; hidden tags off in the plan scenes',
+      PL_SRC.include?('def self.wall_of(host)') && PL_SRC.include?("DC.value(host, 'a01_unit_width')") && PL_SRC.include?('def self.overlay(pg, labels') &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/room_plan.rb')).include?('Plan.overlay(pg, Plan.labels') &&
+      File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'job/products.rb')).include?("'UNFITTED'") && File.read(File.join(HarryWardrobes::DoorStyle::PATH, 'html/parts_list.html')).include?('class="podlbl"') &&
+      PL_SRC.include?('pg.set_visibility(l, false) if pg.name =~ scene_re')
 check 'export changes: parts added / removed once (not their insides), values was -> now per part, unchanged left out',
       xd['added'] == ['WRD > DIV'] && xd['removed'] == ['WRD > SHELF (2)'] &&
       xd['parts'] == [{ 'part' => 'WRD', 'changes' => [['_backs_label', nil, 'BACKS'], ['_lenz_formula', '=2300', '=2400']] }, { 'part' => 'WRD > SHELF', 'changes' => [['position', '(0, 0, 300) mm', '(0, 0, 320) mm']] }] &&
